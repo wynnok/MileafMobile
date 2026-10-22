@@ -1,0 +1,2663 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health V1 Health Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ]
+      }
+    },
+    "/v1/auth/setup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Setup",
+        "operationId": "setup_v1_auth_setup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Setup V1 Auth Setup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ]
+      }
+    },
+    "/v1/meta": {
+      "get": {
+        "summary": "Meta",
+        "operationId": "meta_v1_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/vehicles": {
+      "get": {
+        "summary": "Vehicles",
+        "operationId": "vehicles_v1_vehicles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Vehicle"
+                  },
+                  "type": "array",
+                  "title": "Response Vehicles V1 Vehicles Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/vehicles/{vehicle_id}/stats": {
+      "get": {
+        "tags": [
+          "statistics"
+        ],
+        "summary": "Statistics",
+        "operationId": "statistics_v1_vehicles__vehicle_id__stats_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "driving",
+                "charging"
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ],
+              "title": "Bucket"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "To"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "UTC",
+              "title": "Tz"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DrivingStats"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChargingStats"
+                    }
+                  ],
+                  "title": "Response Statistics V1 Vehicles  Vehicle Id  Stats Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drives/{drive_id}": {
+      "get": {
+        "tags": [
+          "drives"
+        ],
+        "summary": "Drive Detail",
+        "operationId": "drive_detail_v1_drives__drive_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "drive_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Drive Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriveDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vehicles/{vehicle_id}/drives": {
+      "get": {
+        "tags": [
+          "drives"
+        ],
+        "summary": "Drive List",
+        "operationId": "drive_list_v1_vehicles__vehicle_id__drives_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "20",
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrivePage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drives/{drive_id}/series": {
+      "get": {
+        "tags": [
+          "drives"
+        ],
+        "summary": "Drive Series",
+        "operationId": "drive_series_v1_drives__drive_id__series_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "drive_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Drive Id"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "speed",
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "points",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "200",
+              "title": "Points"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriveSeries"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charging-sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "charging sessions"
+        ],
+        "summary": "Charging Session Detail",
+        "operationId": "charging_session_detail_v1_charging_sessions__session_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingSessionDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vehicles/{vehicle_id}/charging-sessions": {
+      "get": {
+        "tags": [
+          "charging sessions"
+        ],
+        "summary": "Charging Session List",
+        "operationId": "charging_session_list_v1_vehicles__vehicle_id__charging_sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "20",
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingSessionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charging-sessions/{session_id}/series": {
+      "get": {
+        "tags": [
+          "charging sessions"
+        ],
+        "summary": "Charging Session Series",
+        "operationId": "charging_session_series_v1_charging_sessions__session_id__series_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "power,soc",
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "points",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "200",
+              "title": "Points"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingSessionSeries"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/vehicles/{vehicle_id}/summary": {
+      "get": {
+        "tags": [
+          "summary"
+        ],
+        "summary": "Summary",
+        "operationId": "summary_v1_vehicles__vehicle_id__summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "UTC",
+              "title": "Tz"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Summary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Battery": {
+        "properties": {
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "range_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Km"
+          },
+          "range_kind": {
+            "type": "string",
+            "enum": [
+              "rated",
+              "ideal"
+            ],
+            "title": "Range Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "range_km",
+          "range_kind"
+        ],
+        "title": "Battery"
+      },
+      "ChargePoint": {
+        "properties": {
+          "t": {
+            "type": "string",
+            "format": "date-time",
+            "title": "T"
+          },
+          "power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power"
+          },
+          "soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Soc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "t"
+        ],
+        "title": "ChargePoint"
+      },
+      "ChargingBucket": {
+        "properties": {
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "energy_added_kwh": {
+            "type": "number",
+            "title": "Energy Added Kwh"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "cost_per_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Kwh"
+          },
+          "ac_energy_kwh": {
+            "type": "number",
+            "title": "Ac Energy Kwh"
+          },
+          "dc_energy_kwh": {
+            "type": "number",
+            "title": "Dc Energy Kwh"
+          },
+          "dc_energy_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dc Energy Share"
+          },
+          "bucket_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Bucket Start"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "energy_added_kwh",
+          "cost",
+          "cost_per_kwh",
+          "ac_energy_kwh",
+          "dc_energy_kwh",
+          "dc_energy_share",
+          "bucket_start"
+        ],
+        "title": "ChargingBucket"
+      },
+      "ChargingMetrics": {
+        "properties": {
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "energy_added_kwh": {
+            "type": "number",
+            "title": "Energy Added Kwh"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "cost_per_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Kwh"
+          },
+          "ac_energy_kwh": {
+            "type": "number",
+            "title": "Ac Energy Kwh"
+          },
+          "dc_energy_kwh": {
+            "type": "number",
+            "title": "Dc Energy Kwh"
+          },
+          "dc_energy_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dc Energy Share"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "energy_added_kwh",
+          "cost",
+          "cost_per_kwh",
+          "ac_energy_kwh",
+          "dc_energy_kwh",
+          "dc_energy_share"
+        ],
+        "title": "ChargingMetrics"
+      },
+      "ChargingSession": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "energy_added_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Added Kwh",
+            "description": "Energy added to the battery, kWh"
+          },
+          "energy_used_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Used Kwh",
+            "description": "Grid-side energy consumed, kWh"
+          },
+          "start_soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Soc"
+          },
+          "end_soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Soc"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "is_dc": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Dc"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "ended_at",
+          "duration_min",
+          "energy_added_kwh",
+          "energy_used_kwh",
+          "start_soc",
+          "end_soc",
+          "cost",
+          "is_dc",
+          "location",
+          "is_active"
+        ],
+        "title": "ChargingSession"
+      },
+      "ChargingSessionDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "energy_added_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Added Kwh",
+            "description": "Energy added to the battery, kWh"
+          },
+          "energy_used_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Used Kwh",
+            "description": "Grid-side energy consumed, kWh"
+          },
+          "start_soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Soc"
+          },
+          "end_soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Soc"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "is_dc": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Dc"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "vehicle_id": {
+            "type": "integer",
+            "title": "Vehicle Id"
+          },
+          "outside_temp_c_avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outside Temp C Avg"
+          },
+          "start_battery_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Battery Level"
+          },
+          "end_battery_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Battery Level"
+          },
+          "charger_phases_mode": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charger Phases Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "ended_at",
+          "duration_min",
+          "energy_added_kwh",
+          "energy_used_kwh",
+          "start_soc",
+          "end_soc",
+          "cost",
+          "is_dc",
+          "location",
+          "is_active",
+          "vehicle_id",
+          "outside_temp_c_avg",
+          "start_battery_level",
+          "end_battery_level",
+          "charger_phases_mode"
+        ],
+        "title": "ChargingSessionDetail"
+      },
+      "ChargingSessionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChargingSession"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ChargingSessionPage"
+      },
+      "ChargingSessionSeries": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "empty",
+              "server_sampled"
+            ],
+            "title": "Resolution"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/ChargePoint"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "resolution",
+          "points",
+          "series"
+        ],
+        "title": "ChargingSessionSeries"
+      },
+      "ChargingStats": {
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/ChargingBucket"
+            },
+            "type": "array",
+            "title": "Buckets"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ChargingMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "buckets",
+          "totals"
+        ],
+        "title": "ChargingStats"
+      },
+      "Credentials": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "Credentials"
+      },
+      "Drive": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "distance_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Km"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          },
+          "consumption_wh_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km"
+          },
+          "start": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "end": {
+            "$ref": "#/components/schemas/Location"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "ended_at",
+          "distance_km",
+          "duration_min",
+          "energy_kwh",
+          "consumption_wh_km",
+          "start",
+          "end"
+        ],
+        "title": "Drive"
+      },
+      "DriveDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "distance_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Km"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          },
+          "consumption_wh_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km"
+          },
+          "start": {
+            "$ref": "#/components/schemas/DriveLocation"
+          },
+          "end": {
+            "$ref": "#/components/schemas/DriveLocation"
+          },
+          "vehicle_id": {
+            "type": "integer",
+            "title": "Vehicle Id"
+          },
+          "speed_max_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Max Kmh"
+          },
+          "speed_avg_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Avg Kmh"
+          },
+          "power_max_kw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Max Kw"
+          },
+          "outside_temp_c_avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outside Temp C Avg"
+          },
+          "inside_temp_c_avg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inside Temp C Avg"
+          },
+          "range_kind": {
+            "type": "string",
+            "enum": [
+              "rated",
+              "ideal"
+            ],
+            "title": "Range Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "ended_at",
+          "distance_km",
+          "duration_min",
+          "energy_kwh",
+          "consumption_wh_km",
+          "start",
+          "end",
+          "vehicle_id",
+          "speed_max_kmh",
+          "speed_avg_kmh",
+          "power_max_kw",
+          "outside_temp_c_avg",
+          "inside_temp_c_avg",
+          "range_kind"
+        ],
+        "title": "DriveDetail"
+      },
+      "DriveLocation": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "geofence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geofence"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "battery_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Battery Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "geofence",
+          "address",
+          "lat",
+          "lon",
+          "battery_level"
+        ],
+        "title": "DriveLocation"
+      },
+      "DrivePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Drive"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "DrivePage"
+      },
+      "DrivePoint": {
+        "properties": {
+          "t": {
+            "type": "string",
+            "format": "date-time",
+            "title": "T"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "speed_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Kmh"
+          },
+          "battery_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Battery Level"
+          },
+          "elevation_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation M"
+          }
+        },
+        "type": "object",
+        "required": [
+          "t",
+          "lat",
+          "lon"
+        ],
+        "title": "DrivePoint"
+      },
+      "DriveSeries": {
+        "properties": {
+          "drive_id": {
+            "type": "integer",
+            "title": "Drive Id"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "empty",
+              "server_sampled"
+            ],
+            "title": "Resolution"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/DrivePoint"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drive_id",
+          "resolution",
+          "points",
+          "series"
+        ],
+        "title": "DriveSeries"
+      },
+      "DrivingBucket": {
+        "properties": {
+          "drives": {
+            "type": "integer",
+            "title": "Drives"
+          },
+          "distance_km": {
+            "type": "number",
+            "title": "Distance Km"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          },
+          "consumption_wh_km_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km Net"
+          },
+          "consumption_wh_km_gross": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km Gross"
+          },
+          "speed_max_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Max Kmh"
+          },
+          "bucket_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Bucket Start"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drives",
+          "distance_km",
+          "energy_kwh",
+          "consumption_wh_km_net",
+          "consumption_wh_km_gross",
+          "speed_max_kmh",
+          "bucket_start"
+        ],
+        "title": "DrivingBucket"
+      },
+      "DrivingMetrics": {
+        "properties": {
+          "drives": {
+            "type": "integer",
+            "title": "Drives"
+          },
+          "distance_km": {
+            "type": "number",
+            "title": "Distance Km"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          },
+          "consumption_wh_km_net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km Net"
+          },
+          "consumption_wh_km_gross": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km Gross"
+          },
+          "speed_max_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Max Kmh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drives",
+          "distance_km",
+          "energy_kwh",
+          "consumption_wh_km_net",
+          "consumption_wh_km_gross",
+          "speed_max_kmh"
+        ],
+        "title": "DrivingMetrics"
+      },
+      "DrivingStats": {
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/DrivingBucket"
+            },
+            "type": "array",
+            "title": "Buckets"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/DrivingMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "buckets",
+          "totals"
+        ],
+        "title": "DrivingStats"
+      },
+      "Firmware": {
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "installed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Installed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "installed_at"
+        ],
+        "title": "Firmware"
+      },
+      "Freshness": {
+        "properties": {
+          "last_position_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Position At"
+          },
+          "last_state_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last State At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_position_at",
+          "last_state_at"
+        ],
+        "title": "Freshness"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LastCharge": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          },
+          "end_soc": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Soc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "energy_kwh",
+          "end_soc"
+        ],
+        "title": "LastCharge"
+      },
+      "LastDrive": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "distance_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Km"
+          },
+          "consumption_wh_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Wh Km"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "distance_km",
+          "consumption_wh_km"
+        ],
+        "title": "LastDrive"
+      },
+      "Location": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "geofence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geofence"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "geofence",
+          "address",
+          "lat",
+          "lon"
+        ],
+        "title": "Location"
+      },
+      "LoginResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "expires_at"
+        ],
+        "title": "LoginResponse"
+      },
+      "Meta": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "teslamate_schema_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teslamate Schema Version"
+          },
+          "schema_ok": {
+            "type": "boolean",
+            "title": "Schema Ok",
+            "default": true
+          },
+          "tested": {
+            "type": "boolean",
+            "title": "Tested"
+          },
+          "units": {
+            "type": "string",
+            "const": "metric",
+            "title": "Units",
+            "default": "metric"
+          },
+          "source_unit_of_length": {
+            "type": "string",
+            "enum": [
+              "km",
+              "mi"
+            ],
+            "title": "Source Unit Of Length"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "teslamate_schema_version",
+          "tested",
+          "source_unit_of_length",
+          "freshness"
+        ],
+        "title": "Meta"
+      },
+      "PeriodMetrics": {
+        "properties": {
+          "drives": {
+            "type": "integer",
+            "title": "Drives"
+          },
+          "distance_km": {
+            "type": "number",
+            "title": "Distance Km"
+          },
+          "energy_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kwh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drives",
+          "distance_km",
+          "energy_kwh"
+        ],
+        "title": "PeriodMetrics"
+      },
+      "Periods": {
+        "properties": {
+          "today": {
+            "$ref": "#/components/schemas/PeriodMetrics"
+          },
+          "month": {
+            "$ref": "#/components/schemas/PeriodMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "today",
+          "month"
+        ],
+        "title": "Periods"
+      },
+      "StateSegment": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "online",
+              "asleep",
+              "offline",
+              "charging"
+            ],
+            "title": "Value"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Since"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "since"
+        ],
+        "title": "StateSegment"
+      },
+      "Summary": {
+        "properties": {
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleIdentity"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StateSegment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "battery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Battery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "odometer_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer Km"
+          },
+          "charging_power_kw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charging Power Kw"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Periods"
+          },
+          "last_drive": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastDrive"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_charge": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastCharge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "firmware": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Firmware"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle",
+          "state",
+          "battery",
+          "odometer_km",
+          "charging_power_kw",
+          "period",
+          "last_drive",
+          "last_charge",
+          "firmware",
+          "freshness"
+        ],
+        "title": "Summary"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Vehicle": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "vin_suffix": {
+            "type": "string",
+            "title": "Vin Suffix"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StateSegment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "battery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Battery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "model",
+          "vin_suffix",
+          "state",
+          "battery",
+          "freshness"
+        ],
+        "title": "Vehicle"
+      },
+      "VehicleIdentity": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "vin_suffix": {
+            "type": "string",
+            "title": "Vin Suffix"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "model",
+          "vin_suffix"
+        ],
+        "title": "VehicleIdentity"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

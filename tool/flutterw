@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+project_root="$PWD"
+export CI=true FLUTTER_SUPPRESS_ANALYTICS=true
+export PUB_CACHE="${PUB_CACHE:-$project_root/.cache/pub}"
+export XDG_CONFIG_HOME="$project_root/.cache/config"
+export XDG_CACHE_HOME="$project_root/.cache/cache"
+export GRADLE_USER_HOME="$project_root/.cache/gradle"
+export ANDROID_USER_HOME="$project_root/.cache/android"
+export ANDROID_HOME="${MILEAF_ANDROID_SDK:-$project_root/.tooling/android-sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export CLANG_MODULE_CACHE_PATH="$project_root/.cache/clang"
+export SWIFTPM_MODULECACHE_OVERRIDE="$project_root/.cache/swift"
+flutter_sdk="${MILEAF_FLUTTER_SDK:-$project_root/.tooling/flutter}"
+if [[ ! -x "$flutter_sdk/bin/flutter" ]]; then
+  echo 'Missing project Flutter SDK. See docs/implementation/toolchain.md.' >&2
+  exit 1
+fi
+# Flutter prefers an existing global android-sdk setting over ANDROID_HOME.
+# Invoke Gradle directly so it cannot rewrite sdk.dir to the host SDK.
+if [[ "${1:-}" == android ]]; then
+  shift
+  printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
+    "$ANDROID_HOME" "$flutter_sdk" > "$project_root/android/local.properties"
+  cd android
+  exec ./gradlew "$@"
+fi
+if [[ "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle ) ]]; then
+  echo 'Use tool/flutterw android assembleDebug or assembleRelease to keep SDK selection local.' >&2
+  exit 1
+fi
+if [[ "${1:-}" == dart ]]; then
+
+  shift
+  exec "$flutter_sdk/bin/dart" "$@"
+fi
+exec "$flutter_sdk/bin/flutter" "$@"
