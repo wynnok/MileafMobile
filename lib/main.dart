@@ -11,8 +11,9 @@ import 'src/api.dart';
 void main() => runApp(const MileafApp());
 
 class MileafApp extends StatefulWidget {
-  const MileafApp({super.key, this.client});
+  const MileafApp({super.key, this.client, this.trustStore});
   final http.Client? client;
+  final HttpTrustStore? trustStore;
   @override
   State<MileafApp> createState() => _MileafAppState();
 }
@@ -21,6 +22,7 @@ class _MileafAppState extends State<MileafApp> {
   late final http.Client _client =
       widget.client ??
       IOClient(HttpClient()..connectionTimeout = const Duration(seconds: 5));
+  late final _api = MileafApi(_client, trustStore: widget.trustStore);
   @override
   void dispose() {
     if (widget.client == null) _client.close();
@@ -43,7 +45,7 @@ class _MileafAppState extends State<MileafApp> {
       brightness: Brightness.dark,
       useMaterial3: true,
     ),
-    home: ConnectionPage(api: MileafApi(_client)),
+    home: ConnectionPage(api: _api),
   );
 }
 
@@ -58,6 +60,74 @@ class _ConnectionPageState extends State<ConnectionPage> {
   final _address = TextEditingController();
   final _form = GlobalKey<FormState>();
   bool _loading = false;
+  bool _loadingTrust = false;
+  bool _trusted = false;
+  bool _savingTrust = false;
+
+  Future<void> _loadTrust() async {
+    final input = _address.text;
+    final site = _site;
+    setState(() {
+      _trusted = false;
+      _message = null;
+      _loadingTrust = true;
+    });
+    bool trusted = false;
+    String? failure;
+    try {
+      if (site?.uri.scheme == 'http') {
+        trusted = await widget.api.trustStore.isTrusted(site!);
+      }
+    } on Exception {
+      failure = '无法读取站点授权，请重新确认可信网络';
+    }
+    if (!mounted || input != _address.text) return;
+    setState(() {
+      _trusted = trusted;
+      _loadingTrust = false;
+      _message = failure;
+    });
+  }
+
+  Future<void> _setTrust(bool value) async {
+    final site = _site!;
+    setState(() {
+      _loadingTrust = true;
+      _savingTrust = true;
+      _message = null;
+    });
+    try {
+      await widget.api.trustStore.setTrusted(site, value);
+      if (mounted) {
+        setState(() {
+          _trusted = value;
+        });
+      }
+    } on Exception {
+      if (mounted) {
+        setState(() {
+          _trusted = false;
+          _message = '无法保存站点授权，请重试';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingTrust = false;
+          _savingTrust = false;
+        });
+      }
+    }
+  }
+
+  SiteAddress? get _site {
+    try {
+      return SiteAddress.parse(_address.text);
+    } on FormatException {
+      return null;
+    }
+  }
+
   String? _message;
   @override
   void dispose() {
@@ -84,7 +154,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
     } on FormatException {
       result = '服务返回格式不兼容，请核对 Mileaf Server 版本';
     } on Exception {
-      result = '服务不可达，请检查地址与网络后重试';
+      result = '服务不可达，请检查地址与网络后重试。若连接局域网站点，请在系统设置中检查行笺的局域网权限，允许后回到此处重试；也可改用仍可访问的 HTTPS 地址。';
     }
     if (!mounted) return;
     setState(() {
@@ -116,7 +186,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _address,
-                    enabled: !_loading,
+                    enabled: !_loading && !_savingTrust,
                     keyboardType: TextInputType.url,
                     autocorrect: false,
                     decoration: const InputDecoration(
@@ -133,15 +203,31 @@ class _ConnectionPageState extends State<ConnectionPage> {
                         return error.message;
                       }
                     },
+                    onChanged: (_) => _loadTrust(),
                     onFieldSubmitted: (_) {
-                      if (!_loading) _check();
+                      if (!_loading && !_loadingTrust) _check();
                     },
                   ),
                   const SizedBox(height: 12),
-                  const Text('当前使用 HTTPS 安全连接。请保留端口和反向代理路径前缀。'),
+                  const Text('推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。'),
+                  if (_site?.uri.scheme == 'http') ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'HTTP 会明文传输口令、token 和车辆数据。仅在你信任的私网或 VPN 使用；App 无法验证 VPN 或网络是否安全。',
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('我确认此站点使用可信网络'),
+                      subtitle: Text(_site!.uri.toString()),
+                      value: _trusted,
+                      onChanged: _loading || _loadingTrust
+                          ? null
+                          : (value) => _setTrust(value ?? false),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _loading ? null : _check,
+                    onPressed: _loading || _loadingTrust ? null : _check,
                     child: Text(_loading ? '正在检查…' : '检查连接'),
                   ),
                   if (_loading)
