@@ -3,6 +3,7 @@
 - 默认使用中文沟通。产品中文名「行笺」，英文名「Mileaf」。
 - Android / iOS 客户端使用 Flutter；通过 Mileaf Server 展示 TeslaMate 的结果数据。
 - 当前阶段：实施已发布的 Spec #1 与子任务 #2–#17。以 GitHub 最新 Spec、Ticket 和原生阻塞关系为准，按 `implement-spec` 在集成分支开发。
+- 当前门槛：SDK 隔离未通过验证，`tool/flutterw` 的原生 build/run 等入口暂以 78 停止。新进程隔离方案待用户确认和验证，不绕过保护、不改 HOME 或全局配置；候选代码不等于 Ticket 验收完成。
 - 已确认首版范围：单站点、多车辆；车辆切换、概览、行程列表与详情、充电列表与详情、统计，以及连接与登录。
 - 不实现车辆控制、Tesla 凭据接入、多车对比或秒级刷新。业务数据只读，站点认证除外。
 - `MileafServer/` 与 `teslamate/` 是外部仓库的符号链接，只读参考，不在本任务中修改。
