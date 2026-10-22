@@ -1,5 +1,17 @@
 # T01 双端启动与服务健康检查
 
+## 当前构建门槛
+
+后续安全网络切片发现，Flutter 子进程仍可能读取旧用户配置并重写 `sdk.dir`，
+即使直接运行 Gradle、按顺序构建也不能保证隔离。此前成功的双端构建记录仍保留，
+但不再将其解释为构建隔离已通过。当前 `tool/flutterw` 对 build/run/install/drive/android
+明确停止（退出码 78）；pub、test、analyze、dart 格式检查仍可运行。
+
+已向用户提出构建进程沙箱方案：不改 HOME、全局设置或原版 SDK，限制构建及其子进程
+读取旧 Flutter 配置和写入主机 Android SDK。该方案尚未获得确认或验证，不提供绕过开关，
+也不把本段当作已经实现沙箱。等待确认后再恢复原生构建；下列构建命令是历史验证方式，
+在当前门槛解除前不会执行。
+
 ## 固定工具链与边界
 
 - Flutter stable **3.47.7**，revision `abaf9c523780a608bd46686fd5e53740a07077f8`；Dart **3.13.5**。工程 `.metadata` 和 `pubspec.lock` 纳入版本管理。
@@ -37,12 +49,12 @@
 
 未取得真实用户站点或双端设备；App 操作测试使用可控 HTTP 契约响应；iOS 构建不等于已安装或实际网络栈验收。受控真实 HTTPS 联通已补验：实际 FastAPI 服务 + 隔离 PostgreSQL 16 夹具 + 独立测试 CA，生产 Dart `MileafApi`/`IOClient` 经正常证书链及主机名校验返回 `HEALTH_OK version=0.1.0`。测试 CA 仅在测试客户端上下文信任，未改变生产信任；首次自签 leaf 被正确拒绝。容器和证书已清理。该证据不是双端真机或真实用户站点验收，设备正常证书链/无效证书拒绝及最低系统运行仍待外部条件。#2 自身要求的双端构建、HTTP行为与真实健康最小联通已验证；全 Spec 的真机网络/最低系统/安全存储等验收仍由对应后续 Ticket 承担，不额外阻塞本切片。
 
-HTTP 私网授权、局域网权限及平台网络策略由后续安全网络切片交付；当前拒绝 HTTP，不依赖 debug 明文放行。不请求手机定位权限，也不记录地址输入、口令或完整 HTTP 响应。
+T01 基线拒绝 HTTP；后续安全网络切片的逐站点授权、局域网指引与验收门槛见 [安全网络记录](network-security.md)，不依赖 debug 明文放行。不请求手机定位权限，也不记录地址输入、口令或完整 HTTP 响应。
 
 ### Android SDK 隔离修正
 
 Flutter 的既有 `~/.flutter_settings` 中 `android-sdk` 优先于 `ANDROID_HOME`，即使设置 `XDG_CONFIG_HOME` 仍可能读取旧全局配置。初次 `flutter build apk` 因此准备向主机 SDK 安装 NDK；立即停止后仅产生 `.installer/.installData`。已核验并可逆迁回项目 `.cache/host-recovery/ndk-28.2.13676358`，主机版本目录已不存在，没有修改其他 SDK 或全局配置。
 
-最终 Android 构建入口为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。`tool/flutterw build apk/appbundle` 明确拒绝，避免复现全局优先行为；不覆盖 HOME 或调用 `flutter config`。需要禁止自动下载的环境可加 `-Pandroid.builder.sdkDownload=false`，缺少项目 SDK/NDK 时会明确失败。首次诊断已用此选项核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
+候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，故目前已停用该入口；不能继续声称它解决了全局优先问题。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
 
 SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终收敛到 Flutter 模板的 compile/target36，不压制兼容性警告；所需 platform36 仅安装于项目 SDK。
