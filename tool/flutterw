@@ -17,22 +17,19 @@ if [[ ! -x "$flutter_sdk/bin/flutter" ]]; then
   echo 'Missing project Flutter SDK. See docs/implementation/toolchain.md.' >&2
   exit 1
 fi
-# Flutter prefers an existing global android-sdk setting over ANDROID_HOME.
-# Invoke Gradle directly so it cannot rewrite sdk.dir to the host SDK.
-if [[ "${1:-}" == android ]]; then
-  shift
-  printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
-    "$ANDROID_HOME" "$flutter_sdk" > "$project_root/android/local.properties"
-  cd android
-  exec ./gradlew "$@"
-fi
-if [[ "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle ) ]]; then
-  echo 'Use tool/flutterw android assembleDebug or assembleRelease to keep SDK selection local.' >&2
-  exit 1
-fi
 if [[ "${1:-}" == dart ]]; then
-
   shift
   exec "$flutter_sdk/bin/dart" "$@"
 fi
+# Flutter subprocesses can replace sdk.dir with a legacy global setting even
+# when Gradle was started directly. Native builds remain disabled until the
+# process-isolation approach is approved and verified; never fail open here.
+for argument in "$@"; do
+  case "$argument" in
+    android|build|run|install|drive)
+      echo 'Native execution paused: SDK isolation is unresolved. See docs/implementation/toolchain.md.' >&2
+      exit 78
+      ;;
+  esac
+done
 exec "$flutter_sdk/bin/flutter" "$@"

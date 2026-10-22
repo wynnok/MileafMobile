@@ -1,5 +1,17 @@
 # T01 双端启动与服务健康检查
 
+## 当前构建门槛
+
+后续安全网络切片发现，Flutter 子进程仍可能读取旧用户配置并重写 `sdk.dir`，
+即使直接运行 Gradle、按顺序构建也不能保证隔离。此前成功的双端构建记录仍保留，
+但不再将其解释为构建隔离已通过。当前 `tool/flutterw` 对 build/run/install/drive/android
+明确停止（退出码 78）；pub、test、analyze、dart 格式检查仍可运行。
+
+已向用户提出构建进程沙箱方案：不改 HOME、全局设置或原版 SDK，限制构建及其子进程
+读取旧 Flutter 配置和写入主机 Android SDK。该方案尚未获得确认或验证，不提供绕过开关，
+也不把本段当作已经实现沙箱。等待确认后再恢复原生构建；下列构建命令是历史验证方式，
+在当前门槛解除前不会执行。
+
 ## 固定工具链与边界
 
 - Flutter stable **3.47.7**，revision `abaf9c523780a608bd46686fd5e53740a07077f8`；Dart **3.13.5**。工程 `.metadata` 和 `pubspec.lock` 纳入版本管理。
@@ -43,6 +55,6 @@ T01 基线拒绝 HTTP；后续安全网络切片的逐站点授权、局域网�
 
 Flutter 的既有 `~/.flutter_settings` 中 `android-sdk` 优先于 `ANDROID_HOME`，即使设置 `XDG_CONFIG_HOME` 仍可能读取旧全局配置。初次 `flutter build apk` 因此准备向主机 SDK 安装 NDK；立即停止后仅产生 `.installer/.installData`。已核验并可逆迁回项目 `.cache/host-recovery/ndk-28.2.13676358`，主机版本目录已不存在，没有修改其他 SDK 或全局配置。
 
-最终 Android 构建入口为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。`tool/flutterw build apk/appbundle` 明确拒绝，避免复现全局优先行为；不覆盖 HOME 或调用 `flutter config`。需要禁止自动下载的环境可加 `-Pandroid.builder.sdkDownload=false`，缺少项目 SDK/NDK 时会明确失败。首次诊断已用此选项核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
+候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，故目前已停用该入口；不能继续声称它解决了全局优先问题。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
 
 SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终收敛到 Flutter 模板的 compile/target36，不压制兼容性警告；所需 platform36 仅安装于项目 SDK。
