@@ -8,7 +8,7 @@
 
 ## 演示与发布方配置
 
-研发可用项目入口 `tool/flutterw run --target=tool/map_demo.dart` 查看未启用状态。若需加载真实服务，由发布方以不入库的 `--dart-define-from-file=<配置文件>` 为该独立 target 注入：
+独立 target 为 `tool/map_demo.dart`。当前原生执行门槛尚未解除，`tool/flutterw` 对 run/build 等命令以退出码78停止；此时不能运行演示或绕开保护直接调用原生工具。待用户批准且根因隔离方案验证通过后，才可使用受控入口运行该 target。届时若需加载真实服务，由发布方以不入库的 `--dart-define-from-file=<配置文件>` 注入：
 
 - `MILEAF_MAP_TILE_URL`：有权用于本应用、允许移动端直接交互请求的 HTTPS XYZ 模板，含 `{z}` / `{x}` / `{y}`。
 - `MILEAF_MAP_ATTRIBUTION`：所选服务要求的完整可见来源/版权/审图号。
@@ -56,3 +56,5 @@ App/HTTP行为测试覆盖默认不联网、未核准CRS阻断、明确同意、
 ### 本轮检查记录
 
 2026-10-22：7个地图候选行为测试与既有12个App测试全部通过；Dart格式检查、静态分析和diff whitespace检查通过。没有运行Android/iOS整包构建：集成任务发现Flutter构建子进程仍可能优先读取主机SDK配置，正等待隔离方案确认；不能以环境变量/local.properties假称问题已解决。本票尚无release或真机通过证据。
+
+合入最新集成分支9a8bd9b后保留shared_preferences与地图依赖并重新解析lock；当前合并态23个App/HTTP测试通过、格式/分析通过，原生执行保护保留。
