@@ -126,3 +126,12 @@ app.*.symbols
 /MileafServer
 /teslamate
 !pubspec.lock
+
+# Local IDE metadata
+.idea/
+*.iml
+
+# Versioned Gradle entry point for isolated Android builds
+!android/gradlew
+!android/gradlew.bat
+!android/gradle/wrapper/gradle-wrapper.jar

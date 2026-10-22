@@ -1,0 +1,7 @@
+{
+  "serverCommit": "146cb3b9a16af3d632b04ed8d197d0f2243d9b71",
+  "openapi": "3.1.0",
+  "sha256": "f6219d5476c217fd6ced091d7e9c0b1a2f9849ece57f79c05daf7f0386d29f0e",
+  "exportMethod": "create_app(Settings).openapi(), no lifespan/database/network",
+  "exportedAt": "2026-10-22"
+}
