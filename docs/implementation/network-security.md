@@ -15,7 +15,7 @@
 
 工具链仍按 T01 固定版本；构建只用项目 wrapper。Flutter 的 iOS 构建以及 Android 的 Flutter 子任务可能改写 `local.properties` 到既有全局 SDK 设置；每次入口重写项目 SDK 和顺序构建仍不能阻止 Flutter 子进程再次改写该文件，现有 wrapper 的隔离方案尚未解决；停止进一步 native 构建试错，待根因级隔离方案确认。曾因并发覆盖导致 Android CMake 定位失败，未向主机安装 CMake；曾顺序重跑 Android release 成功（155 tasks，2m12s），iOS release 无签名构建成功（16.5MB）；这些仅证明候选编译成功，不证明工具链隔离完整，也不是已安装或设备网络验收。shared_preferences Android 插件需要 platform35，已仅在项目 SDK 内补齐，主工程仍 compile/target36、最低24。
 
-最终源码已有 16 个 App 行为测试、格式检查及静态分析通过。最后一次 Android 增量构建按协调要求中止，不以它作为验收证据；项目 local.properties 已恢复为项目 SDK。
+最终源码已有 16 个 App 行为测试、格式检查及静态分析通过。收到停止 native 构建要求后尝试中止在途任务时，任务已成功结束（20s，155 tasks，29 executed）；之后不再进行 native 构建。该成功仍不能证明隔离已解决。项目 local.properties 已恢复为项目 SDK。
 
 ## 未通过项与实施门槛
 
