@@ -67,3 +67,15 @@ SDK 自定义路径沿用 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK`；Pub cach
 - 两次均记录 preflight 四项通过、wrapper/profile/probe SHA-256 与冻结输入一致、`sdk.dir` 始终项目 SDK。
 
 该项目级变更可连同 Podfile/lock、Xcode 工程和 wrapper 一起回退到之前的 Android-only 基线；回退不会使原 SwiftPM 嵌套问题自动消失。没有向用户设备安装、签名或上架。
+
+## 合入认证候选后的最终验收
+
+同步集成分支 `4450a76`（含站点会话与平台安全存储候选）后，再次按顺序验证：
+
+- 35 个 App 行为测试通过；静态分析无问题；11 个 Dart 文件格式检查无变化。
+- iOS release 无签名构建完整退出0，Xcode 33.6s，`Runner.app` 17.2MB；Podfile.lock 增加实际安装的 `flutter_secure_storage_darwin`，保留 iOS15。
+- Android `:app:assembleRelease` 完整退出0，1m27s，220 tasks（212 executed / 8 up-to-date），研发签名 APK 约50MB。
+- 两次构建仍使用相同冻结的 wrapper/profile/probe；前后 SHA-256 校验均通过，`sdk.dir` 始终项目 SDK，主机 probe 文件摘要未变。
+- 原版 Flutter SDK 的 tracked git status 为空。未改 SDK 源码、HOME 或全局配置，未签名 iOS、安装设备或推送发布。
+
+这些证据只覆盖当前集成源码的自动化与构建边界；平台安全存储重启/退出、设备证书与 HTTP 授权、地图中国大陆网络等仍须各自的真实设备验收。

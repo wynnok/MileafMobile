@@ -52,3 +52,7 @@ Flutter 源码优先读取存在的旧式 home 配置；只设置 `XDG_CONFIG_HO
 候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，当时因此停用入口；该方式自身没有解决隔离问题。当前双端构建入口增加了已验证进程沙箱，iOS 仅按用户新增批准使用项目级 CocoaPods。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
 
 SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终收敛到 Flutter 模板的 compile/target36，不压制兼容性警告；所需 platform36 仅安装于项目 SDK。
+
+### 当前集成候选的回归结果
+
+合入 `4450a76` 的站点认证与安全存储后，35 个 App 行为测试、静态分析与格式检查通过；在相同冻结的外层保护下，顺序完成 iOS release 无签名（17.2MB）和 Android release 研发签名（约50MB）构建，完整 wrapper 均退出0，SDK 路径不变。具体证据和未覆盖的真机边界见[构建隔离记录](build-isolation.md)。
