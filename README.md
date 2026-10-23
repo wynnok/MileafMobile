@@ -5,12 +5,13 @@
 
 **当前状态：按已发布的 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 分片实施，尚未完成完整首版。**
 
-本地集成分支为 `codex/mileaf-v1`，已有连接/健康检查、安全网络授权候选及独立地图候选。
-认证闭环、车辆概览、行程、充电和统计尚未实施。
+本地集成分支为 `codex/mileaf-v1`，已有连接/健康检查、登录与安全会话、连接管理及独立地图候选。
+车辆概览、行程、充电和统计仍在实施中。
 
-SDK 隔离仍未通过验证，`tool/flutterw` 暂停原生 build/run 等入口（退出码 78），
-用户已于 2026-10-23 批准验证进程沙箱方案；验证通过前不要绕过保护直接调用全局 Flutter 或 Gradle。
-测试、静态分析和格式检查仍可运行。相关 Ticket 保持开放，候选合入不等于验收通过。
+双端构建已通过进程沙箱验证，iOS 使用用户批准的项目级 CocoaPods。
+原生构建必须使用带探针的 `tool/flutterw`，不要绕过保护直接调用全局 Flutter 或 Gradle。
+设备 run/install/drive 仍返回 78；构建证据见[隔离记录](docs/implementation/build-isolation.md)。
+真机等外部验收未齐的 Ticket 保持开放，候选合入不等于整票验收通过。
 
 用户同时批准先推进后续代码和自动化测试，外部验收保持待验且不提前关闭相关 Ticket。
 
