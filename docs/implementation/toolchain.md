@@ -2,21 +2,21 @@
 
 ## 当前构建门槛
 
-2026-10-23 用户批准构建进程沙箱验证后，Android 的项目 wrapper 已验证沙箱 preflight、子进程继承、完整构建退出 0 及构建后 SDK 路径保持。Gradle 不复用沙箱外 daemon。入口需提供受保护的主机 SDK 路径；平台限制、命令及证据见[构建隔离记录](build-isolation.md)。
+2026-10-23 用户批准进程沙箱验证，并进一步批准仅本项目 iOS 改用已安装 CocoaPods。Android `assembleDebug` 与 iOS release 无签名构建均已在 outer 沙箱中完整退出0，输入 hash 不变且 SDK 路径始终项目内。Gradle 不复用沙箱外 daemon；CocoaPods home/cache/spec repo 和 RubyGems spec cache 均位于项目。入口需明确受保护的主机 SDK 路径；命令、失败根因与证据见[构建隔离记录](build-isolation.md)。
 
-iOS 的 SwiftPM manifest 内层沙箱与外层进程保护不兼容；单次进程局部选项验证也被 Xcode CLI 拒绝。`tool/flutterw` 因此仍对 iOS、run/install/drive 等未验证入口退出 78。不会裸跑、切包管理器、改 HOME、全局 defaults 或原版 SDK。历史双端编译成功不证明当前双端隔离通过；相关 Ticket 保持待验。
+SwiftPM 嵌套沙箱失败与 Xcode 局部参数被拒的证据仍保留；项目级 CocoaPods 配置避免该嵌套，不修改 HOME、全局配置或原版 SDK。`run/install/drive` 等设备执行入口尚未验收，继续退出78。双端真机、安全存储、实际网络和地图等外部验收仍待完成，不能用构建结果代替。
 
 ## 固定工具链与边界
 
 - Flutter stable **3.47.7**，revision `abaf9c523780a608bd46686fd5e53740a07077f8`；Dart **3.13.5**。工程 `.metadata` 和 `pubspec.lock` 纳入版本管理。
 - Android 最低 API **24**，compile/target **36**，使用项目 SDK platform 36、build-tools 36.0.0；JDK **21.0.10 (Zulu)**、Gradle **9.3.1**、AGP **9.1.0**（Flutter 锁定版本模板）。Flutter/AGP 构建要求 NDK **28.2.13676358**，固定该版本及 CMake **3.22.1** 并仅允许安装于项目 SDK。
-- iOS deployment target **15.0**，本机验证 Xcode **27.1 (27A9275)**。不提高最低系统版本。
+- iOS deployment target **15.0**，本机验证 Xcode **27.1 (27A9275)**、CocoaPods **1.17.0**。仅项目级停用 SwiftPM；不提高最低系统版本。
 - `tool/flutterw` 从工程根执行并将 Pub、Gradle、Android user、XDG、编译模块缓存放入本工程。默认 SDK 位于 `.tooling/flutter`、`.tooling/android-sdk`；既有项目内 SDK 可通过 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK` 指定。不安装全局工具。
 - 首次准备 Flutter 使用对应 revision 的项目内 checkout；Android 使用已许可、兼容的项目内 SDK，不改全局 SDK。签名材料不纳入版本控制；debug keystore 位于 `.cache/android`。当前 Android release 使用开发签名，仅用于研发验证，不是商店交付。
 
 ## 常用命令
 
-在本工程运行 `tool/flutterw pub get` 后，使用：
+在本工程运行 `tool/flutterw pub get` 后，使用以下命令。原生构建还需设置 `MILEAF_HOST_ANDROID_SDK=/path/to/existing/host/sdk`（或继承原先指向主机 SDK 的 ANDROID_HOME），沙箱明确保护该路径；项目 SDK 自定义仍使用 MILEAF_ANDROID_SDK：
 
 - `tool/flutterw dart format --output=none --set-exit-if-changed lib test`
 - `tool/flutterw analyze`
@@ -49,6 +49,6 @@ T01 基线拒绝 HTTP；后续安全网络切片的逐站点授权、局域网�
 
 Flutter 源码优先读取存在的旧式 home 配置；只设置 `XDG_CONFIG_HOME` 不能保证隔离。初次 `flutter build apk` 实际准备向主机 SDK 安装 NDK，但当时未记录旧配置存在性，不断言其为唯一原因；立即停止后仅产生 `.installer/.installData`。已核验并可逆迁回项目 `.cache/host-recovery/ndk-28.2.13676358`，主机版本目录已不存在，没有修改其他 SDK 或全局配置。
 
-候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，当时因此停用入口；该方式自身没有解决隔离问题。当前 Android 入口增加了已验证的进程沙箱，iOS 仍待解决。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
+候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，当时因此停用入口；该方式自身没有解决隔离问题。当前双端构建入口增加了已验证进程沙箱，iOS 仅按用户新增批准使用项目级 CocoaPods。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
 
 SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终收敛到 Flutter 模板的 compile/target36，不压制兼容性警告；所需 platform36 仅安装于项目 SDK。

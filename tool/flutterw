@@ -13,6 +13,11 @@ export ANDROID_HOME="${MILEAF_ANDROID_SDK:-$project_root/.tooling/android-sdk}"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export CLANG_MODULE_CACHE_PATH="$project_root/.cache/clang"
 export SWIFTPM_MODULECACHE_OVERRIDE="$project_root/.cache/swift"
+export CP_HOME_DIR="$project_root/.cache/cocoapods/home"
+export CP_CACHE_DIR="$project_root/.cache/cocoapods/cache"
+export CP_REPOS_DIR="$project_root/.cache/cocoapods/repos"
+export GEM_SPEC_CACHE="$project_root/.cache/gem/specs"
+export COCOAPODS_DISABLE_STATS=true COCOAPODS_SKIP_UPDATE_MESSAGE=true
 flutter_sdk="${MILEAF_FLUTTER_SDK:-$project_root/.tooling/flutter}"
 if [[ ! -x "$flutter_sdk/bin/flutter" ]]; then
   echo 'Missing project Flutter SDK. See docs/implementation/toolchain.md.' >&2
@@ -32,10 +37,10 @@ if ! "$native"; then
   exec "$flutter_sdk/bin/flutter" "$@"
 fi
 fail_closed() { echo "Native execution refused: $*" >&2; exit 78; }
-# SwiftPM's own manifest sandbox cannot currently nest under this profile.
-# Other native entry points stay closed until they have equivalent evidence.
-if [[ "${1:-}" != android && !( "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle ) ) ]]; then
-  fail_closed 'iOS/other native execution remains paused: nested SwiftPM sandbox is unsupported'
+# Project-local CocoaPods avoids the nested SwiftPM manifest sandbox.
+# Device execution and other native entry points still require their own evidence.
+if [[ "${1:-}" != android && !( "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle || "${2:-}" == ios ) ) ]]; then
+  fail_closed 'only Android builds and project-local CocoaPods iOS builds are enabled'
 fi
 [[ "$(uname -s)" == Darwin && -x /usr/bin/sandbox-exec ]] || fail_closed 'macOS sandbox-exec unavailable'
 [[ -n "$host_android_sdk" && -d "$host_android_sdk" ]] || fail_closed 'set MILEAF_HOST_ANDROID_SDK to the protected host SDK'
@@ -51,9 +56,15 @@ legacy_fixture="$probe_dir/.flutter_settings"
 printf 'non-secret legacy fixture\n' > "$legacy_fixture"
 cleanup_probe() { rm -f "$legacy_fixture" "$probe_dir/project-write"; rmdir "$probe_dir"; }
 trap cleanup_probe EXIT
-sandbox_args=(-D "HOST_ANDROID_SDK=$host_android_sdk" -f "$project_root/tool/build-sandbox.sb")
+sandbox_args=(-D "HOST_ANDROID_SDK=$host_android_sdk"
+  -D "GLOBAL_CP_HOME=$HOME/.cocoapods"
+  -D "GLOBAL_CP_CACHE=$HOME/Library/Caches/CocoaPods"
+  -D "GLOBAL_GEMS=$HOME/.gem"
+  -D "LEGACY_STATE=$HOME/.flutter_tool_state"
+  -D "LEGACY_DEVICES=$HOME/.flutter_custom_devices.json"
+  -f "$project_root/tool/build-sandbox.sb")
 # An explicit shell descendant verifies inheritance, not only the launcher.
-/usr/bin/sandbox-exec "${sandbox_args[@]}" /bin/sh -c 'exec /usr/bin/ruby "$@"' probe \
+/usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$legacy_fixture" /bin/sh -c 'exec /usr/bin/ruby "$@"' probe \
   "$project_root/tool/build-sandbox-probe.rb" "$legacy_fixture" "$host_probe" "$probe_dir/project-write" \
   || fail_closed 'sandbox preflight did not prove isolation'
 printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
@@ -61,9 +72,9 @@ printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCo
 set +e
 if [[ "${1:-}" == android ]]; then
   shift
-  /usr/bin/sandbox-exec "${sandbox_args[@]}" "$project_root/android/gradlew" -p "$project_root/android" --no-daemon "$@"
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$HOME/.flutter_settings" "$project_root/android/gradlew" -p "$project_root/android" --no-daemon "$@"
 else
-  /usr/bin/sandbox-exec "${sandbox_args[@]}" "$flutter_sdk/bin/flutter" "$@"
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$HOME/.flutter_settings" "$flutter_sdk/bin/flutter" "$@"
 fi
 build_status=$?
 set -e
