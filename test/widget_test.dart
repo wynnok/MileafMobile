@@ -8,12 +8,19 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/api.dart';
 
+import 'support/session_store.dart';
+
 void main() {
   testWidgets('授权偏好读取失败时拒绝联网并提示恢复', (tester) async {
     final client = MockClient((request) async => throw StateError('不得联网'));
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: UnavailableTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: UnavailableTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'http://192.168.1.2');
     await tester.pumpAndSettle();
     await tester.tap(find.text('检查连接'));
@@ -33,8 +40,13 @@ void main() {
       return http.Response('{"status":"ok","version":"0.1.0"}', 200);
     });
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'https://192.168.1.2');
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
@@ -57,8 +69,13 @@ void main() {
       );
     });
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'https://example.com');
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
@@ -73,15 +90,27 @@ void main() {
           http.Response('{"status":"ok","version":"0.1.0"}', 200),
     );
     await tester.pumpWidget(
-      MileafApp(key: const ValueKey(1), client: client, trustStore: store),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        key: const ValueKey(1),
+        client: client,
+        trustStore: store,
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'http://192.168.1.2');
     await tester.pumpAndSettle();
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pumpAndSettle();
     await tester.pumpWidget(
-      MileafApp(key: const ValueKey(2), client: client, trustStore: store),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        key: const ValueKey(2),
+        client: client,
+        trustStore: store,
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'http://192.168.1.2/');
     await tester.pumpAndSettle();
     expect(
@@ -107,8 +136,13 @@ void main() {
       return http.Response('{"status":"ok","version":"0.1.0"}', 200);
     });
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextFormField),
       'https://example.com:8443/mileaf/',
@@ -125,8 +159,13 @@ void main() {
       return http.Response('{"status":"ok","version":"0.1.0"}', 200);
     });
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextFormField),
       'http://192.168.1.2:8000/mileaf',
@@ -162,8 +201,13 @@ void main() {
           : http.Response('{"status":"ok","version":"0.1.0"}', 200),
     );
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextFormField),
       'https://example.com/v1/',
@@ -179,8 +223,13 @@ void main() {
   testWidgets('总时限涵盖等待响应头，超时后可以重试', (tester) async {
     final client = MockClient((request) => Completer<http.Response>().future);
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: MemoryTrustStore()),
+      MileafApp(
+        sessionStore: MemorySessionStore(),
+        client: client,
+        trustStore: MemoryTrustStore(),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'https://example.com');
     await tester.tap(find.text('检查连接'));
     await tester.pump();
@@ -201,8 +250,13 @@ void main() {
     testWidgets('无效服务地址不访问网络：$address', (tester) async {
       final client = MockClient((request) async => throw StateError('不得发出请求'));
       await tester.pumpWidget(
-        MileafApp(client: client, trustStore: MemoryTrustStore()),
+        MileafApp(
+          sessionStore: MemorySessionStore(),
+          client: client,
+          trustStore: MemoryTrustStore(),
+        ),
       );
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), address);
       await tester.tap(find.text('检查连接'));
       await tester.pumpAndSettle();
@@ -216,8 +270,13 @@ void main() {
     testWidgets('网络错误保留输入并可恢复：${failure.$2}', (tester) async {
       final client = MockClient((request) async => throw failure.$1);
       await tester.pumpWidget(
-        MileafApp(client: client, trustStore: MemoryTrustStore()),
+        MileafApp(
+          sessionStore: MemorySessionStore(),
+          client: client,
+          trustStore: MemoryTrustStore(),
+        ),
       );
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'https://example.com');
       await tester.tap(find.text('检查连接'));
       await tester.pumpAndSettle();
@@ -242,11 +301,13 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       await tester.pumpWidget(
         MileafApp(
+          sessionStore: MemorySessionStore(),
           key: ValueKey(brightness),
           client: client,
           trustStore: MemoryTrustStore(),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'https://example.com');
       await tester.ensureVisible(find.text('检查连接'));
       await tester.tap(find.text('检查连接'));
