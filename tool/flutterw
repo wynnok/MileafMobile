@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 project_root="$PWD"
+host_android_sdk="${MILEAF_HOST_ANDROID_SDK:-${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}}"
 export CI=true FLUTTER_SUPPRESS_ANALYTICS=true
 export PUB_CACHE="${PUB_CACHE:-$project_root/.cache/pub}"
 export XDG_CONFIG_HOME="$project_root/.cache/config"
@@ -21,15 +22,51 @@ if [[ "${1:-}" == dart ]]; then
   shift
   exec "$flutter_sdk/bin/dart" "$@"
 fi
-# Flutter subprocesses can replace sdk.dir with a legacy global setting even
-# when Gradle was started directly. Native builds remain disabled until the
-# process-isolation approach is approved and verified; never fail open here.
+# Native invocations must run in a verified macOS process sandbox. Do not
+# replace HOME, alter Flutter sources, or reuse a daemon started outside it.
+native=false
 for argument in "$@"; do
-  case "$argument" in
-    android|build|run|install|drive)
-      echo 'Native execution paused: SDK isolation is unresolved. See docs/implementation/toolchain.md.' >&2
-      exit 78
-      ;;
-  esac
+  case "$argument" in android|build|run|install|drive) native=true ;; esac
 done
-exec "$flutter_sdk/bin/flutter" "$@"
+if ! "$native"; then
+  exec "$flutter_sdk/bin/flutter" "$@"
+fi
+fail_closed() { echo "Native execution refused: $*" >&2; exit 78; }
+# SwiftPM's own manifest sandbox cannot currently nest under this profile.
+# Other native entry points stay closed until they have equivalent evidence.
+if [[ "${1:-}" != android && !( "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle ) ) ]]; then
+  fail_closed 'iOS/other native execution remains paused: nested SwiftPM sandbox is unsupported'
+fi
+[[ "$(uname -s)" == Darwin && -x /usr/bin/sandbox-exec ]] || fail_closed 'macOS sandbox-exec unavailable'
+[[ -n "$host_android_sdk" && -d "$host_android_sdk" ]] || fail_closed 'set MILEAF_HOST_ANDROID_SDK to the protected host SDK'
+[[ -d "$ANDROID_HOME" ]] || fail_closed 'project Android SDK missing'
+host_android_sdk="$(cd "$host_android_sdk" && pwd -P)"
+project_android_sdk="$(cd "$ANDROID_HOME" && pwd -P)"
+[[ "$host_android_sdk" != "$project_android_sdk" ]] || fail_closed 'host and project SDK must differ'
+host_probe="$host_android_sdk/platform-tools/source.properties"
+[[ -f "$host_probe" ]] || fail_closed 'host SDK write-permission probe file missing'
+mkdir -p "$project_root/.cache/isolation"
+probe_dir="$(mktemp -d "$project_root/.cache/isolation/probe.XXXXXX")"
+legacy_fixture="$probe_dir/.flutter_settings"
+printf 'non-secret legacy fixture\n' > "$legacy_fixture"
+cleanup_probe() { rm -f "$legacy_fixture" "$probe_dir/project-write"; rmdir "$probe_dir"; }
+trap cleanup_probe EXIT
+sandbox_args=(-D "HOST_ANDROID_SDK=$host_android_sdk" -f "$project_root/tool/build-sandbox.sb")
+# An explicit shell descendant verifies inheritance, not only the launcher.
+/usr/bin/sandbox-exec "${sandbox_args[@]}" /bin/sh -c 'exec /usr/bin/ruby "$@"' probe \
+  "$project_root/tool/build-sandbox-probe.rb" "$legacy_fixture" "$host_probe" "$probe_dir/project-write" \
+  || fail_closed 'sandbox preflight did not prove isolation'
+printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
+  "$project_android_sdk" "$flutter_sdk" > "$project_root/android/local.properties"
+set +e
+if [[ "${1:-}" == android ]]; then
+  shift
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" "$project_root/android/gradlew" -p "$project_root/android" --no-daemon "$@"
+else
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" "$flutter_sdk/bin/flutter" "$@"
+fi
+build_status=$?
+set -e
+actual_sdk="$(sed -n 's/^sdk.dir=//p' "$project_root/android/local.properties")"
+[[ "$actual_sdk" == "$project_android_sdk" ]] || fail_closed 'Flutter changed sdk.dir; build is not accepted'
+exit "$build_status"

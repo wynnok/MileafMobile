@@ -2,15 +2,9 @@
 
 ## 当前构建门槛
 
-后续安全网络切片发现，Flutter 子进程仍可能读取旧用户配置并重写 `sdk.dir`，
-即使直接运行 Gradle、按顺序构建也不能保证隔离。此前成功的双端构建记录仍保留，
-但不再将其解释为构建隔离已通过。当前 `tool/flutterw` 对 build/run/install/drive/android
-明确停止（退出码 78）；pub、test、analyze、dart 格式检查仍可运行。
+2026-10-23 用户批准构建进程沙箱验证后，Android 的项目 wrapper 已验证沙箱 preflight、子进程继承、完整构建退出 0 及构建后 SDK 路径保持。Gradle 不复用沙箱外 daemon。入口需提供受保护的主机 SDK 路径；平台限制、命令及证据见[构建隔离记录](build-isolation.md)。
 
-已向用户提出构建进程沙箱方案：不改 HOME、全局设置或原版 SDK，限制构建及其子进程
-读取旧 Flutter 配置和写入主机 Android SDK。该方案尚未获得确认或验证，不提供绕过开关，
-也不把本段当作已经实现沙箱。等待确认后再恢复原生构建；下列构建命令是历史验证方式，
-在当前门槛解除前不会执行。
+iOS 的 SwiftPM manifest 内层沙箱与外层进程保护不兼容；单次进程局部选项验证也被 Xcode CLI 拒绝。`tool/flutterw` 因此仍对 iOS、run/install/drive 等未验证入口退出 78。不会裸跑、切包管理器、改 HOME、全局 defaults 或原版 SDK。历史双端编译成功不证明当前双端隔离通过；相关 Ticket 保持待验。
 
 ## 固定工具链与边界
 
@@ -47,14 +41,14 @@
 
 2026-10-22：12 个 HTTP 驱动完整 App 操作测试通过，覆盖反代端口/路径、已有 v1 前缀、无效地址不发请求、HTTPS 限定、健康成功/503恢复、网络与证书错误、15 秒总时限、360逻辑像素/200%字体和系统浅深色。Dart 格式和静态分析通过。iOS release 无签名构建成功（Runner.app 16.2MB）。Android SDK36 的 `assembleDebug` 成功（55 tasks，1m9s），SDK/NDK/CMake/Gradle缓存及开发签名均在项目内。
 
-未取得真实用户站点或双端设备；App 操作测试使用可控 HTTP 契约响应；iOS 构建不等于已安装或实际网络栈验收。受控真实 HTTPS 联通已补验：实际 FastAPI 服务 + 隔离 PostgreSQL 16 夹具 + 独立测试 CA，生产 Dart `MileafApi`/`IOClient` 经正常证书链及主机名校验返回 `HEALTH_OK version=0.1.0`。测试 CA 仅在测试客户端上下文信任，未改变生产信任；首次自签 leaf 被正确拒绝。容器和证书已清理。该证据不是双端真机或真实用户站点验收，设备正常证书链/无效证书拒绝及最低系统运行仍待外部条件。#2 自身要求的双端构建、HTTP行为与真实健康最小联通已验证；全 Spec 的真机网络/最低系统/安全存储等验收仍由对应后续 Ticket 承担，不额外阻塞本切片。
+未取得真实用户站点或双端设备；App 操作测试使用可控 HTTP 契约响应；iOS 构建不等于已安装或实际网络栈验收。受控真实 HTTPS 联通已补验：实际 FastAPI 服务 + 隔离 PostgreSQL 16 夹具 + 独立测试 CA，生产 Dart `MileafApi`/`IOClient` 经正常证书链及主机名校验返回 `HEALTH_OK version=0.1.0`。测试 CA 仅在测试客户端上下文信任，未改变生产信任；首次自签 leaf 被正确拒绝。容器和证书已清理。该证据不是双端真机或真实用户站点验收，设备正常证书链/无效证书拒绝及最低系统运行仍待外部条件。这些是历史切片证据；当前双端构建隔离门槛以本页开头及构建隔离记录为准，不据此关闭待验 Ticket。全 Spec 的真机网络/最低系统/安全存储等仍由对应后续验收承担。
 
 T01 基线拒绝 HTTP；后续安全网络切片的逐站点授权、局域网指引与验收门槛见 [安全网络记录](network-security.md)，不依赖 debug 明文放行。不请求手机定位权限，也不记录地址输入、口令或完整 HTTP 响应。
 
 ### Android SDK 隔离修正
 
-Flutter 的既有 `~/.flutter_settings` 中 `android-sdk` 优先于 `ANDROID_HOME`，即使设置 `XDG_CONFIG_HOME` 仍可能读取旧全局配置。初次 `flutter build apk` 因此准备向主机 SDK 安装 NDK；立即停止后仅产生 `.installer/.installData`。已核验并可逆迁回项目 `.cache/host-recovery/ndk-28.2.13676358`，主机版本目录已不存在，没有修改其他 SDK 或全局配置。
+Flutter 源码优先读取存在的旧式 home 配置；只设置 `XDG_CONFIG_HOME` 不能保证隔离。初次 `flutter build apk` 实际准备向主机 SDK 安装 NDK，但当时未记录旧配置存在性，不断言其为唯一原因；立即停止后仅产生 `.installer/.installData`。已核验并可逆迁回项目 `.cache/host-recovery/ndk-28.2.13676358`，主机版本目录已不存在，没有修改其他 SDK 或全局配置。
 
-候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，故目前已停用该入口；不能继续声称它解决了全局优先问题。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
+候选 Android 构建入口曾为 `tool/flutterw android <Gradle task>`，显式写入项目局部 `local.properties` 后直接执行纳入版本控制的 Gradle wrapper。后续验证已证明 Flutter 子进程仍能重写此路径，当时因此停用入口；该方式自身没有解决隔离问题。当前 Android 入口增加了已验证的进程沙箱，iOS 仍待解决。不覆盖 HOME 或调用全局 `flutter config`。首次诊断曾用 `-Pandroid.builder.sdkDownload=false` 核实 NDK 为必要构建依赖，然后才允许在项目 SDK 下载。
 
 SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终收敛到 Flutter 模板的 compile/target36，不压制兼容性警告；所需 platform36 仅安装于项目 SDK。

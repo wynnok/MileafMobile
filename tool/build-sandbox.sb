@@ -1,0 +1,6 @@
+(version 1)
+(allow default)
+; Flutter uses these legacy home files before consulting XDG_CONFIG_HOME.
+(deny file-read* file-write* (regex #"/\.flutter_[^/]+$"))
+; Defense in depth: even a newly discovered SDK-selection path cannot mutate it.
+(deny file-write* (subpath (param "HOST_ANDROID_SDK")))
