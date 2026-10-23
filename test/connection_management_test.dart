@@ -9,6 +9,10 @@ import 'package:mileaf/main.dart';
 import 'package:mileaf/src/api.dart';
 
 import 'support/session_store.dart';
+import 'support/vehicle_preferences.dart';
+
+import 'package:mileaf/src/workspace.dart';
+
 import 'widget_test.dart' show MemoryTrustStore;
 
 String vehicles(String name) => jsonEncode([
@@ -81,6 +85,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -101,6 +107,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -145,6 +153,8 @@ void main() {
             client: client,
             trustStore: MemoryTrustStore(),
             sessionStore: store,
+            vehiclePreferences: MemoryVehiclePreferences(),
+            calendar: () async => CalendarContext("UTC"),
           ),
         );
         await tester.pumpAndSettle();
@@ -184,6 +194,8 @@ void main() {
             client: client,
             trustStore: MemoryTrustStore(),
             sessionStore: store,
+            vehiclePreferences: MemoryVehiclePreferences(),
+            calendar: () async => CalendarContext("UTC"),
           ),
         );
         await tester.pumpAndSettle();
@@ -209,6 +221,8 @@ void main() {
             client: client,
             trustStore: MemoryTrustStore(),
             sessionStore: store,
+            vehiclePreferences: MemoryVehiclePreferences(),
+            calendar: () async => CalendarContext("UTC"),
           ),
         );
         await tester.pumpAndSettle();
@@ -234,6 +248,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -266,6 +282,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -287,6 +305,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -322,7 +342,13 @@ void main() {
       );
     });
     await tester.pumpWidget(
-      MileafApp(client: client, trustStore: trust, sessionStore: store),
+      MileafApp(
+        client: client,
+        trustStore: trust,
+        sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
+      ),
     );
     await tester.pumpAndSettle();
     await openSettings(tester);
@@ -359,6 +385,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -389,6 +417,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();

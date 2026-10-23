@@ -9,6 +9,10 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 
 import 'support/session_store.dart';
+import 'support/vehicle_preferences.dart';
+
+import 'package:mileaf/src/workspace.dart';
+
 import 'widget_test.dart' show MemoryTrustStore;
 
 Future<void> connect(WidgetTester tester) async {
@@ -26,6 +30,7 @@ void main() {
   testWidgets('已有站点登录后读取顶层车辆数组，重启安全恢复，不重复输入口令', (tester) async {
     final store = MemorySessionStore();
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) return http.Response('', 503);
       if (request.url.path.endsWith('/health')) {
         return http.Response('{"status":"ok","version":"0.1"}', 200);
       }
@@ -50,6 +55,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -64,6 +71,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -74,6 +83,7 @@ void main() {
     var now = DateTime.utc(2026, 10, 23);
     var attempts = 0;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) return http.Response('', 503);
       if (request.url.path.endsWith('/health')) {
         return http.Response('{"status":"ok","version":"0.1"}', 200);
       }
@@ -157,10 +167,14 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('命名车辆'), findsOneWidget);
+    await tester.tap(find.text('命名车辆'));
+    await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 1234'), findsOneWidget);
     expect(find.text('车辆 3'), findsOneWidget);
     expect(find.textContaining('VIN-SYNTHETIC'), findsNothing);
@@ -180,6 +194,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -191,6 +207,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -207,6 +225,7 @@ void main() {
       });
     final oldResponse = Completer<http.Response>();
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) return http.Response('', 503);
       if (request.headers['authorization'] == 'Bearer old-token') {
         return oldResponse.future;
       }
@@ -224,6 +243,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
         now: () => now,
       ),
     );
@@ -246,6 +267,7 @@ void main() {
   testWidgets('口令错误只提示登录失败，不触发初始化；无Retry-After不编造等待期', (tester) async {
     var status = 401;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) return http.Response('', 503);
       if (request.url.path.endsWith('/health')) {
         return http.Response('{"status":"ok","version":"0.1"}', 200);
       }
@@ -292,6 +314,9 @@ void main() {
         });
       var response = entry.value;
       final client = MockClient((request) async {
+        if (request.url.path.endsWith('/summary')) {
+          return http.Response('', 503);
+        }
         expect(request.method, 'GET');
         expect(request.url.path, '/prefix/v1/vehicles');
         return http.Response(response, 200);
@@ -301,6 +326,8 @@ void main() {
           client: client,
           trustStore: MemoryTrustStore(),
           sessionStore: store,
+          vehiclePreferences: MemoryVehiclePreferences(),
+          calendar: () async => CalendarContext("UTC"),
         ),
       );
       await tester.pumpAndSettle();
@@ -328,6 +355,8 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
@@ -354,10 +383,14 @@ void main() {
         client: client,
         trustStore: MemoryTrustStore(),
         sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext("UTC"),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('行笺测试车'), findsOneWidget);
+    await tester.tap(find.text('行笺测试车'));
+    await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
   });
 }

@@ -12,7 +12,12 @@ Future<void> openConnectionManagement(
 );
 
 class ConnectionManagementPage extends StatefulWidget {
-  const ConnectionManagementPage({super.key, required this.session});
+  const ConnectionManagementPage({
+    super.key,
+    required this.session,
+    this.onServiceInformation,
+  });
+  final VoidCallback? onServiceInformation;
   final SessionController session;
   @override
   State<ConnectionManagementPage> createState() =>
@@ -96,6 +101,11 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
           children: [
             Text('当前服务：${widget.session.site!.uri}'),
             const Text('验证新连接和车辆成功后才替换；失败时保留当前连接。'),
+            if (widget.onServiceInformation != null)
+              TextButton(
+                onPressed: widget.onServiceInformation,
+                child: const Text('服务版本与兼容性'),
+              ),
             const SizedBox(height: 24),
             TextFormField(
               controller: _address,
