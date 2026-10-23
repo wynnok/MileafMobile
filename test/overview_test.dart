@@ -359,17 +359,19 @@ void main() {
         resumedPaths.add(request.url.path);
         return http.Response('', 401);
       }
-      if (request.url.path.endsWith('/vehicles'))
+      if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
-      if (request.url.path.endsWith('/meta'))
+      }
+      if (request.url.path.endsWith('/meta')) {
         return http.Response(
           '{"version":"0.1.0","teslamate_schema_version":null,"tested":true,"source_unit_of_length":"km","freshness":{"last_position_at":null,"last_state_at":null}}',
           200,
         );
+      }
       return http.Response(
         File('test/fixtures/summary.json').readAsStringSync(),
         200,
