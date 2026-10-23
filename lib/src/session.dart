@@ -166,7 +166,12 @@ class SessionController extends ChangeNotifier {
     if (current?.generation == generation) await loadVehicles();
   }
 
-  Future<http.Response> request(SiteSession session, String path) async {
+  Future<http.Response> request(
+    SiteSession session,
+    String path, {
+    Map<String, String> query = const {},
+    Map<String, String> headers = const {},
+  }) async {
     if (!isCurrent(session)) throw const ApiFailure('会话已变更，请重试');
     if (!session.expiresAt.isAfter(now())) {
       await invalidate(session);
@@ -176,7 +181,8 @@ class SessionController extends ChangeNotifier {
       session.site,
       'GET',
       path,
-      headers: {'authorization': 'Bearer ${session.token}'},
+      headers: {...headers, 'authorization': 'Bearer ${session.token}'},
+      query: query,
     );
     if (response.statusCode == 401 && isCurrent(session)) {
       await invalidate(session);

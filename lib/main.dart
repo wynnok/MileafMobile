@@ -9,6 +9,8 @@ import 'package:http/io_client.dart';
 import 'src/api.dart';
 import 'src/session.dart';
 import 'src/session_pages.dart';
+import 'src/workspace.dart';
+import 'src/workspace_page.dart';
 
 void main() => runApp(const MileafApp());
 
@@ -19,11 +21,15 @@ class MileafApp extends StatefulWidget {
     this.trustStore,
     this.sessionStore,
     this.now,
+    this.vehiclePreferences,
+    this.calendar,
   });
   final http.Client? client;
   final HttpTrustStore? trustStore;
   final SessionStore? sessionStore;
   final DateTime Function()? now;
+  final VehiclePreferenceStore? vehiclePreferences;
+  final Future<CalendarContext> Function()? calendar;
   @override
   State<MileafApp> createState() => _MileafAppState();
 }
@@ -83,7 +89,13 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (session.current != null) return VehiclePage(session: session);
+        if (session.current != null) {
+          return WorkspacePage(
+            session: session,
+            preferences: widget.vehiclePreferences,
+            calendar: widget.calendar,
+          );
+        }
         if (session.site != null) return LoginPage(session: session);
         return ConnectionPage(api: _api, onConnected: session.useSite);
       },

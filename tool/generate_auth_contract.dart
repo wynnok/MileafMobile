@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 // Deliberately generates only this slice's DTO closure, from the frozen contract.
-void main() {
+void main(List<String> args) {
+  final output = args.isEmpty ? "lib/src/auth_contract.g.dart" : args.first;
+  final roots = args.length < 2
+      ? ["Credentials", "LoginResponse", "Vehicle"]
+      : args.skip(1);
   final spec = jsonDecode(
     File('docs/contracts/openapi-v1.json').readAsStringSync(),
   ) as Map<String, dynamic>;
@@ -22,7 +26,7 @@ void main() {
     scan(schemas[name]);
   }
 
-  for (final root in ['Credentials', 'LoginResponse', 'Vehicle']) {
+  for (final root in roots) {
     visit(root);
   }
   String camel(String s) =>
@@ -35,13 +39,16 @@ void main() {
     return switch (s['type']) {
       'integer' => 'int',
       'number' => 'num',
+      'boolean' => 'bool',
       'string' => s['format'] == 'date-time' ? 'DateTime' : 'String',
       _ => throw StateError('Unsupported $s'),
     };
   }
 
   String decode(String name, Map<String, dynamic> s) {
-    final input = "json['$name']";
+    final input = s.containsKey("default")
+        ? "(json.containsKey('$name') ? json['$name'] : ${jsonEncode(s["default"])})"
+        : "json['$name']";
     if (s['anyOf'] case final List values) {
       return '$input == null ? null : ${decode(name, Map<String, dynamic>.from(values.firstWhere((v) => v['type'] != 'null')))}';
     }
@@ -91,10 +98,10 @@ DateTime instant(dynamic value) {
     }
     out.writeln('}');
   }
-  File('lib/src/auth_contract.g.dart').writeAsStringSync(out.toString());
+  File(output).writeAsStringSync(out.toString());
   final formatted = Process.runSync(Platform.resolvedExecutable, [
     'format',
-    'lib/src/auth_contract.g.dart',
+    output,
   ]);
   if (formatted.exitCode != 0) {
     throw StateError('Generated DTO formatting failed');
