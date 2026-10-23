@@ -7,24 +7,54 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'src/api.dart';
+import 'src/session.dart';
+import 'src/session_pages.dart';
 
 void main() => runApp(const MileafApp());
 
 class MileafApp extends StatefulWidget {
-  const MileafApp({super.key, this.client, this.trustStore});
+  const MileafApp({
+    super.key,
+    this.client,
+    this.trustStore,
+    this.sessionStore,
+    this.now,
+  });
   final http.Client? client;
   final HttpTrustStore? trustStore;
+  final SessionStore? sessionStore;
+  final DateTime Function()? now;
   @override
   State<MileafApp> createState() => _MileafAppState();
 }
 
-class _MileafAppState extends State<MileafApp> {
+class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
   late final http.Client _client =
       widget.client ??
       IOClient(HttpClient()..connectionTimeout = const Duration(seconds: 5));
   late final _api = MileafApi(_client, trustStore: widget.trustStore);
+  late final session = SessionController(
+    _api,
+    widget.sessionStore ?? SecureSessionStore(),
+    now: widget.now,
+  );
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    session.restore();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) session.validateExpiry();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    session.dispose();
+
     if (widget.client == null) _client.close();
     super.dispose();
   }
@@ -45,13 +75,26 @@ class _MileafAppState extends State<MileafApp> {
       brightness: Brightness.dark,
       useMaterial3: true,
     ),
-    home: ConnectionPage(api: _api),
+    home: ListenableBuilder(
+      listenable: session,
+      builder: (context, _) {
+        if (session.restoring) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (session.current != null) return VehiclePage(session: session);
+        if (session.site != null) return LoginPage(session: session);
+        return ConnectionPage(api: _api, onConnected: session.useSite);
+      },
+    ),
   );
 }
 
 class ConnectionPage extends StatefulWidget {
-  const ConnectionPage({super.key, required this.api});
+  const ConnectionPage({super.key, required this.api, this.onConnected});
   final MileafApi api;
+  final void Function(SiteAddress)? onConnected;
   @override
   State<ConnectionPage> createState() => _ConnectionPageState();
 }
@@ -59,12 +102,14 @@ class ConnectionPage extends StatefulWidget {
 class _ConnectionPageState extends State<ConnectionPage> {
   final _address = TextEditingController();
   final _form = GlobalKey<FormState>();
+  SiteAddress? _healthySite;
   bool _loading = false;
   bool _loadingTrust = false;
   bool _trusted = false;
   bool _savingTrust = false;
 
   Future<void> _loadTrust() async {
+    _healthySite = null;
     final input = _address.text;
     final site = _site;
     setState(() {
@@ -145,6 +190,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
     try {
       final version = await widget.api.health(SiteAddress.parse(_address.text));
       result = '服务正常 · 版本 $version';
+      _healthySite = SiteAddress.parse(_address.text);
     } on ApiFailure catch (error) {
       result = error.message;
     } on TimeoutException {
@@ -230,6 +276,11 @@ class _ConnectionPageState extends State<ConnectionPage> {
                     onPressed: _loading || _loadingTrust ? null : _check,
                     child: Text(_loading ? '正在检查…' : '检查连接'),
                   ),
+                  if (_healthySite != null && widget.onConnected != null)
+                    TextButton(
+                      onPressed: () => widget.onConnected!(_healthySite!),
+                      child: const Text('登录此站点'),
+                    ),
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.all(16),
