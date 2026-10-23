@@ -166,6 +166,108 @@ class SessionController extends ChangeNotifier {
     if (current?.generation == generation) await loadVehicles();
   }
 
+  /// Validate a candidate without granting it access to the active credential.
+  /// Returns a visible error; only a fully validated, persisted candidate commits.
+  Future<String?> replaceConnection(
+    SiteAddress address,
+    String password,
+  ) async {
+    final previous = current;
+    final generation = _generation;
+    if (retryAfter != null && now().isBefore(retryAfter!)) {
+      return '请求过于频繁，请稍后手动重试';
+    }
+    if (previous == null) return '会话已变更，请重新登录';
+    try {
+      await api.health(address);
+      final response = await api.request(
+        address,
+        'POST',
+        'auth/login',
+        headers: {'content-type': 'application/json'},
+        body: jsonEncode(Credentials(password: password).toJson()),
+      );
+      if (response.statusCode != 200) throw _failure(response, login: true);
+      final result = LoginResponse.fromJson(object(jsonDecode(response.body)));
+      if (result.token.isEmpty || !result.expiresAt.isAfter(now())) {
+        throw const FormatException('Expired credential');
+      }
+      final vehicleResponse = await api.request(
+        address,
+        'GET',
+        'vehicles',
+        headers: {'authorization': 'Bearer ${result.token}'},
+      );
+      if (vehicleResponse.statusCode != 200) throw _failure(vehicleResponse);
+      final body = jsonDecode(vehicleResponse.body);
+      if (body is! List) throw const FormatException('Expected array');
+      final candidateVehicles = body
+          .map((v) => Vehicle.fromJson(object(v)))
+          .toList();
+      if (!isCurrent(previous) || generation != _generation) {
+        return '会话已变更，未替换连接';
+      }
+      await _persist(() async {
+        if (!isCurrent(previous) || generation != _generation) {
+          throw const ApiFailure('会话已变更，未替换连接');
+        }
+        await store.write(
+          jsonEncode({
+            'site': address.uri.toString(),
+            'token': result.token,
+            'expires_at': result.expiresAt.toIso8601String(),
+          }),
+        );
+      });
+      if (!isCurrent(previous) || generation != _generation) {
+        return '会话已变更，未替换连接';
+      }
+      site = address;
+      current = SiteSession(
+        address,
+        result.token,
+        result.expiresAt,
+        ++_generation,
+      );
+      vehicles = candidateVehicles;
+      loading = false;
+      message = null;
+      retryAfter = null;
+      _scheduleExpiry();
+      _notify();
+      return null;
+    } on Exception catch (error) {
+      return _describe(error);
+    }
+  }
+
+  /// Local device access ends immediately, including outstanding response rights.
+  /// No server logout/revoke endpoint exists.
+  Future<String?> logout() async {
+    ++_generation;
+    _expiry?.cancel();
+    _retryTimer?.cancel();
+    current = null;
+    vehicles = [];
+    loading = false;
+    message = '已退出此设备；不会撤销其他设备或服务端授权';
+    retryAfter = null;
+    final address = site;
+    _notify();
+    try {
+      await _persist(
+        () => address == null
+            ? store.clear()
+            : store.write(jsonEncode({'site': address.uri.toString()})),
+      );
+      return null;
+    } on Exception {
+      message = '本地访问已停止，但安全存储清理失败，请重试退出后再关闭应用';
+      _notify();
+      return message;
+    }
+  }
+
   Future<http.Response> request(
     SiteSession session,
     String path, {

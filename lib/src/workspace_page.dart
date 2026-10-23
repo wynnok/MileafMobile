@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'session.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
+import 'connection_management.dart';
 import 'workspace.dart';
 
 class WorkspacePage extends StatefulWidget {
@@ -53,7 +54,17 @@ class _WorkspacePageState extends State<WorkspacePage> {
   Future<void> openSettings() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (_) => MetaPage(workspace: workspace)),
+      MaterialPageRoute<void>(
+        builder: (_) => ConnectionManagementPage(
+          session: widget.session,
+          onServiceInformation: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => MetaPage(workspace: workspace),
+            ),
+          ),
+        ),
+      ),
     );
     if (mounted) await workspace.foreground();
   }
@@ -125,6 +136,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
             ),
           ),
           actions: [
+            IconButton(
+              onPressed: widget.session.loading
+                  ? null
+                  : widget.session.loadVehicles,
+              icon: const Icon(Icons.refresh),
+              tooltip: "刷新车辆",
+            ),
             if (tab == 0)
               IconButton(
                 onPressed: openSettings,

@@ -135,3 +135,6 @@ app.*.symbols
 !android/gradlew
 !android/gradlew.bat
 !android/gradle/wrapper/gradle-wrapper.jar
+
+# Reproducible project-local iOS dependency resolution
+!ios/Podfile.lock

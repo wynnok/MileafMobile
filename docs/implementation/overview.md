@@ -15,13 +15,13 @@ WorkspacePage 提供顶部选车、四个业务入口以及概览进入设置。
 - `BusinessCache.get(capturedSession,path,{query,force})` 经同一 SessionController GET 和网络策略，返回 body/etag/validUntil/checkedAt。缓存键是准确站点、会话代次、路径、排序后的完整查询。force 用于手动条件校验；默认按 max-age。304 复用相同键体与采样时间，仅更新校验时间；缺体最多一次不带条件头 GET 恢复。no-store 不保留业务缓存，新的200不继承旧 ETag。各业务响应是内存对象，不写磁盘。
 - `SessionController.request` 和 `MileafApi.request` 新增可选 query，前者还有可选额外 headers；Authorization 始终由当前捕获会话覆盖，所有 GET 继续继承可信 HTTP、禁止跳转和超时/证书策略。路径与查询分开，由 Uri 编码，不能把问号拼进路径。
 - 固定 OpenAPI DTO 生成器现在支持 `tool/flutterw dart tool/generate_auth_contract.dart <output> <Root...>`，输出仅指定 root 的引用闭包。概览使用 Summary/Meta 输出，保留无参数生成认证 DTO 的兼容性。各输出独立、自带基础解码函数，业务 import 使用前缀；当前生成器支持本票实际使用的标量、nullable、ref、默认值，数组等由对应实际消费者扩展。
-- 概览页面仅在其路由当前可见时响应前台；设置有独立 meta 校验。后续行程/充电/统计页面应沿用当前可见资源的前台校验，不能并行刷新所有 tab。切车或会话变更时详情路由必须退出。
+- 概览页面仅在其路由当前可见时响应前台；设置保留连接与本地访问入口，并从“服务版本与兼容性”二级入口独立校验 meta。后续行程/充电/统计页面应沿用当前可见资源的前台校验，不能并行刷新所有 tab。切车或会话变更时详情路由必须退出。
 
 ## 验证证据
 
 按已确认 App 操作 + 可控 HTTP 边界，先以读取固定后端 summary 的测试失败开始，再实现并逐条验证。新增测试覆盖200→304、无体304普通GET、日期/IANA变化、有效期内前台复用、切车迟到、重启偏好、刷新失败快照、404失车恢复、零/null/休眠、meta默认值/未测提示、360宽200%字体深色布局；既有认证测试更新为从顶部选择器阅读全部车辆，不再假定永远停在车辆目录。
 
-固定 summary 样本来自项目已有 `.cache/api-fixtures` 合成数据，不是用户真实轨迹。运行完整 Flutter 行为测试40项通过。静态分析、格式与固定源生成复现作为提交前门禁。
+固定 summary 样本来自项目已有 `.cache/api-fixtures` 合成数据，不是用户真实轨迹。合并连接替换切片后运行完整 Flutter 行为测试54项通过。静态分析、格式与固定源生成复现作为提交前门禁。
 
 ## 保留待验
 

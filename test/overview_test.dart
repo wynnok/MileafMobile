@@ -16,6 +16,26 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'widget_test.dart' show MemoryTrustStore;
 
+void background(WidgetTester tester) {
+  for (final state in [
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
+
+void foreground(WidgetTester tester) {
+  for (final state in [
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
+
 void main() {
   testWidgets('概览读取固定后端样本，条件刷新304保留采样并显示独立校验时间', (tester) async {
     final store = MemorySessionStore()
@@ -186,18 +206,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('68 %'), findsOneWidget);
     expect(queries, ['Asia/Shanghai', 'Asia/Shanghai']);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    background(tester);
+    foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.length, 2);
     now = DateTime.utc(2026, 3, 15, 16, 1);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    background(tester);
+    foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.length, 3);
     zone = 'America/New_York';
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    background(tester);
+    foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.last, 'America/New_York');
     expect(find.textContaining('归期时区：America/New_York'), findsOneWidget);
@@ -319,6 +339,8 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('服务版本与兼容性'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('未声明已测兼容'), findsOneWidget);
     expect(find.text('schema 检查正常'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -366,10 +388,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('服务版本与兼容性'));
+    await tester.pumpAndSettle();
     expect(find.text('Mileaf Server 0.1.0'), findsOneWidget);
     expired = true;
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    background(tester);
+    foreground(tester);
     await tester.pumpAndSettle();
     expect(find.text('站点访问口令'), findsOneWidget);
     expect(find.text('Mileaf Server 0.1.0'), findsNothing);
