@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1,
+    "name": "行笺测试车",
+    "model": "3",
+    "vin_suffix": "0001",
+    "state": {
+      "value": "charging",
+      "since": "2026-03-15T11:00:00Z"
+    },
+    "battery": {
+      "level": 68,
+      "range_km": 320.0,
+      "range_kind": "rated"
+    },
+    "freshness": {
+      "last_position_at": "2026-03-15T11:55:00Z",
+      "last_state_at": "2026-03-14T23:00:00Z"
+    }
+  },
+  {
+    "id": 2,
+    "name": null,
+    "model": "Y",
+    "vin_suffix": "0002",
+    "state": null,
+    "battery": null,
+    "freshness": {
+      "last_position_at": null,
+      "last_state_at": null
+    }
+  }
+]
