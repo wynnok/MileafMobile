@@ -208,6 +208,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                       )
                     : tab == 3
                     ? StatisticsPage(
+                        currency: currency,
                         key: ValueKey('statistics:$selected'),
                         workspace: workspace,
                       )

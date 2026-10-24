@@ -89,9 +89,13 @@ class BusinessCache {
   final _attempts = <String, Object>{};
   SiteSession? _owner;
   DateTime? _retryUntil;
-  void clear() {
+  void clearSnapshots() {
     _entries.clear();
     _attempts.clear();
+  }
+
+  void clear() {
+    clearSnapshots();
     _retryUntil = null;
     _owner = null;
   }
@@ -299,7 +303,7 @@ class VehicleWorkspace extends ChangeNotifier {
     if (changed) {
       calendar = clock;
       _day = clock.day(session.now());
-      cache.clear();
+      cache.clearSnapshots();
       revision++;
       _notify();
     }

@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "teslamate_schema_version": 20260808090000,
+  "schema_ok": true,
+  "tested": true,
+  "units": "metric",
+  "source_unit_of_length": "km",
+  "freshness": {
+    "last_position_at": "2026-03-15T11:55:00Z",
+    "last_state_at": "2026-03-14T23:00:00Z"
+  }
+}
