@@ -1,0 +1,48 @@
+{
+  "buckets": [
+    {
+      "drives": 31,
+      "distance_km": 620.0,
+      "energy_kwh": 116.25,
+      "consumption_wh_km_net": 188.0,
+      "consumption_wh_km_gross": 32.0,
+      "speed_max_kmh": 90.0,
+      "bucket_start": "2025-12-31T16:00:00Z"
+    },
+    {
+      "drives": 7,
+      "distance_km": 140.0,
+      "energy_kwh": 26.25,
+      "consumption_wh_km_net": 188.0,
+      "consumption_wh_km_gross": 286.0,
+      "speed_max_kmh": 90.0,
+      "bucket_start": "2026-01-31T16:00:00Z"
+    },
+    {
+      "drives": 11,
+      "distance_km": 200.0,
+      "energy_kwh": 37.5,
+      "consumption_wh_km_net": 188.0,
+      "consumption_wh_km_gross": 500.0,
+      "speed_max_kmh": 90.0,
+      "bucket_start": "2026-02-28T16:00:00Z"
+    },
+    {
+      "drives": 0,
+      "distance_km": 0.0,
+      "energy_kwh": 0.0,
+      "consumption_wh_km_net": null,
+      "consumption_wh_km_gross": null,
+      "speed_max_kmh": null,
+      "bucket_start": "2026-03-31T16:00:00Z"
+    }
+  ],
+  "totals": {
+    "drives": 49,
+    "distance_km": 960.0,
+    "energy_kwh": 180.0,
+    "consumption_wh_km_net": 188.0,
+    "consumption_wh_km_gross": 167.0,
+    "speed_max_kmh": 90.0
+  }
+}

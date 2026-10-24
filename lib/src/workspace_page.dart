@@ -6,6 +6,7 @@ import 'overview_page.dart';
 import 'connection_management.dart';
 import 'workspace.dart';
 import 'drives_page.dart';
+import 'statistics_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -168,6 +169,11 @@ class _WorkspacePageState extends State<WorkspacePage> {
                         key: ValueKey('drives:$selected'),
                         workspace: workspace,
                         onRecord: (id) => record('drive', id),
+                      )
+                    : tab == 3
+                    ? StatisticsPage(
+                        key: ValueKey('statistics:$selected'),
+                        workspace: workspace,
                       )
                     : Center(
                         child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付'),
