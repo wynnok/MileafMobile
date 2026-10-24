@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -84,8 +85,10 @@ class BusinessCache {
   final SessionController session;
   final _entries = <String, CachedResult>{};
   SiteSession? _owner;
+  DateTime? _retryUntil;
   void clear() {
     _entries.clear();
+    _retryUntil = null;
     _owner = null;
   }
 
@@ -102,6 +105,7 @@ class BusinessCache {
     Map<String, String> query = const {},
     bool force = false,
   }) async {
+    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
     if (!identical(_owner, s)) {
       clear();
       _owner = s;
@@ -110,6 +114,9 @@ class BusinessCache {
     final old = _entries[identity];
     if (!force && old != null && old.validUntil.isAfter(session.now())) {
       return old;
+    }
+    if (_retryUntil?.isAfter(session.now()) ?? false) {
+      throw const BusinessFailure('请求过于频繁，请等待服务指定的间隔后手动重试', 429);
     }
     var response = await session.request(
       s,
@@ -125,10 +132,27 @@ class BusinessCache {
     if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
     if (response.statusCode != 200 &&
         !(response.statusCode == 304 && old != null)) {
-      throw BusinessFailure(
-        response.statusCode == 404 ? '车辆或记录已不可用，请刷新车辆' : '数据读取失败，请稍后重试',
-        response.statusCode,
-      );
+      if (response.statusCode == 429) {
+        final header = response.headers['retry-after'];
+        final seconds = int.tryParse(header ?? '');
+        if (seconds != null && seconds >= 0) {
+          _retryUntil = session.now().add(Duration(seconds: seconds));
+        } else if (header != null) {
+          try {
+            _retryUntil = HttpDate.parse(header).toUtc();
+          } on FormatException {
+            _retryUntil = null;
+          }
+        } else {
+          _retryUntil = null;
+        }
+      }
+      throw BusinessFailure(switch (response.statusCode) {
+        404 => '车辆或记录已不可用，请刷新车辆',
+        429 => '请求过于频繁，请稍后手动重试',
+        503 => '服务暂不可用，请稍后重试',
+        _ => '数据读取失败，请稍后重试',
+      }, response.statusCode);
     }
     final Map<String, dynamic> body;
     if (response.statusCode == 304) {
