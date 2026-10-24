@@ -83,6 +83,8 @@ class _StatisticsViewState extends State<_StatisticsView>
   String? resultZone, resultDay;
   bool get hasData => data != null || chargingData != null;
   CachedResult? result;
+  Map<String, String>? resultQuery;
+  StatisticsSelection? resultSelection;
   String? error;
   bool loading = false;
   int sequence = 0;
@@ -132,7 +134,21 @@ class _StatisticsViewState extends State<_StatisticsView>
     final owner = workspace.session.current, calendar = workspace.calendar;
     final id = workspace.selectedId;
     if (owner == null || calendar == null || id == null) return;
+    if (!force &&
+        !reset &&
+        resultQuery != null &&
+        identical(resultSelection, selection) &&
+        resultZone == calendar.identifier &&
+        resultDay == calendar.day(workspace.session.now())) {
+      final cached = workspace.cache.peek(
+        owner,
+        'vehicles/$id/stats',
+        resultQuery!,
+      );
+      if (cached?.validUntil.isAfter(workspace.session.now()) ?? false) return;
+    }
     final attempt = ++sequence;
+    final requestedSelection = selection;
     final StatisticsWindow window;
     try {
       window = selection.resolve(calendar, workspace.session.now());
@@ -176,6 +192,8 @@ class _StatisticsViewState extends State<_StatisticsView>
         resultZone = calendar.identifier;
         resultDay = calendar.day(workspace.session.now());
         result = value;
+        resultQuery = window.query(widget.kind, calendar);
+        resultSelection = requestedSelection;
       });
     } catch (e) {
       if (mounted &&

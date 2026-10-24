@@ -88,11 +88,13 @@ class MileafApi {
 
   Future<String> health(SiteAddress address) async {
     final response = await request(address, 'GET', 'health');
-    if (response.statusCode == 503) {
-      throw const ApiFailure('服务可达，但数据库或上游暂不可用，请稍后重试');
-    }
     if (response.statusCode != 200) {
-      throw const ApiFailure('服务未返回健康结果，请核对服务根地址后重试');
+      throw ApiFailure(
+        responseErrorMessage(response) ??
+            (response.statusCode == 503
+                ? '服务可达，但数据库或上游暂不可用，请稍后重试'
+                : '服务未返回健康结果，请核对服务根地址后重试'),
+      );
     }
     final body = jsonDecode(response.body);
     if (body is! Map<String, dynamic> ||
@@ -107,6 +109,29 @@ class MileafApi {
 class ApiFailure implements Exception {
   const ApiFailure(this.message);
   final String message;
+}
+
+/// Bounded known-code descriptions only; never surface a server message or body.
+String? responseErrorMessage(http.Response response) {
+  String? code;
+  if (response.bodyBytes.length <= 8192) {
+    try {
+      final envelope = jsonDecode(response.body);
+      if (envelope is Map && envelope['error'] is Map) {
+        final candidate = (envelope['error'] as Map)['code'];
+        if (candidate is String) code = candidate;
+      }
+    } on FormatException {
+      // Proxy errors need not be JSON. Never display their body/message.
+    }
+  }
+  return switch ((response.statusCode, code)) {
+    (400 || 422, _) => '请求参数无效，请检查输入或日期范围，并核对服务版本后重试',
+    (503, 'db_unavailable') => '数据库暂不可用，请检查站点数据库后重试',
+    (503 || 504, 'upstream_timeout') => '上游服务超时，请稍后重试',
+    (500, 'internal_error') => '服务内部错误，请检查站点服务后重试',
+    _ => null,
+  };
 }
 
 /// Non-secret connection preferences; never stores passwords or bearer tokens.

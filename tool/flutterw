@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 project_root="$PWD"
 host_android_sdk="${MILEAF_HOST_ANDROID_SDK:-${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}}"
 export CI=true FLUTTER_SUPPRESS_ANALYTICS=true
-export PUB_CACHE="${PUB_CACHE:-$project_root/.cache/pub}"
+export PUB_CACHE="$project_root/.cache/pub"
 export XDG_CONFIG_HOME="$project_root/.cache/config"
 export XDG_CACHE_HOME="$project_root/.cache/cache"
 export GRADLE_USER_HOME="$project_root/.cache/gradle"

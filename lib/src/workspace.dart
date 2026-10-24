@@ -182,12 +182,16 @@ class BusinessCache {
           _retryUntil = null;
         }
       }
-      throw BusinessFailure(switch (response.statusCode) {
-        404 => '车辆或记录已不可用，请刷新车辆',
-        429 => '请求过于频繁，请稍后手动重试',
-        503 => '服务暂不可用，请稍后重试',
-        _ => '数据读取失败，请稍后重试',
-      }, response.statusCode);
+      throw BusinessFailure(
+        responseErrorMessage(response) ??
+            switch (response.statusCode) {
+              404 => '车辆或记录已不可用，请刷新车辆',
+              429 => '请求过于频繁，请稍后手动重试',
+              503 => '服务暂不可用，请稍后重试',
+              _ => '数据读取失败，请稍后重试',
+            },
+        response.statusCode,
+      );
     }
     final Map<String, dynamic> body;
     if (response.statusCode == 304) {

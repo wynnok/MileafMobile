@@ -27,6 +27,64 @@ Future<void> connect(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('接入健康检查与登录使用稳定错误提示且可手动恢复', (tester) async {
+    var healthFails = true, loginFails = true;
+    final client = MockClient((r) async {
+      if (r.url.path.endsWith('/health')) {
+        return healthFails
+            ? http.Response(
+                '{"error":{"code":"upstream_timeout","message":"private-token"}}',
+                503,
+              )
+            : http.Response('{"status":"ok","version":"0.1"}', 200);
+      }
+      if (r.url.path.endsWith('/auth/login')) {
+        return loginFails
+            ? http.Response(
+                '{"error":{"code":"internal_error","message":"private-token"}}',
+                500,
+              )
+            : http.Response(
+                '{"token":"test","expires_at":"2099-01-01T00:00:00Z"}',
+                200,
+              );
+      }
+      return http.Response('[]', 200);
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        trustStore: MemoryTrustStore(),
+        sessionStore: MemorySessionStore(),
+        vehiclePreferences: MemoryVehiclePreferences(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField),
+      'https://example.com/prefix',
+    );
+    await tester.tap(find.text('检查连接'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('上游服务超时'), findsOneWidget);
+    expect(find.textContaining('private-token'), findsNothing);
+    healthFails = false;
+    await tester.tap(find.text('检查连接'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('登录此站点'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'test-password');
+    await tester.tap(find.text('登录'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('服务内部错误'), findsOneWidget);
+    expect(find.textContaining('private-token'), findsNothing);
+    loginFails = false;
+    await tester.enterText(find.byType(TextFormField), 'test-password');
+    await tester.tap(find.text('登录'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('暂无车辆'), findsOneWidget);
+  });
+
   testWidgets('已有站点登录后读取顶层车辆数组，重启安全恢复，不重复输入口令', (tester) async {
     final store = MemorySessionStore();
     final client = MockClient((request) async {

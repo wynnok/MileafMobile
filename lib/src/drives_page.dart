@@ -58,7 +58,18 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
 
   Future<void> foreground() async {
     final changed = await workspace.foreground();
-    if (mounted && !changed) await load();
+    if (!mounted || changed) return;
+    final owner = workspace.session.current;
+    final cached = owner == null
+        ? null
+        : workspace.cache.peek(
+            owner,
+            'vehicles/${workspace.selectedId}/drives',
+            query,
+          );
+    if (cached?.validUntil.isAfter(workspace.session.now()) ?? false) return;
+    resetQuery();
+    await load();
   }
 
   void resetQuery() {
@@ -296,6 +307,18 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                       Text(
                         '${place(d.start.displayName)} → ${place(d.end.displayName)}',
                       ),
+                      for (final endpoint in [
+                        ('起点', d.start),
+                        ('终点', d.end),
+                      ]) ...[
+                        if (endpoint.$2.geofence?.trim().isNotEmpty == true &&
+                            endpoint.$2.geofence != endpoint.$2.displayName)
+                          Text('${endpoint.$1}围栏：${endpoint.$2.geofence}'),
+                        if (endpoint.$2.address?.trim().isNotEmpty == true &&
+                            endpoint.$2.address != endpoint.$2.displayName &&
+                            endpoint.$2.address != endpoint.$2.geofence)
+                          Text('${endpoint.$1}地址：${endpoint.$2.address}'),
+                      ],
                       Text(
                         '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
                       ),

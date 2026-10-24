@@ -33,6 +33,110 @@ Future<void> openDetail(
 }
 
 void main() {
+  testWidgets('360宽200%字完整行程指标曲线和地点地图均可纵向阅读', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    for (final text in [
+      '距离 20.0 km',
+      '时长 120 分钟',
+      '净电耗 188 Wh/km',
+      '速度读数',
+      '未知地点 → 未知地点',
+      '净能量 3.75 kWh',
+      '平均速度 10 km/h',
+      '最高速度 90 km/h',
+      '最大功率 120 kW',
+      '车外均温 15.0 °C',
+      '车内均温 21.0 °C',
+      '起点电量 70 %',
+      '终点电量 70 %',
+      '续航口径',
+      '地图暂不可用',
+    ]) {
+      final target = find.textContaining(text).hitTestable();
+      await tester.scrollUntilVisible(target, 120);
+      expect(target, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('行程列表与详情保留地址围栏，地点缺失回退且不重复主名称', (tester) async {
+    final detail = fixture('drive-detail');
+    detail['start']['geofence'] = '住宅围栏';
+    detail['start']['address'] = '样例路1号';
+    detail['end']['display_name'] = '办公地点';
+    detail['end']['geofence'] = '办公地点';
+    detail['end']['address'] = '办公地点';
+    await openDrives(tester, (r) async {
+      if (r.url.path.endsWith('/1/drives')) {
+        return jsonResponse(
+          jsonEncode({
+            'items': [detail],
+            'next_cursor': null,
+          }),
+        );
+      }
+      return jsonResponse(
+        jsonEncode(
+          r.url.path.endsWith('/series') ? fixture('drive-series') : detail,
+        ),
+      );
+    });
+    expect(find.text('未知地点 → 办公地点'), findsOneWidget);
+    expect(find.text('起点围栏：住宅围栏'), findsOneWidget);
+    expect(find.text('起点地址：样例路1号'), findsOneWidget);
+    expect(find.text('终点围栏：办公地点'), findsNothing);
+    expect(find.text('终点地址：办公地点'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('drive-1')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('起点地址：样例路1号'), 200);
+    expect(find.text('未知地点 → 办公地点'), findsOneWidget);
+    expect(find.text('起点围栏：住宅围栏'), findsOneWidget);
+    expect(find.text('起点地址：样例路1号'), findsOneWidget);
+    expect(find.text('终点地址：办公地点'), findsNothing);
+  });
+
+  testWidgets('360x800首屏可直接阅读主要指标与完整默认曲线', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    final viewport = tester.getRect(find.byType(RefreshIndicator));
+    final graph = tester.getRect(find.byKey(const ValueKey('sample-chart')));
+    expect(graph.top, greaterThanOrEqualTo(viewport.top));
+    expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
+    expect(find.textContaining('净电耗 188 Wh/km').hitTestable(), findsOneWidget);
+    expect(find.textContaining('距离 20.0 km').hitTestable(), findsOneWidget);
+  });
+
   testWidgets('列表进入真实详情，固定明细与独立series解码，切换电量并读数', (tester) async {
     await openDetail(tester, (r) async {
       if (r.url.path.endsWith('/series')) {
@@ -49,7 +153,7 @@ void main() {
     expect(find.textContaining('净电耗 188 Wh/km'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('最高速度 90'), 200);
     expect(find.textContaining('最高速度 90 km/h'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('电量'), 200);
+    await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
     expect(find.textContaining('电量读数 70 %'), findsOneWidget);
@@ -79,14 +183,14 @@ void main() {
       return jsonResponse(jsonEncode(d));
     });
     expect(find.textContaining('进行中'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('重试行程采样'), 300);
+    await tester.scrollUntilVisible(find.text('重试行程采样').hitTestable(), 300);
     failing = false;
     await tester.tap(find.text('重试行程采样'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('速度读数 0'), 250);
     expect(find.textContaining('速度读数 0 km/h'), findsOneWidget);
     expect(find.textContaining('仅1个采样点'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('电量'), -200);
+    await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('电量读数'), 200);

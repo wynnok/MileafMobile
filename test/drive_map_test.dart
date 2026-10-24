@@ -63,7 +63,8 @@ void main() {
     expect(find.textContaining('第三方将收到 IP'), findsOneWidget);
     await tester.tap(find.text('允许加载底图'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('重试底图'), 200);
+    await tester.ensureVisible(find.text('重试底图'));
+    await tester.pumpAndSettle();
     expect(calls, greaterThan(0));
     expect(find.text('4 个有效采样点 · 2 段轨迹'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('行程地图'), -180);
@@ -76,7 +77,8 @@ void main() {
           .join(' | '),
     );
     expect(find.bySemanticsLabel(RegExp('行程终点')), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('重试底图'), 180);
+    await tester.ensureVisible(find.text('重试底图'));
+    await tester.pumpAndSettle();
     failing = false;
     await tester.tap(find.text('重试底图'));
     await tester.pumpAndSettle();

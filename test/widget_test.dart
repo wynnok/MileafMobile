@@ -190,36 +190,43 @@ void main() {
     expect(requests, 1);
     expect(find.text('服务正常 · 版本 0.1.0'), findsNothing);
   });
-  testWidgets('数据库503后保留输入并可重试成功', (tester) async {
-    var unavailable = true;
-    final client = MockClient(
-      (request) async => unavailable
-          ? http.Response(
-              '{"error":{"code":"db_unavailable","message":"Database is unavailable"}}',
-              503,
-            )
-          : http.Response('{"status":"ok","version":"0.1.0"}', 200),
-    );
-    await tester.pumpWidget(
-      MileafApp(
-        sessionStore: MemorySessionStore(),
-        client: client,
-        trustStore: MemoryTrustStore(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextFormField),
-      'https://example.com/v1/',
-    );
-    await tester.tap(find.text('检查连接'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('数据库或上游暂不可用'), findsOneWidget);
-    unavailable = false;
-    await tester.tap(find.text('检查连接'));
-    await tester.pumpAndSettle();
-    expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
-  });
+  for (final isJson in [true, false]) {
+    testWidgets('数据库503后保留输入并可重试成功 JSON=$isJson', (tester) async {
+      var unavailable = true;
+      final client = MockClient(
+        (request) async => unavailable
+            ? http.Response(
+                isJson
+                    ? '{"error":{"code":"db_unavailable","message":"Database is unavailable"}}'
+                    : '<html>private proxy error</html>',
+                503,
+              )
+            : http.Response('{"status":"ok","version":"0.1.0"}', 200),
+      );
+      await tester.pumpWidget(
+        MileafApp(
+          sessionStore: MemorySessionStore(),
+          client: client,
+          trustStore: MemoryTrustStore(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextFormField),
+        'https://example.com/v1/',
+      );
+      await tester.tap(find.text('检查连接'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(isJson ? '数据库暂不可用' : '数据库或上游暂不可用'),
+        findsOneWidget,
+      );
+      unavailable = false;
+      await tester.tap(find.text('检查连接'));
+      await tester.pumpAndSettle();
+      expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+    });
+  }
   testWidgets('总时限涵盖等待响应头，超时后可以重试', (tester) async {
     final client = MockClient((request) => Completer<http.Response>().future);
     await tester.pumpWidget(
