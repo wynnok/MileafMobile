@@ -355,7 +355,8 @@ class _ChargingCurveState extends State<ChargingCurve> {
                   var index = 0;
                   for (var i = 1; i < points.length; i++) {
                     if ((points[i].t.microsecondsSinceEpoch - target).abs() <
-                        (points[index].t.microsecondsSinceEpoch - target).abs()) {
+                        (points[index].t.microsecondsSinceEpoch - target)
+                            .abs()) {
                       index = i;
                     }
                   }
