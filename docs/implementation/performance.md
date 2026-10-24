@@ -6,7 +6,7 @@
 
 使用既有项目工具链构建 profile（协议也允许 release），仅在本地测量构建添加 `--dart-define=MILEAF_PERFORMANCE_TRACE=true`。常规构建默认关闭。定义只启用应用标记，不自动开启 VM Timeline stream；采集前验证实际 trace 中存在对应事件。当前冻结 Dart SDK 的 Timeline.instantSync 在 Timeline/Dart stream 未启用时不会发出事件；release 中不能假定 DevTools/VM 时间线可用，缺标记必须按采集失败处理，或另行验证 OS 级端点，不用零代替。
 
-Android 的项目构建命令形态为 `tool/flutterw build apk --profile --dart-define=MILEAF_PERFORMANCE_TRACE=true`；iOS 为 `tool/flutterw build ios --profile --no-codesign --dart-define=MILEAF_PERFORMANCE_TRACE=true`。依旧需要已有项目 SDK、外层沙箱与构建前探针；这里没有执行这些命令。签名/安装/设备执行仍遵循另行验证的流程，不使用裸 flutter 或跳过入口的方式绕过当前 run/install/drive 保护。
+Android 先用 `tool/flutterw android --version` 确认既有 JDK21，profile 命令形态为 `tool/flutterw android assembleProfile -Pdart-defines=TUlMRUFGX1BFUkZPUk1BTkNFX1RSQUNFPXRydWU=`（此值仅为 `MILEAF_PERFORMANCE_TRACE=true` 的 Base64，由冻结 Flutter Gradle 插件读取）；iOS 为 `tool/flutterw build ios --profile --no-codesign --dart-define=MILEAF_PERFORMANCE_TRACE=true`。依旧需要已有项目 SDK、外层沙箱与构建前探针；这里没有执行这些命令。签名/安装/设备执行仍遵循另行验证的流程，不使用裸 flutter 或跳过入口的方式绕过当前 run/install/drive 保护。
 
 事件仅含固定名称 `mileaf.<enum name>` 与可选进程内递增 trial 序号，不接受 URL、车辆/记录 ID、口令、token、坐标、响应体或自由文本，不上传、不加遥测 SDK、不写日志文件或网络服务。
 

@@ -33,7 +33,7 @@ MILEAF_HOST_ANDROID_SDK=/path/to/existing/host/sdk \
   tool/flutterw android assembleDebug
 ```
 
-SDK 自定义路径沿用 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK`；Pub cache 可沿用项目内共享 `PUB_CACHE`。iOS 使用同样的环境执行 `tool/flutterw build ios --release --no-codesign`。run/install/drive 等设备执行入口仍保持 78，另待设备验收，不尝试绕过保护。
+SDK 自定义路径沿用 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK`；Pub cache 已在最终审查修复中固定为当前 checkout 的 `.cache/pub`，不再继承外部 `PUB_CACHE`。iOS 使用同样的环境执行 `tool/flutterw build ios --release --no-codesign`。run/install/drive 等设备执行入口仍保持 78，另待设备验收，不尝试绕过保护。
 
 ## Android 已取得的证据
 
@@ -79,3 +79,7 @@ SDK 自定义路径沿用 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK`；Pub cach
 - 原版 Flutter SDK 的 tracked git status 为空。未改 SDK 源码、HOME 或全局配置，未签名 iOS、安装设备或推送发布。
 
 这些证据只覆盖当前集成源码的自动化与构建边界；平台安全存储重启/退出、设备证书与 HTTP 授权、地图中国大陆网络等仍须各自的真实设备验收。
+
+### 2026-10-24 最终首版复验
+
+135 项 App 回归及审查修复后，iOS release 无签名与 Zulu21 下 Android release 均通过同一进程沙箱，探针和 SDK 路径核对通过。最终输入 hash、产物摘要、冷缓存复用与 IDE 自动选 JBR25 的中间尝试见[最终验证](final-verification.md)，不以中间版本替代最后固定工具链证据。
