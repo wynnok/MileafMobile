@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as database;
@@ -99,6 +101,25 @@ class BusinessCache {
     return '${s.site.uri}|${s.generation}|$path|${Uri(queryParameters: {for (final name in names) name: query[name]!}).query}';
   }
 
+  Future<http.Response> _request(
+    SiteSession owner,
+    String path, {
+    Map<String, String> query = const {},
+    Map<String, String> headers = const {},
+  }) async {
+    try {
+      return await session.request(owner, path, query: query, headers: headers);
+    } on HandshakeException {
+      throw const ApiFailure('证书校验失败，请检查服务证书；不会忽略证书错误');
+    } on TimeoutException {
+      throw const ApiFailure('请求超时，请检查网络后重试');
+    } on SocketException {
+      throw const ApiFailure('服务不可达，请检查网络、站点地址及局域网权限后重试');
+    } on http.ClientException {
+      throw const ApiFailure('连接中断，请检查网络后重试');
+    }
+  }
+
   CachedResult? peek(SiteSession s, String path, Map<String, String> query) =>
       identical(_owner, s) ? _entries[key(s, path, query)] : null;
   Future<CachedResult> get(
@@ -128,7 +149,7 @@ class BusinessCache {
       }
     }
 
-    var response = await session.request(
+    var response = await _request(
       s,
       path,
       query: query,
@@ -137,7 +158,7 @@ class BusinessCache {
     ensureCurrent();
     // Servers/proxies may return an unsolicited 304 after memory was discarded.
     if (response.statusCode == 304 && old == null) {
-      response = await session.request(s, path, query: query);
+      response = await _request(s, path, query: query);
     }
     ensureCurrent();
     if (response.statusCode != 200 &&

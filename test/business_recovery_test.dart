@@ -149,4 +149,46 @@ void main() {
     expect(reads, 2);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('业务HTTPS证书错误可辨识且保留快照，不泄露异常细节', (tester) async {
+    var fail = false;
+    final store = MemorySessionStore()
+      ..value = jsonEncode({
+        'site': 'https://example.com',
+        'token': 'test',
+        'expires_at': '2099-01-01T00:00:00Z',
+      });
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/vehicles')) {
+        return http.Response(
+          File('test/fixtures/vehicles.json').readAsStringSync(),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (fail) throw const HandshakeException('sensitive connection detail');
+      return http.Response(
+        File('test/fixtures/summary.json').readAsStringSync(),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        sessionStore: store,
+        trustStore: MemoryTrustStore(),
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext('UTC'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    fail = true;
+    await tester.tap(find.byTooltip('刷新概览'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('证书校验失败'), findsOneWidget);
+    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('68 %'), findsOneWidget);
+    expect(find.textContaining('sensitive connection detail'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
