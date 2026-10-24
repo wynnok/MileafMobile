@@ -1,3 +1,5 @@
+import 'performance_trace.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -116,6 +118,8 @@ class _CandidateMapState extends State<CandidateMap> {
   int? _decodedGeneration;
   int _generation = 0;
   int _geometry = 0;
+  int? _traceGeneration;
+  int? _performanceTrial;
 
   void _decodedTile(int generation) {
     if (!mounted ||
@@ -124,13 +128,20 @@ class _CandidateMapState extends State<CandidateMap> {
       return;
     }
     _decodedGeneration = generation;
-    // Successful provider tile only; performance integration may observe here.
+    PerformanceTrace.mark(
+      PerformancePoint.mapFirstTileDecoded,
+      trial: _performanceTrial,
+    );
   }
 
   void _failedTile(int generation) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && generation == _generation && !_failed) {
         setState(() => _failed = true);
+        PerformanceTrace.mark(
+          PerformancePoint.mapFailed,
+          trial: _performanceTrial,
+        );
       }
     });
   }
@@ -240,6 +251,10 @@ class _CandidateMapState extends State<CandidateMap> {
       );
     }
     final generation = _generation;
+    if (_traceGeneration != generation) {
+      _traceGeneration = generation;
+      _performanceTrial = PerformanceTrace.start(PerformancePoint.mapRequest);
+    }
     final location = visible.first;
     return Column(
       children: [
