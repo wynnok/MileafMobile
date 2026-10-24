@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'api.dart';
+
 import 'charging_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'currency.dart';
@@ -159,9 +161,7 @@ class _ChargingPageState extends State<ChargingPage>
         setState(
           () => error = e is FormatException
               ? '服务返回格式不兼容，请核对版本'
-              : items.isEmpty
-              ? '充电读取失败，请重试'
-              : '读取失败，保留已加载记录，请重试',
+              : '${e is ApiFailure ? e.message : '充电读取失败，请重试'}${items.isEmpty ? '' : '；保留已加载记录，请重试'}',
         );
       }
     } finally {

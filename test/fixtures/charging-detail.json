@@ -1,0 +1,25 @@
+{
+  "id": 1,
+  "started_at": "2026-01-05T08:00:00Z",
+  "ended_at": "2026-01-05T09:00:00Z",
+  "duration_min": 60,
+  "energy_added_kwh": 20.0,
+  "energy_used_kwh": 22.0,
+  "start_soc": 40,
+  "end_soc": 70,
+  "cost": 12.0,
+  "is_dc": false,
+  "location": {
+    "display_name": "家",
+    "geofence": "家",
+    "address": "测试路 10",
+    "lat": 31.2304,
+    "lon": 121.4737
+  },
+  "is_active": false,
+  "vehicle_id": 1,
+  "outside_temp_c_avg": 15.0,
+  "start_battery_level": 40,
+  "end_battery_level": 70,
+  "charger_phases_mode": 3
+}

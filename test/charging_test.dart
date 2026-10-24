@@ -332,7 +332,7 @@ void main() {
     );
     await tester.tap(find.text('充电 #9 · 查看详情').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('充电 #9\n详情将在对应功能切片接入。'), findsOneWidget);
+    expect(find.text('充电详情 #9'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     empty = true;

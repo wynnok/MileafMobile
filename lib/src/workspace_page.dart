@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'session.dart';
 import 'charging_page.dart';
+import 'charging_detail.dart';
 import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
 import 'connection_management.dart';
 import 'workspace.dart';
 import 'drives_page.dart';
+import 'drive_detail_page.dart';
 import 'statistics_page.dart';
 
 class WorkspacePage extends StatefulWidget {
@@ -89,15 +91,20 @@ class _WorkspacePageState extends State<WorkspacePage> {
   }
 
   void record(String kind, int id) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text('${kind == 'drive' ? '行程' : '充电'} #$id\n详情将在对应功能切片接入。'),
+    if (kind == 'drive') {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => DriveDetailPage(
+            workspace: workspace,
+            id: id,
+            onReturnToList: () => setState(() => tab = 1),
+          ),
         ),
-      ),
-    );
+      );
+      return;
+    }
+    openChargingDetail(context, workspace, currency, id);
   }
 
   @override
