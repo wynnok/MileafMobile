@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'session.dart';
+import 'charging_page.dart';
+import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
 import 'connection_management.dart';
 import 'workspace.dart';
+import 'drives_page.dart';
+import 'statistics_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -12,8 +16,10 @@ class WorkspacePage extends StatefulWidget {
     required this.session,
     this.preferences,
     this.calendar,
+    this.currencyPreferences,
   });
   final SessionController session;
+  final CurrencyPreferenceStore? currencyPreferences;
   final VehiclePreferenceStore? preferences;
   final Future<CalendarContext> Function()? calendar;
   @override
@@ -26,11 +32,17 @@ class _WorkspacePageState extends State<WorkspacePage> {
     widget.preferences ?? PreferenceVehicleStore(),
     calendar: widget.calendar,
   );
+  late final currency = CurrencySettings(
+    widget.session.current!.site.uri.toString(),
+    widget.currencyPreferences ?? PreferenceCurrencyStore(),
+  );
+  final chargingFilter = ChargingFilter();
   int tab = 0;
   bool started = false;
   @override
   void initState() {
     super.initState();
+    currency.restore().catchError((_) {});
     widget.session.addListener(changed);
     changed();
   }
@@ -48,6 +60,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   void dispose() {
     widget.session.removeListener(changed);
     workspace.dispose();
+    currency.dispose();
     super.dispose();
   }
 
@@ -57,6 +70,12 @@ class _WorkspacePageState extends State<WorkspacePage> {
       MaterialPageRoute<void>(
         builder: (_) => ConnectionManagementPage(
           session: widget.session,
+          onCurrency: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => CurrencyPage(settings: currency),
+            ),
+          ),
           onServiceInformation: () => Navigator.push(
             context,
             MaterialPageRoute<void>(
@@ -161,6 +180,25 @@ class _WorkspacePageState extends State<WorkspacePage> {
                         key: ValueKey('$selected:${workspace.revision}'),
                         workspace: workspace,
                         onRecord: record,
+                      )
+                    : tab == 1
+                    ? DrivesPage(
+                        key: ValueKey('drives:$selected'),
+                        workspace: workspace,
+                        onRecord: (id) => record('drive', id),
+                      )
+                    : tab == 2
+                    ? ChargingPage(
+                        key: ValueKey("charge:$selected"),
+                        workspace: workspace,
+                        currency: currency,
+                        filter: chargingFilter,
+                        onRecord: record,
+                      )
+                    : tab == 3
+                    ? StatisticsPage(
+                        key: ValueKey('statistics:$selected'),
+                        workspace: workspace,
                       )
                     : Center(
                         child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付'),
