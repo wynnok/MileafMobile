@@ -1,0 +1,199 @@
+{
+  "drive_id": 1,
+  "resolution": "server_sampled",
+  "points": 24,
+  "series": [
+    {
+      "t": "2026-03-15T08:00:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:04:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:10:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:14:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:19:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:25:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:29:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:34:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:40:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:44:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:49:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T08:55:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:00:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:05:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:11:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:15:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:20:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:26:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:30:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:35:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:41:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:45:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T09:50:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    },
+    {
+      "t": "2026-03-15T10:00:00Z",
+      "lat": 31.23,
+      "lon": 121.47,
+      "speed_kmh": 60.0,
+      "battery_level": 70,
+      "elevation_m": 20.0
+    }
+  ]
+}
