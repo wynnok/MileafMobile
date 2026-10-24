@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:mileaf/src/map_candidate.dart';
 
 import 'drives_test.dart' show openDrives, jsonResponse;
 
@@ -13,8 +14,9 @@ Map<String, dynamic> fixture(String name) =>
         as Map<String, dynamic>;
 Future<void> openDetail(
   WidgetTester tester,
-  Future<http.Response> Function(http.Request) handler,
-) async {
+  Future<http.Response> Function(http.Request) handler, {
+  MapConfiguration? mapConfiguration,
+}) async {
   await openDrives(tester, (r) async {
     if (r.url.path.endsWith('/1/drives')) {
       return jsonResponse(
@@ -25,7 +27,7 @@ Future<void> openDetail(
       );
     }
     return handler(r);
-  });
+  }, mapConfiguration: mapConfiguration);
   await tester.tap(find.byKey(const ValueKey('drive-1')));
   await tester.pumpAndSettle();
 }
@@ -206,5 +208,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('行程 #1'), findsNothing);
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
+  });
+  testWidgets('未配置地图时详情和采样可读，不向第三方联网且没有研发占位文案', (tester) async {
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(find.textContaining('地图暂不可用'), 250);
+    expect(find.textContaining('地图暂不可用'), findsOneWidget);
+    expect(find.textContaining('后续地图切片'), findsNothing);
+    expect(find.text('允许加载底图'), findsNothing);
   });
 }

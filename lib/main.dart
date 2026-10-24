@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'src/api.dart';
+import 'src/map_candidate.dart';
 import 'src/connection_page.dart';
 export 'src/connection_page.dart';
 import 'src/session.dart';
@@ -20,6 +21,7 @@ class MileafApp extends StatefulWidget {
   const MileafApp({
     super.key,
     this.client,
+    this.mapConfiguration,
     this.trustStore,
     this.sessionStore,
     this.now,
@@ -28,6 +30,7 @@ class MileafApp extends StatefulWidget {
     this.currencyPreferences,
   });
   final http.Client? client;
+  final MapConfiguration? mapConfiguration;
   final HttpTrustStore? trustStore;
   final SessionStore? sessionStore;
   final DateTime Function()? now;
@@ -42,6 +45,8 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
   late final http.Client _client =
       widget.client ??
       IOClient(HttpClient()..connectionTimeout = const Duration(seconds: 5));
+  late final mapConfiguration =
+      widget.mapConfiguration ?? MapConfiguration.fromEnvironment();
   late final _api = MileafApi(_client, trustStore: widget.trustStore);
   late final session = SessionController(
     _api,
@@ -97,6 +102,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
           return WorkspacePage(
             key: ObjectKey(session.current),
             session: session,
+            mapConfiguration: mapConfiguration,
             preferences: widget.vehiclePreferences,
             calendar: widget.calendar,
             currencyPreferences: widget.currencyPreferences,
