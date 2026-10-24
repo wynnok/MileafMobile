@@ -3,10 +3,9 @@
 用 Flutter 为 Android 和 iOS 提供适合手机阅读的 TeslaMate 数据展示体验。
 通过独立部署的 Mileaf Server API 读取数据，帮助用户快速查看车况记录、行程、充电和统计。
 
-**当前状态：按已发布的 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 分片实施，尚未完成完整首版。**
+**当前状态：首版数据阅读闭环已具备，外部验收尚未完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。
 
-本地集成分支为 `codex/mileaf-v1`，已有连接/健康检查、登录与安全会话、连接管理及独立地图候选。
-车辆概览、行程、充电和统计仍在实施中。
+本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
 双端构建已通过进程沙箱验证，iOS 使用用户批准的项目级 CocoaPods。
 原生构建必须使用带探针的 `tool/flutterw`，不要绕过保护直接调用全局 Flutter 或 Gradle。
@@ -41,9 +40,13 @@
 ## 开发与验证
 
 工具链版本、项目内 SDK/缓存入口、测试与双端构建命令见[实施说明](docs/implementation/toolchain.md)。
-当前 App 可检测服务健康，并对确切站点授权可信 HTTP；受控真实 HTTPS 后端联通已验证。
+完整 App/HTTP 自动化覆盖连接到退出的闭环、分页、日期/时区、条件缓存、限流和迟到响应隔离。既有受控真实 HTTPS 联通已验证；真实后端样本可按[验收记录](docs/implementation/acceptance.md)复验，当前 Docker 服务未运行的复验尝试没有记为通过。
 双端真机网络、已许可地图服务与真实坐标校准仍缺，不能把构建或合成数据测试当成通过。
 
+- [完整验收矩阵与响应复验](docs/implementation/acceptance.md)
+- [行程详情和采样](docs/implementation/drive-detail.md)
+- [充电详情和采样](docs/implementation/charging-detail.md)
+- [驾驶与充电统计](docs/implementation/statistics.md)
 - [安全网络候选与待验项](docs/implementation/network-security.md)
 - [地图候选与未满足条件](docs/implementation/map-candidate.md)
 
