@@ -8,6 +8,7 @@ import 'session_pages.dart';
 import 'overview_page.dart';
 import 'connection_management.dart';
 import 'workspace.dart';
+import 'map_candidate.dart';
 import 'drives_page.dart';
 import 'drive_detail_page.dart';
 import 'statistics_page.dart';
@@ -17,10 +18,12 @@ class WorkspacePage extends StatefulWidget {
     super.key,
     required this.session,
     this.preferences,
+    this.mapConfiguration,
     this.calendar,
     this.currencyPreferences,
   });
   final SessionController session;
+  final MapConfiguration? mapConfiguration;
   final CurrencyPreferenceStore? currencyPreferences;
   final VehiclePreferenceStore? preferences;
   final Future<CalendarContext> Function()? calendar;
@@ -98,6 +101,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
           builder: (_) => DriveDetailPage(
             workspace: workspace,
             id: id,
+            mapConfiguration: widget.mapConfiguration,
             onReturnToList: () => setState(() => tab = 1),
           ),
         ),

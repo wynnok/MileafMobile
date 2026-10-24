@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'map_candidate.dart';
 import 'drive_detail_contract.g.dart' as dto;
 import 'sample_chart.dart';
 import 'session.dart';
@@ -12,8 +13,10 @@ class DriveDetailPage extends StatefulWidget {
     required this.workspace,
     required this.id,
     this.onReturnToList,
+    this.mapConfiguration,
   });
   final VehicleWorkspace workspace;
+  final MapConfiguration? mapConfiguration;
   final int id;
   final VoidCallback? onReturnToList;
   @override
@@ -212,7 +215,33 @@ class _DriveDetailPageState extends State<DriveDetailPage>
             ),
           ],
           const Divider(),
-          const Text('地图将在后续地图切片接入'),
+          Text('行程地图', style: Theme.of(context).textTheme.titleLarge),
+          if (seriesLoading && series == null) const Text('正在读取轨迹采样'),
+          if (seriesError != null && series == null)
+            const Text('轨迹采样暂不可用，可在行程采样区域重试'),
+          CandidateMap(
+            key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
+            provider: widget.mapConfiguration?.provider,
+            sourceCrs: widget.mapConfiguration?.sourceCrs,
+            tileClient: widget.mapConfiguration?.tileClient,
+            start: detail == null
+                ? null
+                : MapCoordinate(
+                    detail!.start.lat?.toDouble(),
+                    detail!.start.lon?.toDouble(),
+                  ),
+            end: detail == null
+                ? null
+                : MapCoordinate(
+                    detail!.end.lat?.toDouble(),
+                    detail!.end.lon?.toDouble(),
+                  ),
+            coordinates: [
+              for (final point in series?.series ?? <dto.DrivePoint>[])
+                MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
+            ],
+          ),
+
           const Divider(),
           Row(
             children: [
