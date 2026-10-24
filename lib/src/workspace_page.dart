@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'session.dart';
 import 'charging_page.dart';
+import 'charging_detail.dart';
 import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
@@ -103,15 +104,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
       );
       return;
     }
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text('${kind == 'drive' ? '行程' : '充电'} #$id\n详情将在对应功能切片接入。'),
-        ),
-      ),
-    );
+    openChargingDetail(context, workspace, currency, id);
   }
 
   @override
