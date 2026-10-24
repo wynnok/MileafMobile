@@ -66,6 +66,18 @@ Future<void> openDrives(
 void main() {
   testWidgets('行程从固定后端多页样本读取，展示未知地点与净电耗并产生详情目标', (tester) async {
     await openDrives(tester, (request) async {
+      if (request.url.path.endsWith('/17/series')) {
+        return jsonResponse(
+          '{"drive_id":17,"resolution":"empty","points":0,"series":[]}',
+        );
+      }
+      if (request.url.path.endsWith('/drives/17')) {
+        final body = jsonDecode(
+          File('test/fixtures/drive-detail.json').readAsStringSync(),
+        ) as Map<String, dynamic>;
+        body['id'] = 17;
+        return jsonResponse(jsonEncode(body));
+      }
       expect(request.url.path, '/prefix/v1/vehicles/1/drives');
       expect(request.url.queryParameters['from'], '2026-02-28T16:00:00.000Z');
       expect(request.url.queryParameters['to'], '2026-03-30T12:00:00.000Z');

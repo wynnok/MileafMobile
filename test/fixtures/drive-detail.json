@@ -1,0 +1,32 @@
+{
+  "id": 1,
+  "started_at": "2026-03-15T08:00:00Z",
+  "ended_at": "2026-03-15T10:00:00Z",
+  "distance_km": 20.0,
+  "duration_min": 120,
+  "energy_kwh": 3.75,
+  "consumption_wh_km": 188.0,
+  "start": {
+    "display_name": null,
+    "geofence": null,
+    "address": null,
+    "lat": 31.23,
+    "lon": 121.47,
+    "battery_level": 70
+  },
+  "end": {
+    "display_name": null,
+    "geofence": null,
+    "address": null,
+    "lat": 31.23,
+    "lon": 121.47,
+    "battery_level": 70
+  },
+  "vehicle_id": 1,
+  "speed_max_kmh": 90.0,
+  "speed_avg_kmh": 10.0,
+  "power_max_kw": 120.0,
+  "outside_temp_c_avg": 15.0,
+  "inside_temp_c_avg": 21.0,
+  "range_kind": "rated"
+}
