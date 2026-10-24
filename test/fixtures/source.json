@@ -1,0 +1,110 @@
+{
+  "synthetic": true,
+  "serverCommit": "146cb3b9a16af3d632b04ed8d197d0f2243d9b71",
+  "fixedNow": "2026-03-15T12:00:00Z",
+  "method": "Actual authenticated HTTP ASGI boundary + isolated PostgreSQL fixtures. Auth response/token not stored.",
+  "responses": [
+    {
+      "name": "meta",
+      "path": "/v1/meta",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "vehicles",
+      "path": "/v1/vehicles",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "summary",
+      "path": "/v1/vehicles/1/summary",
+      "params": {
+        "tz": "Asia/Shanghai"
+      },
+      "status": 200
+    },
+    {
+      "name": "drives",
+      "path": "/v1/vehicles/1/drives",
+      "params": {
+        "limit": 2
+      },
+      "status": 200
+    },
+    {
+      "name": "drive-detail",
+      "path": "/v1/drives/1",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "drive-series",
+      "path": "/v1/drives/1/series",
+      "params": {
+        "fields": "speed,battery,elevation",
+        "points": 24
+      },
+      "status": 200
+    },
+    {
+      "name": "drive-empty-series",
+      "path": "/v1/drives/13/series",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "charging-sessions",
+      "path": "/v1/vehicles/1/charging-sessions",
+      "params": {
+        "limit": 2
+      },
+      "status": 200
+    },
+    {
+      "name": "charging-detail",
+      "path": "/v1/charging-sessions/1",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "charging-active",
+      "path": "/v1/charging-sessions/8",
+      "params": {},
+      "status": 200
+    },
+    {
+      "name": "charging-series",
+      "path": "/v1/charging-sessions/1/series",
+      "params": {
+        "fields": "power,soc",
+        "points": 24
+      },
+      "status": 200
+    },
+    {
+      "name": "driving-stats",
+      "path": "/v1/vehicles/1/stats",
+      "params": {
+        "kind": "driving",
+        "bucket": "month",
+        "from": "2026-01-01T00:00:00Z",
+        "to": "2026-04-01T00:00:00Z",
+        "tz": "Asia/Shanghai"
+      },
+      "status": 200
+    },
+    {
+      "name": "charging-stats",
+      "path": "/v1/vehicles/1/stats",
+      "params": {
+        "kind": "charging",
+        "bucket": "month",
+        "from": "2026-01-01T00:00:00Z",
+        "to": "2026-04-01T00:00:00Z",
+        "tz": "Asia/Shanghai"
+      },
+      "status": 200
+    }
+  ]
+}
