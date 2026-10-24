@@ -1,3 +1,5 @@
+import 'api.dart';
+
 import 'package:flutter/material.dart';
 
 import 'overview_contract.g.dart' as dto;
@@ -91,6 +93,8 @@ class _OverviewPageState extends State<OverviewPage>
         setState(
           () => error = e is FormatException
               ? '服务返回格式不兼容，请核对版本'
+              : e is ApiFailure
+              ? '${e.message}${data == null ? '' : '；保留上次快照'}'
               : data == null
               ? '数据读取失败，请检查网络后重试'
               : '刷新失败，保留上次快照，请重试',

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as database;
@@ -83,15 +86,38 @@ class BusinessCache {
   BusinessCache(this.session);
   final SessionController session;
   final _entries = <String, CachedResult>{};
+  final _attempts = <String, Object>{};
   SiteSession? _owner;
+  DateTime? _retryUntil;
   void clear() {
     _entries.clear();
+    _attempts.clear();
+    _retryUntil = null;
     _owner = null;
   }
 
   String key(SiteSession s, String path, Map<String, String> query) {
     final names = query.keys.toList()..sort();
     return '${s.site.uri}|${s.generation}|$path|${Uri(queryParameters: {for (final name in names) name: query[name]!}).query}';
+  }
+
+  Future<http.Response> _request(
+    SiteSession owner,
+    String path, {
+    Map<String, String> query = const {},
+    Map<String, String> headers = const {},
+  }) async {
+    try {
+      return await session.request(owner, path, query: query, headers: headers);
+    } on HandshakeException {
+      throw const ApiFailure('证书校验失败，请检查服务证书；不会忽略证书错误');
+    } on TimeoutException {
+      throw const ApiFailure('请求超时，请检查网络后重试');
+    } on SocketException {
+      throw const ApiFailure('服务不可达，请检查网络、站点地址及局域网权限后重试');
+    } on http.ClientException {
+      throw const ApiFailure('连接中断，请检查网络后重试');
+    }
   }
 
   CachedResult? peek(SiteSession s, String path, Map<String, String> query) =>
@@ -102,6 +128,7 @@ class BusinessCache {
     Map<String, String> query = const {},
     bool force = false,
   }) async {
+    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
     if (!identical(_owner, s)) {
       clear();
       _owner = s;
@@ -111,24 +138,52 @@ class BusinessCache {
     if (!force && old != null && old.validUntil.isAfter(session.now())) {
       return old;
     }
-    var response = await session.request(
+    if (_retryUntil?.isAfter(session.now()) ?? false) {
+      throw const BusinessFailure('请求过于频繁，请等待服务指定的间隔后手动重试', 429);
+    }
+    final attempt = Object();
+    _attempts[identity] = attempt;
+    void ensureCurrent() {
+      if (!session.isCurrent(s) || !identical(_attempts[identity], attempt)) {
+        throw const ApiFailure('请求已被更新结果替代');
+      }
+    }
+
+    var response = await _request(
       s,
       path,
       query: query,
       headers: {if (old?.etag != null) 'if-none-match': old!.etag!},
     );
-    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
+    ensureCurrent();
     // Servers/proxies may return an unsolicited 304 after memory was discarded.
     if (response.statusCode == 304 && old == null) {
-      response = await session.request(s, path, query: query);
+      response = await _request(s, path, query: query);
     }
-    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
+    ensureCurrent();
     if (response.statusCode != 200 &&
         !(response.statusCode == 304 && old != null)) {
-      throw BusinessFailure(
-        response.statusCode == 404 ? '车辆或记录已不可用，请刷新车辆' : '数据读取失败，请稍后重试',
-        response.statusCode,
-      );
+      if (response.statusCode == 429) {
+        final header = response.headers['retry-after'];
+        final seconds = int.tryParse(header ?? '');
+        if (seconds != null && seconds >= 0) {
+          _retryUntil = session.now().add(Duration(seconds: seconds));
+        } else if (header != null) {
+          try {
+            _retryUntil = HttpDate.parse(header).toUtc();
+          } on FormatException {
+            _retryUntil = null;
+          }
+        } else {
+          _retryUntil = null;
+        }
+      }
+      throw BusinessFailure(switch (response.statusCode) {
+        404 => '车辆或记录已不可用，请刷新车辆',
+        429 => '请求过于频繁，请稍后手动重试',
+        503 => '服务暂不可用，请稍后重试',
+        _ => '数据读取失败，请稍后重试',
+      }, response.statusCode);
     }
     final Map<String, dynamic> body;
     if (response.statusCode == 304) {
