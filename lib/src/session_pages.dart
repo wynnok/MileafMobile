@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'session.dart';
 import 'setup_page.dart';
+import 'connection_page.dart';
+import 'connection_management.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.session});
@@ -36,6 +38,24 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(session.site!.uri.toString()),
+              TextButton(
+                onPressed: session.loading
+                    ? null
+                    : () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (routeContext) => ConnectionPage(
+                            api: session.api,
+                            initialAddress: session.site!.uri.toString(),
+                            onConnected: (address) {
+                              session.useSite(address);
+                              Navigator.of(routeContext).pop();
+                            },
+                          ),
+                        ),
+                      ),
+                child: const Text('编辑服务地址'),
+              ),
+
               const SizedBox(height: 24),
               TextFormField(
                 controller: _password,
@@ -91,6 +111,11 @@ class VehiclePage extends StatelessWidget {
     appBar: AppBar(
       title: const Text('站点车辆'),
       actions: [
+        IconButton(
+          tooltip: '设置',
+          icon: const Icon(Icons.settings),
+          onPressed: () => openConnectionManagement(context, session),
+        ),
         IconButton(
           onPressed: session.loading ? null : session.loadVehicles,
           icon: const Icon(Icons.refresh),

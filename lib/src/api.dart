@@ -39,6 +39,7 @@ class MileafApi {
     String path, {
     Map<String, String> headers = const {},
     String? body,
+    Map<String, String> query = const {},
   }) async {
     if (path.isEmpty ||
         path.startsWith('/') ||
@@ -60,7 +61,9 @@ class MileafApi {
     final aborted = Completer<void>();
     final request = http.AbortableRequest(
       method,
-      address.endpoint(path),
+      address
+          .endpoint(path)
+          .replace(queryParameters: query.isEmpty ? null : query),
       abortTrigger: aborted.future,
     )..followRedirects = false;
     request.headers.addAll(headers);
