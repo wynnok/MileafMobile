@@ -10,6 +10,7 @@ import 'connection_management.dart';
 import 'workspace.dart';
 import 'drives_page.dart';
 import 'drive_detail_page.dart';
+import 'performance_trace.dart';
 import 'statistics_page.dart';
 
 class WorkspacePage extends StatefulWidget {
@@ -92,11 +93,15 @@ class _WorkspacePageState extends State<WorkspacePage> {
 
   void record(String kind, int id) {
     if (kind == 'drive') {
+      final performanceTrial = PerformanceTrace.start(
+        PerformancePoint.driveClick,
+      );
       Navigator.push(
         context,
         MaterialPageRoute<void>(
           builder: (_) => DriveDetailPage(
             workspace: workspace,
+            performanceTrial: performanceTrial,
             id: id,
             onReturnToList: () => setState(() => tab = 1),
           ),

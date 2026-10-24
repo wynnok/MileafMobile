@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'src/api.dart';
+import 'src/performance_trace.dart';
 import 'src/connection_page.dart';
 export 'src/connection_page.dart';
 import 'src/session.dart';
@@ -14,7 +15,10 @@ import 'src/workspace.dart';
 import 'src/currency.dart';
 import 'src/workspace_page.dart';
 
-void main() => runApp(const MileafApp());
+void main() {
+  PerformanceTrace.mark(PerformancePoint.dartEntry);
+  runApp(const MileafApp());
+}
 
 class MileafApp extends StatefulWidget {
   const MileafApp({
@@ -57,7 +61,10 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) session.validateExpiry();
+    if (state == AppLifecycleState.resumed) {
+      PerformanceTrace.beginResume();
+      session.validateExpiry();
+    }
   }
 
   @override

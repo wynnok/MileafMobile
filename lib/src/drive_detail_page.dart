@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'performance_trace.dart';
 import 'drive_detail_contract.g.dart' as dto;
 import 'sample_chart.dart';
 import 'session.dart';
@@ -12,9 +13,11 @@ class DriveDetailPage extends StatefulWidget {
     required this.workspace,
     required this.id,
     this.onReturnToList,
+    this.performanceTrial,
   });
   final VehicleWorkspace workspace;
   final int id;
+  final int? performanceTrial;
   final VoidCallback? onReturnToList;
   @override
   State<DriveDetailPage> createState() => _DriveDetailPageState();
@@ -29,6 +32,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   String? detailError, seriesError;
   bool detailLoading = false, seriesLoading = false;
   int detailSequence = 0, seriesSequence = 0, metric = 0;
+  bool performanceReady = false;
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
@@ -105,14 +109,25 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       if (d.id != widget.id || d.vehicleId != vehicle) {
         throw const FormatException();
       }
-      if (current && attempt == detailSequence) setState(() => detail = d);
+      if (current && attempt == detailSequence) {
+        setState(() => detail = d);
+        PerformanceTrace.mark(
+          PerformancePoint.driveMetricsAvailable,
+          trial: widget.performanceTrial,
+        );
+      }
     } catch (e) {
       if (current && attempt == detailSequence) {
         setState(() => detailError = error(e, detail != null));
+        PerformanceTrace.mark(
+          PerformancePoint.driveFailed,
+          trial: widget.performanceTrial,
+        );
       }
     } finally {
       if (current && attempt == detailSequence) {
         setState(() => detailLoading = false);
+        traceReady();
       }
     }
   }
@@ -134,16 +149,53 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       if (d.driveId != widget.id || d.points != d.series.length) {
         throw const FormatException();
       }
-      if (current && attempt == seriesSequence) setState(() => series = d);
+      if (current && attempt == seriesSequence) {
+        setState(() => series = d);
+        PerformanceTrace.mark(
+          PerformancePoint.driveSeriesAvailable,
+          trial: widget.performanceTrial,
+        );
+      }
     } catch (e) {
       if (current && attempt == seriesSequence) {
         setState(() => seriesError = error(e, series != null));
+        PerformanceTrace.mark(
+          PerformancePoint.driveFailed,
+          trial: widget.performanceTrial,
+        );
       }
     } finally {
       if (current && attempt == seriesSequence) {
         setState(() => seriesLoading = false);
+        traceReady();
       }
     }
+  }
+
+  void traceReady() {
+    if (!PerformanceTrace.enabled ||
+        performanceReady ||
+        detail == null ||
+        series == null ||
+        detailLoading ||
+        seriesLoading ||
+        detailError != null ||
+        seriesError != null ||
+        metric != 0) {
+      return;
+    }
+    performanceReady = true;
+    PerformanceTrace.driveFrame(
+      widget.performanceTrial,
+      () =>
+          current &&
+          detail != null &&
+          series != null &&
+          detailError == null &&
+          seriesError == null &&
+          metric == 0 &&
+          (ModalRoute.of(context)?.isCurrent ?? false),
+    );
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>

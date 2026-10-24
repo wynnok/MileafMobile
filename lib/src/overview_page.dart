@@ -1,4 +1,5 @@
 import 'api.dart';
+import 'performance_trace.dart';
 
 import 'package:flutter/material.dart';
 
@@ -40,6 +41,16 @@ class _OverviewPageState extends State<OverviewPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
         (ModalRoute.of(context)?.isCurrent ?? false)) {
+      final owner = workspace.session.current;
+      if (data != null && owner != null) {
+        PerformanceTrace.warmOverviewFrame(
+          () =>
+              mounted &&
+              workspace.session.isCurrent(owner) &&
+              data != null &&
+              (ModalRoute.of(context)?.isCurrent ?? false),
+        );
+      }
       foreground();
     }
   }
@@ -79,6 +90,11 @@ class _OverviewPageState extends State<OverviewPage>
         result = value;
       });
     } catch (e) {
+      if (mounted &&
+          attempt == sequence &&
+          workspace.session.isCurrent(session)) {
+        PerformanceTrace.mark(PerformancePoint.overviewFailed);
+      }
       if (e is BusinessFailure &&
           e.status == 404 &&
           mounted &&
@@ -117,6 +133,19 @@ class _OverviewPageState extends State<OverviewPage>
   @override
   Widget build(BuildContext context) {
     final d = data;
+    if (d != null && !loading && error == null) {
+      final owner = workspace.session.current;
+      PerformanceTrace.overviewFrame(
+        () =>
+            mounted &&
+            owner != null &&
+            workspace.session.isCurrent(owner) &&
+            data != null &&
+            !loading &&
+            error == null &&
+            (ModalRoute.of(context)?.isCurrent ?? false),
+      );
+    }
     return RefreshIndicator(
       onRefresh: () => load(force: true),
       child: ListView(
