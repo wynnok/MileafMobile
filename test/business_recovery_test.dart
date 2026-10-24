@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
+import 'overview_test.dart' show background, foreground;
 
 void main() {
   for (final retryHeader in ['60', 'Sun, 15 Mar 2026 12:01:00 GMT']) {
@@ -76,4 +78,75 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+  testWidgets('同键迟到旧响应不能污染返回概览时的更新快照', (tester) async {
+    final old = Completer<http.Response>();
+    var reads = 0;
+    final store = MemorySessionStore()
+      ..value = jsonEncode({
+        'site': 'https://example.com',
+        'token': 'test',
+        'expires_at': '2099-01-01T00:00:00Z',
+      });
+    final fixture = File('test/fixtures/summary.json').readAsStringSync();
+    final current = jsonDecode(fixture) as Map<String, dynamic>;
+    current['battery']['level'] = 21;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/vehicles')) {
+        return http.Response(
+          File('test/fixtures/vehicles.json').readAsStringSync(),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (request.url.path.endsWith('/drives')) {
+        return http.Response('{"items":[],"next_cursor":null}', 200);
+      }
+      reads++;
+      if (reads == 1) return old.future;
+      return http.Response(
+        jsonEncode(current),
+        200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'max-age=3600',
+        },
+      );
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        sessionStore: store,
+        trustStore: MemoryTrustStore(),
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext('UTC'),
+      ),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump();
+    }
+    expect(reads, 1);
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('21 %'), findsOneWidget);
+    old.complete(
+      http.Response(
+        fixture,
+        200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'max-age=3600',
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('21 %'), findsOneWidget);
+    await tester.tap(find.text('行程').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('概览').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('21 %'), findsOneWidget);
+    expect(reads, 2);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

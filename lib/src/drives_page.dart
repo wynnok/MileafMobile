@@ -1,3 +1,5 @@
+import 'api.dart';
+
 import 'package:flutter/material.dart';
 
 import 'drives_contract.g.dart' as dto;
@@ -144,6 +146,12 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       setState(() {
         final message = e is FormatException
             ? '服务返回格式不兼容，请核对版本'
+            : e is ApiFailure
+            ? '${e.message}${more
+                  ? '；已保留现有行程'
+                  : loaded
+                  ? '；保留上次快照'
+                  : ''}'
             : more
             ? '加载失败，已保留现有行程'
             : loaded

@@ -84,10 +84,12 @@ class BusinessCache {
   BusinessCache(this.session);
   final SessionController session;
   final _entries = <String, CachedResult>{};
+  final _attempts = <String, Object>{};
   SiteSession? _owner;
   DateTime? _retryUntil;
   void clear() {
     _entries.clear();
+    _attempts.clear();
     _retryUntil = null;
     _owner = null;
   }
@@ -118,18 +120,26 @@ class BusinessCache {
     if (_retryUntil?.isAfter(session.now()) ?? false) {
       throw const BusinessFailure('请求过于频繁，请等待服务指定的间隔后手动重试', 429);
     }
+    final attempt = Object();
+    _attempts[identity] = attempt;
+    void ensureCurrent() {
+      if (!session.isCurrent(s) || !identical(_attempts[identity], attempt)) {
+        throw const ApiFailure('请求已被更新结果替代');
+      }
+    }
+
     var response = await session.request(
       s,
       path,
       query: query,
       headers: {if (old?.etag != null) 'if-none-match': old!.etag!},
     );
-    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
+    ensureCurrent();
     // Servers/proxies may return an unsolicited 304 after memory was discarded.
     if (response.statusCode == 304 && old == null) {
       response = await session.request(s, path, query: query);
     }
-    if (!session.isCurrent(s)) throw const ApiFailure('会话已变更');
+    ensureCurrent();
     if (response.statusCode != 200 &&
         !(response.statusCode == 304 && old != null)) {
       if (response.statusCode == 429) {
