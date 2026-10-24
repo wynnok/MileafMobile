@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'session.dart';
+import 'setup_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.session});
@@ -54,6 +55,16 @@ class _LoginPageState extends State<LoginPage> {
               FilledButton(
                 onPressed: session.canLogin ? _login : null,
                 child: Text(session.loading ? '正在登录…' : '登录'),
+              ),
+              TextButton(
+                onPressed: session.canLogin
+                    ? () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => SetupPage(session: session),
+                        ),
+                      )
+                    : null,
+                child: const Text('首次设置站点口令'),
               ),
               if (session.message != null)
                 Padding(

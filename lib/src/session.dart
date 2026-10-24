@@ -166,6 +166,53 @@ class SessionController extends ChangeNotifier {
     if (current?.generation == generation) await loadVehicles();
   }
 
+  /// Explicit first-time setup only; never called as a login failure fallback.
+  Future<bool> initialize(String password) async {
+    if (!canLogin || site == null || current != null) return false;
+    final address = site!;
+    final generation = ++_generation;
+    loading = true;
+    message = null;
+    _notify();
+    try {
+      final response = await api.request(
+        address,
+        'POST',
+        'auth/setup',
+        headers: {'content-type': 'application/json'},
+        body: jsonEncode(Credentials(password: password).toJson()),
+      );
+      if (generation != _generation || site?.uri != address.uri) return false;
+      if (response.statusCode == 409 &&
+          object(object(jsonDecode(response.body))['error'])['code'] ==
+              'already_initialized') {
+        message = '站点已初始化，请使用已有口令登录';
+        return true;
+      }
+      if (response.statusCode != 200) throw _failure(response);
+      if (object(jsonDecode(response.body))['status'] != 'ok') {
+        throw const FormatException('Invalid setup result');
+      }
+    } on Exception catch (error) {
+      if (generation == _generation) {
+        message =
+            error is TimeoutException ||
+                error is SocketException ||
+                error is http.ClientException
+            ? '初始化结果未确定；站点可能已设置口令。请尝试登录，或手动重试初始化。'
+            : _describe(error);
+      }
+      return false;
+    } finally {
+      if (generation == _generation) {
+        loading = false;
+        _notify();
+      }
+    }
+    await login(password);
+    return true;
+  }
+
   Future<http.Response> request(SiteSession session, String path) async {
     if (!isCurrent(session)) throw const ApiFailure('会话已变更，请重试');
     if (!session.expiresAt.isAfter(now())) {
