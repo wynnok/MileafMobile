@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'session.dart';
 import 'charging_page.dart';
+import 'charging_detail.dart';
 import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
@@ -89,6 +90,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
   }
 
   void record(String kind, int id) {
+    if (kind == 'charging' || kind == 'charge') {
+      openChargingDetail(context, workspace, currency, id);
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
