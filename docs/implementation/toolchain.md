@@ -21,7 +21,7 @@ SwiftPM 嵌套沙箱失败与 Xcode 局部参数被拒的证据仍保留；项�
 - `tool/flutterw dart format --output=none --set-exit-if-changed lib test`
 - `tool/flutterw analyze`
 - `tool/flutterw test`
-- `tool/flutterw android assembleDebug`（研发 APK）；`tool/flutterw android assembleRelease`（开发签名 release）
+- `tool/flutterw android assembleDebug`（研发 APK）；`tool/flutterw android assembleRelease`（开发签名 release）。先通过 `tool/flutterw android --version` 核对已有 JAVA_HOME 指向的 Zulu21；入口不更改 JAVA_HOME。Flutter `build apk` 会优先发现 IDE 的 JBR，本机实际选中 JBR25，因此不将该入口作为既定 JDK21 的验证命令。
 - `tool/flutterw build ios --release --no-codesign`
 
 工具链和缓存均被忽略；只提交源码、契约及依赖锁文件。工程入口 `MileafApp(client: ...)` 接受系统边界 HTTP client；生产默认使用正常证书校验的 Dart IO client，连接超时 5 秒。统一 API 入口使用 15 秒总时限（含响应头与响应体），超时中止 HTTP 请求，无自动重试或自动重定向。
@@ -56,3 +56,5 @@ SDK37 曾用于首轮编译探测，但 AGP9.1 官方已测最高36.1，最终�
 ### 当前集成候选的回归结果
 
 合入 `4450a76` 的站点认证与安全存储后，35 个 App 行为测试、静态分析与格式检查通过；在相同冻结的外层保护下，顺序完成 iOS release 无签名（17.2MB）和 Android release 研发签名（约50MB）构建，完整 wrapper 均退出0，SDK 路径不变。具体证据和未覆盖的真机边界见[构建隔离记录](build-isolation.md)。
+
+首版最后产品代码 `11cdd040` 的 135 项回归、两轴独立复核及双端 release 构建证据见[最终验证](final-verification.md)。外部验收仍按[验收矩阵](acceptance.md)保持待验。

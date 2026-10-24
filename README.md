@@ -43,6 +43,8 @@
 完整 App/HTTP 自动化覆盖连接到退出的闭环、分页、日期/时区、条件缓存、限流和迟到响应隔离。既有受控真实 HTTPS 联通已验证；真实后端样本可按[验收记录](docs/implementation/acceptance.md)复验，当前 Docker 服务未运行的复验尝试没有记为通过。
 双端真机网络、已许可地图服务与真实坐标校准仍缺，不能把构建或合成数据测试当成通过。
 
+- [最终验证与本地产物](docs/implementation/final-verification.md)
+- [两轴审查与修复](docs/implementation/code-review.md)
 - [完整验收矩阵与响应复验](docs/implementation/acceptance.md)
 - [行程详情和采样](docs/implementation/drive-detail.md)
 - [充电详情和采样](docs/implementation/charging-detail.md)
