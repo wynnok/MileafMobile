@@ -31,7 +31,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('底图尚未配置，地图验证未通过'), findsOneWidget);
+    expect(find.text('地图暂不可用：此版本尚未配置底图服务，其他记录仍可阅读'), findsOneWidget);
     expect(find.text('行程指标仍可阅读'), findsOneWidget);
     expect(find.text('允许加载底图'), findsNothing);
   });
@@ -52,7 +52,7 @@ void main() {
         ),
       );
       if (crs == null) {
-        expect(find.text('坐标参考系未核准，不能加载地图'), findsOneWidget);
+        expect(find.text('地图暂不可用：坐标参考系尚未核准，其他记录仍可阅读'), findsOneWidget);
         expect(find.text('允许加载底图'), findsNothing);
       } else {
         expect(find.textContaining('第三方将收到 IP 和可见区域'), findsOneWidget);
@@ -195,8 +195,8 @@ void main() {
     await tester.tap(find.text('允许加载底图'));
     await tester.pumpAndSettle();
     expect(find.text('4 个有效采样点 · 2 段轨迹'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('起点')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('终点')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('首个采样点')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('末个采样点')), findsOneWidget);
     expect(find.text('采样连线仅为示意；缺失坐标处已断开。'), findsOneWidget);
     await tester.tap(find.byTooltip('适配轨迹'));
     await tester.pumpAndSettle();
@@ -229,7 +229,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('底图配置不可用，请检查发布方授权、HTTPS XYZ 地址和署名'), findsOneWidget);
+      expect(find.text('地图暂不可用：底图服务配置无效，其他记录仍可阅读'), findsOneWidget);
       expect(find.text('允许加载底图'), findsNothing);
     }
   });

@@ -1,4 +1,7 @@
+import 'performance_trace.dart';
+
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -48,16 +51,44 @@ class CandidateMapProvider {
   }
 }
 
-/// 仅供技术验证入口使用，尚未选定发布底图服务。
+/// Release-only configuration. Source CRS must be verified by the publisher;
+/// an absent value deliberately disables the map without guessing from lat/lon.
+class MapConfiguration {
+  const MapConfiguration({this.provider, this.sourceCrs, this.tileClient});
+  final CandidateMapProvider? provider;
+  final String? sourceCrs;
+  final http.Client? tileClient;
+  static MapConfiguration fromEnvironment() {
+    const url = String.fromEnvironment('MILEAF_MAP_TILE_URL');
+    const attribution = String.fromEnvironment('MILEAF_MAP_ATTRIBUTION');
+    const crs = String.fromEnvironment('MILEAF_MAP_CRS');
+    const source = String.fromEnvironment('MILEAF_MAP_SOURCE_CRS');
+    return MapConfiguration(
+      provider: url.isEmpty
+          ? null
+          : const CandidateMapProvider(
+              urlTemplate: url,
+              attribution: attribution,
+              coordinateSystem: crs,
+            ),
+      sourceCrs: source.isEmpty ? null : source,
+    );
+  }
+}
+
+/// Isolated renderer; a configuration value is not proof of provider approval.
 class CandidateMap extends StatefulWidget {
   const CandidateMap({
     super.key,
     required this.coordinates,
     required this.sourceCrs,
+    this.start,
+    this.end,
     this.provider,
     this.tileClient,
   });
   final List<MapCoordinate?> coordinates;
+  final MapCoordinate? start, end;
   final String? sourceCrs;
   final CandidateMapProvider? provider;
 
@@ -84,12 +115,33 @@ class _CandidateMapState extends State<CandidateMap> {
 
   bool _consented = false;
   bool _failed = false;
+  int? _decodedGeneration;
   int _generation = 0;
+  int _geometry = 0;
+  int? _traceGeneration;
+  int? _performanceTrial;
+
+  void _decodedTile(int generation) {
+    if (!mounted ||
+        generation != _generation ||
+        _decodedGeneration == generation) {
+      return;
+    }
+    _decodedGeneration = generation;
+    PerformanceTrace.mark(
+      PerformancePoint.mapFirstTileDecoded,
+      trial: _performanceTrial,
+    );
+  }
 
   void _failedTile(int generation) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && generation == _generation && !_failed) {
         setState(() => _failed = true);
+        PerformanceTrace.mark(
+          PerformancePoint.mapFailed,
+          trial: _performanceTrial,
+        );
       }
     });
   }
@@ -97,6 +149,21 @@ class _CandidateMapState extends State<CandidateMap> {
   @override
   void didUpdateWidget(CandidateMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    bool same(MapCoordinate? a, MapCoordinate? b) =>
+        a?.latitude == b?.latitude && a?.longitude == b?.longitude;
+    final samePoints =
+        oldWidget.coordinates.length == widget.coordinates.length &&
+        List.generate(
+          widget.coordinates.length,
+          (i) => same(oldWidget.coordinates[i], widget.coordinates[i]),
+        ).every((value) => value);
+    if (!samePoints ||
+        !same(oldWidget.start, widget.start) ||
+        !same(oldWidget.end, widget.end)) {
+      _geometry++;
+      _generation++;
+      _failed = false;
+    }
     if (oldWidget.provider?.urlTemplate != widget.provider?.urlTemplate ||
         oldWidget.provider?.attribution != widget.provider?.attribution ||
         oldWidget.provider?.coordinateSystem !=
@@ -118,13 +185,13 @@ class _CandidateMapState extends State<CandidateMap> {
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
-    if (provider == null) return const Text('底图尚未配置，地图验证未通过');
+    if (provider == null) return const Text('地图暂不可用：此版本尚未配置底图服务，其他记录仍可阅读');
     if (!provider.isUsable) {
-      return const Text('底图配置不可用，请检查发布方授权、HTTPS XYZ 地址和署名');
+      return const Text('地图暂不可用：底图服务配置无效，其他记录仍可阅读');
     }
     if (widget.sourceCrs != 'EPSG:4326' ||
         provider.coordinateSystem != widget.sourceCrs) {
-      return const Text('坐标参考系未核准，不能加载地图');
+      return const Text('地图暂不可用：坐标参考系尚未核准，其他记录仍可阅读');
     }
     final segments = <List<LatLng>>[];
     var segment = <LatLng>[];
@@ -146,9 +213,28 @@ class _CandidateMapState extends State<CandidateMap> {
       segment.add(LatLng(lat, lon));
     }
     final points = segments.expand((part) => part).toList();
-    if (points.isEmpty) return const Text('没有有效轨迹坐标');
+    LatLng? endpoint(MapCoordinate? coordinate) {
+      final lat = coordinate?.latitude, lon = coordinate?.longitude;
+      if (lat == null ||
+          lon == null ||
+          !lat.isFinite ||
+          !lon.isFinite ||
+          lat < -90 ||
+          lat > 90 ||
+          lon < -180 ||
+          lon > 180) {
+        return null;
+      }
+      return LatLng(lat, lon);
+    }
+
+    final start = endpoint(widget.start);
+    final end = endpoint(widget.end);
+    final visible = [...points, ?start, ?end];
+    if (visible.isEmpty) return const Text('没有有效轨迹坐标');
+
     final fit = CameraFit.bounds(
-      bounds: LatLngBounds.fromPoints(points),
+      bounds: LatLngBounds.fromPoints(visible),
       padding: const EdgeInsets.all(36),
       maxZoom: 16,
     );
@@ -165,26 +251,35 @@ class _CandidateMapState extends State<CandidateMap> {
       );
     }
     final generation = _generation;
-    final location = points.first;
+    if (_traceGeneration != generation) {
+      _traceGeneration = generation;
+      _performanceTrial = PerformanceTrace.start(PerformancePoint.mapRequest);
+    }
+    final location = visible.first;
     return Column(
       children: [
         SizedBox(
           height: 280,
           child: FlutterMap(
+            key: ValueKey(_geometry),
             mapController: _controller,
             options: MapOptions(
               initialCenter: location,
               initialZoom: 14,
               minZoom: 1,
               maxZoom: 18,
-              initialCameraFit: points.length > 1 ? fit : null,
+              initialCameraFit: visible.length > 1 ? fit : null,
             ),
             children: [
               TileLayer(
                 key: ValueKey(generation),
                 urlTemplate: provider.urlTemplate,
                 errorTileCallback: (_, error, stack) => _failedTile(generation),
-                tileProvider: _SafeTileProvider(_client),
+                tileProvider: _SafeTileProvider(
+                  _client,
+                  () => _failedTile(generation),
+                  () => _decodedTile(generation),
+                ),
               ),
               PolylineLayer(
                 polylines: [
@@ -201,20 +296,27 @@ class _CandidateMapState extends State<CandidateMap> {
               MarkerLayer(
                 markers: [
                   Marker(
-                    point: points.first,
+                    point: start ?? visible.first,
                     width: 48,
                     height: 48,
                     child: Icon(
                       Icons.location_on,
-                      semanticLabel: points.length == 1 ? '单个采样点' : '起点',
+                      semanticLabel: start != null
+                          ? '行程起点'
+                          : points.length == 1
+                          ? '单个采样点'
+                          : '首个采样点',
                     ),
                   ),
-                  if (points.length > 1)
+                  if (end != null || points.length > 1)
                     Marker(
-                      point: points.last,
+                      point: end ?? visible.last,
                       width: 48,
                       height: 48,
-                      child: const Icon(Icons.flag, semanticLabel: '终点'),
+                      child: Icon(
+                        Icons.flag,
+                        semanticLabel: end != null ? '行程终点' : '末个采样点',
+                      ),
                     ),
                 ],
               ),
@@ -233,7 +335,9 @@ class _CandidateMapState extends State<CandidateMap> {
           ),
         ],
         Text(
-          points.length == 1
+          points.isEmpty
+              ? '没有有效轨迹坐标，已显示可用起终点'
+              : points.length == 1
               ? '单个采样点'
               : '${points.length} 个有效采样点 · ${segments.length} 段轨迹',
         ),
@@ -271,17 +375,24 @@ class _CandidateMapState extends State<CandidateMap> {
 
 /// flutter_map 会输出加载异常；只传递不含 URL、凭据或坐标的错误。
 class _SafeTileProvider extends TileProvider {
-  _SafeTileProvider(this.client);
+  _SafeTileProvider(this.client, this.onFailure, this.onDecoded);
   final http.Client client;
+  final VoidCallback onFailure, onDecoded;
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) =>
-      _SafeTileImage(getTileUrl(coordinates, options), client);
+      _SafeTileImage(
+        getTileUrl(coordinates, options),
+        client,
+        onFailure,
+        onDecoded,
+      );
 }
 
 class _SafeTileImage extends ImageProvider<_SafeTileImage> {
-  const _SafeTileImage(this.url, this.client);
+  const _SafeTileImage(this.url, this.client, this.onFailure, this.onDecoded);
   final String url;
   final http.Client client;
+  final VoidCallback onFailure, onDecoded;
 
   @override
   Future<_SafeTileImage> obtainKey(ImageConfiguration configuration) async =>
@@ -303,7 +414,7 @@ class _SafeTileImage extends ImageProvider<_SafeTileImage> {
               abortTrigger: abort.future,
             )
             ..followRedirects = false
-            ..headers['User-Agent'] = 'Mileaf-map-verification/0.1';
+            ..headers['User-Agent'] = 'Mileaf/0.1 (map)';
       final response =
           await (() async {
             final stream = await client.send(request);
@@ -316,11 +427,22 @@ class _SafeTileImage extends ImageProvider<_SafeTileImage> {
             },
           );
       if (response.statusCode != 200) throw const _MapTileFailure();
-      return await decode(
+      final codec = await decode(
         await ui.ImmutableBuffer.fromUint8List(response.bodyBytes),
       );
+      onDecoded();
+      return codec;
     } on Exception {
-      throw const _MapTileFailure();
+      // An off-screen tile can lose its stream listener before a failure arrives.
+      // Report through the map state, never through Flutter's global image error.
+      onFailure();
+      return decode(
+        await ui.ImmutableBuffer.fromUint8List(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==',
+          ),
+        ),
+      );
     }
   }
 }

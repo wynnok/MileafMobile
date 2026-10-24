@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
+import 'package:mileaf/src/map_candidate.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -28,6 +29,7 @@ Future<void> openDrives(
   WidgetTester tester,
   Future<http.Response> Function(http.Request) handler, {
   DateTime Function()? now,
+  MapConfiguration? mapConfiguration,
   Future<CalendarContext> Function()? calendar,
 }) async {
   final store = MemorySessionStore()
@@ -52,6 +54,7 @@ Future<void> openDrives(
         return handler(r);
       }),
       sessionStore: store,
+      mapConfiguration: mapConfiguration,
       trustStore: MemoryTrustStore(),
       vehiclePreferences: MemoryVehiclePreferences(),
       now: now ?? () => DateTime.utc(2026, 3, 30, 12),
