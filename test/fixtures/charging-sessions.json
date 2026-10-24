@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "id": 9,
+      "started_at": "2026-03-29T01:00:00Z",
+      "ended_at": "2026-03-29T02:00:00Z",
+      "duration_min": 60,
+      "energy_added_kwh": 20.0,
+      "energy_used_kwh": 22.0,
+      "start_soc": 40,
+      "end_soc": 70,
+      "cost": 12.0,
+      "is_dc": false,
+      "location": {
+        "display_name": "上海",
+        "geofence": null,
+        "address": "上海",
+        "lat": 31.2304,
+        "lon": 121.4737
+      },
+      "is_active": false
+    },
+    {
+      "id": 8,
+      "started_at": "2026-03-15T11:00:00Z",
+      "ended_at": null,
+      "duration_min": null,
+      "energy_added_kwh": 20.0,
+      "energy_used_kwh": 22.0,
+      "start_soc": 40,
+      "end_soc": null,
+      "cost": 12.0,
+      "is_dc": false,
+      "location": {
+        "display_name": "上海",
+        "geofence": null,
+        "address": "上海",
+        "lat": 31.2304,
+        "lon": 121.4737
+      },
+      "is_active": true
+    }
+  ],
+  "next_cursor": "MjAyNi0wMy0xNVQxMTowMDowMCswMDowMHw4"
+}

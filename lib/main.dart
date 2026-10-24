@@ -11,6 +11,7 @@ export 'src/connection_page.dart';
 import 'src/session.dart';
 import 'src/session_pages.dart';
 import 'src/workspace.dart';
+import 'src/currency.dart';
 import 'src/workspace_page.dart';
 
 void main() => runApp(const MileafApp());
@@ -24,12 +25,14 @@ class MileafApp extends StatefulWidget {
     this.now,
     this.vehiclePreferences,
     this.calendar,
+    this.currencyPreferences,
   });
   final http.Client? client;
   final HttpTrustStore? trustStore;
   final SessionStore? sessionStore;
   final DateTime Function()? now;
   final VehiclePreferenceStore? vehiclePreferences;
+  final CurrencyPreferenceStore? currencyPreferences;
   final Future<CalendarContext> Function()? calendar;
   @override
   State<MileafApp> createState() => _MileafAppState();
@@ -96,6 +99,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
             session: session,
             preferences: widget.vehiclePreferences,
             calendar: widget.calendar,
+            currencyPreferences: widget.currencyPreferences,
           );
         }
         if (session.site != null) return LoginPage(session: session);
