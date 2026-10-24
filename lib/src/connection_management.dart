@@ -16,8 +16,10 @@ class ConnectionManagementPage extends StatefulWidget {
     super.key,
     required this.session,
     this.onServiceInformation,
+    this.onCurrency,
   });
   final VoidCallback? onServiceInformation;
+  final VoidCallback? onCurrency;
   final SessionController session;
   @override
   State<ConnectionManagementPage> createState() =>
@@ -105,6 +107,11 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
               TextButton(
                 onPressed: widget.onServiceInformation,
                 child: const Text('服务版本与兼容性'),
+              ),
+            if (widget.onCurrency != null)
+              TextButton(
+                onPressed: widget.onCurrency,
+                child: const Text('站点币种'),
               ),
             const SizedBox(height: 24),
             TextFormField(

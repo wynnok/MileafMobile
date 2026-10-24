@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'session.dart';
+import 'charging_page.dart';
+import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
 import 'connection_management.dart';
@@ -12,8 +14,10 @@ class WorkspacePage extends StatefulWidget {
     required this.session,
     this.preferences,
     this.calendar,
+    this.currencyPreferences,
   });
   final SessionController session;
+  final CurrencyPreferenceStore? currencyPreferences;
   final VehiclePreferenceStore? preferences;
   final Future<CalendarContext> Function()? calendar;
   @override
@@ -26,11 +30,17 @@ class _WorkspacePageState extends State<WorkspacePage> {
     widget.preferences ?? PreferenceVehicleStore(),
     calendar: widget.calendar,
   );
+  late final currency = CurrencySettings(
+    widget.session.current!.site.uri.toString(),
+    widget.currencyPreferences ?? PreferenceCurrencyStore(),
+  );
+  final chargingFilter = ChargingFilter();
   int tab = 0;
   bool started = false;
   @override
   void initState() {
     super.initState();
+    currency.restore().catchError((_) {});
     widget.session.addListener(changed);
     changed();
   }
@@ -48,6 +58,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   void dispose() {
     widget.session.removeListener(changed);
     workspace.dispose();
+    currency.dispose();
     super.dispose();
   }
 
@@ -57,6 +68,12 @@ class _WorkspacePageState extends State<WorkspacePage> {
       MaterialPageRoute<void>(
         builder: (_) => ConnectionManagementPage(
           session: widget.session,
+          onCurrency: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => CurrencyPage(settings: currency),
+            ),
+          ),
           onServiceInformation: () => Navigator.push(
             context,
             MaterialPageRoute<void>(
@@ -160,6 +177,14 @@ class _WorkspacePageState extends State<WorkspacePage> {
                     ? OverviewPage(
                         key: ValueKey('$selected:${workspace.revision}'),
                         workspace: workspace,
+                        onRecord: record,
+                      )
+                    : tab == 2
+                    ? ChargingPage(
+                        key: ValueKey("charge:$selected"),
+                        workspace: workspace,
+                        currency: currency,
+                        filter: chargingFilter,
                         onRecord: record,
                       )
                     : Center(
