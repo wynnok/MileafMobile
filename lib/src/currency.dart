@@ -27,14 +27,17 @@ class CurrencySettings extends ChangeNotifier {
   final CurrencyPreferenceStore store;
   String? code;
   bool _disposed = false;
+  int _revision = 0;
   Future<void> restore() async {
+    final revision = _revision;
     final saved = await store.read(site);
-    if (_disposed) return;
+    if (_disposed || revision != _revision) return;
     code = saved;
     notifyListeners();
   }
 
   Future<void> select(String? value) async {
+    _revision++;
     await store.write(site, value);
     if (_disposed) return;
     code = value;

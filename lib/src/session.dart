@@ -420,6 +420,8 @@ class SessionController extends ChangeNotifier {
     if (response.statusCode == 401) {
       return ApiFailure(login ? '站点访问口令错误，请重试' : '会话已失效，请重新登录');
     }
+    final message = responseErrorMessage(response);
+    if (message != null) return ApiFailure(message);
     if (response.statusCode == 503) return const ApiFailure('服务暂不可用，请稍后重试');
     return const ApiFailure('请求失败，请检查服务后重试');
   }

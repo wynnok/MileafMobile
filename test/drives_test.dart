@@ -67,6 +67,94 @@ Future<void> openDrives(
 }
 
 void main() {
+  for (final sample in [
+    (400, 'invalid_request', '请求参数无效'),
+    (422, 'invalid_request', '请求参数无效'),
+    (503, 'db_unavailable', '数据库暂不可用'),
+    (503, 'upstream_timeout', '上游服务超时'),
+    (500, 'internal_error', '服务内部错误'),
+    (404, 'not_found', '车辆或记录已不可用'),
+  ]) {
+    testWidgets('业务错误按HTTP与稳定code给恢复提示 ${sample.$1}/${sample.$2}', (
+      tester,
+    ) async {
+      await openDrives(
+        tester,
+        (r) async => http.Response(
+          jsonEncode({
+            'error': {
+              'code': sample.$2,
+              'message': 'private-token https://private.example/path',
+            },
+          }),
+          sample.$1,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+      expect(find.textContaining(sample.$3), findsOneWidget);
+      expect(find.textContaining('private-token'), findsNothing);
+      expect(find.textContaining('private.example'), findsNothing);
+      expect(find.text('重试行程'), findsOneWidget);
+    });
+  }
+  for (final body in [
+    '<html>private-token</html>',
+    '{invalid-json',
+    '{"error":{"code":42}}',
+    '{"error":{"code":"${'x' * 9000}"}}',
+  ]) {
+    testWidgets('反代或不可信错误envelope安全回退 ${body.length}', (tester) async {
+      await openDrives(tester, (r) async => http.Response(body, 502));
+      expect(find.textContaining('数据读取失败'), findsOneWidget);
+      expect(find.textContaining('private-token'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final range in ['default', 'today', 'history']) {
+    testWidgets('行程前台按TTL校验并推进含今天窗口 $range', (tester) async {
+      var now = DateTime.utc(2026, 3, 30, 12);
+      final queries = <Map<String, String>>[];
+      await openDrives(tester, (r) async {
+        queries.add(r.url.queryParameters);
+        return jsonResponse(
+          '{"items":[],"next_cursor":"page2"}',
+          headers: {'cache-control': 'max-age=30'},
+        );
+      }, now: () => now);
+      if (range != 'default') {
+        await tester.tap(find.text('筛选日期'));
+        await tester.pumpAndSettle();
+        final inputs = find.byType(TextField);
+        await tester.enterText(inputs.at(0), '2026/03/29');
+        await tester.enterText(
+          inputs.at(1),
+          range == 'today' ? '2026/03/30' : '2026/03/29',
+        );
+        await tester.tap(find.text('确定'));
+        await tester.pumpAndSettle();
+      }
+      final initial = queries.last;
+      final count = queries.length;
+      now = DateTime.utc(2026, 3, 30, 12, 0, 20);
+      background(tester);
+      foreground(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count);
+      now = DateTime.utc(2026, 3, 30, 14);
+      background(tester);
+      foreground(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count + 1);
+      expect(
+        queries.last['to'],
+        range == 'history' ? initial['to'] : '2026-03-30T14:00:00.000Z',
+      );
+      expect(queries.last['from'], initial['from']);
+      expect(queries.last.containsKey('cursor'), isFalse);
+    });
+  }
+
   testWidgets('行程从固定后端多页样本读取，展示未知地点与净电耗并产生详情目标', (tester) async {
     await openDrives(tester, (request) async {
       if (request.url.path.endsWith('/17/series')) {

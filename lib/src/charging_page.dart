@@ -90,7 +90,23 @@ class _ChargingPageState extends State<ChargingPage>
 
   Future<void> foreground() async {
     final changed = await workspace.foreground();
-    if (mounted && !changed) await load();
+    if (!mounted || changed) return;
+    final owner = workspace.session.current;
+    final cached = owner == null
+        ? null
+        : workspace.cache.peek(
+            owner,
+            'vehicles/${workspace.selectedId}/charging-sessions',
+            {
+              'from': from.toIso8601String(),
+              'to': to.toIso8601String(),
+              'limit': '20',
+            },
+          );
+    if (cached?.validUntil.isAfter(workspace.session.now()) ?? false) return;
+    interval();
+    next = null;
+    await load();
   }
 
   Future<void> load({bool more = false, bool force = false}) async {
@@ -144,6 +160,10 @@ class _ChargingPageState extends State<ChargingPage>
           if (ids.add(v.id)) items.add(v);
         }
         next = following;
+        if (more && following != null && following == cursor) {
+          error = '分页游标未前进，已保留现有充电，请刷新或手动重试';
+          failedMore = true;
+        }
         loaded = true;
       });
     } catch (e) {
@@ -256,7 +276,10 @@ class _ChargingPageState extends State<ChargingPage>
       onRefresh: () => load(force: true),
       child: NotificationListener<ScrollNotification>(
         onNotification: (event) {
-          if (event.metrics.extentAfter < 120 &&
+          if (event is ScrollUpdateNotification &&
+              event.dragDetails != null &&
+              (event.scrollDelta ?? 0) > 0 &&
+              event.metrics.extentAfter < 120 &&
               loaded &&
               next != null &&
               !loading &&
@@ -358,7 +381,9 @@ class _ChargingPageState extends State<ChargingPage>
               ),
             if (loaded && next != null)
               TextButton(
-                onPressed: loading ? null : () => load(more: true),
+                onPressed: loading
+                    ? null
+                    : () => load(more: true, force: error != null),
                 child: const Text('加载更多充电'),
               ),
             if (loaded && next == null && items.isNotEmpty)

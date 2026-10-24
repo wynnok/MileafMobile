@@ -77,6 +77,83 @@ http.Client statsClient(List<Map<String, String>> queries) =>
       return fixture('driving-stats');
     });
 void main() {
+  testWidgets('统计换区间失败后前台不能被旧区间有效缓存阻止恢复', (tester) async {
+    var now = DateTime.utc(2026, 3, 30, 12);
+    var fail = false;
+    final queries = <Map<String, String>>[];
+    final client = MockClient((r) async {
+      if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
+      if (r.url.path.endsWith('/summary')) return fixture('summary');
+      queries.add(r.url.queryParameters);
+      if (fail) return http.Response('', 503);
+      return http.Response(
+        fixture('driving-stats').body,
+        200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'max-age=30',
+        },
+      );
+    });
+    await openStats(tester, client, () => now, () => 'UTC');
+    fail = true;
+    await tester.tap(find.text('本周'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('服务暂不可用'), findsOneWidget);
+    fail = false;
+    final count = queries.length;
+    now = DateTime.utc(2026, 3, 30, 12, 0, 20);
+    resume(tester);
+    await tester.pumpAndSettle();
+    expect(queries.length, count + 1);
+    expect(queries.last['from'], '2026-03-30T00:00:00.000Z');
+    expect(find.text('行程数  49 次'), findsOneWidget);
+  });
+
+  for (final range in ['default', 'today', 'history']) {
+    testWidgets('统计当前kind前台遵守TTL且过期推进今天 $range', (tester) async {
+      var now = DateTime.utc(2026, 3, 30, 12);
+      final queries = <Map<String, String>>[];
+      final client = MockClient((r) async {
+        if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
+        if (r.url.path.endsWith('/summary')) return fixture('summary');
+        queries.add(r.url.queryParameters);
+        return http.Response(
+          fixture('driving-stats').body,
+          200,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'max-age=30',
+          },
+        );
+      });
+      await openStats(tester, client, () => now, () => 'UTC');
+      if (range != 'default') {
+        await custom(
+          tester,
+          '2026-03-29',
+          range == 'today' ? '2026-03-30' : '2026-03-29',
+        );
+      }
+      final first = queries.last;
+      final count = queries.length;
+      now = DateTime.utc(2026, 3, 30, 12, 0, 20);
+      resume(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count);
+      now = DateTime.utc(2026, 3, 30, 14);
+      resume(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count + 1);
+      expect(
+        queries.last['to'],
+        range == 'history' ? first['to'] : '2026-03-30T14:00:00.000Z',
+      );
+      expect(queries.last['from'], first['from']);
+      expect(queries.every((q) => q['kind'] == 'driving'), isTrue);
+    });
+  }
+
   testWidgets('快速变更区间与切车时迟到统计不能覆盖当前结果', (tester) async {
     final pending = Completer<http.Response>();
     final client = MockClient((r) async {

@@ -77,7 +77,146 @@ class MemoryCurrency implements CurrencyPreferenceStore {
   }
 }
 
+class DelayedCurrency implements CurrencyPreferenceStore {
+  final pending = Completer<String?>();
+  String? written;
+  @override
+  Future<String?> read(String site) => pending.future;
+  @override
+  Future<void> write(String site, String? code) async {
+    written = code;
+  }
+}
+
 void main() {
+  testWidgets('用户已选币种不被迟到的旧偏好恢复覆盖', (tester) async {
+    final currency = DelayedCurrency();
+    final client = MockClient(
+      (r) async => r.url.path.endsWith('/charging-sessions')
+          ? jsonResponse(chargingFixture())
+          : initial(r),
+    );
+    await tester.pumpWidget(app(client, currency: currency));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('站点币种'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('USD'));
+    await tester.pumpAndSettle();
+    expect(currency.written, 'USD');
+    currency.pending.complete('CNY');
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    expect(find.text('费用 12 USD'), findsWidgets);
+    expect(find.textContaining('CNY'), findsNothing);
+  });
+
+  testWidgets('充电程序滚动不翻页，重复游标停止自动请求且可手动恢复', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    final requests = <Uri>[];
+    var recover = false;
+    final client = MockClient((r) async {
+      if (!r.url.path.endsWith('/charging-sessions')) return initial(r);
+      requests.add(r.url);
+      final body = chargingFixture();
+      body['items'] = [body['items'][0]];
+      body['next_cursor'] = recover ? null : 'same-cursor';
+      return jsonResponse(body);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('充电 #9 · 查看详情'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('加载更多充电'));
+    await tester.pumpAndSettle();
+    expect(requests.length, 1);
+    await tester.tap(find.text('加载更多充电'));
+    await tester.pumpAndSettle();
+    expect(requests.length, 2);
+    await tester.scrollUntilVisible(find.textContaining('分页游标未前进'), -300);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('分页游标未前进'), findsOneWidget);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -200));
+    await tester.pumpAndSettle();
+    expect(requests.length, 2);
+    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    recover = true;
+    await tester.scrollUntilVisible(find.text('重试充电'), -300);
+    await tester.tap(find.text('重试充电'));
+    await tester.pumpAndSettle();
+    expect(requests.length, 3);
+    expect(find.textContaining('分页游标未前进'), findsNothing);
+    await tester.ensureVisible(find.text('已到最后一条'));
+    expect(find.text('已到最后一条'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final range in ['default', 'today', 'history']) {
+    testWidgets('充电前台按TTL校验并推进含今天窗口 $range', (tester) async {
+      var now = DateTime.utc(2026, 3, 30, 12);
+      final queries = <Map<String, String>>[];
+      final client = MockClient((r) async {
+        if (!r.url.path.endsWith('/charging-sessions')) return initial(r);
+        queries.add(r.url.queryParameters);
+        return jsonResponse(
+          {'items': [], 'next_cursor': 'page2'},
+          headers: {'cache-control': 'max-age=30'},
+        );
+      });
+      await tester.pumpWidget(app(client, now: () => now));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('充电'));
+      await tester.pumpAndSettle();
+      if (range != 'default') {
+        await tester.tap(find.text('筛选充电日期'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
+          '2026-03-29',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, '结束日期 YYYY-MM-DD'),
+          range == 'today' ? '2026-03-30' : '2026-03-29',
+        );
+        await tester.tap(find.text('应用日期'));
+        await tester.pumpAndSettle();
+      }
+      final initialQuery = queries.last;
+      final count = queries.length;
+      now = DateTime.utc(2026, 3, 30, 12, 0, 20);
+      background(tester);
+      foreground(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count);
+      now = DateTime.utc(2026, 3, 30, 14);
+      background(tester);
+      foreground(tester);
+      await tester.pumpAndSettle();
+      expect(queries.length, count + 1);
+      expect(
+        queries.last['to'],
+        range == 'history' ? initialQuery['to'] : '2026-03-30T14:00:00.000Z',
+      );
+      expect(queries.last['from'], initialQuery['from']);
+      expect(queries.last.containsKey('cursor'), isFalse);
+    });
+  }
+
   testWidgets('充电tab读取固定后端分页样本并区分能量、进行中和未知币种', (tester) async {
     final client = MockClient((request) async {
       if (!request.url.path.endsWith('/charging-sessions')) {
