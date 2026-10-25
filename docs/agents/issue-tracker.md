@@ -33,5 +33,5 @@ PRs as a request surface: no.
 - wayfinder 的 map 和 child ticket 均使用 issue；
   map 使用 wayfinder:map，child 使用 wayfinder:<type>。
   认领时分配执行者，解决后记录结论并关闭。
-- docs/product/ 保存需求准备材料，不替代正式 spec。
-  本轮不发布 spec、不创建实施工单；等待用户确认后调用 to-spec。
+- docs/product/ 保存正式 Spec 配套的产品/体验基线，不另建相互冲突的规格。
+  Spec #1 和 #2–#17 已发布；2026-10-25 用户要求澄清核心展示方式，本轮修订 Spec #1 正文及相关既有工单的展示验收，不创建重复工单、不关闭未验收条目、不改原生依赖边。后续按修订基线设计和实施，不再按历史“等待 to-spec”停止。

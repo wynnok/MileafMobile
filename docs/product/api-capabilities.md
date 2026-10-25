@@ -1,5 +1,21 @@
 # 行笺移动端：API 能力与差异
 
+2026-10-25 补充：以下 2026-10-22 源码核验保留历史属性；当前实施契约为固定 Server `146cb3b9a16af3d632b04ed8d197d0f2243d9b71` 的 [OpenAPI](../contracts/openapi-v1.json)及[来源元数据](../contracts/openapi-v1-source.json)。已接入的客户端能力见实施记录，不能继续把下文“尚未实施”的历史描述当作当前状态。
+
+## 本轮可视化澄清
+
+| 展示需求 | 冻结契约支撑 | 缺口与约束 |
+| --- | --- | --- |
+| 概览电量图与本月里程主图 V01 | summary + kind=driving、bucket=day 的 stats | summary 只有今日/本月汇总，新增趋势读取须与 summary 独立，不从两个汇总值或列表分页画历史 |
+| 行程地图与过程曲线 V03 | drive detail + speed/battery/elevation series | 温度只有均值，无温度/胎压/功率曲线承诺；坐标仍须核准 |
+| 充电电量区间及过程 V04–V05 | list/detail 的起止电量、两类能量，power/soc series | 两类能量不可相加，不推导效率；费用没有组成、币种来自本地标签 |
+| 驾驶多指标趋势 V06 | buckets 的 drives/distance_km/energy_kwh/consumption_wh_km_net/gross/speed_max_kmh 及 totals | 比率不再平均；净能耗/电耗负值保留，不能只画里程并把其余图表替换成文字 |
+| 充电多指标趋势与分类 V07–V08 | sessions/energy_added_kwh/cost/cost_per_kwh/ac_energy_kwh/dc_energy_kwh/dc_energy_share 的 buckets/totals | 无电网侧统计或 unknown_energy；AC/DC 不是全部能量的两个互补部分，费用 null 不补 0 |
+
+以上字段按冻结 schema 静态核对，不代表本轮连接真实站点或通过图表验收。[可视化基线](visualization-requirements.md) G01–G08 记录历史电量/续航、电池健康、停放损耗等有价值但尚缺契约的候选。当前 API 支撑范围决定本轮可实施输入，不决定产品长期覆盖上限；补能力须另行确定后端范围，移动端不直连数据库或补算缺失指标。
+
+## 2026-10-22 历史核验
+
 核验日期：2026-10-22。后端本地 HEAD：`0debc98`，核验时工作区无未提交变更。
 TeslaMate 本地 HEAD：`6bf3d55e`；后端文档声明的已测兼容基准为 v4.3.0，不能据此宣称本地开发版已验证。
 

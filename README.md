@@ -1,9 +1,10 @@
 # 行笺 / Mileaf Mobile
 
-用 Flutter 为 Android 和 iOS 提供适合手机阅读的 TeslaMate 数据展示体验。
-通过独立部署的 Mileaf Server API 读取数据，帮助用户快速查看车况记录、行程、充电和统计。
+用 Flutter 为 Android 和 iOS 提供美观、直观、体验良好的 TeslaMate 数据可视化。
+通过独立部署的 Mileaf Server API，以图表、地图和关键数字尽可能展示车况记录、行程、充电和统计。
+Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
-**当前状态：首版数据阅读闭环已具备，外部验收尚未完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。
+**当前状态：数据读取闭环已具备；2026-10-25 已澄清图表为主的展示基线，页面尚需按新要求设计、实现和验收。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准，外部验收也尚未完成。
 
 本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
@@ -20,10 +21,11 @@
 | --- | --- |
 | [产品范围](docs/product/product-brief.md) | 为谁解决什么问题，首版做什么 |
 | [页面与交互](docs/product/mobile-experience.md) | 手机端如何组织信息和处理各种状态 |
+| [数据可视化需求基线](docs/product/visualization-requirements.md) | 各指标画什么、数据从哪里来、Grafana 能力缺口及视觉完成条件 |
 | [API 能力与差异](docs/product/api-capabilities.md) | 当前后端实际能支撑什么，哪些不能假设 |
-| [to-spec 交接清单](docs/product/to-spec-readiness.md) | 已确认什么，下一步还需确认什么，如何验证 |
+| [需求澄清与实施交接](docs/product/to-spec-readiness.md) | 本轮纠偏如何进入既有 Spec/工单，下一阶段应交付什么 |
 
-以上保留为需求准备材料。
+以上为与正式 Spec 配套的产品与体验基线；具体可视原型尚未交付，历史自动化/构建不能替代视觉验收。
 正式需求与依赖关系以 [GitHub Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其子任务为准。
 
 ## 工作约定
