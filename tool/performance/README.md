@@ -40,7 +40,7 @@ manifest 保存 seed/anchor、Server commit、schema/migration SHA-256、每个�
 | `tests/fixtures/migration_versions.txt` | 逐字 vendor 到 `frozen/`，冻结兼容版本集合 | `ea850d1b038c4af950db32e7a0939aa5ebe8f1dcefe5e56dcd592f3451038868` |
 | `tests/fixtures/performance.py` | 参考其固定种子、COPY和稠密详情思路；此工具独立扩大规模、生成CSV并增加离线核验，不导入/修改源文件 | `d11c8ae517083e756800769b3e1b33cc54968165a3b7b0eac30eadf042fd3dce` |
 
-## 可选临时数据库装载（尚未实测）
+## 可选临时数据库装载（本地已验证）
 
 生成/装载不读取现有生产 DSN、`.env`、Settings 或 credential，不导入后端 runtime；测试数据只能使用本任务新建本地隔离测试库。Docker 必须由人工事先提供已运行环境与本地缓存 `postgres:16-alpine` 镜像。Docker CLI 默认使用本地 `unix:///var/run/docker.sock`，可通过显式 `--docker-socket /绝对/本地/socket` 指定本地Unix socket（拒绝TCP/SSH/DSN及相对路径），每次使用项目缓存内新建空配置目录并移除 Docker 环境配置，不继承 `DOCKER_HOST`/`DOCKER_CONTEXT`/`DOCKER_CONFIG`、TLS路径或宿主凭据配置；本地 socket 不存在或不可用就失败，不改用远程daemon。本机OrbStack本地端点为 `$HOME/.orbstack/run/docker.sock`；仅在人工已提供的本地测试环境运行时，可对load显式追加 `--docker-socket "$HOME/.orbstack/run/docker.sock"`，无需更改全局socket链接。本入口不会启动 Docker/OrbStack、拉镜像、接收 DSN/既有容器/宿主挂载，或连接真实数据库：
 
