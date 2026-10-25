@@ -4,17 +4,17 @@
 
 ## 项目内环境与命令
 
-在仓库根执行。只复用已有 Python 3.12，不下载解释器、不安装全局包；无 Python 依赖。所有 run 显式加 `--no-env-file`，不继承 `UV_ENV_FILE` 自动加载生产配置。首次由可用的既有解释器创建本工具 `.venv`，示例路径须换为本机已有 Python 3.12：
+在仓库根执行。只复用已有 Python 3.12，不下载解释器、不安装全局包；无 Python 依赖。每个命令显式把 `UV_PROJECT_ENVIRONMENT` 锁到当前 checkout 的 `tool/performance/.venv`，覆盖继承的外部环境目标；所有 run 显式加 `--no-env-file`，不继承 `UV_ENV_FILE` 自动加载生产配置。首次由可用的既有解释器创建本工具 `.venv`，示例路径须换为本机已有 Python 3.12：
 
 ```sh
-UV_CACHE_DIR="$PWD/.cache/uv" uv venv --no-managed-python --no-python-downloads \
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv venv --no-managed-python --no-python-downloads \
   --python /path/to/existing/python3.12 tool/performance/.venv
-UV_CACHE_DIR="$PWD/.cache/uv" uv sync --project tool/performance --locked --offline --no-python-downloads
-UV_CACHE_DIR="$PWD/.cache/uv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv sync --project tool/performance --locked --offline --no-python-downloads
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
   python tool/performance/data.py generate
-UV_CACHE_DIR="$PWD/.cache/uv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
   python tool/performance/data.py verify
-UV_CACHE_DIR="$PWD/.cache/uv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
   python -m unittest discover -s tool/performance/tests -v
 ```
 
@@ -45,7 +45,7 @@ manifest 保存 seed/anchor、Server commit、schema/migration SHA-256、每个�
 生成/装载不读取现有生产 DSN、`.env`、Settings 或 credential，不导入后端 runtime；测试数据只能使用本任务新建本地隔离测试库。Docker 必须由人工事先提供已运行环境与本地缓存 `postgres:16-alpine` 镜像。Docker CLI 默认使用本地 `unix:///var/run/docker.sock`，可通过显式 `--docker-socket /绝对/本地/socket` 指定本地Unix socket（拒绝TCP/SSH/DSN及相对路径），每次使用项目缓存内新建空配置目录并移除 Docker 环境配置，不继承 `DOCKER_HOST`/`DOCKER_CONTEXT`/`DOCKER_CONFIG`、TLS路径或宿主凭据配置；本地 socket 不存在或不可用就失败，不改用远程daemon。本机历史OrbStack端点为 `$HOME/.orbstack/run/docker.sock`，当前服务停运/socket不存在；未来仅在人工提供的本地测试环境运行时，可对load显式追加 `--docker-socket "$HOME/.orbstack/run/docker.sock"`，无需更改全局socket链接。本入口不会启动 Docker/OrbStack、拉镜像、接收 DSN/既有容器/宿主挂载，或连接真实数据库：
 
 ```sh
-UV_CACHE_DIR="$PWD/.cache/uv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
+UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
   python tool/performance/data.py load
 ```
 

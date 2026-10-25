@@ -250,6 +250,10 @@ class RejectionTests(unittest.TestCase):
         env_file = config / "production.env"
         docker_config.write_text("INVALID_DOCKER_CONFIG_SENTINEL")
         env_file.write_text("INVALID ENV FILE THAT MUST NOT BE LOADED")
+        external_environment = config / "external-venv"
+        external_environment.mkdir()
+        external_sentinel = external_environment / "never-touch.txt"
+        external_sentinel.write_text("FAKE_EXTERNAL_ENVIRONMENT_MUST_STAY_UNCHANGED")
         environment = {
             **os.environ,
             "DOCKER_HOST": "tcp://127.0.0.1:1",
@@ -260,6 +264,7 @@ class RejectionTests(unittest.TestCase):
             "DATABASE_URL": "postgresql://fake-production.invalid/never-connect",
             "MILEAF_DATABASE_DSN": "postgresql://fake-production.invalid/never-connect",
             "UV_ENV_FILE": str(env_file),
+            "UV_PROJECT_ENVIRONMENT": str(external_environment),
         }
         # External Docker CLI boundary: record only this test's fake inputs and
         # always fail image inspection. Never pretend a database was loaded.
@@ -321,6 +326,7 @@ class RejectionTests(unittest.TestCase):
                 "DATABASE_URL",
                 "MILEAF_DATABASE_DSN",
                 "UV_ENV_FILE",
+                "UV_PROJECT_ENVIRONMENT",
                 "HOME",
             ):
                 self.assertNotIn(key, observed["env"])
@@ -344,12 +350,23 @@ class RejectionTests(unittest.TestCase):
                 str(self.base),
             ],
             cwd=ROOT,
-            env={**environment, "UV_CACHE_DIR": str(ROOT / ".cache/uv")},
+            env={
+                **environment,
+                "UV_CACHE_DIR": str(ROOT / ".cache/uv"),
+                "UV_PROJECT_ENVIRONMENT": str(ROOT / "tool/performance/.venv"),
+            },
             capture_output=True,
             text=True,
             timeout=180,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            [path.name for path in external_environment.iterdir()], ["never-touch.txt"]
+        )
+        self.assertEqual(
+            external_sentinel.read_text(),
+            "FAKE_EXTERNAL_ENVIRONMENT_MUST_STAY_UNCHANGED",
+        )
         self.assertEqual(docker_config.read_text(), "INVALID_DOCKER_CONFIG_SENTINEL")
         self.assertEqual(
             env_file.read_text(), "INVALID ENV FILE THAT MUST NOT BE LOADED"
