@@ -44,6 +44,7 @@
 双端真机网络、已许可地图服务与真实坐标校准仍缺，不能把构建或合成数据测试当成通过。
 
 - [最终验证与本地产物](docs/implementation/final-verification.md)
+- [性能合成数据准备与未测状态](docs/implementation/performance.md)
 - [两轴审查与修复](docs/implementation/code-review.md)
 - [完整验收矩阵与响应复验](docs/implementation/acceptance.md)
 - [行程详情和采样](docs/implementation/drive-detail.md)
