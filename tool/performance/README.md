@@ -42,7 +42,7 @@ manifest 保存 seed/anchor、Server commit、schema/migration SHA-256、每个�
 
 ## 可选临时数据库装载（尚未实测）
 
-生成/装载不读取现有生产 DSN、`.env`、Settings 或 credential，不导入后端 runtime；测试数据只能使用本任务新建本地隔离测试库。Docker 必须由人工事先提供已运行环境与本地缓存 `postgres:16-alpine` 镜像。Docker CLI 默认使用本地 `unix:///var/run/docker.sock`，可通过显式 `--docker-socket /绝对/本地/socket` 指定本地Unix socket（拒绝TCP/SSH/DSN及相对路径），每次使用项目缓存内新建空配置目录并移除 Docker 环境配置，不继承 `DOCKER_HOST`/`DOCKER_CONTEXT`/`DOCKER_CONFIG`、TLS路径或宿主凭据配置；本地 socket 不存在或不可用就失败，不改用远程daemon。本机历史OrbStack端点为 `$HOME/.orbstack/run/docker.sock`，当前服务停运/socket不存在；未来仅在人工提供的本地测试环境运行时，可对load显式追加 `--docker-socket "$HOME/.orbstack/run/docker.sock"`，无需更改全局socket链接。本入口不会启动 Docker/OrbStack、拉镜像、接收 DSN/既有容器/宿主挂载，或连接真实数据库：
+生成/装载不读取现有生产 DSN、`.env`、Settings 或 credential，不导入后端 runtime；测试数据只能使用本任务新建本地隔离测试库。Docker 必须由人工事先提供已运行环境与本地缓存 `postgres:16-alpine` 镜像。Docker CLI 默认使用本地 `unix:///var/run/docker.sock`，可通过显式 `--docker-socket /绝对/本地/socket` 指定本地Unix socket（拒绝TCP/SSH/DSN及相对路径），每次使用项目缓存内新建空配置目录并移除 Docker 环境配置，不继承 `DOCKER_HOST`/`DOCKER_CONTEXT`/`DOCKER_CONFIG`、TLS路径或宿主凭据配置；本地 socket 不存在或不可用就失败，不改用远程daemon。本机OrbStack本地端点为 `$HOME/.orbstack/run/docker.sock`；仅在人工已提供的本地测试环境运行时，可对load显式追加 `--docker-socket "$HOME/.orbstack/run/docker.sock"`，无需更改全局socket链接。本入口不会启动 Docker/OrbStack、拉镜像、接收 DSN/既有容器/宿主挂载，或连接真实数据库：
 
 ```sh
 UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.venv" uv run --no-env-file --project tool/performance --locked --offline --no-python-downloads \
@@ -51,8 +51,10 @@ UV_CACHE_DIR="$PWD/.cache/uv" UV_PROJECT_ENVIRONMENT="$PWD/tool/performance/.ven
 
 `load --preflight` 只在显式/默认本地socket检查cached镜像，不创建数据库；可用它核对入口条件，成功仍不代表装载通过。
 
+镜像初始化会启动随后停止一个仅监听Unix socket的临时PostgreSQL。就绪探针显式等待容器内 `127.0.0.1` 的最终TCP服务，避免把临时服务误判为已就绪；psql装载仍走容器内部Unix socket，宿主不发布端口。
+
 先完整离线核验，然后仅创建随机任务名/标签的全新 `--rm --pull=never --network none` 容器，数据放容器 tmpfs，不发布端口、不挂宿主目录。无网络的容器内部使用 trust 认证，经 `docker exec` 的 Unix socket 装载，不形成对宿主可访问的无口令数据库。只在事务内把行程的两个循环外键改为延迟检查，COPY后 COMMIT 强制验证原始引用；不修改 vendor schema 或参考仓库。创建仅有 public SELECT 权限的 reader，以只读事务验证各表计数，ANALYZE固定规划器统计，结束只清理匹配本次唯一标签的容器。无 keep 入口，不保留运行服务；异常无法确认清理时失败退出，不输出成功报告。
 
 成功才在项目 `.cache/performance-load-<随机任务ID>.json` 写入实际镜像ID、manifest摘要、数据库计数与容器清理状态。命令输出不含 DSN、密码、token、响应体或轨迹；Docker/psql输出仅在内存内部处理。若装载失败，退出非零，不能把离线测试成功写成数据库已通过。
 
-**当前 Docker 停运，尚未实际装载。** 未来真实 Server/200点采样与 App 设备运行需要另外准备获授权的隔离服务；本入口故意不启动或常驻 Server。沿用同一冻结 schema/manifest，先核对数据库计数、reader权限、API实际200点与分页，保存证据后才进入设备计时。profile/release、80ms RTT/10–2Mbps、每指标每平台至少30次、OS与raster/present关联等协议见 `docs/implementation/performance.md`，当前样本仍 N=0。
+**2026-10-25本地装载已实际验证：** 现场本地socket及cached镜像可用后，使用本任务新完整产物与显式本地socket复现了原初始化就绪竞态；修复后未带临时诊断的公开load连续3次成功，真实只读计数符合50,000/500,000/5,000/100,000规模，每次任务容器清理后另以该新UUID检查确认不存在。没有使用现有数据库或生产配置。未来真实 Server/200点采样与 App 设备运行仍需要另外准备获授权的隔离服务；本入口故意不启动或常驻 Server。沿用同一冻结 schema/manifest，先核对数据库计数、reader权限、API实际200点与分页，保存证据后才进入设备计时。profile/release、80ms RTT/10–2Mbps、每指标每平台至少30次、OS与raster/present关联等协议见 `docs/implementation/performance.md`，当前样本仍 N=0。

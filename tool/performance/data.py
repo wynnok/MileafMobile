@@ -510,9 +510,19 @@ def load(output, manifest, preflight=False, socket_path=Path("/var/run/docker.so
         if result.returncode:
             raise ValueError("container creation failed")
         created = True
+        # Image initialization starts a Unix-only temporary server and stops it.
+        # Wait for the final server on container loopback; no host port is exposed.
         for attempt in range(100):
             ready = docker(
-                socket_path, "exec", name, "pg_isready", "-U", "postgres", timeout=5
+                socket_path,
+                "exec",
+                name,
+                "pg_isready",
+                "-h",
+                "127.0.0.1",
+                "-U",
+                "postgres",
+                timeout=5,
             )
             if ready.returncode == 0:
                 break
