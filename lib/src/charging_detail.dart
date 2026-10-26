@@ -1,8 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'data_cards.dart';
+import 'data_chart.dart';
 import 'charging_detail_contract.g.dart' as dto;
 import 'currency.dart';
 import 'workspace.dart';
@@ -185,28 +185,25 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.currency,
     builder: (context, _) => Scaffold(
-      appBar: AppBar(title: Text('充电详情 #${widget.id}')),
+      appBar: AppBar(
+        title: Text('充电详情 #${widget.id}'),
+        actions: [
+          IconButton(
+            onPressed: detailLoading ? null : () => loadDetail(force: true),
+            icon: const Icon(Icons.refresh),
+            tooltip: '刷新充电明细',
+          ),
+          IconButton(
+            onPressed: seriesLoading ? null : () => loadSeries(force: true),
+            icon: const Icon(Icons.show_chart),
+            tooltip: '刷新充电曲线',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
-            ),
-            const Text('历史结果只读；— 表示缺失，不代表零。'),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text('充电明细', style: Theme.of(context).textTheme.titleLarge),
-                IconButton(
-                  onPressed: detailLoading
-                      ? null
-                      : () => loadDetail(force: true),
-                  icon: const Icon(Icons.refresh),
-                  tooltip: '刷新充电明细',
-                ),
-              ],
-            ),
             if (detailLoading) const LinearProgressIndicator(),
             if (detailError != null) ...[
               Semantics(liveRegion: true, child: Text(detailError!)),
@@ -223,50 +220,56 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 onPressed: () => Navigator.pop(context),
                 child: const Text('返回上一页'),
               ),
-            if (detail case final d?) ...[
-              Text(d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束'),
-              Text(
-                d.location.displayName?.trim().isNotEmpty == true
-                    ? d.location.displayName!
-                    : '未知地点',
-              ),
-              if (d.location.geofence != null)
-                Text('围栏：${d.location.geofence}'),
-              if (d.location.address != null &&
-                  d.location.address != d.location.displayName)
-                Text('地址：${d.location.address}'),
-              Text('开始 ${time(d.startedAt)}'),
-              Text('结束 ${time(d.endedAt)}'),
-              Text(
-                d.isDc == null
-                    ? '分类未知'
-                    : d.isDc!
-                    ? 'DC'
-                    : 'AC',
-              ),
-              Text('电量 ${number(d.startSoc, '%')} → ${number(d.endSoc, '%')}'),
-              Text('充入电池 ${number(d.energyAddedKwh, 'kWh')}'),
-              Text('电网侧 ${number(d.energyUsedKwh, 'kWh')}'),
-              Text('费用 ${widget.currency.amount(d.cost)}'),
-              Text('时长 ${number(d.durationMin, '分钟')}'),
-              Text(
-                '平均外温 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
-              ),
-            ],
-            const SizedBox(height: 24),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text('充电曲线', style: Theme.of(context).textTheme.titleLarge),
-                IconButton(
-                  onPressed: seriesLoading
-                      ? null
-                      : () => loadSeries(force: true),
-                  icon: const Icon(Icons.refresh),
-                  tooltip: '刷新充电曲线',
+            if (detail case final d?)
+              DataCard(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.location.displayName?.trim().isNotEmpty == true
+                          ? d.location.displayName!
+                          : '未知地点',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Text.rich(
+                      TextSpan(
+                        text: '充入电池 ',
+                        style: Theme.of(context).textTheme.labelMedium,
+                        children: [
+                          TextSpan(
+                            text: number(d.energyAddedKwh, 'kWh'),
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 18,
+                      runSpacing: 5,
+                      children: [
+                        Text('费用 ${widget.currency.amount(d.cost)}'),
+                        Text('时长 ${number(d.durationMin, '分钟')}'),
+                        Text(
+                          d.isDc == null
+                              ? '分类未知'
+                              : d.isDc!
+                              ? 'DC'
+                              : 'AC',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
             if (seriesLoading) const LinearProgressIndicator(),
             if (seriesError != null) ...[
               Semantics(liveRegion: true, child: Text(seriesError!)),
@@ -281,6 +284,61 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 series: series!,
                 calendar: workspace.calendar!,
               ),
+            if (detail case final d?) ...[
+              DataCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('电量变化', style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 6),
+                    Text(
+                      '电量 ${number(d.startSoc, '%')} → ${number(d.endSoc, '%')}',
+                    ),
+                    SocInterval(start: d.startSoc, end: d.endSoc),
+                  ],
+                ),
+              ),
+              DataCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('两类能量', style: Theme.of(context).textTheme.titleSmall),
+                    EnergyComparison(
+                      values: [
+                        ('充入电池', d.energyAddedKwh),
+                        ('电网侧', d.energyUsedKwh),
+                      ],
+                      note: '两类能量分别记录，不相加。',
+                    ),
+                  ],
+                ),
+              ),
+              DataCard(
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('更多充电信息'),
+                  childrenPadding: const EdgeInsets.only(top: 12),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('开始 ${time(d.startedAt)}'),
+                    Text('结束 ${time(d.endedAt)}'),
+                    if (d.location.geofence != null)
+                      Text('围栏：${d.location.geofence}'),
+                    if (d.location.address != null &&
+                        d.location.address != d.location.displayName)
+                      Text('地址：${d.location.address}'),
+                    Text(
+                      '平均外温 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
+                    ),
+                    Text('充电相数 ${d.chargerPhasesMode ?? '—（缺失）'}'),
+                    Text(
+                      '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
+                    ),
+                    const Text('历史结果只读；— 表示缺失，不代表零。'),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -302,13 +360,7 @@ class ChargingCurve extends StatefulWidget {
 
 class _ChargingCurveState extends State<ChargingCurve> {
   bool power = true;
-  int? selected;
   num? value(dto.ChargePoint p) => power ? p.power : p.soc;
-  String get unit => power ? 'kW' : '%';
-  String stamp(dto.ChargePoint p) =>
-      widget.calendar.local(p.t).toString().split('.').first;
-  String reading(dto.ChargePoint p) =>
-      '${stamp(p)} · ${value(p) == null ? '—（缺失）' : '${decimal(value(p)!)} $unit'}';
   @override
   Widget build(BuildContext context) {
     final points = widget.series.series;
@@ -316,136 +368,43 @@ class _ChargingCurveState extends State<ChargingCurve> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('功率 kW'),
-              selected: power,
-              onSelected: (_) => setState(() => power = true),
-            ),
-            ChoiceChip(
-              label: const Text('电量 %'),
-              selected: !power,
-              onSelected: (_) => setState(() => power = false),
+        TimeChart(
+          title: '充电曲线',
+          unit: power ? 'kW' : '%',
+          times: [for (final p in points) p.t],
+          series: [
+            ChartSeries(
+              label: power ? '功率' : '电量',
+              values: [for (final p in points) value(p)],
             ),
           ],
+          timestamp: (t) =>
+              widget.calendar.local(t).toString().split('.').first,
+          presentation: ChartPresentation.line,
+          minimum: power ? null : 0,
+          maximum: power ? null : 100,
+          plotKey: const Key('charging-time-chart'),
+          subtitle: '服务端采样 ${widget.series.points} 点 · 当前指标有效 $valid 点',
+          controls: Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('功率 kW'),
+                selected: power,
+                onSelected: (_) => setState(() => power = true),
+              ),
+              ChoiceChip(
+                label: const Text('电量 %'),
+                selected: !power,
+                onSelected: (_) => setState(() => power = false),
+              ),
+            ],
+          ),
+          note: '低强调连线仅示意采样，不代表连续观测。缺失值断线，不补点、不补零；采样峰值不等同原始峰值。',
         ),
-        Text('服务端采样 ${widget.series.points} 点 · 当前指标有效 $valid 点'),
-        const Text('真实时间轴；低强调连线仅示意采样，不代表连续观测。缺失值断线，不补点、不补零；采样峰值不等同原始峰值。'),
         if (points.isEmpty) const Text('此充电没有序列采样'),
         if (points.isNotEmpty && valid < 2) const Text('有效采样不足两点，仅显示可用点与读数'),
-        if (points.isNotEmpty)
-          LayoutBuilder(
-            builder: (context, constraints) => Semantics(
-              label: '${power ? '功率' : '电量'}随真实时间变化的采样曲线；下方可逐点读取',
-              child: GestureDetector(
-                onTapDown: (event) {
-                  final earliest = points
-                      .map((p) => p.t.microsecondsSinceEpoch)
-                      .reduce(math.min);
-                  final latest = points
-                      .map((p) => p.t.microsecondsSinceEpoch)
-                      .reduce(math.max);
-                  final fraction =
-                      ((event.localPosition.dx - 16) /
-                              (constraints.maxWidth - 32))
-                          .clamp(0.0, 1.0);
-                  final target = earliest + (latest - earliest) * fraction;
-                  var index = 0;
-                  for (var i = 1; i < points.length; i++) {
-                    if ((points[i].t.microsecondsSinceEpoch - target).abs() <
-                        (points[index].t.microsecondsSinceEpoch - target)
-                            .abs()) {
-                      index = i;
-                    }
-                  }
-                  setState(() => selected = index);
-                },
-                child: SizedBox(
-                  key: const Key('charging-time-chart'),
-                  height: 180,
-                  child: CustomPaint(
-                    painter: _ChargingPainter(
-                      points,
-                      power,
-                      Theme.of(context).colorScheme.primary,
-                      selected,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        if (points.isNotEmpty)
-          Text('${stamp(points.first)} → ${stamp(points.last)}'),
-        if (selected != null)
-          Semantics(
-            liveRegion: true,
-            child: Text('选中 ${reading(points[selected!])}'),
-          ),
-        const Text('点选曲线或以下文字采样记录读取数值'),
-        for (var i = 0; i < points.length; i++)
-          TextButton(
-            onPressed: () => setState(() => selected = i),
-            child: Text(reading(points[i])),
-          ),
       ],
     );
   }
-}
-
-class _ChargingPainter extends CustomPainter {
-  _ChargingPainter(this.points, this.power, this.color, this.selected);
-  final List<dto.ChargePoint> points;
-  final bool power;
-  final Color color;
-  final int? selected;
-  num? value(dto.ChargePoint p) => power ? p.power : p.soc;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final values = points.map(value).whereType<num>().toList();
-    if (values.isEmpty) return;
-    final minTime = points
-        .map((p) => p.t.microsecondsSinceEpoch)
-        .reduce(math.min);
-    final maxTime = points
-        .map((p) => p.t.microsecondsSinceEpoch)
-        .reduce(math.max);
-    final minValue = values.reduce(math.min),
-        maxValue = values.reduce(math.max);
-    final stroke = Paint()
-      ..color = color.withValues(alpha: .45)
-      ..strokeWidth = 1.5;
-    Offset? previous;
-    for (var i = 0; i < points.length; i++) {
-      final v = value(points[i]);
-      if (v == null) {
-        previous = null;
-        continue;
-      }
-      final x = maxTime == minTime
-          ? size.width / 2
-          : 16 +
-                (points[i].t.microsecondsSinceEpoch - minTime) /
-                    (maxTime - minTime) *
-                    (size.width - 32);
-      final y = maxValue == minValue
-          ? size.height / 2
-          : size.height -
-                16 -
-                (v - minValue) / (maxValue - minValue) * (size.height - 32);
-      final point = Offset(x, y);
-      if (previous != null) canvas.drawLine(previous, point, stroke);
-      canvas.drawCircle(point, selected == i ? 5 : 2.5, Paint()..color = color);
-      previous = point;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChargingPainter old) =>
-      old.points != points ||
-      old.power != power ||
-      old.color != color ||
-      old.selected != selected;
 }

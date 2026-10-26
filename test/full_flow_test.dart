@@ -113,10 +113,14 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('充电 #1 · 查看详情'), 250);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('充电 #1 · 查看详情'));
     await tester.pumpAndSettle();
     expect(find.text('充电详情 #1'), findsOneWidget);
-    expect(find.text('电网侧 22 kWh'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('两类能量'), 180);
+    await tester.pumpAndSettle();
+    expect(find.text('电网侧'), findsOneWidget);
+    expect(find.text('22.00 kWh'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     await tester.tap(find.text('统计').last);

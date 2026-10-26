@@ -32,34 +32,51 @@ class MetricTile extends StatelessWidget {
   final String? note;
   final bool emphasize;
   @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    label: '$label $value${note == null ? '' : '，$note'}',
-    excludeSemantics: true,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 7),
-        Text(
-          value,
-          style:
-              (emphasize
-                      ? Theme.of(context).textTheme.headlineMedium
-                      : Theme.of(context).textTheme.titleLarge)
-                  ?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        if (note != null) ...[
-          const SizedBox(height: 5),
-          Text(note!, style: Theme.of(context).textTheme.bodySmall),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final parts = RegExp(r'^(-?[0-9][0-9.,]*)(.*)$').firstMatch(value);
+    return Semantics(
+      container: true,
+      label: '$label $value${note == null ? '' : '，$note'}',
+      excludeSemantics: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text.rich(
+            TextSpan(
+              text: parts?.group(1) ?? value,
+              children: [
+                if (parts != null)
+                  TextSpan(
+                    text: parts.group(2),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+              ],
+            ),
+            style:
+                (emphasize
+                        ? Theme.of(context).textTheme.headlineMedium
+                        : Theme.of(context).textTheme.titleLarge)
+                    ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          if (note != null) ...[
+            const SizedBox(height: 5),
+            Text(note!, style: Theme.of(context).textTheme.bodySmall),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class BatteryLevelIndicator extends StatelessWidget {

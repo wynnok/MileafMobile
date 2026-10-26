@@ -45,6 +45,7 @@ abstract final class PerformanceTrace {
     if (_initialOverview) _resume = start(PerformancePoint.resume);
   }
 
+  // The caller checks current summary and trend ownership and the visible plot.
   static void overviewFrame(bool Function() stillReadable) {
     if (!enabled || _initialOverview) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {

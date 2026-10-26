@@ -14,6 +14,7 @@ import 'charging_test.dart' show MemoryCurrency;
 import 'full_flow_test.dart' show sample, response;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
+import 'statistics_test.dart' show custom;
 import 'widget_test.dart' show MemoryTrustStore;
 
 // Opt-in actual Flutter rendering at the same App/HTTP boundary as behavior
@@ -61,6 +62,31 @@ Map<String, dynamic> stats(bool charging) {
   ];
   return body;
 }
+
+Map<String, dynamic> shortChargingStats() => {
+  'buckets': [
+    for (var i = 0; i < 3; i++)
+      {
+        'bucket_start': DateTime.utc(2026, 3, 12 + i, 16).toIso8601String(),
+        'sessions': 2,
+        'energy_added_kwh': i == 1 ? 20 : 40,
+        'cost': i == 1 ? 14.4 : 28.8,
+        'cost_per_kwh': .72,
+        'ac_energy_kwh': i == 1 ? 10 : 20,
+        'dc_energy_kwh': i == 1 ? 10 : 20,
+        'dc_energy_share': .5,
+      },
+  ],
+  'totals': {
+    'sessions': 6,
+    'energy_added_kwh': 100,
+    'cost': 72,
+    'cost_per_kwh': .72,
+    'ac_energy_kwh': 50,
+    'dc_energy_kwh': 50,
+    'dc_energy_share': .5,
+  },
+};
 
 Map<String, dynamic> detail(bool charging) {
   final body = fixture(charging ? 'charging-detail' : 'drive-detail');
@@ -203,6 +229,11 @@ void main() {
             body['last_charge']['id'] = 1;
             return response(body);
           }
+          if (path.endsWith('/stats') &&
+              r.url.queryParameters['kind'] == 'charging' &&
+              r.url.queryParameters['from'] == '2026-03-12T16:00:00.000Z') {
+            return response(shortChargingStats());
+          }
           if (path.endsWith('/stats')) {
             return response(stats(r.url.queryParameters['kind'] == 'charging'));
           }
@@ -245,6 +276,7 @@ void main() {
         await tester.tap(find.text('行程').last);
         await save('drives-$suffix');
         await tester.ensureVisible(find.byKey(const ValueKey('drive-1')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('drive-1')));
         await save('drive-$suffix');
         await tester.tap(find.byType(BackButton));
@@ -252,6 +284,7 @@ void main() {
         await tester.tap(find.text('充电').last);
         await save('charges-$suffix');
         await tester.scrollUntilVisible(find.text('充电 #1 · 查看详情'), 180);
+        await tester.pumpAndSettle();
         await tester.tap(find.text('充电 #1 · 查看详情'));
         await save('charge-$suffix');
         await tester.tap(find.byType(BackButton));
@@ -260,6 +293,10 @@ void main() {
         await save('driving-$suffix');
         await tester.tap(find.text('充电统计'));
         await save('charging-$suffix');
+        await custom(tester, '2026-03-13', '2026-03-15');
+        await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);
+        await tester.pumpAndSettle();
+        await save('charging-classification-short-$suffix');
         await tester.pumpWidget(const SizedBox());
       }
     }

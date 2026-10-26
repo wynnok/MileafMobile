@@ -33,6 +33,36 @@ Future<void> openDetail(
 }
 
 void main() {
+  testWidgets('行程电量区间保留起终点减少和未知值，不伪造成补能或零', (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      var missing = false;
+      await openDetail(tester, (request) async {
+        if (request.url.path.endsWith('/series')) {
+          return jsonResponse(jsonEncode(fixture('drive-series')));
+        }
+        final body = fixture('drive-detail');
+        body['start']['battery_level'] = 82;
+        body['end']['battery_level'] = missing ? null : 72;
+        return jsonResponse(jsonEncode(body));
+      });
+      final known = find.bySemanticsLabel(RegExp('电量区间.*82.*72.*尺度0至100%'));
+      await tester.scrollUntilVisible(known, 180);
+      await tester.pumpAndSettle();
+      expect(known, findsOneWidget);
+      expect(find.text('起始 82 %'), findsOneWidget);
+      expect(find.text('结束 72 %'), findsOneWidget);
+      missing = true;
+      await tester.tap(find.byTooltip('刷新行程明细'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel(RegExp('电量区间.*82.*结束未知')), findsOneWidget);
+      expect(find.text('结束 —'), findsOneWidget);
+      expect(find.text('结束 0 %'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
+  });
   testWidgets('360宽200%字完整行程指标曲线和地点地图均可纵向阅读', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -57,7 +87,18 @@ void main() {
       '时长 120 分钟',
       '净电耗 188 Wh/km',
       '速度读数',
-      '未知地点 → 未知地点',
+      '地图暂不可用',
+    ]) {
+      final target = find.textContaining(text).hitTestable();
+      await tester.scrollUntilVisible(target, 120);
+      expect(target, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.scrollUntilVisible(find.text('更多行程指标'), 160);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多行程指标'));
+    await tester.pumpAndSettle();
+    for (final text in [
       '净能量 3.75 kWh',
       '平均速度 10 km/h',
       '最高速度 90 km/h',
@@ -67,7 +108,6 @@ void main() {
       '起点电量 70 %',
       '终点电量 70 %',
       '续航口径',
-      '地图暂不可用',
     ]) {
       final target = find.textContaining(text).hitTestable();
       await tester.scrollUntilVisible(target, 120);
@@ -105,8 +145,12 @@ void main() {
     expect(find.text('终点地址：办公地点'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('起点地址：样例路1号'), 200);
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('更多行程指标'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多行程指标'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('起点地址：样例路1号'), 200);
     expect(find.text('起点围栏：住宅围栏'), findsOneWidget);
     expect(find.text('起点地址：样例路1号'), findsOneWidget);
     expect(find.text('终点地址：办公地点'), findsNothing);
@@ -151,6 +195,9 @@ void main() {
     });
     expect(find.text('行程 #1'), findsOneWidget);
     expect(find.textContaining('净电耗 188 Wh/km'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('更多行程指标'), 200);
+    await tester.tap(find.text('更多行程指标'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('最高速度 90'), 200);
     expect(find.textContaining('最高速度 90 km/h'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
@@ -264,10 +311,12 @@ void main() {
     await tester.scrollUntilVisible(find.byTooltip('刷新行程采样'), -200);
     await tester.tap(find.byTooltip('刷新行程采样'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.textContaining('保留上次快照'), -200);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     await tester.scrollUntilVisible(find.byTooltip('刷新行程明细'), -300);
     await tester.tap(find.byTooltip('刷新行程明细'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.textContaining('净电耗 188 Wh/km'), -200);
     expect(find.textContaining('净电耗 188 Wh/km'), findsOneWidget);
   });
   testWidgets('当前401退出详情回登录并清除明细与采样', (tester) async {

@@ -16,6 +16,15 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'widget_test.dart' show MemoryTrustStore;
 
+http.Response overviewTrendResponse() => http.Response(
+  File('test/fixtures/driving-stats.json').readAsStringSync(),
+  200,
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'max-age=30',
+  },
+);
+
 void background(WidgetTester tester) {
   for (final state in [
     AppLifecycleState.inactive,
@@ -46,6 +55,7 @@ void main() {
       });
     var refreshed = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -88,6 +98,9 @@ void main() {
     expect(find.textContaining('68 %'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('位置采样'), 300);
     expect(find.textContaining('位置采样'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    await tester.tap(find.text('车辆与数据时间'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('校验时间'), 300);
     expect(find.textContaining('校验时间'), findsOneWidget);
   });
@@ -102,6 +115,7 @@ void main() {
     final old = Completer<http.Response>();
     var fail = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -171,6 +185,7 @@ void main() {
     var unsolicited = true;
     final queries = <String>[];
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -231,6 +246,7 @@ void main() {
       });
     var missing = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         final vehicles = jsonDecode(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -293,6 +309,7 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -331,10 +348,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('电量  0 %'), 200);
-    expect(find.textContaining('电量  0 %'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('额定续航  —（缺失）'), 200);
-    expect(find.textContaining('额定续航  —（缺失）'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('0 %'), 200);
+    expect(find.text('0 %'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('—（缺失）'), 200);
+    expect(find.text('—（缺失）'), findsOneWidget);
     expect(find.textContaining('最近充电功率'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));
@@ -355,6 +372,7 @@ void main() {
     var expired = false;
     final resumedPaths = <String>[];
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (expired) {
         resumedPaths.add(request.url.path);
         return http.Response('', 401);

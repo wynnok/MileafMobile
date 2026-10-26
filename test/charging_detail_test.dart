@@ -38,6 +38,9 @@ Widget app(http.Client client, {MemoryCurrency? currency}) => MileafApp(
   now: () => DateTime.utc(2026, 3, 30, 12),
 );
 http.Response initial(http.Request request) {
+  if (request.url.path.endsWith('/stats')) {
+    return response(fixture('driving-stats'));
+  }
   if (request.url.path.endsWith('/vehicles')) {
     return http.Response(
       File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -54,6 +57,31 @@ http.Response initial(http.Request request) {
 }
 
 void main() {
+  testWidgets('360x800充电详情先展示主要结果和完整默认功率图', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/charging-sessions/1')) {
+        return response(fixture('charging-detail'));
+      }
+      if (request.url.path.endsWith('/charging-sessions/1/series')) {
+        return response(fixture('charging-series'));
+      }
+      return initial(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('最近充电'), 300);
+    await tester.tap(find.text('最近充电'));
+    await tester.pumpAndSettle();
+    final graph = tester.getRect(find.byKey(const Key('charging-time-chart')));
+    expect(graph.bottom, lessThanOrEqualTo(800));
+    expect(graph.top, greaterThan(0));
+  });
   testWidgets('概览最近充电读取固定详情与序列，两类能量和真实采样读数可见', (tester) async {
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/charging-sessions/1')) {
@@ -75,21 +103,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('充电详情 #1'), findsOneWidget);
     expect(find.text('充入电池 20 kWh'), findsOneWidget);
-    expect(find.text('电网侧 22 kWh'), findsOneWidget);
     expect(find.text('费用 12（币种未知）'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('功率 kW'), 300);
     expect(find.text('功率 kW'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('2026-01-05 08:04:00 · 11 kW').hitTestable(),
-      200,
-    );
-    await tester.tap(find.text('2026-01-05 08:04:00 · 11 kW').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('选中 2026-01-05 08:04:00 · 11 kW'),
-      -200,
-    );
-    expect(find.text('选中 2026-01-05 08:04:00 · 11 kW'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('后一个采样').hitTestable(), 200);
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('后一个采样').hitTestable());
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('2026-01-05 08:04:00'), findsOneWidget);
+    expect(find.text('功率读数 11.00 kW'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('两类能量'), 200);
+    expect(find.text('电网侧'), findsOneWidget);
+    expect(find.text('22.00 kWh'), findsOneWidget);
   });
   testWidgets('列表进入进行中详情，币种标签复用，明细与曲线局部失败互不遮蔽', (tester) async {
     var failSeries = true, failDetail = false;
@@ -126,7 +152,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('充电详情 #8'), findsOneWidget);
     expect(find.text('充电进行中，当前指标不代表最终结果'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('更多充电信息'), 200);
+    await tester.tap(find.text('更多充电信息'));
+    await tester.pumpAndSettle();
     expect(find.text('结束 —（缺失）'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('分类未知'), -200);
     expect(find.text('分类未知'), findsOneWidget);
     expect(find.text('费用 0 USD'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('重试充电曲线').hitTestable(), 200);
@@ -141,6 +171,7 @@ void main() {
     );
     await tester.tap(find.byTooltip('刷新充电明细').hitTestable());
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.textContaining('保留上次快照'), -200);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     expect(find.text('费用 0 USD'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('此充电没有序列采样').hitTestable(), 200);
@@ -182,11 +213,13 @@ void main() {
       Offset(rect.left + 16 + (rect.width - 32) * .1, rect.center.dy),
     );
     await tester.pumpAndSettle();
-    expect(find.text('选中 2026-01-05 08:01:00 · —（缺失）'), findsOneWidget);
+    expect(find.text('功率读数 —（缺失）'), findsOneWidget);
+    expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量 %').hitTestable(), -200);
     await tester.tap(find.text('电量 %').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('选中 2026-01-05 08:01:00 · 45 %'), findsOneWidget);
+    expect(find.text('电量读数 45 %'), findsOneWidget);
+    expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
     single = true;
     await tester.scrollUntilVisible(
       find.byTooltip('刷新充电曲线').hitTestable(),
@@ -196,13 +229,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('有效采样不足两点'), 200);
     expect(find.textContaining('有效采样不足两点'), findsOneWidget);
-    await tester.tap(find.text('电量 %'));
+    await tester.scrollUntilVisible(find.text('电量 %').hitTestable(), -200);
+    await tester.tap(find.text('电量 %').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('2026-01-05 08:00:00 · 0 %').hitTestable(),
-      200,
-    );
-    expect(find.text('2026-01-05 08:00:00 · 0 %'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('电量读数 0 %').hitTestable(), 200);
+    expect(find.text('电量读数 0 %'), findsOneWidget);
   });
   testWidgets('明细404可返回概览，曲线成功不被遮蔽；错车详情不得展示', (tester) async {
     var mismatch = false;

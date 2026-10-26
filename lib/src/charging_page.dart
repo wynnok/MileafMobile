@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'data_cards.dart';
 
 import 'charging_contract.g.dart' as dto;
 import 'workspace.dart';
@@ -269,6 +270,11 @@ class _ChargingPageState extends State<ChargingPage>
 
   String number(num? v, String unit) =>
       v == null ? '—（缺失）' : '${decimal(v)} $unit';
+  String recordDay(DateTime value) {
+    final local = workspace.calendar!.local(value);
+    return '${local.year}年${local.month}月${local.day}日';
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.currency,
@@ -337,7 +343,17 @@ class _ChargingPageState extends State<ChargingPage>
               ),
             ],
             if (loaded && items.isEmpty) const Text('此区间无充电记录'),
-            for (final v in items)
+            for (final (index, v) in items.indexed) ...[
+              if (index == 0 ||
+                  recordDay(items[index - 1].startedAt) !=
+                      recordDay(v.startedAt))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, bottom: 10),
+                  child: Text(
+                    recordDay(v.startedAt),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
               Card(
                 child: InkWell(
                   onTap: () => widget.onRecord?.call('charge', v.id),
@@ -350,12 +366,9 @@ class _ChargingPageState extends State<ChargingPage>
                           v.location.displayName?.trim().isNotEmpty == true
                               ? v.location.displayName!
                               : '未知地点',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                        if (v.location.geofence != null)
-                          Text('围栏：${v.location.geofence}'),
-                        if (v.location.address != null &&
-                            v.location.address != v.location.displayName)
-                          Text('地址：${v.location.address}'),
                         Text(
                           '${workspace.calendar!.local(v.startedAt).toString().split('.').first} · ${v.isActive ? '进行中' : '已结束'}',
                         ),
@@ -368,17 +381,33 @@ class _ChargingPageState extends State<ChargingPage>
                         ),
                         Text(
                           '电量 ${number(v.startSoc, '%')} → ${number(v.endSoc, '%')}',
+                          style: Theme.of(context).textTheme.labelMedium,
                         ),
-                        Text('充入电池 ${number(v.energyAddedKwh, 'kWh')}'),
+                        SocInterval(start: v.startSoc, end: v.endSoc),
+                        const SizedBox(height: 8),
+                        Text(
+                          '充入电池 ${number(v.energyAddedKwh, 'kWh')}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         Text('电网侧 ${number(v.energyUsedKwh, 'kWh')}'),
-                        Text('费用 ${widget.currency.amount(v.cost)}'),
+                        Text(
+                          '费用 ${widget.currency.amount(v.cost)}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         Text('时长 ${number(v.durationMin, '分钟')}'),
+                        if (v.location.geofence != null)
+                          Text('围栏：${v.location.geofence}'),
+                        if (v.location.address != null &&
+                            v.location.address != v.location.displayName)
+                          Text('地址：${v.location.address}'),
+
                         Text('充电 #${v.id} · 查看详情'),
                       ],
                     ),
                   ),
                 ),
               ),
+            ],
             if (loaded && next != null)
               TextButton(
                 onPressed: loading

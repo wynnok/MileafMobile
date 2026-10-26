@@ -46,6 +46,11 @@ Future<void> openDrives(
             File('test/fixtures/vehicles.json').readAsStringSync(),
           );
         }
+        if (r.url.path.endsWith('/stats')) {
+          return jsonResponse(
+            File('test/fixtures/driving-stats.json').readAsStringSync(),
+          );
+        }
         if (r.url.path.endsWith('/summary')) {
           return jsonResponse(
             File('test/fixtures/summary.json').readAsStringSync(),

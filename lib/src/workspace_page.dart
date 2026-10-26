@@ -143,32 +143,54 @@ class _WorkspacePageState extends State<WorkspacePage> {
       }
       return Scaffold(
         appBar: AppBar(
-          title: TextButton(
-            onPressed: () async {
-              final id = await showModalBottomSheet<int>(
-                context: context,
-                builder: (context) => SafeArea(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      for (final v in widget.session.vehicles)
-                        ListTile(
-                          title: Text(vehicleName(v)),
-                          subtitle: Text('车辆 ID ${v.id}'),
-                          selected: v.id == selected,
-                          onTap: () => Navigator.pop(context, v.id),
+          title: Row(
+            children: [
+              const Icon(Icons.spa_outlined, size: 21),
+              const SizedBox(width: 7),
+              Text(
+                '行笺',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextButton(
+                  onPressed: () async {
+                    final id = await showModalBottomSheet<int>(
+                      context: context,
+                      builder: (context) => SafeArea(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final v in widget.session.vehicles)
+                              ListTile(
+                                title: Text(vehicleName(v)),
+                                subtitle: Text('车辆 ID ${v.id}'),
+                                selected: v.id == selected,
+                                onTap: () => Navigator.pop(context, v.id),
+                              ),
+                          ],
                         ),
+                      ),
+                    );
+                    if (id != null && mounted) workspace.select(id);
+                  },
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          vehicleName(vehicle),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down, size: 17),
                     ],
                   ),
                 ),
-              );
-              if (id != null && mounted) workspace.select(id);
-            },
-            child: Text(
-              vehicleName(vehicle),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+              ),
+            ],
           ),
           actions: [
             IconButton(
@@ -228,12 +250,9 @@ class _WorkspacePageState extends State<WorkspacePage> {
           selectedIndex: tab,
           onDestinationSelected: (index) => setState(() => tab = index),
           destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), label: '概览'),
             NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              label: '概览',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.route_outlined),
+              icon: Icon(Icons.directions_car_outlined),
               label: '行程',
             ),
             NavigationDestination(icon: Icon(Icons.bolt_outlined), label: '充电'),

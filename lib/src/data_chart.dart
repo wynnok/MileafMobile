@@ -132,10 +132,16 @@ class _TimeChartState extends State<TimeChart> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final left = 38.0 * math.min(scale, 1.6);
+                final plotWidth = constraints.maxWidth - left - 18;
+                final inset = _barInset(
+                  plotWidth,
+                  widget.times.length,
+                  widget.series.length,
+                  widget.presentation,
+                );
                 void at(Offset position) {
                   final fraction =
-                      ((position.dx - left) /
-                              (constraints.maxWidth - left - 18))
+                      ((position.dx - left - inset) / (plotWidth - 2 * inset))
                           .clamp(0.0, 1.0);
                   final first = widget.times.first.microsecondsSinceEpoch;
                   final last = widget.times.last.microsecondsSinceEpoch;
@@ -181,7 +187,7 @@ class _TimeChartState extends State<TimeChart> {
                         ? () => select(selected - 1)
                         : null,
                     child: GestureDetector(
-                      onTapDown: (d) {
+                      onTapUp: (d) {
                         focus.requestFocus();
                         at(d.localPosition);
                       },
@@ -204,7 +210,10 @@ class _TimeChartState extends State<TimeChart> {
                           colors: colors,
                           grid: scheme.outlineVariant,
                           text: scheme.onSurfaceVariant,
-                          background: scheme.surfaceContainerLow,
+                          fontFamily: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.fontFamily,
                           scale: scale,
                           left: left,
                           minimum: widget.minimum,
@@ -295,6 +304,20 @@ String _number(num n, String unit) => n.toStringAsFixed(
       : 0,
 );
 
+double _barWidth(double width, int points, int series) =>
+    math.min(12.0, width / math.max(1, points) * .65 / math.max(1, series));
+
+double _barInset(
+  double width,
+  int points,
+  int series,
+  ChartPresentation presentation,
+) => presentation == ChartPresentation.line
+    ? 0
+    : (_barWidth(width, points, series) * series +
+              math.max(0, series - 1) * 2) /
+          2;
+
 class _TimePainter extends CustomPainter {
   _TimePainter({
     required this.times,
@@ -304,7 +327,7 @@ class _TimePainter extends CustomPainter {
     required this.colors,
     required this.grid,
     required this.text,
-    required this.background,
+    required this.fontFamily,
     required this.scale,
     required this.left,
     required this.unit,
@@ -317,7 +340,8 @@ class _TimePainter extends CustomPainter {
   final int selected;
   final ChartPresentation presentation;
   final List<Color> colors;
-  final Color grid, text, background;
+  final Color grid, text;
+  final String? fontFamily;
   final double scale, left;
   final double? minimum, maximum;
   final String unit;
@@ -355,12 +379,19 @@ class _TimePainter extends CustomPainter {
     );
     final start = times.first.microsecondsSinceEpoch,
         end = times.last.microsecondsSinceEpoch;
+    final inset = _barInset(
+      chart.width,
+      times.length,
+      series.length,
+      presentation,
+    );
     double x(int index) => start == end
         ? chart.center.dx
         : chart.left +
+              inset +
               (times[index].microsecondsSinceEpoch - start) /
                   (end - start) *
-                  chart.width;
+                  (chart.width - 2 * inset);
     double y(num n) => chart.bottom - (n - low) / (high - low) * chart.height;
     void label(
       String value,
@@ -371,7 +402,11 @@ class _TimePainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: value,
-          style: TextStyle(fontSize: 10 * math.min(scale, 1.5), color: text),
+          style: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 10 * math.min(scale, 1.5),
+            color: text,
+          ),
         ),
         textDirection: TextDirection.ltr,
         maxLines: 1,
@@ -448,13 +483,7 @@ class _TimePainter extends CustomPainter {
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
       Offset? previous;
-      final width = math.min(
-        12.0,
-        chart.width /
-            math.max(1, times.length) *
-            .65 /
-            math.max(1, series.length),
-      );
+      final width = _barWidth(chart.width, times.length, series.length);
       for (var i = 0; i < values.length; i++) {
         final v = values[i];
         if (v == null) {
@@ -504,8 +533,24 @@ class _TimePainter extends CustomPainter {
           );
           canvas.drawRRect(
             RRect.fromRectAndRadius(rect, const Radius.circular(2)),
-            Paint()..color = color.withValues(alpha: i == selected ? 1 : .6),
+            Paint()
+              ..color = color.withValues(
+                alpha: s.isOdd
+                    ? .12
+                    : i == selected
+                    ? 1
+                    : .6,
+              ),
           );
+          if (s.isOdd) {
+            canvas.drawRRect(
+              RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+              Paint()
+                ..color = color
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1.5,
+            );
+          }
           if (v == 0) {
             canvas.drawCircle(
               Offset(center, y(0)),

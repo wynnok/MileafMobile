@@ -51,7 +51,13 @@ Widget app(
   calendar: calendar ?? () async => CalendarContext('UTC'),
 );
 http.Response initial(http.Request request) =>
-    request.url.path.endsWith('/vehicles')
+    request.url.path.endsWith('/stats')
+    ? http.Response(
+        File('test/fixtures/driving-stats.json').readAsStringSync(),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      )
+    : request.url.path.endsWith('/vehicles')
     ? http.Response(
         File('test/fixtures/vehicles.json').readAsStringSync(),
         200,
@@ -89,6 +95,22 @@ class DelayedCurrency implements CurrencyPreferenceStore {
 }
 
 void main() {
+  testWidgets('充电卡片按本地日期分组并以统一尺度呈现真实起止电量', (tester) async {
+    final client = MockClient(
+      (r) async => r.url.path.endsWith('/charging-sessions')
+          ? jsonResponse(chargingFixture())
+          : initial(r),
+    );
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度0至100%')),
+      findsOneWidget,
+    );
+    expect(find.text('2026年3月29日'), findsWidgets);
+  });
   testWidgets('用户已选币种不被迟到的旧偏好恢复覆盖', (tester) async {
     final currency = DelayedCurrency();
     final client = MockClient(
@@ -161,7 +183,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(requests.length, 3);
     expect(find.textContaining('分页游标未前进'), findsNothing);
-    await tester.ensureVisible(find.text('已到最后一条'));
+    await tester.scrollUntilVisible(find.text('已到最后一条'), 200);
     expect(find.text('已到最后一条'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -237,6 +259,7 @@ void main() {
     expect(find.textContaining('充入电池 20 kWh'), findsWidgets);
     expect(find.textContaining('电网侧 22 kWh'), findsWidgets);
     expect(find.textContaining('费用 12（币种未知）'), findsWidgets);
+    await tester.scrollUntilVisible(find.textContaining('· 进行中'), 200);
     expect(find.textContaining('· 进行中'), findsOneWidget);
     expect(find.textContaining('AC'), findsWidgets);
     expect(find.textContaining('¥'), findsNothing);
@@ -476,8 +499,10 @@ void main() {
     await tester.pumpAndSettle();
     empty = true;
     await tester.scrollUntilVisible(find.byTooltip('刷新充电'), -400);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('此区间无充电记录'), 200);
     expect(find.text('此区间无充电记录'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

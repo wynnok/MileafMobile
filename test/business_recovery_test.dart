@@ -12,7 +12,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
-import 'overview_test.dart' show background, foreground;
+import 'overview_test.dart' show background, foreground, overviewTrendResponse;
 
 void main() {
   for (final retryHeader in ['60', 'Sun, 15 Mar 2026 12:01:00 GMT']) {
@@ -28,6 +28,7 @@ void main() {
           'expires_at': '2099-01-01T00:00:00Z',
         });
       final client = MockClient((request) async {
+        if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
         if (request.url.path.endsWith('/vehicles')) {
           return http.Response(
             File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -63,7 +64,7 @@ void main() {
       expect(find.textContaining('68 %'), findsOneWidget);
       await tester.tap(find.byTooltip('刷新概览'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('请求过于频繁'), findsOneWidget);
+      expect(find.textContaining('请求过于频繁'), findsWidgets);
       expect(find.textContaining('68 %'), findsOneWidget);
       await tester.tap(find.byTooltip('刷新概览'));
       await tester.pumpAndSettle();
@@ -91,6 +92,7 @@ void main() {
     final current = jsonDecode(fixture) as Map<String, dynamic>;
     current['battery']['level'] = 21;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -158,6 +160,7 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -201,6 +204,7 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -237,7 +241,7 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     expect(calls, 2);
-    expect(find.textContaining('请求过于频繁'), findsOneWidget);
+    expect(find.textContaining('请求过于频繁'), findsWidgets);
     now = now.add(const Duration(seconds: 90));
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
