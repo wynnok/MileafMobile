@@ -398,7 +398,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
       expect(find.text('已知费用均价  0.51（币种未知）/kWh'), findsOneWidget);
-      expect(find.textContaining('按结束时间 ended_at'), findsOneWidget);
+      expect(find.text('按结束时间归期 · 仅统计已结束充电'), findsOneWidget);
     } finally {
       semantics.dispose();
     }
