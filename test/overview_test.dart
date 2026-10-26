@@ -101,8 +101,26 @@ void main() {
     await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
+    final noVisibleBorderPaths = paints
+      ..everything(
+        (method, arguments) =>
+            method != #drawPath || (arguments.last as Paint).color.a == 0,
+      );
+    expect(
+      tester.renderObject(find.byType(ExpansionTile)),
+      noVisibleBorderPaths,
+      reason: '车辆与数据时间卡片展开后不应绘制额外的上下分隔线',
+    );
     await tester.scrollUntilVisible(find.textContaining('校验时间'), 300);
     expect(find.textContaining('校验时间'), findsOneWidget);
+    await tester.ensureVisible(find.text('车辆与数据时间'));
+    await tester.tap(find.text('车辆与数据时间'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.renderObject(find.byType(ExpansionTile)),
+      noVisibleBorderPaths,
+      reason: '车辆与数据时间卡片收起后不应绘制额外的上下分隔线',
+    );
   });
   testWidgets('快速切车不显示旧车迟到内容，选择能在重启恢复，刷新失败保留本车快照', (tester) async {
     final store = MemorySessionStore()

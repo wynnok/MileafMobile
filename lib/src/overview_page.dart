@@ -527,6 +527,8 @@ class _OverviewPageState extends State<OverviewPage>
               padding: EdgeInsets.zero,
               child: ExpansionTile(
                 title: const Text('车辆与数据时间'),
+                shape: const Border(),
+                collapsedShape: const Border(),
                 childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
                 expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -273,6 +273,16 @@ void main() {
           ),
         );
         await save('overview-$suffix');
+        await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+        await save('overview-details-collapsed-$suffix');
+        await tester.tap(find.text('车辆与数据时间'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('旧采样或长时间休眠不等同系统故障。'));
+        await save('overview-details-expanded-$suffix');
+        await tester.ensureVisible(find.text('车辆与数据时间'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('车辆与数据时间'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('行程').last);
         await save('drives-$suffix');
         await tester.ensureVisible(find.byKey(const ValueKey('drive-1')));
