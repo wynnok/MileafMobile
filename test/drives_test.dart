@@ -67,6 +67,16 @@ Future<void> openDrives(
 }
 
 void main() {
+  testWidgets('行程按本地日期分组，同日记录共享标题且保留独立详情入口', (tester) async {
+    await openDrives(
+      tester,
+      (request) async =>
+          jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
+    );
+    expect(find.text('2026年3月30日'), findsOneWidget);
+    expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
+    expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
+  });
   for (final sample in [
     (400, 'invalid_request', '请求参数无效'),
     (422, 'invalid_request', '请求参数无效'),
@@ -216,8 +226,7 @@ void main() {
         headers: {'etag': '"drives"', 'cache-control': 'max-age=30'},
       );
     });
-    await tester.scrollUntilVisible(find.text('加载更多行程'), 200);
-    await tester.tap(find.text('加载更多行程'));
+    await tester.scrollUntilVisible(find.text('重试加载更多'), 200);
     await tester.pumpAndSettle();
     expect(find.textContaining('已保留现有行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);

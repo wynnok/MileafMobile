@@ -213,6 +213,11 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
   String place(String? value) =>
       value == null || value.trim().isEmpty ? '未知地点' : value;
+  String recordDay(DateTime value) {
+    final local = workspace.calendar!.local(value);
+    return '${local.year}年${local.month}月${local.day}日';
+  }
+
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: () {
@@ -287,7 +292,16 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
             ),
           ],
           if (loaded && items.isEmpty) const Text('所选日期没有行程'),
-          for (final d in items)
+          for (final (index, d) in items.indexed) ...[
+            if (index == 0 ||
+                recordDay(items[index - 1].startedAt) != recordDay(d.startedAt))
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 10),
+                child: Text(
+                  recordDay(d.startedAt),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
             Card(
               child: InkWell(
                 key: ValueKey('drive-${d.id}'),
@@ -303,10 +317,24 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                             .toString()
                             .split('.')
                             .first,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                       Text(
                         '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text('净电耗 ${number(d.consumptionWhKm, 'Wh/km')}'),
                       for (final endpoint in [
                         ('起点', d.start),
                         ('终点', d.end),
@@ -319,16 +347,14 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                             endpoint.$2.address != endpoint.$2.geofence)
                           Text('${endpoint.$1}地址：${endpoint.$2.address}'),
                       ],
-                      Text(
-                        '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
-                      ),
-                      Text('净电耗 ${number(d.consumptionWhKm, 'Wh/km')}'),
+
                       if (d.endedAt == null) const Text('进行中'),
                     ],
                   ),
                 ),
               ),
             ),
+          ],
           if (pageError != null)
             Semantics(liveRegion: true, child: Text(pageError!)),
           if (paging) const Center(child: CircularProgressIndicator()),
