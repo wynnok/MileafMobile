@@ -285,7 +285,10 @@ class _TimeChartState extends State<TimeChart> {
 }
 
 String _number(num n, String unit) => n.toStringAsFixed(
-  unit.contains('CNY') || unit.contains('kWh') || unit == 'kW'
+  RegExp(r'^[A-Z]{3}(\b|/)').hasMatch(unit) ||
+          unit.contains('币种') ||
+          unit.contains('kWh') ||
+          unit == 'kW'
       ? 2
       : unit == 'km' || unit == '°C'
       ? 1
@@ -329,9 +332,21 @@ class _TimePainter extends CustomPainter {
         .max(maximum ?? 0, known.isEmpty ? 1 : known.reduce(math.max))
         .toDouble();
     if (high == low) high = low + 1;
-    final span = high - low;
-    if (maximum == null) high += span * .08;
-    if (low < 0 && minimum == null) low -= span * .05;
+    final magnitude = math
+        .pow(10, (math.log((high - low) / 3) / math.ln10).floor())
+        .toDouble();
+    final fraction = (high - low) / 3 / magnitude;
+    final step =
+        (fraction <= 1
+            ? 1
+            : fraction <= 2
+            ? 2
+            : fraction <= 5
+            ? 5
+            : 10) *
+        magnitude;
+    if (minimum == null) low = (low / step).floor() * step;
+    if (maximum == null) high = (high / step).ceil() * step;
     final chart = Rect.fromLTRB(
       left,
       10,
@@ -377,9 +392,7 @@ class _TimePainter extends CustomPainter {
 
     String axis(double n) => n.abs() >= 10000
         ? '${(n / 1000).toStringAsFixed(1)}k'
-        : n.abs() < 2 && n != 0
-        ? n.toStringAsFixed(2)
-        : n.toStringAsFixed(0);
+        : n.toStringAsFixed(n == n.roundToDouble() ? 0 : 2);
     for (final n in {
       low,
       (low + high) / 2,
