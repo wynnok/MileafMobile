@@ -101,17 +101,22 @@ class StatisticsPeriodControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。'),
+                const SizedBox(height: 24),
                 TextField(
                   controller: start,
                   decoration: const InputDecoration(labelText: '开始日期'),
                   keyboardType: TextInputType.datetime,
                 ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: end,
                   decoration: const InputDecoration(labelText: '结束日期（含）'),
                   keyboardType: TextInputType.datetime,
                 ),
-                if (error != null) Text(error!),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!),
+                ],
               ],
             ),
           ),

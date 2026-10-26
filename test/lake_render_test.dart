@@ -293,6 +293,10 @@ void main() {
         await save('driving-$suffix');
         await tester.tap(find.text('充电统计'));
         await save('charging-$suffix');
+        await tester.tap(find.text('自定义'));
+        await save('statistics-custom-$suffix');
+        await tester.tap(find.text('取消'));
+        await tester.pumpAndSettle();
         await custom(tester, '2026-03-13', '2026-03-15');
         await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);
         await tester.pumpAndSettle();

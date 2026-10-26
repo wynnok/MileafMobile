@@ -88,6 +88,61 @@ http.Client statsClient(List<Map<String, String>> queries) =>
       return fixture('driving-stats');
     });
 void main() {
+  for (final brightness in Brightness.values) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('自定义统计日期在360宽${brightness.name} 字体缩放 $scale 下内容保持间距', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        tester.platformDispatcher.platformBrightnessTestValue = brightness;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+          tester.platformDispatcher.clearTextScaleFactorTestValue();
+          tester.platformDispatcher.clearPlatformBrightnessTestValue();
+        });
+        final queries = <Map<String, String>>[];
+        await openStats(
+          tester,
+          statsClient(queries),
+          () => DateTime.utc(2026, 10, 26, 12),
+          () => 'Asia/Shanghai',
+        );
+        await tester.tap(find.text('自定义'));
+        await tester.pumpAndSettle();
+        final description = find.text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。');
+        final start = find.widgetWithText(TextField, '开始日期');
+        final end = find.widgetWithText(TextField, '结束日期（含）');
+        expect(
+          tester.getTopLeft(start).dy - tester.getBottomLeft(description).dy,
+          greaterThanOrEqualTo(16),
+        );
+        expect(
+          tester.getTopLeft(end).dy - tester.getBottomLeft(start).dy,
+          greaterThanOrEqualTo(16),
+        );
+        await tester.enterText(start, 'invalid');
+        await tester.tap(find.text('应用区间'));
+        await tester.pumpAndSettle();
+        final error = find.text('请输入有效日历日期 YYYY-MM-DD');
+        expect(error, findsOneWidget);
+        expect(
+          tester.getTopLeft(error).dy - tester.getBottomLeft(end).dy,
+          greaterThanOrEqualTo(12),
+        );
+        await tester.ensureVisible(end);
+        await tester.pumpAndSettle();
+        expect(end.hitTestable(), findsOneWidget);
+        await tester.tap(find.text('取消'));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   testWidgets('驾驶图表切换指标读取真实负值且不额外请求统计', (tester) async {
     final requests = <http.Request>[];
     final client = MockClient((r) async {
