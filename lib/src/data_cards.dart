@@ -33,6 +33,7 @@ class MetricTile extends StatelessWidget {
   final bool emphasize;
   @override
   Widget build(BuildContext context) => Semantics(
+    container: true,
     label: '$label $value${note == null ? '' : '，$note'}',
     excludeSemantics: true,
     child: Column(
@@ -67,7 +68,9 @@ class BatteryLevelIndicator extends StatelessWidget {
   final double size;
   @override
   Widget build(BuildContext context) => Semantics(
+    container: true,
     label: '电池电量 ${level == null ? '未知' : '$level %'}',
+    excludeSemantics: true,
     child: SizedBox.square(
       dimension: size,
       child: Stack(
@@ -114,6 +117,7 @@ class SocInterval extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Semantics(
+        container: true,
         label:
             '电量区间 ${start == null ? '起始未知' : '$start %'} 至 ${end == null ? '结束未知' : '$end %'}，尺度0至100%',
         child: LayoutBuilder(

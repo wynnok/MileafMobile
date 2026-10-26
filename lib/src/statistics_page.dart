@@ -420,7 +420,10 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
         ),
       ),
-      Text('按开始时间归期 · 仅统计已完成行程', style: Theme.of(context).textTheme.bodySmall),
+      Text(
+        '按开始时间 started_at 归期 · 仅统计已完成行程',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
       if (totals.drives == 0) const Text('区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。'),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
@@ -441,65 +444,167 @@ class _StatisticsViewState extends State<_StatisticsView>
     ];
   }
 
+  String _share(num? value) =>
+      value == null ? '—（缺失）' : '${(value * 100).toStringAsFixed(2)} %';
+  Widget textLine(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Text('$label  $value'),
+  );
+
   List<Widget> _charging(
     BuildContext context,
     charge.ChargingStats stats,
     CalendarContext calendar,
   ) {
     final totals = stats.totals;
-    final max = stats.buckets.fold<num>(
-      0,
-      (value, b) => b.energyAddedKwh > value ? b.energyAddedKwh : value,
-    );
-    String share(num? value) =>
-        value == null ? '—（缺失）' : '${(value * 100).toStringAsFixed(2)} %';
-    Widget text(String label, String value) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Text('$label  $value'),
-    );
+    final buckets = stats.buckets;
+    final labels = ['能量', '次数', '费用', '均价'];
+    final titles = ['充入能量', '充电次数', '已知费用', '已知费用均价'];
+    final currencyUnit = widget.currency.code ?? '币种未知';
+    final units = ['kWh', '次', currencyUnit, '$currencyUnit/kWh'];
+    final unit = units[chargingMetric];
+    final times = [for (final bucket in buckets) bucket.bucketStart];
+    final values = <num?>[
+      for (final bucket in buckets)
+        switch (chargingMetric) {
+          0 => bucket.energyAddedKwh,
+          1 => bucket.sessions,
+          2 => bucket.cost,
+          _ => bucket.costPerKwh,
+        },
+    ];
     return [
-      line('会话数', totals.sessions, '次'),
-      line('充入电池能量', totals.energyAddedKwh, 'kWh', decimals: 2),
-      text('已知费用合计', widget.currency.amount(totals.cost)),
-      text('已知费用均价', '${widget.currency.amount(totals.costPerKwh)}/kWh'),
-      line('AC 充入能量', totals.acEnergyKwh, 'kWh', decimals: 2),
-      line('DC 充入能量', totals.dcEnergyKwh, 'kWh', decimals: 2),
-      text('DC 能量占比（已知分类）', share(totals.dcEnergyShare)),
-      if (totals.sessions == 0) const Text('区间内无已结束充电；零为真实结果，缺失比率不补零。'),
-      Text('校验时间：${calendar.local(result!.checkedAt)}'),
-      const Divider(),
-      Text('充入能量趋势', style: Theme.of(context).textTheme.titleLarge),
-      const Text('时间桶按充电结束时间归期。点击时间桶阅读完整指标；条形仅展示充入能量，不将 AC/DC 归一成全部能量。'),
-      if (stats.buckets.isEmpty) const Text('区间内无趋势数据'),
-      for (final b in stats.buckets)
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: Text(
-            '${statisticsDate(calendar.local(b.bucketStart))} · ${number(b.energyAddedKwh, 'kWh', decimals: 2)}',
-          ),
-          subtitle: Semantics(
-            label: '充入能量柱形，${number(b.energyAddedKwh, 'kWh', decimals: 2)}',
-            child: ExcludeSemantics(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: LinearProgressIndicator(
-                  value: max == 0 ? 0 : b.energyAddedKwh / max,
-                  minHeight: 8,
-                ),
-              ),
-            ),
-          ),
+      _metrics(context, [
+        MetricTile(
+          label: '充入电池能量',
+          value: number(totals.energyAddedKwh, 'kWh', decimals: 2),
+          emphasize: true,
+        ),
+        MetricTile(
+          label: '已知费用合计',
+          value: widget.currency.amount(totals.cost),
+          emphasize: true,
+        ),
+      ]),
+      TimeChart(
+        key: ValueKey('charging-$chargingMetric'),
+        title: '${titles[chargingMetric]}趋势',
+        unit: unit,
+        times: times,
+        series: [ChartSeries(label: labels[chargingMetric], values: values)],
+        timestamp: (t) => _timestamp(calendar, t),
+        tickLabel: (t) => _tick(calendar, t),
+        subtitle: _range(calendar),
+        presentation: chargingMetric == 3
+            ? ChartPresentation.line
+            : ChartPresentation.bars,
+        plotKey: const ValueKey('charging-statistics-chart'),
+        valueLabel: (v) => chargingMetric >= 2
+            ? '${widget.currency.amount(v)}${chargingMetric == 3 ? '/kWh' : ''}'
+            : number(v, unit, decimals: chargingMetric == 0 ? 2 : 0),
+        controls: Wrap(
+          spacing: 6,
+          runSpacing: 4,
           children: [
-            line('会话数', b.sessions, '次'),
-            text('已知费用合计', widget.currency.amount(b.cost)),
-            text('已知费用均价', '${widget.currency.amount(b.costPerKwh)}/kWh'),
-            line('AC 充入能量', b.acEnergyKwh, 'kWh', decimals: 2),
-            line('DC 充入能量', b.dcEnergyKwh, 'kWh', decimals: 2),
-            text('DC 能量占比（已知分类）', share(b.dcEnergyShare)),
+            for (var i = 0; i < labels.length; i++)
+              ChoiceChip(
+                label: Text(labels[i]),
+                selected: chargingMetric == i,
+                onSelected: (_) => setState(() => chargingMetric = i),
+              ),
           ],
         ),
+        note: chargingMetric >= 2 ? '仅费用已知记录；缺失费用不视为零，合计不保证覆盖全部花费。' : null,
+      ),
+      if (buckets.isEmpty) const Text('区间内无趋势数据'),
+      DataCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('AC / DC 补能', style: Theme.of(context).textTheme.titleSmall),
+            EnergyComparison(
+              values: [('AC', totals.acEnergyKwh), ('DC', totals.dcEnergyKwh)],
+              note: '仅已知分类能量；未知分类不归入 AC。',
+            ),
+            textLine('DC 能量占比（已知分类）', _share(totals.dcEnergyShare)),
+            const Text('占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。'),
+          ],
+        ),
+      ),
+      TimeChart(
+        title: 'AC / DC 时间分布',
+        unit: 'kWh',
+        times: times,
+        series: [
+          ChartSeries(
+            label: 'AC',
+            values: [for (final b in buckets) b.acEnergyKwh],
+          ),
+          ChartSeries(
+            label: 'DC',
+            values: [for (final b in buckets) b.dcEnergyKwh],
+          ),
+        ],
+        timestamp: (t) => _timestamp(calendar, t),
+        tickLabel: (t) => _tick(calendar, t),
+        presentation: ChartPresentation.groupedBars,
+        subtitle: _range(calendar),
+        plotKey: const ValueKey('charging-classification-chart'),
+      ),
+      DataCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('区间指标', style: Theme.of(context).textTheme.titleSmall),
+            line('会话数', totals.sessions, '次'),
+            textLine(
+              '已知费用均价',
+              '${widget.currency.amount(totals.costPerKwh)}/kWh',
+            ),
+          ],
+        ),
+      ),
+      Text(
+        '按结束时间 ended_at 归期 · 仅统计已结束充电',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      if (totals.sessions == 0) const Text('区间内无已结束充电；零为真实结果，缺失比率不补零。'),
+      ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text('统计口径'),
+        children: const [
+          Text(
+            '充电列表按开始时间 started_at 归期，统计按结束时间 ended_at 归期，因此跨日会话的数量可能不同。进行中不计入。费用只合计已知记录；均价只使用费用已知记录对应能量。AC/DC 使用独立能量，不将已知分类强行归一成全部能量，也不推导未知能量。',
+          ),
+        ],
+      ),
+      Text(
+        '校验时间：${calendar.local(result!.checkedAt)}',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 16),
+      Text('时间桶明细', style: Theme.of(context).textTheme.titleSmall),
+      for (final bucket in buckets) _chargingBucket(bucket, calendar),
     ];
   }
+
+  Widget _chargingBucket(
+    charge.ChargingBucket bucket,
+    CalendarContext calendar,
+  ) => ExpansionTile(
+    tilePadding: EdgeInsets.zero,
+    title: Text(
+      '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.energyAddedKwh, 'kWh', decimals: 2)}',
+    ),
+    children: [
+      line('会话数', bucket.sessions, '次'),
+      textLine('已知费用合计', widget.currency.amount(bucket.cost)),
+      textLine('已知费用均价', '${widget.currency.amount(bucket.costPerKwh)}/kWh'),
+      line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
+      line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
+      textLine('DC 能量占比（已知分类）', _share(bucket.dcEnergyShare)),
+    ],
+  );
 
   Widget _bucket(
     BuildContext context,
