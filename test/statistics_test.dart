@@ -27,9 +27,19 @@ Future<void> openStats(
       'token': 'test',
       'expires_at': '2099-01-01T00:00:00Z',
     });
+  var statisticsVisible = false;
+  final boundary = MockClient((request) async {
+    if (!statisticsVisible && request.url.path.endsWith('/stats')) {
+      return fixture('driving-stats');
+    }
+    final forwarded = http.Request(request.method, request.url)
+      ..headers.addAll(request.headers)
+      ..bodyBytes = request.bodyBytes;
+    return http.Response.fromStream(await client.send(forwarded));
+  });
   await tester.pumpWidget(
     MileafApp(
-      client: client,
+      client: boundary,
       sessionStore: store,
       trustStore: MemoryTrustStore(),
       vehiclePreferences: MemoryVehiclePreferences(),
@@ -38,6 +48,7 @@ Future<void> openStats(
     ),
   );
   await tester.pumpAndSettle();
+  statisticsVisible = true;
   await tester.tap(find.text('统计'));
   await tester.pumpAndSettle();
 }
@@ -77,6 +88,39 @@ http.Client statsClient(List<Map<String, String>> queries) =>
       return fixture('driving-stats');
     });
 void main() {
+  testWidgets('驾驶图表切换指标读取真实负值且不额外请求统计', (tester) async {
+    final requests = <http.Request>[];
+    final client = MockClient((r) async {
+      if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
+      if (r.url.path.endsWith('/summary')) return fixture('summary');
+      requests.add(r);
+      final body =
+          jsonDecode(fixture('driving-stats').body) as Map<String, dynamic>;
+      body['buckets'][0]['energy_kwh'] = -3;
+      body['buckets'][0]['consumption_wh_km_net'] = -25;
+      return http.Response(
+        jsonEncode(body),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    await openStats(
+      tester,
+      client,
+      () => DateTime.utc(2026, 4, 2),
+      () => 'Asia/Shanghai',
+    );
+    expect(find.widgetWithText(ChoiceChip, '里程'), findsOneWidget);
+    final requestCount = requests.length;
+    await tester.tap(find.widgetWithText(ChoiceChip, '能量'));
+    await tester.pumpAndSettle();
+    expect(find.text('能量趋势'), findsOneWidget);
+    expect(find.textContaining('-3.00 kWh'), findsWidgets);
+    expect(requests.length, requestCount);
+    await tester.scrollUntilVisible(find.text('净 / 毛电耗'), 250);
+    expect(find.text('净 / 毛电耗'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('统计换区间失败后前台不能被旧区间有效缓存阻止恢复', (tester) async {
     var now = DateTime.utc(2026, 3, 30, 12);
     var fail = false;
@@ -107,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(queries.length, count + 1);
     expect(queries.last['from'], '2026-03-30T00:00:00.000Z');
-    expect(find.text('行程数  49 次'), findsOneWidget);
+    expect(find.text('49 次'), findsOneWidget);
   });
 
   for (final range in ['default', 'today', 'history']) {
@@ -185,11 +229,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.text('行程数  8 次'), findsOneWidget);
+    expect(find.text('8 次'), findsOneWidget);
     pending.complete(fixture('driving-stats'));
     await tester.pumpAndSettle();
-    expect(find.text('行程数  49 次'), findsNothing);
-    expect(find.text('行程数  8 次'), findsOneWidget);
+    expect(find.text('49 次'), findsNothing);
+    expect(find.text('8 次'), findsOneWidget);
   });
   testWidgets('360宽200%深色下桶文字读数可展开且null不同于真实零', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -224,8 +268,8 @@ void main() {
       () => DateTime.utc(2026, 5, 15, 12),
       () => 'UTC',
     );
-    await tester.scrollUntilVisible(find.text('行程数  0 次'), 300);
-    expect(find.text('行程数  0 次'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('0 次'), 300);
+    expect(find.text('0 次'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('净电耗  —（缺失）'), 300);
     expect(find.text('净电耗  —（缺失）'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -372,7 +416,7 @@ void main() {
     resume(tester);
     await tester.pump();
     await tester.pump();
-    expect(find.text('行程数  49 次'), findsNothing);
+    expect(find.text('49 次'), findsNothing);
     expect(queries.last['from'], '2026-03-01T00:00:00.000Z');
     expect(queries.last['to'], '2026-03-03T00:00:00.000Z');
     pending.complete(fixture('driving-stats'));
@@ -381,12 +425,6 @@ void main() {
   });
 
   testWidgets('驾驶统计默认本月，真实响应totals不平均桶比率，手动304与失败保留快照', (tester) async {
-    final store = MemorySessionStore()
-      ..value = jsonEncode({
-        'site': 'https://example.com/prefix',
-        'token': 'test',
-        'expires_at': '2099-01-01T00:00:00Z',
-      });
     final requests = <http.Request>[];
     var fail = false;
     final client = MockClient((r) async {
@@ -417,19 +455,12 @@ void main() {
         },
       );
     });
-    await tester.pumpWidget(
-      MileafApp(
-        client: client,
-        sessionStore: store,
-        trustStore: MemoryTrustStore(),
-        vehiclePreferences: MemoryVehiclePreferences(),
-        now: () => DateTime.utc(2026, 3, 15, 12),
-        calendar: () async => CalendarContext('Asia/Shanghai'),
-      ),
+    await openStats(
+      tester,
+      client,
+      () => DateTime.utc(2026, 3, 15, 12),
+      () => 'Asia/Shanghai',
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('统计'));
-    await tester.pumpAndSettle();
     expect(requests.single.url.queryParameters, {
       'kind': 'driving',
       'bucket': 'day',
@@ -437,16 +468,20 @@ void main() {
       'to': '2026-03-15T12:00:00.000Z',
       'tz': 'Asia/Shanghai',
     });
-    expect(find.text('行程数  49 次'), findsOneWidget);
+    expect(find.text('49 次'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('毛电耗  167 Wh/km'), 250);
     expect(find.text('毛电耗  167 Wh/km'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byTooltip('刷新统计'), -300);
     await tester.tap(find.byTooltip('刷新统计'));
     await tester.pumpAndSettle();
     expect(requests.last.headers['if-none-match'], '"driving"');
+    await tester.scrollUntilVisible(find.text('毛电耗  167 Wh/km'), 250);
     expect(find.text('毛电耗  167 Wh/km'), findsOneWidget);
     fail = true;
+    await tester.scrollUntilVisible(find.byTooltip('刷新统计'), -300);
     await tester.tap(find.byTooltip('刷新统计'));
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次快照'), findsOneWidget);
-    expect(find.text('行程数  49 次'), findsOneWidget);
+    expect(find.text('49 次'), findsOneWidget);
   });
 }
