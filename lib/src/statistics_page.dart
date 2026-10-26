@@ -5,6 +5,8 @@ import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
 import 'currency.dart';
+import 'data_cards.dart';
+import 'data_chart.dart';
 import 'charging_statistics_contract.g.dart' as charge;
 
 class StatisticsPage extends StatefulWidget {
@@ -88,6 +90,8 @@ class _StatisticsViewState extends State<_StatisticsView>
   String? error;
   bool loading = false;
   int sequence = 0;
+  int drivingMetric = 0;
+  int chargingMetric = 0;
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
@@ -222,14 +226,12 @@ class _StatisticsViewState extends State<_StatisticsView>
   @override
   Widget build(BuildContext context) {
     final calendar = workspace.calendar!;
-    final totals = data?.totals;
-    final buckets = data?.buckets;
     return ListenableBuilder(
       listenable: widget.currency,
       builder: (context, _) => RefreshIndicator(
         onRefresh: () => load(force: true),
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             Row(
@@ -256,16 +258,14 @@ class _StatisticsViewState extends State<_StatisticsView>
                 load(reset: true);
               },
             ),
-            Text('统计时区：${calendar.identifier}'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                '统计时区：${calendar.identifier}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
             if (calendar.fallback) const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
-            if (widget.kind == 'driving')
-              const Text(
-                '仅统计已完成行程，按开始时间 started_at 归期。净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals。',
-              ),
-            if (widget.kind == 'charging')
-              const Text(
-                '仅统计已结束充电，按结束时间 ended_at 归期；列表按开始时间 started_at 归期，因此跨日会话的数量可能不同。进行中不计入。费用仅合计已知记录，均价仅使用费用已知记录对应能量，不能保证全部费用已记录。DC 占比分母为 AC+DC 已知分类能量，未知分类不归入 AC；不推导未知能量。',
-              ),
             if (loading) const LinearProgressIndicator(),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),
@@ -274,31 +274,171 @@ class _StatisticsViewState extends State<_StatisticsView>
                 child: const Text('重试统计'),
               ),
             ],
-            if (totals != null) ...[
-              line('行程数', totals.drives, '次'),
-              line('总里程', totals.distanceKm, 'km', decimals: 1),
-              line('能量', totals.energyKwh, 'kWh', decimals: 2),
-              line('净电耗', totals.consumptionWhKmNet, 'Wh/km'),
-              line('毛电耗', totals.consumptionWhKmGross, 'Wh/km'),
-              line('最高速度', totals.speedMaxKmh, 'km/h'),
-              if (totals.drives == 0)
-                const Text('区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。'),
-              Text('校验时间：${calendar.local(result!.checkedAt)}'),
-            ],
+            if (data case final driving?)
+              ..._driving(context, driving, calendar),
             if (chargingData case final charged?)
               ..._charging(context, charged, calendar),
-            if (buckets != null) ...[
-              const Divider(),
-              Text('里程趋势', style: Theme.of(context).textTheme.titleLarge),
-              const Text('按服务端时间桶展示；空桶保留零，缺失比率显示 —。点击每个时间桶可阅读完整指标。'),
-              if (buckets.isEmpty) const Text('区间内无趋势数据'),
-              for (final raw in buckets)
-                _bucket(context, raw, calendar, buckets),
-            ],
           ],
         ),
       ),
     );
+  }
+
+  Widget _metrics(BuildContext context, List<Widget> values) => LayoutBuilder(
+    builder: (context, constraints) {
+      final stacked = MediaQuery.textScalerOf(context).scale(14) > 20;
+      final width = stacked
+          ? constraints.maxWidth
+          : (constraints.maxWidth - 16) / 2;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            for (final value in values) SizedBox(width: width, child: value),
+          ],
+        ),
+      );
+    },
+  );
+
+  String _timestamp(CalendarContext calendar, DateTime time) =>
+      calendar.local(time).toString().split('.').first;
+  String _tick(CalendarContext calendar, DateTime time) {
+    final local = calendar.local(time);
+    return '${local.month}/${local.day}';
+  }
+
+  String _range(CalendarContext calendar) {
+    final query = resultQuery;
+    if (query == null) return '';
+    final from = calendar.local(DateTime.parse(query['from']!));
+    final to = calendar.local(
+      DateTime.parse(query['to']!).subtract(const Duration(microseconds: 1)),
+    );
+    return '${statisticsDate(from)}—${statisticsDate(to)}';
+  }
+
+  List<Widget> _driving(
+    BuildContext context,
+    dto.DrivingStats stats,
+    CalendarContext calendar,
+  ) {
+    final totals = stats.totals;
+    final buckets = stats.buckets;
+    final titles = ['里程', '次数', '能量', '最高速度'];
+    final units = ['km', '次', 'kWh', 'km/h'];
+    final title = titles[drivingMetric];
+    final unit = units[drivingMetric];
+    final values = <num?>[
+      for (final bucket in buckets)
+        switch (drivingMetric) {
+          0 => bucket.distanceKm,
+          1 => bucket.drives,
+          2 => bucket.energyKwh,
+          _ => bucket.speedMaxKmh,
+        },
+    ];
+    final times = [for (final bucket in buckets) bucket.bucketStart];
+    return [
+      _metrics(context, [
+        MetricTile(
+          label: '总里程',
+          value: number(totals.distanceKm, 'km', decimals: 1),
+          emphasize: true,
+        ),
+        MetricTile(
+          label: '行程数',
+          value: number(totals.drives, '次'),
+          emphasize: true,
+        ),
+      ]),
+      TimeChart(
+        key: ValueKey('driving-$drivingMetric'),
+        title: '$title趋势',
+        unit: unit,
+        times: times,
+        series: [ChartSeries(label: title, values: values)],
+        timestamp: (t) => _timestamp(calendar, t),
+        tickLabel: (t) => _tick(calendar, t),
+        subtitle: _range(calendar),
+        plotKey: const ValueKey('driving-statistics-chart'),
+        valueLabel: (v) => number(
+          v,
+          unit,
+          decimals: drivingMetric == 0
+              ? 1
+              : drivingMetric == 2
+              ? 2
+              : 0,
+        ),
+        controls: Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            for (var i = 0; i < titles.length; i++)
+              ChoiceChip(
+                label: Text(titles[i]),
+                selected: drivingMetric == i,
+                onSelected: (_) => setState(() => drivingMetric = i),
+              ),
+          ],
+        ),
+      ),
+      if (buckets.isEmpty) const Text('区间内无趋势数据'),
+      TimeChart(
+        title: '净 / 毛电耗',
+        unit: 'Wh/km',
+        times: times,
+        series: [
+          ChartSeries(
+            label: '净电耗',
+            values: [for (final b in buckets) b.consumptionWhKmNet],
+          ),
+          ChartSeries(
+            label: '毛电耗',
+            values: [for (final b in buckets) b.consumptionWhKmGross],
+          ),
+        ],
+        timestamp: (t) => _timestamp(calendar, t),
+        tickLabel: (t) => _tick(calendar, t),
+        presentation: ChartPresentation.line,
+        subtitle: _range(calendar),
+        plotKey: const ValueKey('driving-consumption-chart'),
+        note: '不同能量口径分别阅读；缺失值断线，不补零。',
+      ),
+      DataCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('区间指标', style: Theme.of(context).textTheme.titleSmall),
+            line('能量', totals.energyKwh, 'kWh', decimals: 2),
+            line('净电耗', totals.consumptionWhKmNet, 'Wh/km'),
+            line('毛电耗', totals.consumptionWhKmGross, 'Wh/km'),
+            line('最高速度', totals.speedMaxKmh, 'km/h'),
+          ],
+        ),
+      ),
+      Text('按开始时间归期 · 仅统计已完成行程', style: Theme.of(context).textTheme.bodySmall),
+      if (totals.drives == 0) const Text('区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。'),
+      ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text('统计口径'),
+        children: const [
+          Text(
+            '净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals，不平均各桶比率。',
+          ),
+        ],
+      ),
+      Text(
+        '校验时间：${calendar.local(result!.checkedAt)}',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 16),
+      Text('时间桶明细', style: Theme.of(context).textTheme.titleSmall),
+      for (final bucket in buckets) _bucket(context, bucket, calendar),
+    ];
   }
 
   List<Widget> _charging(
@@ -365,38 +505,17 @@ class _StatisticsViewState extends State<_StatisticsView>
     BuildContext context,
     dto.DrivingBucket bucket,
     CalendarContext calendar,
-    List<dto.DrivingBucket> buckets,
-  ) {
-    final date = calendar.local(bucket.bucketStart);
-    final max = buckets.fold<num>(
-      0,
-      (v, b) => (b.distanceKm) > v ? b.distanceKm : v,
-    );
-    final distance = bucket.distanceKm;
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      title: Text(
-        '${statisticsDate(date)} · ${number(distance, 'km', decimals: 1)}',
-      ),
-      subtitle: Semantics(
-        label: '里程柱形，${number(distance, 'km', decimals: 1)}',
-        child: ExcludeSemantics(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator(
-              value: max == 0 ? 0 : distance / max,
-              minHeight: 8,
-            ),
-          ),
-        ),
-      ),
-      children: [
-        line('行程数', bucket.drives, '次'),
-        line('能量', bucket.energyKwh, 'kWh', decimals: 2),
-        line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
-        line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
-        line('最高速度', bucket.speedMaxKmh, 'km/h'),
-      ],
-    );
-  }
+  ) => ExpansionTile(
+    tilePadding: EdgeInsets.zero,
+    title: Text(
+      '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
+    ),
+    children: [
+      line('行程数', bucket.drives, '次'),
+      line('能量', bucket.energyKwh, 'kWh', decimals: 2),
+      line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
+      line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
+      line('最高速度', bucket.speedMaxKmh, 'km/h'),
+    ],
+  );
 }
