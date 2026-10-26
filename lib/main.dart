@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'src/api.dart';
+import 'src/visual_theme.dart';
 import 'src/performance_trace.dart';
 import 'src/map_candidate.dart';
 import 'src/connection_page.dart';
@@ -88,15 +89,8 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
     locale: const Locale('zh', 'CN'),
     supportedLocales: const [Locale('zh', 'CN')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      colorSchemeSeed: const Color(0xFF426B54),
-      useMaterial3: true,
-    ),
-    darkTheme: ThemeData(
-      colorSchemeSeed: const Color(0xFF426B54),
-      brightness: Brightness.dark,
-      useMaterial3: true,
-    ),
+    theme: lakeTheme(Brightness.light),
+    darkTheme: lakeTheme(Brightness.dark),
     home: ListenableBuilder(
       listenable: session,
       builder: (context, _) {
