@@ -1,6 +1,7 @@
 # 行笺移动端：数据可视化需求基线
 
 日期：2026-10-25。状态：依据用户本轮明确诉求完成的需求澄清；页面规则是实施基线，具体视觉稿及 App 实现尚待验证。
+2026-10-26 更新：用户已选 A「湖畔」，正式Flutter实现与实际渲染已补齐，见[视觉决定](lake-visual-design.md)及[实施记录](../implementation/lake-visualization.md)。本页下文“当前事实与本轮边界”为澄清当日历史状态；外部待验继续保留。
 正式范围由 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其[本地镜像](../specs/mobile-v1.md)引用本基线；原型评审不能用来重新质疑已确认的产品方向。
 
 ## 核心目标与成功定义

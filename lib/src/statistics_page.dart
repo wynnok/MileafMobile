@@ -420,10 +420,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
         ),
       ),
-      Text(
-        '按开始时间归期 · 仅统计已完成行程',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+      Text('按开始时间归期 · 仅统计已完成行程', style: Theme.of(context).textTheme.bodySmall),
       if (totals.drives == 0) const Text('区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。'),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
@@ -564,10 +561,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
         ),
       ),
-      Text(
-        '按结束时间归期 · 仅统计已结束充电',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+      Text('按结束时间归期 · 仅统计已结束充电', style: Theme.of(context).textTheme.bodySmall),
       if (totals.sessions == 0) const Text('区间内无已结束充电；零为真实结果，缺失比率不补零。'),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,

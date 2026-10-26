@@ -4,7 +4,7 @@
 通过独立部署的 Mileaf Server API，以图表、地图和关键数字尽可能展示车况记录、行程、充电和统计。
 Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
-**当前状态：数据读取闭环已具备；2026-10-25 已澄清图表为主的展示基线，页面尚需按新要求设计、实现和验收。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准，外部验收也尚未完成。
+**当前状态：2026-10-26 已按用户选定的 A「湖畔」方案完成正式 Flutter 图表与页面实现；代码、自动化和构建已验证，外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见[实施记录](docs/implementation/lake-visualization.md)与[实际 Flutter 图册](docs/implementation/lake-renders/index.html)。
 
 本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
@@ -25,7 +25,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 | [API 能力与差异](docs/product/api-capabilities.md) | 当前后端实际能支撑什么，哪些不能假设 |
 | [需求澄清与实施交接](docs/product/to-spec-readiness.md) | 本轮纠偏如何进入既有 Spec/工单，下一阶段应交付什么 |
 
-以上为与正式 Spec 配套的产品与体验基线；具体可视原型尚未交付，历史自动化/构建不能替代视觉验收。
+以上为与正式 Spec 配套的产品与体验基线；A原型已获用户选定，正式页面已保存浅深色/大字体实际渲染，最终双端体验仍需相应外部证据。
 正式需求与依赖关系以 [GitHub Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其子任务为准。
 
 ## 工作约定

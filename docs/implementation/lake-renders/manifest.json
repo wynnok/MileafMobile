@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-26",
+  "code_commit": "369fd788fd289b381cecb093bade10540b233164",
+  "viewport": {
+    "width": 360,
+    "height": 800
+  },
+  "pixel_ratio": 2,
+  "font": "Arial Unicode (existing local font, test-process only)",
+  "data": "controlled synthetic HTTP responses; no real station or map tiles",
+  "files": [
+    {
+      "file": "charge-dark-100.png",
+      "sha256": "9f9b5fa5955a19954b8393af6b50bd6739d7843b476c1c06f22f947624a63e89"
+    },
+    {
+      "file": "charge-dark-200.png",
+      "sha256": "162c6685e8ed06911693fd78a69f091b673000c51d417e39e0cea920e49d1a6f"
+    },
+    {
+      "file": "charge-light-100.png",
+      "sha256": "fb4d9eff8baf4a7d1123936ab8adf593f71b884cc0ac85bafd9df205bcfcca39"
+    },
+    {
+      "file": "charge-light-200.png",
+      "sha256": "9e2c70fc6f4cc6925000db99de6a683d9650de9c08490433e0680542e2c0828d"
+    },
+    {
+      "file": "charges-dark-100.png",
+      "sha256": "9d1d465738aaa27ead854d31f3293860e14ca753784dc9300b150f0388533175"
+    },
+    {
+      "file": "charges-dark-200.png",
+      "sha256": "63d3d64446d120619a110e7596d7368695b6e8d03de807a8f08b9062b39f771a"
+    },
+    {
+      "file": "charges-light-100.png",
+      "sha256": "9680017a3add9d369f24c3202b8c854ef737a36225cce648850477d92defb393"
+    },
+    {
+      "file": "charges-light-200.png",
+      "sha256": "89d6347cadc66ae82f2abaa2764d4719bd365ff18004be119b23cbfb5dd975fc"
+    },
+    {
+      "file": "charging-classification-short-dark-100.png",
+      "sha256": "d69d3f1ed59040275d103f2cf8fb8e70ef7251b1b241a7397f97b0b151e74002"
+    },
+    {
+      "file": "charging-classification-short-dark-200.png",
+      "sha256": "ac74ab04b3cbd4d8e5a3b0fd47ba43de7a083ecdd1fc101a7c692aa5897ec7ba"
+    },
+    {
+      "file": "charging-classification-short-light-100.png",
+      "sha256": "706538d67213366a430c90b6d91995b271b3d16f87a313abe04157ede9248ce0"
+    },
+    {
+      "file": "charging-classification-short-light-200.png",
+      "sha256": "0d05e53f163a224910192a3bebbb9c3a2c0e632e612b9e725ffdf74870bd3d5a"
+    },
+    {
+      "file": "charging-dark-100.png",
+      "sha256": "9c28da8d7c8d615440bb7571d6372554412a18fb1a8a0e7766a69bad6de8086e"
+    },
+    {
+      "file": "charging-dark-200.png",
+      "sha256": "b059db674931e45aaa8709b5349174abfa9f61b6256c713f418d70f8217240bc"
+    },
+    {
+      "file": "charging-light-100.png",
+      "sha256": "6e763c64d3f0d0d93c9bf133f5ec7dc54e4ff27a941cfd3d31af141e256b2c07"
+    },
+    {
+      "file": "charging-light-200.png",
+      "sha256": "f74a91d0e0e691a3dd0de7047c178c956b3554782ee848e37914bf3bd87e36e5"
+    },
+    {
+      "file": "drive-dark-100.png",
+      "sha256": "b8bd4acae329a68fa460fa3c878eda26d21f6cfee3962276ce2dc8fcfe6e3bec"
+    },
+    {
+      "file": "drive-dark-200.png",
+      "sha256": "2fef35c8e867365defa5e982ede8d0f5f38f13851008a70a123151003b4d4309"
+    },
+    {
+      "file": "drive-light-100.png",
+      "sha256": "3548db2710f609ea5f51f88f9a1fc7bcc011e7180376bb55533722f592d5da27"
+    },
+    {
+      "file": "drive-light-200.png",
+      "sha256": "62799995e9a11a850870ac31135b74fe8e8df0b82f1e652b6f11ffac2dfbc107"
+    },
+    {
+      "file": "drives-dark-100.png",
+      "sha256": "8f2df8c0a66db686e9a4bc509ea4b690217c06a225c20f53167c9fe9d1890950"
+    },
+    {
+      "file": "drives-dark-200.png",
+      "sha256": "c5865b95a11e4ed4d1724518bb57e87b9561ca66cd80e503e0a375960e4096c5"
+    },
+    {
+      "file": "drives-light-100.png",
+      "sha256": "430277b56913f9113b76a6aef5838859146f53e60b20b2e8bceec427e85b6698"
+    },
+    {
+      "file": "drives-light-200.png",
+      "sha256": "9d10490efb8d880c430940a69c164f5af59273302248d18d88eda64a617fc3c8"
+    },
+    {
+      "file": "driving-dark-100.png",
+      "sha256": "d3ba116717bbec88be0357b08986f871e2018e1bceba6ee2bcb85745cf6ab9fc"
+    },
+    {
+      "file": "driving-dark-200.png",
+      "sha256": "586efd09f0f1492716ea1b16f6822f1fe4e688e1bb8641a017c6b2f2ada640e4"
+    },
+    {
+      "file": "driving-light-100.png",
+      "sha256": "801d18eb77d52f268df98ec922098b92ec024f2f91df343a4f3855a966c8152d"
+    },
+    {
+      "file": "driving-light-200.png",
+      "sha256": "c7efa3316e5051638ac5d293f5de2caeeab76b000b2f7f33debdae9c41f31dae"
+    },
+    {
+      "file": "overview-dark-100.png",
+      "sha256": "9675e4615e5ebbec70ead8b4f96cf5ba7d32e2f4640820251644fe25ff724d98"
+    },
+    {
+      "file": "overview-dark-200.png",
+      "sha256": "5ee4358bb79cc4c61d2002d02e993e17262781ca270319cebffedc53317c0cfe"
+    },
+    {
+      "file": "overview-light-100.png",
+      "sha256": "c0aeb57ee8cf77ea88138bc335eeb46cc19155261f5198a911f6dde305a74ea7"
+    },
+    {
+      "file": "overview-light-200.png",
+      "sha256": "6a7d45967a0245adf09164287dd370c58bed41a0be6367490c31bdc40018f234"
+    }
+  ]
+}
