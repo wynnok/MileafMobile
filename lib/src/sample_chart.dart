@@ -11,10 +11,16 @@ class SampleChart extends StatelessWidget {
     required this.label,
     required this.unit,
     required this.timestamp,
+    this.selectedIndex,
+    this.onSelected,
+    this.plotKey = const ValueKey('sample-chart'),
   });
   final List<(DateTime, num?)> points;
   final String label, unit;
   final String Function(DateTime) timestamp;
+  final int? selectedIndex;
+  final ValueChanged<int>? onSelected;
+  final Key plotKey;
   @override
   Widget build(BuildContext context) {
     final values = points.map((p) => p.$2).whereType<num>().toList();
@@ -32,7 +38,9 @@ class SampleChart extends StatelessWidget {
           ],
           timestamp: timestamp,
           presentation: ChartPresentation.line,
-          plotKey: const ValueKey('sample-chart'),
+          plotKey: plotKey,
+          selectedIndex: selectedIndex,
+          onSelected: onSelected,
           note: '连线仅为采样示意，不代表连续观测；缺失值断线，不补点或补零。',
         ),
         Text(

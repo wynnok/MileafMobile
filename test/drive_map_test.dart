@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_map/flutter_map.dart' show FlutterMap;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/src/map_candidate.dart';
@@ -33,7 +34,98 @@ Future<http.Response> business(http.Request r) async {
   return jsonResponse(jsonEncode(body));
 }
 
+Future<void> scrollPageTo(
+  WidgetTester tester,
+  Finder target,
+  double delta,
+) async {
+  for (var i = 0; i < 30 && target.hitTestable().evaluate().isEmpty; i++) {
+    final viewport = tester.getRect(find.byType(RefreshIndicator));
+    // Drag the page margin so a map pan does not consume this gesture.
+    await tester.dragFrom(
+      Offset(viewport.right - 4, viewport.center.dy),
+      Offset(0, -delta),
+    );
+    await tester.pumpAndSettle();
+  }
+  expect(target.hitTestable(), findsOneWidget);
+}
+
 void main() {
+  testWidgets('平移地图后选择新的曲线采样会使选中位置重新可见', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await openDetail(
+      tester,
+      business,
+      mapConfiguration: MapConfiguration(
+        provider: provider,
+        sourceCrs: 'EPSG:4326',
+        tileClient: MockClient((_) async => tile()),
+      ),
+    );
+    await tester.scrollUntilVisible(find.text('允许加载底图').hitTestable(), 160);
+    await tester.tap(find.text('允许加载底图'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(FlutterMap));
+    await tester.pumpAndSettle();
+    final bounds = tester.getRect(find.byType(FlutterMap));
+    await tester.dragFrom(bounds.center, const Offset(-700, -700));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('selected-drive-sample')).hitTestable(),
+      findsNothing,
+    );
+    await scrollPageTo(tester, find.text('后一个采样'), 180);
+    await tester.tap(find.text('后一个采样'));
+    await tester.pumpAndSettle();
+    await scrollPageTo(tester, find.text('行程地图'), -180);
+    expect(
+      find.byKey(const ValueKey('selected-drive-sample')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp('选中采样位置.*16:01:00', dotAll: true)),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+  testWidgets('图表选点与地图位置同步，缺失坐标不显示选中位置', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await openDetail(
+      tester,
+      business,
+      mapConfiguration: MapConfiguration(
+        provider: provider,
+        sourceCrs: 'EPSG:4326',
+        tileClient: MockClient((_) async => tile()),
+      ),
+    );
+    await tester.scrollUntilVisible(find.text('允许加载底图'), 200);
+    await tester.tap(find.text('允许加载底图'));
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel(
+        RegExp('选中采样位置.*2026-03-15 16:00:00', dotAll: true),
+      ),
+      findsOneWidget,
+    );
+    await scrollPageTo(tester, find.text('后一个采样'), 180);
+    await tester.tap(find.text('后一个采样'));
+    await tester.pumpAndSettle();
+    await scrollPageTo(tester, find.text('行程地图'), -180);
+    expect(
+      find.bySemanticsLabel(
+        RegExp('选中采样位置.*2026-03-15 16:01:00', dotAll: true),
+      ),
+      findsOneWidget,
+    );
+    await scrollPageTo(tester, find.text('后一个采样'), 180);
+    await tester.tap(find.text('后一个采样'));
+    await tester.pumpAndSettle();
+    await scrollPageTo(tester, find.text('行程地图'), -180);
+    expect(find.bySemanticsLabel(RegExp('选中采样位置')), findsNothing);
+    semantics.dispose();
+  });
   testWidgets('真实详情同意前0瓦片，独立底图无Bearer不跳转，缺点断线并标明起终点，可局部重试', (tester) async {
     final semantics = tester.ensureSemantics();
     var calls = 0;
@@ -126,6 +218,10 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     final previous = calls;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('drive-1')).hitTestable(),
+      140,
+    );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('允许加载底图'), 250);

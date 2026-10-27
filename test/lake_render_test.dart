@@ -95,6 +95,9 @@ Map<String, dynamic> detail(bool charging) {
   } else {
     body['start']['display_name'] = '松岚小区';
     body['end']['display_name'] = '云栖中心';
+    body['start']['battery_level'] = 82;
+    body['end']['battery_level'] = 72;
+    body['speed_max_kmh'] = 96;
   }
   return body;
 }
@@ -303,10 +306,37 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('行程').last);
         await save('drives-$suffix');
-        await tester.ensureVisible(find.byKey(const ValueKey('drive-1')));
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('drive-1')).hitTestable(),
+          140,
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('drive-1')));
         await save('drive-$suffix');
+        await tester.scrollUntilVisible(
+          find.textContaining('参考净电耗').hitTestable(),
+          140,
+        );
+        await save('drive-reference-$suffix');
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('sample-chart')).hitTestable(),
+          140,
+        );
+        await tester.ensureVisible(find.byKey(const ValueKey('sample-chart')));
+        await save('drive-process-$suffix');
+        await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 140);
+        await tester.tap(find.text('对照电量'));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('paired-sample-chart')).hitTestable(),
+          140,
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('paired-sample-chart')),
+        );
+        await save('drive-paired-$suffix');
+        await tester.scrollUntilVisible(find.text('驾驶与环境').hitTestable(), 140);
+        await save('drive-context-$suffix');
         await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
         await tester.tap(find.text('充电').last);

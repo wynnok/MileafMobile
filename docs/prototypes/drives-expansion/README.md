@@ -1,8 +1,8 @@
 # 行程扩展 · 产品方案与原型
 
-2026-10-27。待用户评审，**未实施正式 Flutter 页面或后端功能**。沿用已确认「湖畔」主题；A/B/C 比较行程的信息顺序。推荐 A「出行回顾」作为默认骨架，吸收 B 的能耗参照，C 的路线档案优先进入后续能力建设。
+2026-10-27 更新：用户已确认 A「出行回顾」顺序1的现有API范围，并完成正式Flutter本地实施与验证，见[实施记录](../../implementation/drives-expansion.md)及[正式图册](../../implementation/drives-expansion-renders/index.html)。本目录继续保存合成评审原型，B/C及扩展能力为设计参考；不修改后端。
 
-产品判断、指标覆盖与分期见[完整方案](../../product/drives-expansion-proposal.md)。Mobile基线 `bfb39a8`；冻结契约Server `146cb3b9a16af3d632b04ed8d197d0f2243d9b71`；只读参考Server `72710ff6ea5ee2805ed4a9fdea2854b384a44147`、TeslaMate `6bf3d55e4242cf9c55d1dd334b18e35c9ff59d9f`。原型保存在本地 `codex/drives-expansion-prototype`，尚无选定结果；按本次用户调用的implement技能在当前分支保存方案/原型的本地提交，不推送。
+产品判断、指标覆盖与分期见[完整方案](../../product/drives-expansion-proposal.md)。Mobile原型基线 `bfb39a8`；冻结契约Server `146cb3b9a16af3d632b04ed8d197d0f2243d9b71`；只读参考Server `72710ff6ea5ee2805ed4a9fdea2854b384a44147`、TeslaMate `6bf3d55e4242cf9c55d1dd334b18e35c9ff59d9f`。原型primary source保存在本地 `codex/drives-expansion-prototype` 的 `7e32322`，正式页面不调用原型脚本；未推送。
 
 ## 打开
 
@@ -41,6 +41,6 @@ node docs/prototypes/drives-expansion/serve.mjs
 
 ## 验证与保存
 
-实际浏览器校验和截图清单见[renders/verification.md](renders/verification.md)。只检查本轮HTML/JS/本地服务与交互；没有修改或运行Flutter测试/构建。用户评审前保留全部方向，不把prototype脚本直接推广成生产实现。
+原型阶段的浏览器校验和截图清单见[renders/verification.md](renders/verification.md)，仅代表HTML/JS/本地服务与交互。用户已选A，本目录保留各方向来源；正式Flutter测试与构建另见实施记录，不把prototype脚本直接推广成生产实现。
 
 已有未跟踪的概览原型及 `docs/.DS_Store` 未修改，不纳入本轮提交。

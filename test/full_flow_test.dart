@@ -103,6 +103,10 @@ void main() {
     expect(find.textContaining('68 %'), findsOneWidget);
     await tester.tap(find.text('行程').last);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('drive-1')).hitTestable(),
+      140,
+    );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
     expect(find.text('行程 #1'), findsOneWidget);

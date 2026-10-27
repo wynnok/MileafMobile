@@ -33,6 +33,10 @@ class TimeChart extends StatefulWidget {
     this.maximum,
     this.plotKey,
     this.valueLabel,
+    this.selectedIndex,
+    this.onSelected,
+    this.compact = false,
+    this.onActivateSelected,
   });
   final String title, unit;
   final List<DateTime> times;
@@ -46,6 +50,10 @@ class TimeChart extends StatefulWidget {
   final double? minimum, maximum;
   final Key? plotKey;
   final String Function(num?)? valueLabel;
+  final int? selectedIndex;
+  final ValueChanged<int>? onSelected;
+  final bool compact;
+  final VoidCallback? onActivateSelected;
   @override
   State<TimeChart> createState() => _TimeChartState();
 }
@@ -65,8 +73,12 @@ class _TimeChartState extends State<TimeChart> {
     super.dispose();
   }
 
-  void select(int index) =>
-      setState(() => selected = index.clamp(0, widget.times.length - 1));
+  void select(int index) {
+    final next = index.clamp(0, widget.times.length - 1);
+    setState(() => selected = next);
+    widget.onSelected?.call(next);
+  }
+
   String value(num? n) =>
       widget.valueLabel?.call(n) ??
       (n == null ? '—（缺失）' : '${_number(n, widget.unit)} ${widget.unit}');
@@ -88,6 +100,9 @@ class _TimeChartState extends State<TimeChart> {
 
   @override
   Widget build(BuildContext context) {
+    final selected = (widget.selectedIndex ?? this.selected)
+        .clamp(0, math.max(0, widget.times.length - 1))
+        .toInt();
     final scheme = Theme.of(context).colorScheme;
     final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
     final colors = [scheme.primary, scheme.tertiary];
@@ -107,6 +122,7 @@ class _TimeChartState extends State<TimeChart> {
                     ?.copyWith(fontWeight: FontWeight.w600),
               ),
               Text(widget.unit, style: Theme.of(context).textTheme.labelSmall),
+              if (widget.compact && widget.controls != null) widget.controls!,
             ],
           ),
           if (widget.subtitle != null)
@@ -117,12 +133,12 @@ class _TimeChartState extends State<TimeChart> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          if (widget.controls != null)
+          if (!widget.compact && widget.controls != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: widget.controls!,
             ),
-          const SizedBox(height: 12),
+          SizedBox(height: widget.compact ? 2 : 12),
           if (widget.times.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 35),
@@ -250,40 +266,89 @@ class _TimeChartState extends State<TimeChart> {
                     ),
                 ],
               ),
-            const SizedBox(height: 8),
-            Semantics(
-              liveRegion: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            if (widget.compact)
+              Row(
                 children: [
-                  for (final s in widget.series)
-                    Text(
-                      '${s.label}读数 ${value(s.values[selected])}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                  IconButton(
+                    tooltip: '前一天',
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 44,
                     ),
-                  Text(
-                    widget.timestamp(widget.times[selected]),
-                    style: Theme.of(context).textTheme.labelSmall,
+                    padding: EdgeInsets.zero,
+                    onPressed: selected == 0
+                        ? null
+                        : () => select(selected - 1),
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Expanded(
+                    child: Semantics(
+                      liveRegion: true,
+                      label: reading(selected),
+                      excludeSemantics: true,
+                      child: Text(
+                        '${tick(widget.times[selected])} · ${value(widget.series.first.values[selected])}',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '后一天',
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 44,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: selected == widget.times.length - 1
+                        ? null
+                        : () => select(selected + 1),
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                  if (widget.onActivateSelected != null)
+                    TextButton(
+                      onPressed: widget.onActivateSelected,
+                      child: const Text('看当天', semanticsLabel: '查看这一天的行程'),
+                    ),
+                ],
+              )
+            else ...[
+              const SizedBox(height: 8),
+              Semantics(
+                liveRegion: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final s in widget.series)
+                      Text(
+                        '${s.label}读数 ${value(s.values[selected])}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    Text(
+                      widget.timestamp(widget.times[selected]),
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: selected == 0
+                        ? null
+                        : () => select(selected - 1),
+                    child: const Text('前一个采样'),
+                  ),
+                  TextButton(
+                    onPressed: selected == widget.times.length - 1
+                        ? null
+                        : () => select(selected + 1),
+                    child: const Text('后一个采样'),
                   ),
                 ],
               ),
-            ),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 8,
-              children: [
-                TextButton(
-                  onPressed: selected == 0 ? null : () => select(selected - 1),
-                  child: const Text('前一个采样'),
-                ),
-                TextButton(
-                  onPressed: selected == widget.times.length - 1
-                      ? null
-                      : () => select(selected + 1),
-                  child: const Text('后一个采样'),
-                ),
-              ],
-            ),
+            ],
           ],
           if (widget.note != null)
             Text(widget.note!, style: Theme.of(context).textTheme.labelSmall),

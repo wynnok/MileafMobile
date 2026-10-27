@@ -210,42 +210,102 @@ class EnergyComparison extends StatelessWidget {
       0,
       (m, entry) => math.max(m, entry.$2 ?? 0),
     );
+    final minimum = values.fold<num>(
+      0,
+      (m, entry) => math.min(m, entry.$2 ?? 0),
+    );
+    final range = maximum - minimum;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < values.length; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    Text(values[i].$1),
-                    Text(
-                      values[i].$2 == null
-                          ? '—（缺失）'
-                          : '${values[i].$2!.toStringAsFixed(decimals)} $unit',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label:
+                '${values[i].$1} ${values[i].$2 == null ? '—（缺失）' : '${values[i].$2!.toStringAsFixed(decimals)} $unit'}',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 12,
+                    runSpacing: 4,
+                    children: [
+                      Text(values[i].$1),
+                      Text(
+                        values[i].$2 == null
+                            ? '—（缺失）'
+                            : '${values[i].$2!.toStringAsFixed(decimals)} $unit',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  SizedBox(
+                    height: 7,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final value = values[i].$2;
+                        final zero = range == 0
+                            ? 0.0
+                            : constraints.maxWidth * -minimum / range;
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            children: [
+                              if (value != null && range > 0)
+                                Positioned(
+                                  left:
+                                      constraints.maxWidth *
+                                      (math.min(0, value) - minimum) /
+                                      range,
+                                  width:
+                                      constraints.maxWidth *
+                                      value.abs() /
+                                      range,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: i.isEven
+                                          ? Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                          : Theme.of(context)
+                                                .colorScheme
+                                                .tertiary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              Positioned(
+                                left: zero.clamp(
+                                  0,
+                                  math.max(0, constraints.maxWidth - 1),
+                                ),
+                                width: 1,
+                                top: 0,
+                                bottom: 0,
+                                child: ColoredBox(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                LinearProgressIndicator(
-                  value: maximum == 0 || values[i].$2 == null
-                      ? 0
-                      : (values[i].$2! / maximum).clamp(0, 1),
-                  minHeight: 7,
-                  borderRadius: BorderRadius.circular(8),
-                  color: i.isEven
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.tertiary,
-                  backgroundColor: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         if (note != null)

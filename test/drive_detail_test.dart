@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mileaf/src/map_candidate.dart';
+import 'package:mileaf/src/workspace.dart';
 
 import 'drives_test.dart' show openDrives, jsonResponse;
 
@@ -16,23 +17,152 @@ Future<void> openDetail(
   WidgetTester tester,
   Future<http.Response> Function(http.Request) handler, {
   MapConfiguration? mapConfiguration,
+  Future<http.Response> Function(http.Request)? statsHandler,
+  Future<CalendarContext> Function()? calendar,
 }) async {
-  await openDrives(tester, (r) async {
-    if (r.url.path.endsWith('/1/drives')) {
-      return jsonResponse(
-        jsonEncode({
-          'items': [fixture('drive-detail')],
-          'next_cursor': null,
-        }),
-      );
-    }
-    return handler(r);
-  }, mapConfiguration: mapConfiguration);
+  await openDrives(
+    tester,
+    (r) async {
+      if (r.url.path.endsWith('/1/drives')) {
+        return jsonResponse(
+          jsonEncode({
+            'items': [fixture('drive-detail')],
+            'next_cursor': null,
+          }),
+        );
+      }
+      return handler(r);
+    },
+    mapConfiguration: mapConfiguration,
+    statsHandler: statsHandler,
+    calendar: calendar,
+  );
+  await tester.scrollUntilVisible(find.byKey(const ValueKey('drive-1')), 180);
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.byKey(const ValueKey('drive-1')).hitTestable(),
+    140,
+  );
   await tester.tap(find.byKey(const ValueKey('drive-1')));
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('电耗对照保留负值与真实零并提供共同尺度说明', (tester) async {
+    await openDetail(
+      tester,
+      (r) async {
+        final body = fixture(
+          r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+        );
+        if (!r.url.path.endsWith('/series')) {
+          body['consumption_wh_km'] = -12;
+          body['energy_kwh'] = -0.24;
+        }
+        return jsonResponse(jsonEncode(body));
+      },
+      statsHandler: (_) async {
+        final body = fixture('driving-stats');
+        body['totals']['consumption_wh_km_net'] = 0;
+        body['totals']['energy_kwh'] = 0;
+        return jsonResponse(jsonEncode(body));
+      },
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('参考净电耗').hitTestable(),
+      140,
+    );
+    expect(find.bySemanticsLabel('电耗对照，尺度Wh/km，0为基线'), findsOneWidget);
+    expect(find.text('-12 Wh/km'), findsWidgets);
+    expect(find.text('0 Wh/km'), findsOneWidget);
+  });
+  testWidgets('进行中即使已有端点电量也不显示最终百分点差', (tester) async {
+    await openDetail(tester, (r) async {
+      final body = fixture(
+        r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+      );
+      if (!r.url.path.endsWith('/series')) {
+        body['ended_at'] = null;
+        body['start']['battery_level'] = 70;
+        body['end']['battery_level'] = 65;
+      }
+      return jsonResponse(jsonEncode(body));
+    });
+    await tester.scrollUntilVisible(find.text('行程电量区间').hitTestable(), 140);
+    expect(find.text('电量下降 5 个百分点'), findsNothing);
+    expect(find.textContaining('参考净电耗'), findsNothing);
+  });
+  testWidgets('零里程行程不查询或展示个人电耗参照', (tester) async {
+    var references = 0;
+    await openDetail(
+      tester,
+      (r) async {
+        final body = fixture(
+          r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+        );
+        if (!r.url.path.endsWith('/series')) body['distance_km'] = 0;
+        return jsonResponse(jsonEncode(body));
+      },
+      statsHandler: (r) async {
+        if (r.url.queryParameters['to'] == '2026-03-14T16:00:00.000Z') {
+          references++;
+        }
+        return jsonResponse(jsonEncode(fixture('driving-stats')));
+      },
+    );
+    expect(references, 0);
+    expect(find.textContaining('参考净电耗'), findsNothing);
+  });
+  for (final sample in [
+    ('Asia/Shanghai', '2026-02-12T16:00:00.000Z', '2026-03-14T16:00:00.000Z'),
+    (
+      'America/New_York',
+      '2026-02-13T05:00:00.000Z',
+      '2026-03-15T04:00:00.000Z',
+    ),
+  ]) {
+    testWidgets('个人参照按行程日前30个完整本地日查询 ${sample.$1}', (tester) async {
+      final requests = <Map<String, String>>[];
+      await openDetail(
+        tester,
+        (r) async => jsonResponse(
+          jsonEncode(
+            fixture(
+              r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+            ),
+          ),
+        ),
+        calendar: () async => CalendarContext(sample.$1),
+        statsHandler: (r) async {
+          requests.add(r.url.queryParameters);
+          return jsonResponse(jsonEncode(fixture('driving-stats')));
+        },
+      );
+      expect(requests.last, {
+        'kind': 'driving',
+        'bucket': 'day',
+        'tz': sample.$1,
+        'from': sample.$2,
+        'to': sample.$3,
+      });
+    });
+  }
+  testWidgets('完成行程显示此前30个完整本地日的全部路线参照', (tester) async {
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    final reference = find.bySemanticsLabel('参考净电耗 188 Wh/km');
+    await tester.scrollUntilVisible(reference, 180);
+    expect(reference, findsOneWidget);
+    expect(find.textContaining('此前30个完整本地日 · 全部路线'), findsOneWidget);
+  });
   testWidgets('行程电量区间保留起终点减少和未知值，不伪造成补能或零', (tester) async {
     final semantics = tester.ensureSemantics();
     try {
@@ -83,32 +213,39 @@ void main() {
       ),
     );
     for (final text in [
+      '地图暂不可用',
       '距离 20.0 km',
       '时长 120 分钟',
-      '净电耗 188 Wh/km',
+      '本次估算净电耗 188 Wh/km',
       '速度读数',
-      '地图暂不可用',
+    ]) {
+      final target =
+          (text.startsWith('距离') ||
+                      text.startsWith('时长') ||
+                      text.startsWith('本次估算净电耗')
+                  ? find.bySemanticsLabel(text)
+                  : find.textContaining(text))
+              .hitTestable();
+      await tester.scrollUntilVisible(target, 120);
+      expect(target, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    for (final text in [
+      '平均速度 10 km/h',
+      '最高速度 90 km/h',
+      '最大功率 120 kW',
+      '车外均温 15.0 °C',
+      '车内均温 21.0 °C',
     ]) {
       final target = find.textContaining(text).hitTestable();
       await tester.scrollUntilVisible(target, 120);
       expect(target, findsOneWidget);
       expect(tester.takeException(), isNull);
     }
-    await tester.scrollUntilVisible(find.text('更多行程指标'), 160);
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('更多行程指标').hitTestable(), 160);
     await tester.tap(find.text('更多行程指标'));
     await tester.pumpAndSettle();
-    for (final text in [
-      '净能量 3.75 kWh',
-      '平均速度 10 km/h',
-      '最高速度 90 km/h',
-      '最大功率 120 kW',
-      '车外均温 15.0 °C',
-      '车内均温 21.0 °C',
-      '起点电量 70 %',
-      '终点电量 70 %',
-      '续航口径',
-    ]) {
+    for (final text in ['净能量 3.75 kWh', '起点电量 70 %', '终点电量 70 %', '续航口径']) {
       final target = find.textContaining(text).hitTestable();
       await tester.scrollUntilVisible(target, 120);
       expect(target, findsOneWidget);
@@ -143,6 +280,10 @@ void main() {
     expect(find.text('起点地址：样例路1号'), findsOneWidget);
     expect(find.text('终点围栏：办公地点'), findsNothing);
     expect(find.text('终点地址：办公地点'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('drive-1')).hitTestable(),
+      140,
+    );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
@@ -156,7 +297,7 @@ void main() {
     expect(find.text('终点地址：办公地点'), findsNothing);
   });
 
-  testWidgets('360x800首屏可直接阅读主要指标与完整默认曲线', (tester) async {
+  testWidgets('360x800详情先读路线结果与电量，向下可读完整过程图', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -173,12 +314,18 @@ void main() {
         ),
       ),
     );
+    expect(find.bySemanticsLabel('距离 20.0 km').hitTestable(), findsOneWidget);
+    expect(find.text('行程电量区间').hitTestable(), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('sample-chart')).hitTestable(),
+      140,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('sample-chart')));
+    await tester.pumpAndSettle();
     final viewport = tester.getRect(find.byType(RefreshIndicator));
     final graph = tester.getRect(find.byKey(const ValueKey('sample-chart')));
     expect(graph.top, greaterThanOrEqualTo(viewport.top));
     expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
-    expect(find.textContaining('净电耗 188 Wh/km').hitTestable(), findsOneWidget);
-    expect(find.textContaining('距离 20.0 km').hitTestable(), findsOneWidget);
   });
 
   testWidgets('列表进入真实详情，固定明细与独立series解码，切换电量并读数', (tester) async {
@@ -194,10 +341,7 @@ void main() {
       return jsonResponse(jsonEncode(fixture('drive-detail')));
     });
     expect(find.text('行程 #1'), findsOneWidget);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('更多行程指标'), 200);
-    await tester.tap(find.text('更多行程指标'));
-    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('本次估算净电耗 188 Wh/km'), findsWidgets);
     await tester.scrollUntilVisible(find.textContaining('最高速度 90'), 200);
     expect(find.textContaining('最高速度 90 km/h'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
@@ -316,8 +460,9 @@ void main() {
     await tester.scrollUntilVisible(find.byTooltip('刷新行程明细'), -300);
     await tester.tap(find.byTooltip('刷新行程明细'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('净电耗 188 Wh/km'), -200);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('行程地图').hitTestable(), -160);
+    await tester.scrollUntilVisible(find.text('本次估算净电耗').hitTestable(), 160);
+    expect(find.bySemanticsLabel('本次估算净电耗 188 Wh/km'), findsOneWidget);
   });
   testWidgets('当前401退出详情回登录并清除明细与采样', (tester) async {
     var expiry = false;
@@ -347,7 +492,7 @@ void main() {
       return jsonResponse(jsonEncode(d));
     });
     expect(find.textContaining('格式不兼容'), findsOneWidget);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsNothing);
+    expect(find.bySemanticsLabel('本次估算净电耗 188 Wh/km'), findsNothing);
     refresh = true;
     await tester.tap(find.text('重试行程明细'));
     await tester.pump();

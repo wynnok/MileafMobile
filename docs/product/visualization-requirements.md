@@ -1,5 +1,7 @@
 # 行笺移动端：数据可视化需求基线
 
+2026-10-27 行程增量：用户已确认 A「出行回顾」及现有 API 范围，详见[方案](drives-expansion-proposal.md)顺序1。GitHub #1、#9–#11 已补充对应验收；正式Flutter、本地测试/渲染和隔离构建见[实施记录](../implementation/drives-expansion.md)。外部验收保留，历史渲染不代替新增要求。
+
 日期：2026-10-25。状态：依据用户本轮明确诉求完成的需求澄清；页面规则是实施基线，具体视觉稿及 App 实现尚待验证。
 2026-10-26 更新：用户已选 A「湖畔」，正式Flutter实现与实际渲染已补齐，见[视觉决定](lake-visual-design.md)及[实施记录](../implementation/lake-visualization.md)。本页下文“当前事实与本轮边界”为澄清当日历史状态；外部待验继续保留。
 2026-10-27 更新：用户已确认概览A「用车简报」现有API扩展，V01增量覆盖如下；[扩展方案](overview-expansion-proposal.md)与[正式实施/验证](../implementation/overview-briefing.md)记录新增范围。电量历史、停放变化、覆盖率和长期续航仍为能力候选。

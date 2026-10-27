@@ -86,9 +86,13 @@ class CandidateMap extends StatefulWidget {
     this.end,
     this.provider,
     this.tileClient,
+    this.selected,
+    this.selectedLabel,
   });
   final List<MapCoordinate?> coordinates;
   final MapCoordinate? start, end;
+  final MapCoordinate? selected;
+  final String? selectedLabel;
   final String? sourceCrs;
   final CandidateMapProvider? provider;
 
@@ -99,7 +103,10 @@ class CandidateMap extends StatefulWidget {
   State<CandidateMap> createState() => _CandidateMapState();
 }
 
-class _CandidateMapState extends State<CandidateMap> {
+class _CandidateMapState extends State<CandidateMap>
+    with AutomaticKeepAliveClientMixin<CandidateMap> {
+  @override
+  bool get wantKeepAlive => true;
   final _controller = MapController();
   late final http.Client _client;
   late final bool _ownsClient;
@@ -114,12 +121,32 @@ class _CandidateMapState extends State<CandidateMap> {
   }
 
   bool _consented = false;
+  bool _mapReady = false;
   bool _failed = false;
   int? _decodedGeneration;
   int _generation = 0;
   int _geometry = 0;
   int? _traceGeneration;
   int? _performanceTrial;
+
+  void _revealSelected() {
+    if (!_consented || !_mapReady) return;
+    final lat = widget.selected?.latitude, lon = widget.selected?.longitude;
+    if (lat == null ||
+        lon == null ||
+        !lat.isFinite ||
+        !lon.isFinite ||
+        lat < -90 ||
+        lat > 90 ||
+        lon < -180 ||
+        lon > 180) {
+      return;
+    }
+    final point = LatLng(lat, lon), camera = _controller.camera;
+    if (!camera.visibleBounds.contains(point)) {
+      _controller.move(point, camera.zoom);
+    }
+  }
 
   void _decodedTile(int generation) {
     if (!mounted ||
@@ -161,6 +188,7 @@ class _CandidateMapState extends State<CandidateMap> {
         !same(oldWidget.start, widget.start) ||
         !same(oldWidget.end, widget.end)) {
       _geometry++;
+      _mapReady = false;
       _generation++;
       _failed = false;
     }
@@ -170,8 +198,15 @@ class _CandidateMapState extends State<CandidateMap> {
             widget.provider?.coordinateSystem ||
         oldWidget.sourceCrs != widget.sourceCrs) {
       _consented = false;
+      _mapReady = false;
       _failed = false;
       _generation++;
+    }
+    if (!same(oldWidget.selected, widget.selected) ||
+        oldWidget.selectedLabel != widget.selectedLabel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _revealSelected();
+      });
     }
   }
 
@@ -184,6 +219,7 @@ class _CandidateMapState extends State<CandidateMap> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = widget.provider;
     if (provider == null) return const Text('地图暂不可用：此版本尚未配置底图服务，其他记录仍可阅读');
     if (!provider.isUsable) {
@@ -230,6 +266,7 @@ class _CandidateMapState extends State<CandidateMap> {
 
     final start = endpoint(widget.start);
     final end = endpoint(widget.end);
+    final selected = endpoint(widget.selected);
     final visible = [...points, ?start, ?end];
     if (visible.isEmpty) return const Text('没有有效轨迹坐标');
 
@@ -264,6 +301,10 @@ class _CandidateMapState extends State<CandidateMap> {
             key: ValueKey(_geometry),
             mapController: _controller,
             options: MapOptions(
+              onMapReady: () {
+                _mapReady = true;
+                _revealSelected();
+              },
               initialCenter: location,
               initialZoom: 14,
               minZoom: 1,
@@ -316,6 +357,18 @@ class _CandidateMapState extends State<CandidateMap> {
                       child: Icon(
                         Icons.flag,
                         semanticLabel: end != null ? '行程终点' : '末个采样点',
+                      ),
+                    ),
+                  if (selected != null)
+                    Marker(
+                      point: selected,
+                      width: 32,
+                      height: 32,
+                      child: Icon(
+                        Icons.my_location,
+                        key: const ValueKey('selected-drive-sample'),
+                        color: Theme.of(context).colorScheme.tertiary,
+                        semanticLabel: widget.selectedLabel ?? '选中采样位置',
                       ),
                     ),
                 ],

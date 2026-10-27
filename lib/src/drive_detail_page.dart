@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -5,6 +7,7 @@ import 'data_cards.dart';
 import 'performance_trace.dart';
 import 'map_candidate.dart';
 import 'drive_detail_contract.g.dart' as dto;
+import 'driving_statistics_contract.g.dart' as stats;
 import 'sample_chart.dart';
 import 'session.dart';
 import 'workspace.dart';
@@ -35,6 +38,12 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   dto.DriveSeries? series;
   String? detailError, seriesError;
   bool detailLoading = false, seriesLoading = false;
+  stats.DrivingStats? reference;
+  String? referenceError;
+  bool referenceLoading = false, paired = false;
+  int referenceSequence = 0, selectedSample = 0;
+  DateTime? referenceFrom, referenceTo;
+  String? referenceZone;
   int detailSequence = 0, seriesSequence = 0, metric = 0;
   bool performanceReady = false;
   VehicleWorkspace get workspace => widget.workspace;
@@ -57,6 +66,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     if (!current) {
       detailSequence++;
       seriesSequence++;
+      referenceSequence++;
       setState(() {
         detail = null;
         series = null;
@@ -64,6 +74,15 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
       });
+    } else if (referenceZone != null &&
+        referenceZone != workspace.calendar?.identifier) {
+      referenceSequence++;
+      setState(() {
+        reference = null;
+        referenceError = null;
+        referenceLoading = false;
+      });
+      if (detail case final d?) unawaited(loadReference(d));
     }
   }
 
@@ -73,6 +92,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     WidgetsBinding.instance.removeObserver(this);
     detailSequence++;
     seriesSequence++;
+    referenceSequence++;
     super.dispose();
   }
 
@@ -115,6 +135,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       }
       if (current && attempt == detailSequence) {
         setState(() => detail = d);
+        unawaited(loadReference(d, force: force));
         PerformanceTrace.mark(
           PerformancePoint.driveMetricsAvailable,
           trial: widget.performanceTrial,
@@ -154,7 +175,13 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         throw const FormatException();
       }
       if (current && attempt == seriesSequence) {
-        setState(() => series = d);
+        setState(() {
+          series = d;
+          selectedSample = selectedSample.clamp(
+            0,
+            d.series.isEmpty ? 0 : d.series.length - 1,
+          );
+        });
         PerformanceTrace.mark(
           PerformancePoint.driveSeriesAvailable,
           trial: widget.performanceTrial,
@@ -173,6 +200,70 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         setState(() => seriesLoading = false);
         traceReady();
       }
+    }
+  }
+
+  Future<void> loadReference(dto.DriveDetail d, {bool force = false}) async {
+    final attempt = ++referenceSequence;
+    final calendar = workspace.calendar!;
+    if (d.endedAt == null ||
+        d.consumptionWhKm == null ||
+        d.distanceKm == null ||
+        d.distanceKm! <= 0) {
+      if (current) {
+        setState(() {
+          reference = null;
+          referenceError = null;
+          referenceLoading = false;
+        });
+      }
+      return;
+    }
+    final day = calendar.local(d.startedAt);
+    final first = DateTime(day.year, day.month, day.day - 30);
+    final last = DateTime(day.year, day.month, day.day);
+    final from = calendar.midnight(first), to = calendar.midnight(last);
+    final query = {
+      'kind': 'driving',
+      'bucket': 'day',
+      'tz': calendar.identifier,
+      'from': from.toIso8601String(),
+      'to': to.toIso8601String(),
+    };
+    bool valid() =>
+        current &&
+        attempt == referenceSequence &&
+        workspace.calendar?.identifier == calendar.identifier &&
+        detail?.startedAt == d.startedAt;
+    setState(() {
+      referenceLoading = true;
+      referenceError = null;
+      if (referenceFrom != from ||
+          referenceTo != to ||
+          referenceZone != calendar.identifier) {
+        reference = null;
+      }
+      referenceZone = calendar.identifier;
+    });
+    try {
+      final value = await workspace.cache.get(
+        owner,
+        'vehicles/$vehicle/stats',
+        query: query,
+        force: force,
+      );
+      final decoded = stats.DrivingStats.fromJson(value.body);
+      if (valid()) {
+        setState(() {
+          reference = decoded;
+          referenceFrom = from;
+          referenceTo = to;
+        });
+      }
+    } catch (e) {
+      if (valid()) setState(() => referenceError = error(e, reference != null));
+    } finally {
+      if (valid()) setState(() => referenceLoading = false);
     }
   }
 
@@ -243,6 +334,58 @@ class _DriveDetailPageState extends State<DriveDetailPage>
             ),
           ],
           if (detail case final d?)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          Text('行程地图', style: Theme.of(context).textTheme.titleLarge),
+          if (seriesLoading && series == null) const Text('正在读取轨迹采样'),
+          if (seriesError != null && series == null)
+            const Text('轨迹采样暂不可用，可在行程采样区域重试'),
+          CandidateMap(
+            key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
+            provider: widget.mapConfiguration?.provider,
+            sourceCrs: widget.mapConfiguration?.sourceCrs,
+            tileClient: widget.mapConfiguration?.tileClient,
+            selected: series == null || series!.series.isEmpty
+                ? null
+                : MapCoordinate(
+                    series!.series[selectedSample].lat?.toDouble(),
+                    series!.series[selectedSample].lon?.toDouble(),
+                  ),
+            selectedLabel: series == null || series!.series.isEmpty
+                ? null
+                : '选中采样位置 ${time(series!.series[selectedSample].t)}',
+            start: detail == null
+                ? null
+                : MapCoordinate(
+                    detail!.start.lat?.toDouble(),
+                    detail!.start.lon?.toDouble(),
+                  ),
+            end: detail == null
+                ? null
+                : MapCoordinate(
+                    detail!.end.lat?.toDouble(),
+                    detail!.end.lon?.toDouble(),
+                  ),
+            coordinates: [
+              for (final point in series?.series ?? <dto.DrivePoint>[])
+                MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
+            ],
+          ),
+          if (detail case final d?)
             DataCard(
               color: Theme.of(context).colorScheme.primaryContainer,
               child: LayoutBuilder(
@@ -251,11 +394,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      if (d.endedAt == null) const Text('进行中'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 12,
@@ -264,30 +402,15 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                           for (final entry in [
                             ('距离', number(d.distanceKm, 'km', decimals: 1)),
                             ('时长', number(d.durationMin, '分钟')),
-                            ('净电耗', number(d.consumptionWhKm, 'Wh/km')),
+                            ('估算净能量', number(d.energyKwh, 'kWh', decimals: 2)),
                           ])
                             SizedBox(
                               width: large
                                   ? constraints.maxWidth
                                   : (constraints.maxWidth - 24) / 3,
-                              child: Text.rich(
-                                TextSpan(
-                                  text: '${entry.$1} ',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium,
-                                  children: [
-                                    TextSpan(
-                                      text: entry.$2,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ],
-                                ),
+                              child: MetricTile(
+                                label: entry.$1,
+                                value: entry.$2,
                               ),
                             ),
                         ],
@@ -295,6 +418,120 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                     ],
                   );
                 },
+              ),
+            ),
+          if (detail case final d?) ...[
+            DataCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('行程电量区间', style: Theme.of(context).textTheme.titleSmall),
+                  SocInterval(
+                    start: d.start.batteryLevel,
+                    end: d.end.batteryLevel,
+                  ),
+                  if (d.endedAt != null &&
+                      d.start.batteryLevel != null &&
+                      d.end.batteryLevel != null)
+                    Text(
+                      '电量${d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加'} ${(d.start.batteryLevel! - d.end.batteryLevel!).abs()} 个百分点',
+                    ),
+                ],
+              ),
+            ),
+          ],
+          if (detail case final d?)
+            DataCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '这趟的电耗',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '电耗参照说明',
+                        icon: const Icon(Icons.info_outline),
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('电耗参照说明'),
+                            content: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '本次净电耗与历史参考均为服务端估算。历史参考为行程开始日前30个完整本地日、同车全部路线的整体净电耗，不含本次。',
+                                  ),
+                                  if (referenceFrom != null &&
+                                      referenceTo != null)
+                                    Text(
+                                      '参考区间：${time(referenceFrom!)} 至 ${time(referenceTo!)}（不含结束时刻）；归期时区：$referenceZone',
+                                    ),
+                                  const Text(
+                                    '样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('知道了'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  MetricTile(
+                    label: '本次估算净电耗',
+                    value: number(d.consumptionWhKm, 'Wh/km'),
+                    emphasize: true,
+                  ),
+                  if (referenceLoading) const LinearProgressIndicator(),
+                  if (referenceError != null) ...[
+                    Text('个人历史参照：$referenceError'),
+                    TextButton(
+                      onPressed: () => loadReference(d, force: true),
+                      child: const Text('重试历史参照'),
+                    ),
+                  ],
+                  if (reference case final r?)
+                    if (d.endedAt != null &&
+                        d.consumptionWhKm != null &&
+                        referenceZone == workspace.calendar?.identifier &&
+                        r.totals.drives > 0 &&
+                        r.totals.distanceKm > 0 &&
+                        r.totals.consumptionWhKmNet != null) ...[
+                      Semantics(
+                        container: true,
+                        label: '电耗对照，尺度Wh/km，0为基线',
+                        child: EnergyComparison(
+                          values: [
+                            ('本次', d.consumptionWhKm),
+                            ('参考净电耗', r.totals.consumptionWhKmNet),
+                          ],
+                          unit: 'Wh/km',
+                          decimals: 0,
+                        ),
+                      ),
+                      Text(
+                        '此前30个完整本地日 · 全部路线',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        '估算参考 · 样本覆盖未知',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                ],
               ),
             ),
           if (seriesLoading) const LinearProgressIndicator(),
@@ -334,45 +571,37 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               label: ['速度', '电量', '海拔'][metric],
               unit: ['km/h', '%', 'm'][metric],
               timestamp: time,
+              selectedIndex: selectedSample,
+              onSelected: (i) => setState(() => selectedSample = i),
             ),
+            if (metric != 1)
+              TextButton(
+                onPressed: () => setState(() => paired = !paired),
+                child: Text(paired ? '收起电量对照' : '对照电量'),
+              ),
+            if (paired && metric != 1)
+              SampleChart(
+                points: [for (final p in s.series) (p.t, p.batteryLevel)],
+                label: '电量',
+                unit: '%',
+                timestamp: time,
+                selectedIndex: selectedSample,
+                onSelected: (i) => setState(() => selectedSample = i),
+                plotKey: const ValueKey('paired-sample-chart'),
+              ),
           ],
-          const SizedBox(height: 12),
-          Text('行程地图', style: Theme.of(context).textTheme.titleLarge),
-          if (seriesLoading && series == null) const Text('正在读取轨迹采样'),
-          if (seriesError != null && series == null)
-            const Text('轨迹采样暂不可用，可在行程采样区域重试'),
-          CandidateMap(
-            key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
-            provider: widget.mapConfiguration?.provider,
-            sourceCrs: widget.mapConfiguration?.sourceCrs,
-            tileClient: widget.mapConfiguration?.tileClient,
-            start: detail == null
-                ? null
-                : MapCoordinate(
-                    detail!.start.lat?.toDouble(),
-                    detail!.start.lon?.toDouble(),
-                  ),
-            end: detail == null
-                ? null
-                : MapCoordinate(
-                    detail!.end.lat?.toDouble(),
-                    detail!.end.lon?.toDouble(),
-                  ),
-            coordinates: [
-              for (final point in series?.series ?? <dto.DrivePoint>[])
-                MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
-            ],
-          ),
           if (detail case final d?) ...[
             DataCard(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('行程电量区间', style: Theme.of(context).textTheme.titleSmall),
-                  SocInterval(
-                    start: d.start.batteryLevel,
-                    end: d.end.batteryLevel,
-                  ),
+                  Text('驾驶与环境', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text('平均速度 ${number(d.speedAvgKmh, 'km/h')}'),
+                  Text('最高速度 ${number(d.speedMaxKmh, 'km/h')}'),
+                  Text('最大功率 ${number(d.powerMaxKw, 'kW')}'),
+                  Text('车外均温 ${number(d.outsideTempCAvg, '°C', decimals: 1)}'),
+                  Text('车内均温 ${number(d.insideTempCAvg, '°C', decimals: 1)}'),
                 ],
               ),
             ),
@@ -396,11 +625,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                       Text('${endpoint.$1}地址：${endpoint.$2.address}'),
                   ],
                   Text('净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}'),
-                  Text('平均速度 ${number(d.speedAvgKmh, 'km/h')}'),
-                  Text('最高速度 ${number(d.speedMaxKmh, 'km/h')}'),
-                  Text('最大功率 ${number(d.powerMaxKw, 'kW')}'),
-                  Text('车外均温 ${number(d.outsideTempCAvg, '°C', decimals: 1)}'),
-                  Text('车内均温 ${number(d.insideTempCAvg, '°C', decimals: 1)}'),
                   Text('起点电量 ${number(d.start.batteryLevel, '%')}'),
                   Text('终点电量 ${number(d.end.batteryLevel, '%')}'),
                   Text(
