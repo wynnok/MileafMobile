@@ -16,8 +16,10 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'widget_test.dart' show MemoryTrustStore;
 
-http.Response overviewTrendResponse() => http.Response(
-  File('test/fixtures/driving-stats.json').readAsStringSync(),
+http.Response overviewTrendResponse([String? kind]) => http.Response(
+  File(
+    'test/fixtures/${kind == "charging" ? "charging" : "driving"}-stats.json',
+  ).readAsStringSync(),
   200,
   headers: {
     'content-type': 'application/json; charset=utf-8',
@@ -55,7 +57,9 @@ void main() {
       });
     var refreshed = false;
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -107,7 +111,7 @@ void main() {
             method != #drawPath || (arguments.last as Paint).color.a == 0,
       );
     expect(
-      tester.renderObject(find.byType(ExpansionTile)),
+      tester.renderObject(find.widgetWithText(ExpansionTile, '车辆与数据时间')),
       noVisibleBorderPaths,
       reason: '车辆与数据时间卡片展开后不应绘制额外的上下分隔线',
     );
@@ -117,7 +121,7 @@ void main() {
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
     expect(
-      tester.renderObject(find.byType(ExpansionTile)),
+      tester.renderObject(find.widgetWithText(ExpansionTile, '车辆与数据时间')),
       noVisibleBorderPaths,
       reason: '车辆与数据时间卡片收起后不应绘制额外的上下分隔线',
     );
@@ -133,7 +137,9 @@ void main() {
     final old = Completer<http.Response>();
     var fail = false;
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -203,7 +209,9 @@ void main() {
     var unsolicited = true;
     final queries = <String>[];
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -253,7 +261,7 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.last, 'America/New_York');
-    expect(find.textContaining('归期时区：America/New_York'), findsOneWidget);
+    expect(find.textContaining('America/New_York'), findsOneWidget);
   });
   testWidgets('所选车辆404刷新车辆列表后恢复仍存在车辆并提示', (tester) async {
     final store = MemorySessionStore()
@@ -264,7 +272,9 @@ void main() {
       });
     var missing = false;
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (request.url.path.endsWith('/vehicles')) {
         final vehicles = jsonDecode(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -327,7 +337,9 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),
@@ -390,7 +402,9 @@ void main() {
     var expired = false;
     final resumedPaths = <String>[];
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
       if (expired) {
         resumedPaths.add(request.url.path);
         return http.Response('', 401);

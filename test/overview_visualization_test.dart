@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
+import 'package:mileaf/src/currency.dart';
 
 import 'overview_test.dart' show background, foreground;
 import 'support/session_store.dart';
@@ -31,21 +32,24 @@ Map<String, dynamic> monthTrend({num firstDistance = 30.5}) {
   return body;
 }
 
-http.Response overviewResponse(Object body, {String? etag}) => http.Response(
-  jsonEncode(body),
-  200,
-  headers: {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'max-age=30',
-    'etag': ?etag,
-  },
-);
+http.Response overviewResponse(Object body, {String? etag, int maxAge = 30}) =>
+    http.Response(
+      jsonEncode(body),
+      200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'max-age=$maxAge',
+        'etag': ?etag,
+      },
+    );
 Future<void> openOverviewVisual(
   WidgetTester tester,
   Future<http.Response> Function(http.Request request) handler, {
   DateTime Function()? now,
   Future<CalendarContext> Function()? calendar,
   bool settle = true,
+  bool briefing = false,
+  CurrencyPreferenceStore? currencyPreferences,
 }) async {
   final store = MemorySessionStore()
     ..value = jsonEncode({
@@ -61,6 +65,21 @@ Future<void> openOverviewVisual(
             jsonDecode(File('test/fixtures/vehicles.json').readAsStringSync()),
           );
         }
+        // The original suite isolates summary/current driving. The briefing
+        // suite opts in to all newly added HTTP resources and their races.
+        if (!briefing && request.url.path.endsWith('/stats')) {
+          if (request.url.queryParameters['kind'] == 'charging') {
+            return overviewResponse(overviewFixture('charging-stats'));
+          }
+          final cutoff = DateTime.parse(request.url.queryParameters['to']!);
+          if (cutoff.isBefore(
+            (now?.call() ?? DateTime.utc(2026, 3, 15, 12)).subtract(
+              const Duration(days: 20),
+            ),
+          )) {
+            return overviewResponse(overviewFixture('driving-stats'));
+          }
+        }
         return handler(request);
       }),
       sessionStore: store,
@@ -68,6 +87,7 @@ Future<void> openOverviewVisual(
       vehiclePreferences: MemoryVehiclePreferences(),
       now: now ?? () => DateTime.utc(2026, 3, 15, 12),
       calendar: calendar ?? () async => CalendarContext('Asia/Shanghai'),
+      currencyPreferences: currencyPreferences,
     ),
   );
   if (settle) {
@@ -140,6 +160,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(calls[failedResource], 2);
       expect(calls[failedResource == 'stats' ? 'summary' : 'stats'], 1);
+      await tester.scrollUntilVisible(find.text('68 %'), -150);
+      await tester.pumpAndSettle();
       expect(find.text('68 %'), findsOneWidget);
       expect(find.text('里程读数 30.5 km'), findsOneWidget);
       expect(find.textContaining('服务暂不可用'), findsNothing);
@@ -238,7 +260,7 @@ void main() {
     expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
     expect(find.text('68 %').hitTestable(), findsOneWidget);
     expect(find.text('320.0 km').hitTestable(), findsOneWidget);
-    expect(find.text('今日里程').hitTestable(), findsOneWidget);
+    expect(find.textContaining('今日里程').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });

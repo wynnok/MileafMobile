@@ -11,6 +11,7 @@
 - 2026-10-25 用户重申核心展示目标：以移动端体验为中心，美观、直观地尽可能展示 TeslaMate 数据；参考 Grafana 指标，不要求逐项相同或迁移桌面布局。图表/地图/关键数字是概览、详情和统计的主要内容，不以字段清单或逐桶文字替代。实施前先交付代表页面可视方案，按 `docs/product/visualization-requirements.md` V01–V08、A01–A06 及修订 Spec T17–T18 验收；当前数据闭环、测试及构建通过不代表新展示要求通过。
 - 不实现车辆控制、Tesla 凭据接入、多车对比或秒级刷新。业务数据只读，站点认证除外。
 - 2026-10-26 用户已选择 A「湖畔」并要求完成实施；当前正式 Flutter 页面、图表及验证见 `docs/implementation/lake-visualization.md`，视觉决定见 `docs/product/lake-visual-design.md`。不要再次按“尚待选择原型”停止；外部待验和未推送边界继续有效。
+- 2026-10-27 用户已确认概览扩展 A「用车简报」，仅实施现有 API 支持范围；增量同步 Spec #1/#8，不重复建票。方案见 `docs/product/overview-expansion-proposal.md`，正式实施和验证见 `docs/implementation/overview-briefing.md`；电量历史/停放变化/费用覆盖/长期续航及动态排序仍为后续候选，不修改后端。授权按 implement 完成测试、审查和当前分支本地提交，不推送或提前关闭外部待验。
 - `MileafServer/` 与 `teslamate/` 是外部仓库的符号链接，只读参考，不在本任务中修改。
 - 依赖、缓存与构建产物保持项目内；不修改全局工具或系统设置。不擅自提交、推送、部署或删除既有文件。
 - 修改前阅读相关文件；保持最小改动，验证后报告。区分代码事实、已确认决定和未确认建议。

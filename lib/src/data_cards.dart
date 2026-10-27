@@ -103,21 +103,24 @@ class BatteryLevelIndicator extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  level == null ? '—' : '${level!.toStringAsFixed(0)} %',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '电池电量',
-                  style: Theme.of(context).textTheme.labelSmall,
-                  textAlign: TextAlign.center,
-                ),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    level == null ? '—' : '${level!.toStringAsFixed(0)} %',
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '电池电量',
+                    style: Theme.of(context).textTheme.labelSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

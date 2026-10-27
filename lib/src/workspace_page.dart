@@ -13,6 +13,7 @@ import 'drives_page.dart';
 import 'drive_detail_page.dart';
 import 'performance_trace.dart';
 import 'statistics_page.dart';
+import 'statistics_period.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -44,6 +45,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
   );
   final chargingFilter = ChargingFilter();
   int tab = 0;
+  int statisticsKind = 0;
+  StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
   @override
   void initState() {
@@ -217,6 +220,12 @@ class _WorkspacePageState extends State<WorkspacePage> {
                     ? OverviewPage(
                         key: ValueKey('$selected:${workspace.revision}'),
                         workspace: workspace,
+                        currency: currency,
+                        onStatistics: (kind, selection) => setState(() {
+                          statisticsKind = kind == 'charging' ? 1 : 0;
+                          statisticsSelection = selection;
+                          tab = 3;
+                        }),
                         onRecord: record,
                       )
                     : tab == 1
@@ -235,6 +244,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
                       )
                     : tab == 3
                     ? StatisticsPage(
+                        initialKind: statisticsKind,
+                        initialSelection: statisticsSelection,
                         currency: currency,
                         key: ValueKey('statistics:$selected'),
                         workspace: workspace,
@@ -248,7 +259,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
-          onDestinationSelected: (index) => setState(() => tab = index),
+          onDestinationSelected: (index) => setState(() {
+            if (index == 3) {
+              statisticsKind = 0;
+              statisticsSelection = const StatisticsSelection();
+            }
+            tab = index;
+          }),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home_outlined), label: '概览'),
             NavigationDestination(

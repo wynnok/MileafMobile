@@ -273,6 +273,24 @@ void main() {
           ),
         );
         await save('overview-$suffix');
+        for (final entry in {
+          'net': '驾驶净电耗 · 估算',
+          'charge': '充入电池',
+          'cost': '已知充电费用',
+          'distance': '驾驶里程',
+        }.entries) {
+          await tester.scrollUntilVisible(
+            find.text(entry.value),
+            entry.key == 'distance' ? -150 : 150,
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(entry.value));
+          await save('overview-${entry.key}-$suffix');
+        }
+        await tester.scrollUntilVisible(find.text('一条有参照的变化'), 150);
+        await save('overview-comparison-$suffix');
+        await tester.scrollUntilVisible(find.text('补能账本'), 150);
+        await save('overview-ledger-$suffix');
         await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
         await save('overview-details-collapsed-$suffix');
         await tester.tap(find.text('车辆与数据时间'));

@@ -14,15 +14,19 @@ class StatisticsPage extends StatefulWidget {
     super.key,
     required this.workspace,
     required this.currency,
+    this.initialKind = 0,
+    this.initialSelection = const StatisticsSelection(),
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
+  final int initialKind;
+  final StatisticsSelection initialSelection;
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  int kind = 0;
+  late int kind = widget.initialKind;
   @override
   Widget build(BuildContext context) => Column(
     children: [
@@ -54,6 +58,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 currency: widget.currency,
                 kind: index == 0 ? 'driving' : 'charging',
                 active: kind == index,
+                initialSelection: widget.initialSelection,
               ),
           ],
         ),
@@ -68,18 +73,20 @@ class _StatisticsView extends StatefulWidget {
     required this.currency,
     required this.kind,
     required this.active,
+    required this.initialSelection,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final String kind;
   final bool active;
+  final StatisticsSelection initialSelection;
   @override
   State<_StatisticsView> createState() => _StatisticsViewState();
 }
 
 class _StatisticsViewState extends State<_StatisticsView>
     with WidgetsBindingObserver {
-  StatisticsSelection selection = const StatisticsSelection();
+  late StatisticsSelection selection = widget.initialSelection;
   dto.DrivingStats? data;
   charge.ChargingStats? chargingData;
   String? resultZone, resultDay;
