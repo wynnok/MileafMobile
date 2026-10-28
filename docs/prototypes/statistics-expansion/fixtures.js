@@ -52,8 +52,8 @@ function fixture(period='month',state='normal') {
     const day=first+i, ds=trips.filter(t=>t.day===day),cs=charges.filter(t=>t.day===day),vs=ds.filter(t=>t.energy!==null);
     const km=sum(ds,t=>t.km),kmValid=sum(vs,t=>t.km),en=sum(vs,t=>t.energy),known=cs.filter(t=>t.cost!==null);
     return {label:`10/${day}`,day,km,drives:ds.length,energy:ds.length&&!vs.length?null:en,
-      net:kmValid?en/kmValid*1000:null, legacyNet:km?en/km*1000:null,
-      gross:km?sum(cs,t=>t.added)/km*1000:null,
+      net:kmValid?en/kmValid*1000:null, legacyNet:vs.length&&km?en/km*1000:null,
+      gross:km&&cs.some(c=>c.added!==0)?sum(cs,t=>t.added)/km*1000:null,
       added:sum(cs,t=>t.added),cost:known.length?sum(known,t=>t.cost):cs.length?null:0,
       price:sum(known,t=>t.added)?sum(known,t=>t.cost)/sum(known,t=>t.added):null,
       sessions:cs.length,speed:ds.length?Math.max(...ds.map(t=>Math.round(t.km/t.duration*60+18))):null};
