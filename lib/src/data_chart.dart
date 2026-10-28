@@ -37,6 +37,7 @@ class TimeChart extends StatefulWidget {
     this.onSelected,
     this.compact = false,
     this.onActivateSelected,
+    this.activationLabel = '查看这一天的行程',
   });
   final String title, unit;
   final List<DateTime> times;
@@ -54,6 +55,7 @@ class TimeChart extends StatefulWidget {
   final ValueChanged<int>? onSelected;
   final bool compact;
   final VoidCallback? onActivateSelected;
+  final String activationLabel;
   @override
   State<TimeChart> createState() => _TimeChartState();
 }
@@ -105,7 +107,7 @@ class _TimeChartState extends State<TimeChart> {
         .toInt();
     final scheme = Theme.of(context).colorScheme;
     final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-    final colors = [scheme.primary, scheme.tertiary];
+    final colors = [scheme.primary, scheme.tertiary, scheme.outline];
     return DataCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -253,7 +255,11 @@ class _TimeChartState extends State<TimeChart> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          i.isEven ? Icons.circle : Icons.crop_square,
+                          switch (i % 3) {
+                            0 => Icons.circle,
+                            1 => Icons.crop_square,
+                            _ => Icons.change_history,
+                          },
                           size: 10,
                           color: colors[i % colors.length],
                         ),
@@ -307,7 +313,10 @@ class _TimeChartState extends State<TimeChart> {
                   if (widget.onActivateSelected != null)
                     TextButton(
                       onPressed: widget.onActivateSelected,
-                      child: const Text('看当天', semanticsLabel: '查看这一天的行程'),
+                      child: Text(
+                        '看当天',
+                        semanticsLabel: widget.activationLabel,
+                      ),
                     ),
                 ],
               )

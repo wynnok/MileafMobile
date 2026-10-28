@@ -273,13 +273,17 @@ class EnergyComparison extends StatelessWidget {
                                   bottom: 0,
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
-                                      color: i.isEven
-                                          ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                          : Theme.of(context)
-                                                .colorScheme
-                                                .tertiary,
+                                      color: switch (i % 3) {
+                                        0 => Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        1 => Theme.of(
+                                          context,
+                                        ).colorScheme.tertiary,
+                                        _ => Theme.of(
+                                          context,
+                                        ).colorScheme.outline,
+                                      },
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),

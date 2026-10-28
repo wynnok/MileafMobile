@@ -13,6 +13,7 @@
 - 2026-10-26 用户已选择 A「湖畔」并要求完成实施；当前正式 Flutter 页面、图表及验证见 `docs/implementation/lake-visualization.md`，视觉决定见 `docs/product/lake-visual-design.md`。不要再次按“尚待选择原型”停止；外部待验和未推送边界继续有效。
 - 2026-10-27 用户已确认概览扩展 A「用车简报」，仅实施现有 API 支持范围；增量同步 Spec #1/#8，不重复建票。方案见 `docs/product/overview-expansion-proposal.md`，正式实施和验证见 `docs/implementation/overview-briefing.md`；电量历史/停放变化/费用覆盖/长期续航及动态排序仍为后续候选，不修改后端。授权按 implement 完成测试、审查和当前分支本地提交，不推送或提前关闭外部待验。
 - 2026-10-27 用户已确认行程扩展 A「出行回顾」及方案顺序1，并批准紧凑节奏区/真实滚动调整；正式实现与本地测试、图册、双端隔离构建及审查见 `docs/implementation/drives-expansion.md`。Spec #1/#9/#10/#11 已增量同步；顺序2–4及新后端能力保持候选，不重复建票、不推送或提前关闭外部待验。授权当前 `codex/mileaf-v1` 本地提交，不再停在等待选择原型。
+- 2026-10-28 用户已确认充电扩展 A「补能账本」，实施已完成的 CH01–CH05；正式实现和验证见 `docs/implementation/charging-briefing.md`。Spec #1/#12/#13/#15 增量同步；CH06、地图空间聚合和跨会话性能比较后置，不重复建票、不推送或提前关闭外部待验。授权当前 `codex/mileaf-v1` 本地提交。
 - `MileafServer/` 与 `teslamate/` 是外部仓库的符号链接，只读参考，不在本任务中修改。
 - 依赖、缓存与构建产物保持项目内；不修改全局工具或系统设置。不擅自提交、推送、部署或删除既有文件。
 - 修改前阅读相关文件；保持最小改动，验证后报告。区分代码事实、已确认决定和未确认建议。

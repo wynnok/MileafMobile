@@ -3,12 +3,17 @@ import 'dart:io';
 
 // Deliberately generates only this slice's DTO closure, from the frozen contract.
 void main(List<String> args) {
-  final output = args.isEmpty ? "lib/src/auth_contract.g.dart" : args.first;
-  final roots = args.length < 2
+  final specOption = args.where((arg) => arg.startsWith('--spec=')).firstOrNull;
+  final positional = args.where((arg) => !arg.startsWith('--spec=')).toList();
+  final output = positional.isEmpty
+      ? "lib/src/auth_contract.g.dart"
+      : positional.first;
+  final roots = positional.length < 2
       ? ["Credentials", "LoginResponse", "Vehicle"]
-      : args.skip(1);
+      : positional.skip(1);
   final spec = jsonDecode(
-    File('docs/contracts/openapi-v1.json').readAsStringSync(),
+    File(specOption?.substring(7) ?? 'docs/contracts/openapi-v1.json')
+        .readAsStringSync(),
   ) as Map<String, dynamic>;
   final schemas = spec['components']['schemas'] as Map<String, dynamic>;
   final selected = <String>{};
@@ -41,6 +46,8 @@ void main(List<String> args) {
       'number' => 'num',
       'boolean' => 'bool',
       'array' => 'List<${type(Map<String, dynamic>.from(s['items']))}>',
+      'object' when s['additionalProperties'] is Map =>
+        'Map<String, ${type(Map<String, dynamic>.from(s['additionalProperties']))}>',
       'string' => s['format'] == 'date-time' ? 'DateTime' : 'String',
       _ => throw StateError('Unsupported $s'),
     };
@@ -55,6 +62,9 @@ void main(List<String> args) {
     }
     if (s['type'] == 'array') {
       return "field<List<dynamic>>($input).map((item) => ${decodeValue('item', Map<String, dynamic>.from(s['items']))}).toList()";
+    }
+    if (s['type'] == 'object' && s['additionalProperties'] is Map) {
+      return "object($input).map((key, value) => MapEntry(key, ${decodeValue('value', Map<String, dynamic>.from(s['additionalProperties']))}))";
     }
     if (s['format'] == 'date-time') return 'instant($input)';
     return "field<${type(s)}>($input)";
@@ -85,12 +95,19 @@ DateTime instant(dynamic value) {
   for (final name in selected) {
     final schema = schemas[name] as Map<String, dynamic>;
     final props = schema['properties'] as Map<String, dynamic>;
+    final requiredFields = (schema['required'] as List? ?? []).cast<String>();
+    bool optional(String key, Map<String, dynamic> value) =>
+        !requiredFields.contains(key) &&
+        !value.containsKey('default') &&
+        !type(value).endsWith('?');
     out.writeln('class $name {');
     out.writeln(
       '$name({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
     );
     for (final e in props.entries) {
-      out.writeln('final ${type(e.value)} ${camel(e.key)};');
+      out.writeln(
+        'final ${type(e.value)}${optional(e.key, e.value) ? '?' : ''} ${camel(e.key)};',
+      );
     }
     out.writeln('factory $name.fromJson(Map<String,dynamic> json) {');
     for (final k in schema['required'] as List? ?? []) {
@@ -99,14 +116,19 @@ DateTime instant(dynamic value) {
       );
     }
     out.writeln(
-      'return $name(${props.entries.map((e) => '${camel(e.key)}: ${decode(e.key, e.value)}').join(',')});}',
+      'return $name(${props.entries.map((e) => '${camel(e.key)}: ${optional(e.key, e.value) ? "json['${e.key}'] == null ? null : " : ''}${decode(e.key, e.value)}').join(',')});}',
     );
     if (name == 'Credentials') {
       out.writeln("Map<String,dynamic> toJson()=>{'password':password};");
     }
     out.writeln('}');
   }
-  File(output).writeAsStringSync(out.toString());
+  // The 0.2 charging event has a property named `field`; avoid shadowing the
+  // decoding helper inside its factory without changing the legacy outputs.
+  final source = specOption == null
+      ? out.toString()
+      : out.toString().replaceAll(RegExp(r'\bfield<'), 'decodeField<');
+  File(output).writeAsStringSync(source);
   final formatted = Process.runSync(Platform.resolvedExecutable, [
     'format',
     output,
