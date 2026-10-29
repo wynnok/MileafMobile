@@ -115,7 +115,9 @@ DateTime instant(dynamic value) {
         type(value) != 'Null';
     out.writeln('class $className {');
     out.writeln(
-      '$className({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
+      props.isEmpty
+          ? '$className();'
+          : '$className({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
     );
     for (final e in props.entries) {
       out.writeln(
