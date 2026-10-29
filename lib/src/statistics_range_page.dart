@@ -111,7 +111,17 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         },
         force: force,
       );
-      dto.RangeObservations.fromJson(r.body);
+      final parsed = dto.RangeObservations.fromJson(r.body);
+      if (parsed.query.vehicleId != id ||
+          parsed.query.tz != cal.identifier ||
+          parsed.query.filters['months'] != months ||
+          parsed.query.timeBasis != 'ended_at' ||
+          parsed.method != 'session-day-rated-range-v1' ||
+          parsed.version != 1 ||
+          parsed.rangeKind != 'rated' ||
+          parsed.socSource != 'battery_level') {
+        throw const FormatException('Mismatched range observation context');
+      }
       if (valid()) {
         setState(() {
           checkedAt = w.session.now();
@@ -160,6 +170,11 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         ],
       ),
       const Text('记录估计 · 非电池健康检测'),
+      if (d != null)
+        Text(
+          '查询生成时间：${d['as_of']}（非采样时间）',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       if (loading) const LinearProgressIndicator(),
       if (error != null) Text(error!),
       if (error != null)

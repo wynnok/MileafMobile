@@ -40,8 +40,12 @@ Map<String, dynamic> rangeResponse({
           1,
         ).subtract(const Duration(hours: 8)).toIso8601String(),
         'partial': m == months - 1,
-        'status': 'available',
-        'sample_status': sparse ? 'sparse' : 'adequate',
+        'status': missing && m == months - 1 ? 'no_records' : 'available',
+        'sample_status': missing && m == months - 1
+            ? 'insufficient_data'
+            : sparse
+            ? 'sparse'
+            : 'adequate',
         'median_range_km': missing && m == months - 1
             ? null
             : m == months - 1
@@ -49,7 +53,18 @@ Map<String, dynamic> rangeResponse({
             : 440,
         'p10_range_km': missing && m == months - 1 ? null : 422,
         'p90_range_km': missing && m == months - 1 ? null : 449,
-        'coverage': {'valid_days': sparse ? 2 : 8},
+        'coverage': {
+          'valid_days': missing && m == months - 1
+              ? 0
+              : sparse
+              ? 2
+              : 8,
+          'candidate_sessions': missing && m == months - 1 ? 0 : 10,
+          'valid_sessions': missing && m == months - 1 ? 0 : 10,
+          'candidate_points': missing && m == months - 1 ? 0 : 120,
+          'valid_points': missing && m == months - 1 ? 0 : 120,
+          'excluded_points': 0,
+        },
       },
   ],
 };
