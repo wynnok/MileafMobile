@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'statistics_period.dart';
+import 'statistics_usage_page.dart';
+import 'statistics_conditions_page.dart';
 import 'statistics_insights_page.dart';
+import 'statistics_range_page.dart';
+import 'statistics_parking_page.dart';
 import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
@@ -16,9 +20,11 @@ class StatisticsPage extends StatefulWidget {
     super.key,
     required this.workspace,
     required this.currency,
+    this.onDrive,
     this.initialKind = 0,
     this.initialSelection = const StatisticsSelection(),
   });
+  final ValueChanged<int>? onDrive;
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final int initialKind;
@@ -34,6 +40,13 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     currency: widget.currency,
     initialSelection: widget.initialSelection,
     initialTopic: widget.initialKind == 1 ? 'charging' : 'overview',
+    topics: {
+      'energy': (c) =>
+          StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
+      'usage': (c) => StatisticsUsagePage(source: c, onRecord: widget.onDrive),
+      'range': (context) => RangeObservationPage(context: context),
+      'parking': (context) => ParkingObservationPage(context: context),
+    },
     legacyBuilder: (selection) => _LegacyStatisticsPage(
       workspace: widget.workspace,
       currency: widget.currency,

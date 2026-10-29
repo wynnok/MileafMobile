@@ -51,6 +51,8 @@ void main(List<String> args) {
       return schemaName(ref.split('/').last);
     }
     return switch (s['type']) {
+      'null' => 'Null',
+      'object' when s['additionalProperties'] == true => 'Map<String, dynamic>',
       'integer' => 'int',
       'number' => 'num',
       'boolean' => 'bool',
@@ -109,10 +111,13 @@ DateTime instant(dynamic value) {
     bool optional(String key, Map<String, dynamic> value) =>
         !requiredFields.contains(key) &&
         !value.containsKey('default') &&
-        !type(value).endsWith('?');
+        !type(value).endsWith('?') &&
+        type(value) != 'Null';
     out.writeln('class $className {');
     out.writeln(
-      '$className({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
+      props.isEmpty
+          ? '$className();'
+          : '$className({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
     );
     for (final e in props.entries) {
       out.writeln(
