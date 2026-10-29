@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'statistics_period.dart';
 import 'statistics_insights_page.dart';
+import 'statistics_range_page.dart';
 import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
@@ -33,6 +34,7 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     workspace: widget.workspace,
     currency: widget.currency,
     initialSelection: widget.initialSelection,
+    topics: {'range': (context) => RangeObservationPage(context: context)},
     legacyBuilder: () => _LegacyStatisticsPage(
       workspace: widget.workspace,
       currency: widget.currency,
