@@ -14,17 +14,32 @@ class ChargingFilter {
   DateTime? first, last;
 }
 
+/// A frozen statistics query opening the existing charging ledger.
+class ChargingEntry {
+  const ChargingEntry({
+    required this.from,
+    required this.to,
+    this.chargingType,
+    this.locationId,
+    this.locationName,
+  });
+  final DateTime from, to;
+  final String? chargingType, locationId, locationName;
+}
+
 class ChargingPage extends StatefulWidget {
   const ChargingPage({
     super.key,
     required this.workspace,
     required this.currency,
     this.onRecord,
+    this.initialEntry,
     required this.filter,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final ChargingFilter filter;
+  final ChargingEntry? initialEntry;
   final void Function(String kind, int id)? onRecord;
   @override
   State<ChargingPage> createState() => _ChargingPageState();
@@ -71,7 +86,17 @@ class _ChargingPageState extends State<ChargingPage>
     workspace.addListener(contextChanged);
     revision = workspace.revision;
     interval();
-    load();
+    final entry = widget.initialEntry;
+    if (entry != null) {
+      from = entry.from;
+      to = entry.to;
+      chargeType = entry.chargingType ?? 'all';
+      locationId = entry.locationId;
+      locationName = entry.locationName;
+      recordsOnly = true;
+    } else {
+      load();
+    }
     loadCapability();
   }
 
@@ -180,6 +205,15 @@ class _ChargingPageState extends State<ChargingPage>
       capabilityChecked = recognized;
       capabilityError = failure;
     });
+    if (widget.initialEntry != null && !available) {
+      setState(() {
+        items.clear();
+        next = null;
+        loaded = false;
+        error = '站点暂不支持此结束日筛选，请更新能力后重试';
+      });
+      return;
+    }
     if (changed) {
       next = null;
       items.clear();
@@ -207,7 +241,7 @@ class _ChargingPageState extends State<ChargingPage>
       await Future.wait([
         loadStats(),
         if (available) loadLocations(),
-        if (available) loadActive(),
+        if (available && widget.initialEntry == null) loadActive(),
       ]);
     }
   }
@@ -540,6 +574,10 @@ class _ChargingPageState extends State<ChargingPage>
   }
 
   Future<void> load({bool more = false, bool force = false}) async {
+    if (widget.initialEntry != null && !expandedAvailable) {
+      await loadCapability(force: force);
+      return;
+    }
     if (more && (loading || next == null)) return;
     if (!more && force) {
       next = null;
