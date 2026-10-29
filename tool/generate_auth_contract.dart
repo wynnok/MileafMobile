@@ -47,8 +47,9 @@ void main(List<String> args) {
     if (s['anyOf'] case final List values) {
       return '${type(Map<String, dynamic>.from(values.firstWhere((v) => v['type'] != 'null')))}?';
     }
-    if (s[r'$ref'] case final String ref)
+    if (s[r'$ref'] case final String ref) {
       return schemaName(ref.split('/').last);
+    }
     return switch (s['type']) {
       'integer' => 'int',
       'number' => 'num',
