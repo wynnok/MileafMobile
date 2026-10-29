@@ -40,6 +40,7 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     workspace: widget.workspace,
     currency: widget.currency,
     initialSelection: widget.initialSelection,
+    initialTopic: widget.initialKind == 1 ? 'charging' : 'overview',
     topics: {
       'energy': (c) =>
           StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
@@ -48,11 +49,11 @@ class _StatisticsEntryState extends State<StatisticsPage> {
       'range': (context) => RangeObservationPage(context: context),
       'parking': (context) => ParkingObservationPage(context: context),
     },
-    legacyBuilder: () => _LegacyStatisticsPage(
+    legacyBuilder: (selection) => _LegacyStatisticsPage(
       workspace: widget.workspace,
       currency: widget.currency,
       initialKind: widget.initialKind,
-      initialSelection: widget.initialSelection,
+      initialSelection: selection,
     ),
   );
 }

@@ -158,6 +158,13 @@ Future<void> openParking(
   );
   await tester.tap(find.text('长期'));
   await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.text('展开停放观察').hitTestable(),
+    100,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(find.text('展开停放观察').hitTestable());
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -171,11 +178,13 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     await openParking(tester, <Uri>[]);
-    await tester.ensureVisible(find.text('展开停放观察'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('展开停放观察'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('加载更多窗口'));
+    await tester.scrollUntilVisible(
+      find.text('加载更多窗口').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
@@ -183,30 +192,41 @@ void main() {
     final requests = <Uri>[];
     await openParking(tester, requests, fail: true);
     expect(find.text('停放观察读取失败'), findsOneWidget);
-    await tester.ensureVisible(find.text('重试停放观察'));
+    await tester.scrollUntilVisible(
+      find.text('重试停放观察').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
+    final beforeRetry = requests.length;
     await tester.tap(find.text('重试停放观察'));
     await tester.pumpAndSettle();
-    expect(requests.length, 2);
+    expect(requests.length, beforeRetry + 1);
     expect(find.text('用车洞察'), findsOneWidget);
   });
   testWidgets('停车服务端汇总与冻结分页证据独立显示', (tester) async {
     final requests = <Uri>[];
     await openParking(tester, requests);
     expect(find.textContaining('停放SOC变化'), findsWidgets);
-    await tester.ensureVisible(find.text('展开停放观察'));
-    await tester.tap(find.text('展开停放观察'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('parking-trend-chart')), findsOneWidget);
     expect(find.textContaining('-2.0 pp'), findsWidgets);
-    await tester.ensureVisible(find.text('后一点'));
+    await tester.scrollUntilVisible(
+      find.text('后一点').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('后一点'));
     await tester.pumpAndSettle();
     expect(find.textContaining('0.0 pp'), findsWidgets);
     await tester.tap(find.text('后一点'));
     await tester.pumpAndSettle();
     expect(find.textContaining('1.0 pp'), findsWidgets);
-    await tester.ensureVisible(find.text('加载更多窗口'));
+    await tester.scrollUntilVisible(
+      find.text('加载更多窗口').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('加载更多窗口'));
     await tester.pumpAndSettle();

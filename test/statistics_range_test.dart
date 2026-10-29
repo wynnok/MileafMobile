@@ -113,6 +113,13 @@ Future<void> openRange(
   );
   await tester.tap(find.text('长期'));
   await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.text('展开长期续航').hitTestable(),
+    100,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(find.text('展开长期续航').hitTestable());
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -132,7 +139,11 @@ void main() {
     await openRange(tester, <int>[], sparse: true);
     expect(find.textContaining('样本稀疏，仅供点读'), findsOneWidget);
     expect(find.textContaining('432'), findsWidgets);
-    await tester.ensureVisible(find.text('前一个月'));
+    await tester.scrollUntilVisible(
+      find.text('前一个月').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('前一个月'));
     await tester.pumpAndSettle();
     expect(find.textContaining('440'), findsWidgets);
@@ -141,7 +152,11 @@ void main() {
     await openRange(tester, <int>[], missing: true);
     expect(find.textContaining('中位 — km'), findsOneWidget);
     expect(find.textContaining('未结束月'), findsOneWidget);
-    await tester.ensureVisible(find.text('前一个月'));
+    await tester.scrollUntilVisible(
+      find.text('前一个月').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('前一个月'));
     await tester.pumpAndSettle();
     expect(find.textContaining('440'), findsWidgets);
