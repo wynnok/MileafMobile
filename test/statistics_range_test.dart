@@ -6,14 +6,23 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture;
+import 'support/statistics_insights_fixture.dart';
 
-Map<String, dynamic> rangeResponse({bool sparse = false}) => {
+Map<String, dynamic> rangeResponse({
+  int months = 6,
+  bool sparse = false,
+  bool missing = false,
+}) => {
   'query': {
     'vehicle_id': 1,
-    'from': '2026-05-01T00:00:00Z',
+    'from': DateTime.utc(
+      2026,
+      11 - months,
+      1,
+    ).subtract(const Duration(hours: 8)).toIso8601String(),
     'to': '2026-10-28T11:00:00Z',
     'tz': 'Asia/Shanghai',
-    'filters': {'months': 6},
+    'filters': {'months': months},
   },
   'as_of': '2026-10-28T11:00:00Z',
   'first_observed_at': '2026-05-02T00:00:00Z',
@@ -23,15 +32,23 @@ Map<String, dynamic> rangeResponse({bool sparse = false}) => {
     'sample_status': sparse ? 'sparse' : 'adequate',
   },
   'buckets': [
-    for (var m = 5; m <= 10; m++)
+    for (var m = 0; m < months; m++)
       {
-        'bucket_start': '2026-${m.toString().padLeft(2, '0')}-01T00:00:00Z',
-        'partial': m == 10,
+        'bucket_start': DateTime.utc(
+          2026,
+          11 - months + m,
+          1,
+        ).subtract(const Duration(hours: 8)).toIso8601String(),
+        'partial': m == months - 1,
         'status': 'available',
         'sample_status': sparse ? 'sparse' : 'adequate',
-        'median_range_km': m == 10 ? 432 : 440,
-        'p10_range_km': 422,
-        'p90_range_km': 449,
+        'median_range_km': missing && m == months - 1
+            ? null
+            : m == months - 1
+            ? 432
+            : 440,
+        'p10_range_km': missing && m == months - 1 ? null : 422,
+        'p90_range_km': missing && m == months - 1 ? null : 449,
         'coverage': {'valid_days': sparse ? 2 : 8},
       },
   ],
@@ -40,6 +57,8 @@ Future<void> openRange(
   WidgetTester tester,
   List<int> requests, {
   bool sparse = false,
+  bool missing = false,
+  bool fail = false,
 }) async {
   await openStats(
     tester,
@@ -48,25 +67,30 @@ Future<void> openRange(
       if (r.url.path.endsWith('/summary')) return fixture('summary');
       if (r.url.path.endsWith('/meta')) {
         return http.Response(
-          jsonEncode({
-            'statistics_insights': {
-              'contract_version': 'statistics-insights-v1',
-              'minimum_server_version': '0.3.0',
-              'features': {
-                'driving_coverage': true,
-                'range_observations': true,
-              },
-            },
-          }),
+          jsonEncode(
+            statisticsInsightsMeta(
+              features: {'driving_coverage': true, 'range_observations': true},
+            ),
+          ),
           200,
         );
       }
       if (r.url.path.endsWith('/range-observations')) {
         expect(r.url.queryParameters.containsKey('from'), isFalse);
         requests.add(int.parse(r.url.queryParameters['months']!));
-        return http.Response(jsonEncode(rangeResponse(sparse: sparse)), 200);
+        if (fail) return http.Response('{}', 503);
+        return http.Response(
+          jsonEncode(
+            rangeResponse(
+              sparse: sparse,
+              missing: missing,
+              months: int.parse(r.url.queryParameters['months']!),
+            ),
+          ),
+          200,
+        );
       }
-      return fixture('driving-stats');
+      return http.Response(jsonEncode(statisticsInsightsFixture(r.url)), 200);
     }),
     () => DateTime.utc(2026, 10, 28, 11),
     () => 'Asia/Shanghai',
@@ -97,5 +121,20 @@ void main() {
     await tester.tap(find.text('前一个月'));
     await tester.pumpAndSettle();
     expect(find.textContaining('440'), findsWidgets);
+  });
+  testWidgets('缺月保留破折号及未结束标识，前后读取不补零', (tester) async {
+    await openRange(tester, <int>[], missing: true);
+    expect(find.textContaining('中位 — km'), findsOneWidget);
+    expect(find.textContaining('未结束月'), findsOneWidget);
+    await tester.ensureVisible(find.text('前一个月'));
+    await tester.tap(find.text('前一个月'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('440'), findsWidgets);
+  });
+  testWidgets('续航资源失败不清除统计承载并提供独立重试', (tester) async {
+    await openRange(tester, <int>[], fail: true);
+    expect(find.text('续航观察读取失败'), findsOneWidget);
+    expect(find.text('重试续航观察'), findsOneWidget);
+    expect(find.text('用车洞察'), findsOneWidget);
   });
 }

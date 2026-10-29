@@ -246,6 +246,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                     selected,
                     Theme.of(context).colorScheme,
                     c.workspace.calendar!,
+                    MediaQuery.textScalerOf(context).scale(11),
                   ),
                 ),
               ),
@@ -301,12 +302,12 @@ class _RangeObservationPageState extends State<RangeObservationPage>
           title: const Text('样本与估计方法'),
           children: [
             const Text(
-              '固定额定续航与 battery_level，同点SOC20–90%；会话中位→本地结束日日中位→月分位数。阈值为首版产品规则，非显著性或健康检测标准。',
+              '固定使用额定续航和仪表电量，同点电量20–90%；先求单次充电中位数，再求每日中位数和月分位数。筛选阈值为首版产品规则，非显著性或健康检测标准。',
             ),
             Text('窗口内首次有效采样：${d?['first_observed_at'] ?? '—'}（仅查询窗口，不是新车基线）'),
             for (final row in rows)
               Text(
-                '${row['bucket_start']} · ${row['status']} · ${row['sample_status']} · 覆盖 ${row['coverage']}',
+                '${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).year}/${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).month} · 有效日 ${(row['coverage'] as Map?)?['valid_days'] ?? 0} · 有效会话 ${(row['coverage'] as Map?)?['valid_sessions'] ?? 0} · 有效采样 ${(row['coverage'] as Map?)?['valid_points'] ?? 0}',
               ),
           ],
         ),
@@ -329,11 +330,18 @@ class _RangeObservationPageState extends State<RangeObservationPage>
 }
 
 class _RangePainter extends CustomPainter {
-  _RangePainter(this.rows, this.selected, this.colors, this.calendar);
+  _RangePainter(
+    this.rows,
+    this.selected,
+    this.colors,
+    this.calendar,
+    this.fontSize,
+  );
   final List<Map<String, dynamic>> rows;
   final int selected;
   final ColorScheme colors;
   final CalendarContext calendar;
+  final double fontSize;
   @override
   void paint(Canvas canvas, Size size) {
     final values = [
@@ -355,7 +363,7 @@ class _RangePainter extends CustomPainter {
       final t = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
+          style: TextStyle(color: colors.onSurfaceVariant, fontSize: fontSize),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -381,7 +389,9 @@ class _RangePainter extends CustomPainter {
     for (var i = 0; i < rows.length; i++) {
       final r = rows[i];
       final date = calendar.local(DateTime.parse(r['bucket_start'] as String));
-      if (rows.length <= 6 || i.isEven) {
+      if (fontSize > 15
+          ? i == 0 || i == rows.length - 1
+          : rows.length <= 6 || i.isEven) {
         label('${date.month}月', Offset(x(i) - 10, top + height + 9));
       }
       if (i > 0 && adequate(i - 1) && adequate(i)) {
