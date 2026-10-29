@@ -47,37 +47,75 @@ Map<String, dynamic> parkingResponse(Uri uri, {bool empty = false}) => {
   'matched_windows': 4,
   'next_cursor': uri.queryParameters.containsKey('cursor') ? null : 'page2',
   'items': [
-    {
-      'window_id': uri.queryParameters.containsKey('cursor')
-          ? 'open-tail'
-          : 'closed-1',
-      'start_event': {'type': 'drive', 'id': 1},
-      'end_event': null,
-      'window_start': '2026-10-28T00:00:00Z',
-      'window_end': null,
-      'duration_hours': null,
-      'start': {
-        'raw_time': '2026-10-28T00:00:00Z',
-        'soc': 70,
-        'soc_source': 'drive_end_position',
-        'odometer_km': 100,
-        'odometer_source': 'drive_end_position',
-        'position_id': 1,
-        'rated_range_km': 300,
+    if (!uri.queryParameters.containsKey('cursor'))
+      for (final quality in ['complete', 'partial_state_coverage', 'excluded'])
+        {
+          'window_id': quality,
+          'start_event': {'type': 'drive', 'id': 1},
+          'end_event': {'type': 'charge', 'id': 2},
+          'window_start': '2026-10-27T22:00:00Z',
+          'window_end': '2026-10-28T12:00:00Z',
+          'duration_hours': 14,
+          'start': {
+            'raw_time': '2026-10-27T22:00:00Z',
+            'soc': 70,
+            'soc_source': 'drive_end_position',
+            'odometer_km': 100,
+            'odometer_source': 'drive_end_position',
+            'position_id': 1,
+          },
+          'end': {
+            'raw_time': '2026-10-28T12:00:00Z',
+            'soc': quality == 'excluded' ? null : 69,
+            'soc_source': 'charging_start_battery_level',
+            'odometer_km': 99.8,
+            'odometer_source': 'charging_start_position',
+            'position_id': 2,
+          },
+          'included': quality != 'excluded',
+          'quality': quality,
+          'exclusion_reason': quality == 'excluded' ? 'missing_soc' : null,
+          'soc_change_pp': quality == 'excluded' ? null : -1,
+          'soc_change_pp_per_24h': quality == 'excluded' ? null : -1.714,
+          'odometer_change_km': -.2,
+          'negative_odometer_change': true,
+          'online_hours': 2,
+          'asleep_hours': 8,
+          'offline_hours': 1,
+          'unknown_hours': 3,
+        },
+    if (uri.queryParameters.containsKey('cursor'))
+      {
+        'window_id': uri.queryParameters.containsKey('cursor')
+            ? 'open-tail'
+            : 'closed-1',
+        'start_event': {'type': 'drive', 'id': 1},
+        'end_event': null,
+        'window_start': '2026-10-28T00:00:00Z',
+        'window_end': null,
+        'duration_hours': null,
+        'start': {
+          'raw_time': '2026-10-28T00:00:00Z',
+          'soc': 70,
+          'soc_source': 'drive_end_position',
+          'odometer_km': 100,
+          'odometer_source': 'drive_end_position',
+          'position_id': 1,
+          'rated_range_km': 300,
+        },
+        'end': {},
+        'included': false,
+        'quality': 'open_window',
+        'exclusion_reason': null,
+        'soc_change_pp': null,
+        'soc_change_pp_per_24h': null,
+        'odometer_change_km': null,
+        'negative_odometer_change': false,
+        'online_hours': 0,
+        'asleep_hours': 0,
+        'offline_hours': 0,
+        'unknown_hours': 1,
       },
-      'end': {},
-      'included': false,
-      'quality': 'open_window',
-      'exclusion_reason': null,
-      'soc_change_pp': null,
-      'soc_change_pp_per_24h': null,
-      'odometer_change_km': null,
-      'negative_odometer_change': false,
-      'online_hours': 0,
-      'asleep_hours': 0,
-      'offline_hours': 0,
-      'unknown_hours': 1,
-    },
   ],
 };
 Future<void> openParking(
@@ -178,6 +216,8 @@ void main() {
     );
     expect(requests.last.queryParameters['cursor'], 'page2');
     expect(find.textContaining('open-tail'), findsWidgets);
+    expect(find.textContaining('-2.0 pp'), findsWidgets);
+    expect(find.textContaining('partial_state_coverage'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
   testWidgets('无有效窗口不展示零损耗', (tester) async {
