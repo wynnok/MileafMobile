@@ -36,11 +36,19 @@ void main(List<String> args) {
   }
   String camel(String s) =>
       s.replaceAllMapped(RegExp(r'_([a-z])'), (m) => m[1]!.toUpperCase());
+  String schemaName(String name) => !name.contains('__')
+      ? name
+      : name
+            .split(RegExp('_+'))
+            .where((part) => part.isNotEmpty)
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join();
   String type(Map<String, dynamic> s) {
     if (s['anyOf'] case final List values) {
       return '${type(Map<String, dynamic>.from(values.firstWhere((v) => v['type'] != 'null')))}?';
     }
-    if (s[r'$ref'] case final String ref) return ref.split('/').last;
+    if (s[r'$ref'] case final String ref)
+      return schemaName(ref.split('/').last);
     return switch (s['type']) {
       'integer' => 'int',
       'number' => 'num',
@@ -58,7 +66,7 @@ void main(List<String> args) {
       return '$input == null ? null : ${decodeValue(input, Map<String, dynamic>.from(values.firstWhere((v) => v['type'] != 'null')))}';
     }
     if (s[r'$ref'] case final String ref) {
-      return '${ref.split('/').last}.fromJson(object($input))';
+      return '${schemaName(ref.split('/').last)}.fromJson(object($input))';
     }
     if (s['type'] == 'array') {
       return "field<List<dynamic>>($input).map((item) => ${decodeValue('item', Map<String, dynamic>.from(s['items']))}).toList()";
@@ -93,6 +101,7 @@ DateTime instant(dynamic value) {
 }
 ''');
   for (final name in selected) {
+    final className = schemaName(name);
     final schema = schemas[name] as Map<String, dynamic>;
     final props = schema['properties'] as Map<String, dynamic>;
     final requiredFields = (schema['required'] as List? ?? []).cast<String>();
@@ -100,23 +109,23 @@ DateTime instant(dynamic value) {
         !requiredFields.contains(key) &&
         !value.containsKey('default') &&
         !type(value).endsWith('?');
-    out.writeln('class $name {');
+    out.writeln('class $className {');
     out.writeln(
-      '$name({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
+      '$className({${props.keys.map((k) => 'required this.${camel(k)}').join(',')}});',
     );
     for (final e in props.entries) {
       out.writeln(
         'final ${type(e.value)}${optional(e.key, e.value) ? '?' : ''} ${camel(e.key)};',
       );
     }
-    out.writeln('factory $name.fromJson(Map<String,dynamic> json) {');
+    out.writeln('factory $className.fromJson(Map<String,dynamic> json) {');
     for (final k in schema['required'] as List? ?? []) {
       out.writeln(
         "if (!json.containsKey('$k')) { throw const FormatException('Missing required field: $k'); }",
       );
     }
     out.writeln(
-      'return $name(${props.entries.map((e) => '${camel(e.key)}: ${optional(e.key, e.value) ? "json['${e.key}'] == null ? null : " : ''}${decode(e.key, e.value)}').join(',')});}',
+      'return $className(${props.entries.map((e) => '${camel(e.key)}: ${optional(e.key, e.value) ? "json['${e.key}'] == null ? null : " : ''}${decode(e.key, e.value)}').join(',')});}',
     );
     if (name == 'Credentials') {
       out.writeln("Map<String,dynamic> toJson()=>{'password':password};");
