@@ -36,3 +36,9 @@
 红绿记录在工作树忽略目录 `.cache/`：`red.log`、`meta-red.log`、`strict-red.log`/`strict-green.log`、`calendar-red.log`/`calendar-green.log`、`reference-retry-red.log`/`reference-retry-green.log`、`independent-red.log` 与最终 `final-targeted.log`。参照明细初期失败定位为ListView懒构建/底栏遮挡后的测试滚动，改为hitTestable目标并保留数值断言；未屏蔽hit-test警告。所有临时诊断语句已从代码移除。
 
 完整集成回归、正式Flutter浅深色/大字图册、两轴审查及双端隔离构建由#17在最终集成版本统一执行；上述限定测试和几何检查不冒充这些最终证据。
+
+## 合并后联验
+
+合入集成分支的 usage/range/conditions/parking 后，保留各自topics及onDrive；统一长期摘要由父承载提供展开按钮，Range/Parking以context.compact决定摘要或完整页，进入专题不再二次展开。测试helper使用真实滚动到hitTestable入口，避免200%下按钮未构建便跳过，未弱化图形/证据断言。
+
+合并版本的七组统计App测试（statistics、charging_statistics、statistics_insights、usage、range、conditions、parking）共56项通过，日志 `.cache/merged-targeted.log`；独立两类旧统计回归和本票17条新增行为仍包含在内。合并提交为 `9c5a648`，最终规范检查及修复提交在本分支后续记录。完整主App回归、图册和双端构建仍由根集成任务统一执行。

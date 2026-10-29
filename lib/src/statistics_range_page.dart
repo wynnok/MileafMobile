@@ -198,17 +198,6 @@ class _RangeObservationPageState extends State<RangeObservationPage>
           '${value(totals?['median_range_km'])} km',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
-        TextButton(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => Scaffold(
-                appBar: AppBar(title: const Text('续航观察')),
-                body: RangeObservationPage(context: c, expanded: true),
-              ),
-            ),
-          ),
-          child: const Text('展开续航观察'),
-        ),
       ] else ...[
         Wrap(
           spacing: 8,

@@ -188,7 +188,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
     final c = widget.context,
         d = data,
         t = d?['totals'] as Map?,
-        compact = !widget.expanded;
+        compact = c.compact && !widget.expanded;
     if (c.features['parking_observations'] != true) {
       return const DataCard(child: Text('当前站点不支持停放观察'));
     }
@@ -227,19 +227,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
               onPressed: () => load(force: true),
               child: const Text('重试停放观察'),
             ),
-          if (compact)
-            TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => Scaffold(
-                    appBar: AppBar(title: const Text('停放观察')),
-                    body: ParkingObservationPage(context: c, expanded: true),
-                  ),
-                ),
-              ),
-              child: const Text('展开停放观察'),
-            )
-          else ...[
+          if (!compact) ...[
             if (d != null) Text('状态：${d['status']} · 查询生成：${d['as_of']}'),
             const Text('SOC百分点变化 · 负值下降，正值回弹，零为不变；标准化率为已观测结果，不预测未来24小时。'),
             if (rows.isNotEmpty) ...[

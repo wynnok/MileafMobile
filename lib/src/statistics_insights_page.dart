@@ -313,6 +313,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   Widget longTopics() => ListView(
     padding: const EdgeInsets.all(18),
     children: [
+      if (features?['range_observations'] != true &&
+          features?['parking_observations'] != true)
+        Text(features == null ? '正在识别长期观察能力' : '本站未提供长期观察能力，请升级服务或重试能力'),
       for (final key in ['range', 'parking'])
         if (widget.topics.containsKey(key) &&
             features?[key == 'range'
@@ -442,6 +445,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       features != null &&
                       widget.topics.containsKey(topic)
                 ? widget.topics[topic]!(topicContext())
+                : topic != 'overview'
+                ? widget.legacyBuilder(selection)
                 : Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
