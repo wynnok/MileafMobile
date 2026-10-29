@@ -4,6 +4,7 @@ import 'statistics_period.dart';
 import 'statistics_usage_page.dart';
 import 'statistics_insights_page.dart';
 import 'statistics_range_page.dart';
+import 'statistics_parking_page.dart';
 import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
@@ -40,6 +41,7 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     topics: {
       'usage': (c) => StatisticsUsagePage(source: c, onRecord: widget.onDrive),
       'range': (context) => RangeObservationPage(context: context),
+      'parking': (context) => ParkingObservationPage(context: context),
     },
     legacyBuilder: () => _LegacyStatisticsPage(
       workspace: widget.workspace,
