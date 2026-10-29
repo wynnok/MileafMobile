@@ -1,5 +1,7 @@
 # 行笺移动端：数据可视化需求基线
 
+2026-10-29 整体复核：见[车主体验与四Tab规划](owner-experience-review.md)、[新增接口交接](owner-api-requirements.md)及[本轮客户端实施](../implementation/owner-experience.md)。下文G01–G08是2026-10-25的能力盘点，不能代替当前契约事实：0.2已提供充电覆盖/地点/过程扩展，0.3已提供用车节奏/条件、长期额定续航及停放SOC窗口。OE01–OE06是剩余能力提案，尚未实现后端；V01–V08/A01–A06继续适用。
+
 2026-10-27 行程增量：用户已确认 A「出行回顾」及现有 API 范围，详见[方案](drives-expansion-proposal.md)顺序1。GitHub #1、#9–#11 已补充对应验收；正式Flutter、本地测试/渲染和隔离构建见[实施记录](../implementation/drives-expansion.md)。外部验收保留，历史渲染不代替新增要求。
 
 日期：2026-10-25。状态：依据用户本轮明确诉求完成的需求澄清；页面规则是实施基线，具体视觉稿及 App 实现尚待验证。

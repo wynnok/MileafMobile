@@ -46,6 +46,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   final chargingFilter = ChargingFilter();
   int tab = 0;
   int statisticsKind = 0;
+  String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
   @override
@@ -222,7 +223,14 @@ class _WorkspacePageState extends State<WorkspacePage> {
                         workspace: workspace,
                         currency: currency,
                         onStatistics: (kind, selection) => setState(() {
+                          statisticsTopic = null;
                           statisticsKind = kind == 'charging' ? 1 : 0;
+                          statisticsSelection = selection;
+                          tab = 3;
+                        }),
+                        onInsight: (topic, selection) => setState(() {
+                          statisticsKind = 0;
+                          statisticsTopic = topic;
                           statisticsSelection = selection;
                           tab = 3;
                         }),
@@ -246,6 +254,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                     ? StatisticsPage(
                         onDrive: (id) => record('drive', id),
                         initialKind: statisticsKind,
+                        initialTopic: statisticsTopic,
                         initialSelection: statisticsSelection,
                         currency: currency,
                         key: ValueKey('statistics:$selected'),
@@ -263,6 +272,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
           onDestinationSelected: (index) => setState(() {
             if (index == 3) {
               statisticsKind = 0;
+              statisticsTopic = null;
               statisticsSelection = const StatisticsSelection();
             }
             tab = index;

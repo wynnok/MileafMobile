@@ -89,8 +89,15 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   @override
   void didUpdateWidget(covariant StatisticsInsightsPage old) {
     super.didUpdateWidget(old);
-    if (revision != workspace.revision) {
+    if (revision != workspace.revision ||
+        old.initialTopic != widget.initialTopic) {
       revision = workspace.revision;
+      if (old.initialTopic != widget.initialTopic) {
+        topic = widget.initialTopic;
+        selection = widget.initialSelection;
+        loadedWindow = null;
+        point = 0;
+      }
       current = null;
       reference = null;
       charging = null;
@@ -362,13 +369,17 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         Wrap(
           spacing: 8,
           children: [
-            for (final label in ['总览', '能耗', '补能', '长期'])
+            for (final label in ['总览', '节奏', '能耗', '补能', '长期'])
               ChoiceChip(
                 label: Text(label),
+                visualDensity: VisualDensity.compact,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 3),
+                showCheckmark: false,
                 selected:
                     topic ==
                     const {
                       '总览': 'overview',
+                      '节奏': 'usage',
                       '能耗': 'energy',
                       '补能': 'charging',
                       '长期': 'long',
@@ -376,6 +387,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 onSelected: (_) => selectTopic(
                   const {
                     '总览': 'overview',
+                    '节奏': 'usage',
                     '能耗': 'energy',
                     '补能': 'charging',
                     '长期': 'long',
@@ -426,7 +438,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           Expanded(
             child: topic == 'long'
                 ? longTopics()
-                : topic != 'overview' && widget.topics.containsKey(topic)
+                : topic != 'overview' &&
+                      topic != 'charging' &&
+                      widget.topics.containsKey(topic)
                 ? widget.topics[topic]!(topicContext())
                 : widget.legacyBuilder(selection),
           ),
@@ -505,7 +519,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       ),
                     Text(
                       '这段时间的用车回顾',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.labelMedium,
                     ),
                     MetricTile(
                       label: '期间里程',
@@ -607,6 +621,46 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                           : comparable
                           ? ChartPresentation.groupedBars
                           : ChartPresentation.bars,
+                    ),
+                    const SizedBox(height: 12),
+                    DataCard(
+                      child: MetricGrid(
+                        children: [
+                          MetricTile(
+                            label: '记录驾驶时长',
+                            value:
+                                enhanced
+                                        .totals
+                                        .drivingCoverage
+                                        .durationKnownMin ==
+                                    null
+                                ? '—（缺失）'
+                                : '${enhanced.totals.drivingCoverage.durationKnownMin!.toStringAsFixed(0)} 分钟',
+                            note:
+                                '${enhanced.totals.drivingCoverage.durationKnownDrives}/${enhanced.totals.drivingCoverage.completedDrives}趟有记录',
+                          ),
+                          MetricTile(
+                            label: '已完成行程',
+                            value:
+                                '${enhanced.totals.drivingCoverage.completedDrives} 趟',
+                            note:
+                                '${enhanced.totals.drivingCoverage.ongoingDrives}趟进行中，未计入结果',
+                          ),
+                          MetricTile(
+                            label: '估算行驶能量',
+                            value:
+                                '${stats.totals.energyKwh?.toStringAsFixed(2) ?? '—'} kWh',
+                            note:
+                                '${enhanced.totals.drivingCoverage.netEnergyKnownDrives}趟能量有记录',
+                          ),
+                          MetricTile(
+                            label: '能量有效里程',
+                            value:
+                                '${enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm?.toStringAsFixed(1) ?? '—'} km',
+                            note: '与全里程分开核对',
+                          ),
+                        ],
+                      ),
                     ),
                     if (comparable && stats.buckets.isNotEmpty)
                       Text(

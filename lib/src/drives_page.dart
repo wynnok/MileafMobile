@@ -463,6 +463,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
           ],
           if (driving case final s?) ...[
             Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -473,7 +474,8 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                   children: [
                     Text(
                       '期间里程 ${number(s.totals.distanceKm, 'km', decimals: 1)}',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     Wrap(
                       spacing: 12,
@@ -602,8 +604,19 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                         '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text('估算净电耗 ${number(d.consumptionWhKm, 'Wh/km')}'),
-                      Text('估算净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}'),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '估算净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            '估算净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                       for (final endpoint in [
                         ('起点', d.start),
                         ('终点', d.end),

@@ -67,7 +67,10 @@ class MetricTile extends StatelessWidget {
                 (emphasize
                         ? Theme.of(context).textTheme.headlineMedium
                         : Theme.of(context).textTheme.titleLarge)
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                    ?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
           ),
           if (note != null) ...[
             const SizedBox(height: 5),
@@ -77,6 +80,57 @@ class MetricTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A question and its next reading destination; it does not fetch hidden topics.
+class InsightLink extends StatelessWidget {
+  const InsightLink({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title, subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => DataCard(
+    padding: EdgeInsets.zero,
+    child: ListTile(
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      title: Text(title, style: Theme.of(context).textTheme.titleSmall),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right, size: 18),
+      onTap: onTap,
+    ),
+  );
+}
+
+/// Wrap to one column at large text sizes using the actual available width.
+class MetricGrid extends StatelessWidget {
+  const MetricGrid({super.key, required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final stacked = MediaQuery.textScalerOf(context).scale(14) > 20;
+      return Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        children: [
+          for (final child in children)
+            SizedBox(
+              width: stacked
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 16) / 2,
+              child: child,
+            ),
+        ],
+      );
+    },
+  );
 }
 
 class BatteryLevelIndicator extends StatelessWidget {

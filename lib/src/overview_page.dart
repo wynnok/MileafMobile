@@ -24,10 +24,12 @@ class OverviewPage extends StatefulWidget {
     required this.currency,
     this.onRecord,
     this.onStatistics,
+    this.onInsight,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final void Function(String, StatisticsSelection)? onStatistics;
+  final void Function(String, StatisticsSelection)? onInsight;
   final void Function(String kind, int id)? onRecord;
   @override
   State<OverviewPage> createState() => _OverviewPageState();
@@ -1007,6 +1009,37 @@ class _OverviewPageState extends State<OverviewPage>
               ),
             ]),
             mainChart(),
+            if (widget.onInsight != null && range != null) ...[
+              const SizedBox(height: 12),
+              Text('读懂这辆车', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              for (final item in [
+                (
+                  'usage',
+                  Icons.calendar_month_outlined,
+                  '我的用车节奏',
+                  '驾驶时间、常见单程与每周分布',
+                ),
+                (
+                  'energy',
+                  Icons.insights_outlined,
+                  '什么影响了电耗',
+                  '按温度与距离看记录，了解样本差异',
+                ),
+                (
+                  'long',
+                  Icons.battery_std_outlined,
+                  '续航与停放观察',
+                  '额定续航长期记录、停放电量变化',
+                ),
+              ])
+                InsightLink(
+                  icon: item.$2,
+                  title: item.$3,
+                  subtitle: item.$4,
+                  onTap: () => widget.onInsight!(item.$1, range!.selection),
+                ),
+            ],
             if (driving != null) comparisonCard(),
             if (driving != null) drivingCard(),
             if (charging != null) chargingCard(),

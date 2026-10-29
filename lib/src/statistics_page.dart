@@ -23,12 +23,14 @@ class StatisticsPage extends StatefulWidget {
     required this.currency,
     this.onDrive,
     this.initialKind = 0,
+    this.initialTopic,
     this.initialSelection = const StatisticsSelection(),
   });
   final ValueChanged<int>? onDrive;
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final int initialKind;
+  final String? initialTopic;
   final StatisticsSelection initialSelection;
   @override
   State<StatisticsPage> createState() => _StatisticsEntryState();
@@ -40,7 +42,9 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     workspace: widget.workspace,
     currency: widget.currency,
     initialSelection: widget.initialSelection,
-    initialTopic: widget.initialKind == 1 ? 'charging' : 'overview',
+    initialTopic:
+        widget.initialTopic ??
+        (widget.initialKind == 1 ? 'charging' : 'overview'),
     topics: {
       'energy': (c) =>
           StatisticsConditionsPage(source: c, onRecord: widget.onDrive),

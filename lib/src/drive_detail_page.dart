@@ -597,11 +597,19 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                 children: [
                   Text('驾驶与环境', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text('平均速度 ${number(d.speedAvgKmh, 'km/h')}'),
-                  Text('最高速度 ${number(d.speedMaxKmh, 'km/h')}'),
-                  Text('最大功率 ${number(d.powerMaxKw, 'kW')}'),
-                  Text('车外均温 ${number(d.outsideTempCAvg, '°C', decimals: 1)}'),
-                  Text('车内均温 ${number(d.insideTempCAvg, '°C', decimals: 1)}'),
+                  MetricGrid(
+                    children: [
+                      Text('平均速度 ${number(d.speedAvgKmh, 'km/h')}'),
+                      Text('最高速度 ${number(d.speedMaxKmh, 'km/h')}'),
+                      Text(
+                        '车外均温 ${number(d.outsideTempCAvg, '°C', decimals: 1)}',
+                      ),
+                      Text(
+                        '车内均温 ${number(d.insideTempCAvg, '°C', decimals: 1)}',
+                      ),
+                      Text('最大功率 ${number(d.powerMaxKw, 'kW')}'),
+                    ],
+                  ),
                 ],
               ),
             ),

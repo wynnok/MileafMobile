@@ -811,7 +811,22 @@ class _ChargingPageState extends State<ChargingPage>
           ),
           Text(
             '费用有记录 ${total.costKnownSessions} / ${total.sessions} 次 · 对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (total.sessions > 0) ...[
+            const SizedBox(height: 6),
+            Semantics(
+              label: '费用记录覆盖：${total.costKnownSessions}/${total.sessions}次',
+              child: LinearProgressIndicator(
+                value: total.costKnownSessions / total.sessions,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(2),
+                backgroundColor: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerLow,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -1369,14 +1384,21 @@ class _ChargingPageState extends State<ChargingPage>
                           const SizedBox(height: 8),
                           Text(
                             '充入电池 ${number(v.energyAddedKwh, 'kWh')}',
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          Text('电网侧 ${number(v.energyUsedKwh, 'kWh')}'),
+                          Text(
+                            '电网侧 ${number(v.energyUsedKwh, 'kWh')}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                           Text(
                             '费用 ${widget.currency.amount(v.cost)}',
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          Text('时长 ${number(v.durationMin, '分钟')}'),
+                          Text(
+                            '时长 ${number(v.durationMin, '分钟')}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                           if (v.location.geofence != null)
                             Text('围栏：${v.location.geofence}'),
                           if (v.location.address != null &&
