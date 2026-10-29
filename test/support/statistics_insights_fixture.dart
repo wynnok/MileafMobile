@@ -5,6 +5,7 @@ import 'dart:io';
 Map<String, dynamic> statisticsInsightsFixture(
   Uri uri, {
   num consumption = 187.5,
+  num energy = 3.75,
   String sampleStatus = 'adequate',
   String rangeKind = 'rated',
   int version = 1,
@@ -25,8 +26,8 @@ Map<String, dynamic> statisticsInsightsFixture(
   final metrics = <String, dynamic>{
     'drives': 5,
     'distance_km': 20,
-    'energy_kwh': 3.75,
-    'consumption_wh_km_net': 187.5,
+    'energy_kwh': energy,
+    'consumption_wh_km_net': consumption,
     'consumption_wh_km_gross': null,
     'speed_max_kmh': 80,
     'driving_coverage': {
@@ -47,7 +48,7 @@ Map<String, dynamic> statisticsInsightsFixture(
     'net_consumption_paired': {
       'status': 'available',
       'value_wh_km': consumption,
-      'numerator_energy_kwh': 3.75,
+      'numerator_energy_kwh': energy,
       'denominator_distance_km': 20,
       'eligible_drives': 5,
       'excluded_drives': 0,

@@ -33,11 +33,12 @@ class _StatisticsEntryState extends State<StatisticsPage> {
     workspace: widget.workspace,
     currency: widget.currency,
     initialSelection: widget.initialSelection,
-    legacyBuilder: () => _LegacyStatisticsPage(
+    initialTopic: widget.initialKind == 1 ? 'charging' : 'overview',
+    legacyBuilder: (selection) => _LegacyStatisticsPage(
       workspace: widget.workspace,
       currency: widget.currency,
       initialKind: widget.initialKind,
-      initialSelection: widget.initialSelection,
+      initialSelection: selection,
     ),
   );
 }
