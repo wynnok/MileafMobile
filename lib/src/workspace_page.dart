@@ -244,6 +244,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                       )
                     : tab == 3
                     ? StatisticsPage(
+                        onDrive: (id) => record('drive', id),
                         initialKind: statisticsKind,
                         initialSelection: statisticsSelection,
                         currency: currency,
