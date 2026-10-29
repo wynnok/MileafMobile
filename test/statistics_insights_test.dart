@@ -56,6 +56,7 @@ void main() {
       client,
       () => DateTime.utc(2026, 10, 28, 11),
       () => 'Asia/Shanghai',
+      statisticsInsights: true,
     );
     expect(find.text('驾驶统计'), findsOneWidget);
   });
