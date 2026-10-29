@@ -31,7 +31,7 @@ class DrivingStats {
   });
   final DateTime asOf;
   final List<DrivingBucket> buckets;
-  final mileaf__queries__driving_coverage__DrivingQueryEcho query;
+  final MileafQueriesDrivingCoverageDrivingQueryEcho query;
   final String? rangeKind;
   final DrivingMetrics totals;
   factory DrivingStats.fromJson(Map<String, dynamic> json) {
@@ -55,7 +55,7 @@ class DrivingStats {
       buckets: decodeField<List<dynamic>>(json['buckets'])
           .map((item) => DrivingBucket.fromJson(object(item)))
           .toList(),
-      query: mileaf__queries__driving_coverage__DrivingQueryEcho.fromJson(
+      query: MileafQueriesDrivingCoverageDrivingQueryEcho.fromJson(
         object(json['query']),
       ),
       rangeKind: json['range_kind'] == null
@@ -517,8 +517,8 @@ class PairedNetConsumption {
   }
 }
 
-class mileaf__queries__driving_coverage__DrivingQueryEcho {
-  mileaf__queries__driving_coverage__DrivingQueryEcho({
+class MileafQueriesDrivingCoverageDrivingQueryEcho {
+  MileafQueriesDrivingCoverageDrivingQueryEcho({
     required this.bucket,
     required this.filters,
     required this.from,
@@ -534,7 +534,7 @@ class mileaf__queries__driving_coverage__DrivingQueryEcho {
   final DateTime to;
   final String tz;
   final int vehicleId;
-  factory mileaf__queries__driving_coverage__DrivingQueryEcho.fromJson(
+  factory MileafQueriesDrivingCoverageDrivingQueryEcho.fromJson(
     Map<String, dynamic> json,
   ) {
     if (!json.containsKey('vehicle_id')) {
@@ -552,7 +552,7 @@ class mileaf__queries__driving_coverage__DrivingQueryEcho {
     if (!json.containsKey('bucket')) {
       throw const FormatException('Missing required field: bucket');
     }
-    return mileaf__queries__driving_coverage__DrivingQueryEcho(
+    return MileafQueriesDrivingCoverageDrivingQueryEcho(
       bucket: decodeField<String>(json['bucket']),
       filters: json['filters'] == null
           ? null
