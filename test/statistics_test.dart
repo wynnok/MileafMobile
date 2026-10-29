@@ -19,8 +19,9 @@ Future<void> openStats(
   WidgetTester tester,
   http.Client client,
   DateTime Function() now,
-  String Function() zone,
-) async {
+  String Function() zone, {
+  bool statisticsInsights = false,
+}) async {
   final store = MemorySessionStore()
     ..value = jsonEncode({
       'site': 'https://example.com/prefix',
@@ -29,6 +30,11 @@ Future<void> openStats(
     });
   var statisticsVisible = false;
   final boundary = MockClient((request) async {
+    if (statisticsVisible &&
+        !statisticsInsights &&
+        request.url.path.endsWith('/meta')) {
+      return fixture('meta');
+    }
     if (!statisticsVisible && request.url.path.endsWith('/stats')) {
       return fixture('driving-stats');
     }

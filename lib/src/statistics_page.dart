@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'statistics_period.dart';
+import 'statistics_insights_page.dart';
 import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
@@ -23,10 +24,40 @@ class StatisticsPage extends StatefulWidget {
   final int initialKind;
   final StatisticsSelection initialSelection;
   @override
-  State<StatisticsPage> createState() => _StatisticsPageState();
+  State<StatisticsPage> createState() => _StatisticsEntryState();
 }
 
-class _StatisticsPageState extends State<StatisticsPage> {
+class _StatisticsEntryState extends State<StatisticsPage> {
+  @override
+  Widget build(BuildContext context) => StatisticsInsightsPage(
+    workspace: widget.workspace,
+    currency: widget.currency,
+    initialSelection: widget.initialSelection,
+    legacyBuilder: () => _LegacyStatisticsPage(
+      workspace: widget.workspace,
+      currency: widget.currency,
+      initialKind: widget.initialKind,
+      initialSelection: widget.initialSelection,
+    ),
+  );
+}
+
+class _LegacyStatisticsPage extends StatefulWidget {
+  const _LegacyStatisticsPage({
+    required this.workspace,
+    required this.currency,
+    required this.initialKind,
+    required this.initialSelection,
+  });
+  final VehicleWorkspace workspace;
+  final CurrencySettings currency;
+  final int initialKind;
+  final StatisticsSelection initialSelection;
+  @override
+  State<_LegacyStatisticsPage> createState() => _StatisticsPageState();
+}
+
+class _StatisticsPageState extends State<_LegacyStatisticsPage> {
   late int kind = widget.initialKind;
   @override
   Widget build(BuildContext context) => Column(
