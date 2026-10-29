@@ -16,6 +16,7 @@ import 'statistics_usage_test.dart' show usageFixture;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'support/statistics_insights_fixture.dart';
+import 'charging_expansion_test.dart' show chargingStatsV2;
 import 'widget_test.dart' show MemoryTrustStore;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
@@ -67,17 +68,33 @@ void main() {
           if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
           if (r.url.path.endsWith('/summary')) return fixture('summary');
           if (r.url.path.endsWith('/meta')) {
-            return overviewResponse(
-              statisticsInsightsMeta(
-                features: {'driving_coverage': true, 'driving_analysis': true},
-              ),
+            final meta = statisticsInsightsMeta(
+              features: {'driving_coverage': true, 'driving_analysis': true},
             );
+            meta['charging_experience'] = {
+              'contract_version': 'charging-experience-v1',
+              'fields': <String, bool>{},
+            };
+            return overviewResponse(meta);
           }
           if (r.url.path.endsWith('/driving-analysis')) {
             return overviewResponse(usageFixture());
           }
           if (r.url.queryParameters['kind'] == 'charging') {
-            return fixture('charging-stats');
+            final stats = chargingStatsV2();
+            stats['query'] = {
+              ...(stats['query'] as Map),
+              ...r.url.queryParameters,
+            };
+            stats['as_of'] = '2026-10-28T11:00:00Z';
+            for (final (index, bucket) in (stats['buckets'] as List).indexed) {
+              bucket['bucket_start'] = DateTime.utc(
+                2026,
+                10,
+                25 + index,
+              ).toIso8601String();
+            }
+            return overviewResponse(stats);
           }
           return overviewResponse(statisticsInsightsFixture(r.url));
         });
@@ -102,6 +119,8 @@ void main() {
           ),
         );
         await save('overview-$suffix');
+        await tester.scrollUntilVisible(find.text('已知费用的覆盖'), 120);
+        await save('coverage-$suffix');
         await tester.scrollUntilVisible(find.text('我的用车节奏').hitTestable(), 120);
         await save('questions-$suffix');
         await tester.tap(find.text('统计').last);

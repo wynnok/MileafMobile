@@ -49,6 +49,7 @@ Future<void> openOverviewVisual(
   Future<CalendarContext> Function()? calendar,
   bool settle = true,
   bool briefing = false,
+  bool ownerCapabilities = false,
   CurrencyPreferenceStore? currencyPreferences,
 }) async {
   final store = MemorySessionStore()
@@ -60,6 +61,9 @@ Future<void> openOverviewVisual(
   await tester.pumpWidget(
     MileafApp(
       client: MockClient((request) async {
+        if (!ownerCapabilities && request.url.path.endsWith('/meta')) {
+          return overviewResponse(overviewFixture('meta'));
+        }
         if (request.url.path.endsWith('/vehicles')) {
           return overviewResponse(
             jsonDecode(File('test/fixtures/vehicles.json').readAsStringSync()),

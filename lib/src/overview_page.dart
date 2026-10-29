@@ -8,6 +8,9 @@ import 'data_cards.dart';
 import 'data_chart.dart';
 import 'driving_statistics_contract.g.dart' as stats;
 import 'charging_statistics_contract.g.dart' as charge;
+import 'charging_experience_contract.g.dart' as expanded;
+import 'statistics_insights_contract.g.dart' as insights;
+import 'statistics_insights_page.dart' show canCompare;
 import 'overview_contract.g.dart' as dto;
 import 'performance_trace.dart';
 import 'statistics_period.dart';
@@ -42,6 +45,9 @@ class _OverviewPageState extends State<OverviewPage>
   String? error;
   bool loading = false;
   int sequence = 0;
+  int capabilitySequence = 0;
+  bool pairedAvailable = false, coverageAvailable = false;
+  String? capabilityError;
   stats.DrivingStats? driving;
   charge.ChargingStats? charging;
   final results = <String, CachedResult>{};
@@ -65,6 +71,59 @@ class _OverviewPageState extends State<OverviewPage>
   final chartKey = GlobalKey();
   final viewportKey = GlobalKey();
   VehicleWorkspace get workspace => widget.workspace;
+
+  insights.DrivingStats? enhancedDriving(CachedResult? value) {
+    if (!pairedAvailable || value == null) return null;
+    try {
+      return insights.DrivingStats.fromJson(value.body);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  expanded.ChargingStats? get enhancedCharging {
+    if (!coverageAvailable || results['charging'] == null) return null;
+    try {
+      return expanded.ChargingStats.fromJson(results['charging']!.body);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<void> loadCapabilities({bool force = false}) async {
+    final owner = workspace.session.current;
+    if (owner == null) return;
+    final request = ++capabilitySequence;
+    try {
+      final result = await workspace.cache.get(owner, 'meta', force: force);
+      if (!mounted ||
+          request != capabilitySequence ||
+          !workspace.session.isCurrent(owner)) {
+        return;
+      }
+      final driving = result.body['statistics_insights'],
+          charging = result.body['charging_experience'];
+      setState(() {
+        pairedAvailable =
+            driving is Map &&
+            driving['contract_version'] == 'statistics-insights-v1' &&
+            driving['minimum_server_version'] == '0.3.0' &&
+            driving['features'] is Map &&
+            driving['features']['driving_coverage'] == true;
+        coverageAvailable =
+            charging is Map &&
+            charging['contract_version'] == 'charging-experience-v1' &&
+            charging['fields'] is Map;
+        capabilityError = null;
+      });
+    } catch (_) {
+      if (mounted &&
+          request == capabilitySequence &&
+          workspace.session.isCurrent(owner)) {
+        setState(() => capabilityError = '扩展能力暂未确认；保留当前口径');
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -172,6 +231,7 @@ class _OverviewPageState extends State<OverviewPage>
       return;
     }
     await Future.wait([
+      loadCapabilities(force: force),
       loadSummary(force: force),
       loadStats('driving', force: force, requestedRange: range),
       loadStats('charging', force: force, requestedRange: range),
@@ -406,6 +466,7 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   Widget comparisonCard() {
+    if (pairedAvailable) return pairedComparisonCard();
     final current = (comparisonDriving ?? driving)?.totals,
         prior = comparison?.totals;
     final pairedRange = comparisonRange ?? ranges['driving'];
@@ -495,6 +556,91 @@ class _OverviewPageState extends State<OverviewPage>
               ),
             ),
             child: const Text('查看比较依据'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget pairedComparisonCard() {
+    final current = enhancedDriving(results['driving']);
+    final prior = enhancedDriving(comparisonResult);
+    final currentResult = results['driving'];
+    final valid =
+        current != null &&
+        prior != null &&
+        currentResult != null &&
+        comparisonResult != null &&
+        comparisonError == null &&
+        identical(comparisonRange, ranges['driving']) &&
+        canCompare(
+          currentResult.body,
+          comparisonResult!.body,
+          workspace.calendar!,
+          period == OverviewPeriod.month
+              ? StatisticsPeriod.month
+              : StatisticsPeriod.custom,
+        );
+    final value = current?.totals.netConsumptionPaired;
+    return DataCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('配对净电耗与覆盖', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          MetricGrid(
+            children: [
+              MetricTile(
+                label: '配对估算净电耗',
+                value: number(value?.valueWhKm, 'Wh/km'),
+                note: '${value?.eligibleDrives ?? '—'}趟有效',
+              ),
+              MetricTile(
+                label: '记录驾驶时长',
+                value: number(
+                  current?.totals.drivingCoverage.durationKnownMin,
+                  '分钟',
+                ),
+                note:
+                    '${current?.totals.drivingCoverage.durationKnownDrives ?? '—'}趟有记录',
+              ),
+            ],
+          ),
+          Text(
+            '有效里程 ${number(value?.denominatorDistanceKm, 'km', decimals: 1)} · 全里程 ${number(driving?.totals.distanceKm, 'km', decimals: 1)}',
+          ),
+          if (valid)
+            Text(
+              '配对净电耗较参照差 ${(value!.valueWhKm! - prior.totals.netConsumptionPaired.valueWhKm!).toStringAsFixed(1)} Wh/km',
+            )
+          else
+            const Text('参照质量或口径不满足时，仅展示原值'),
+          if (comparing) const LinearProgressIndicator(),
+          if (comparisonError != null) Text('比较暂不可用：$comparisonError'),
+          if (comparisonError != null)
+            TextButton(
+              onPressed: () => loadComparison(force: true),
+              child: const Text('重试比较'),
+            ),
+          if (current == null) const Text('扩展统计字段缺失或不兼容，未用旧净电耗替代配对值'),
+          const Text(
+            '同批有效能量与里程配对估算；只描述差异，不推断原因。',
+            style: TextStyle(fontSize: 12),
+          ),
+          ExpansionTile(
+            title: const Text('比较区间与口径'),
+            tilePadding: EdgeInsets.zero,
+            children: [
+              if (current != null)
+                Text(
+                  '本期 ${timestamp(current.query.from)}—${timestamp(current.query.to)}；生成 ${timestamp(current.asOf)}',
+                ),
+              if (prior != null)
+                Text(
+                  '参照 ${timestamp(prior.query.from)}—${timestamp(prior.query.to)} · ${number(prior.totals.netConsumptionPaired.valueWhKm, 'Wh/km')}；生成 ${timestamp(prior.asOf)}',
+                ),
+              Text('归期时区 ${workspace.calendar!.identifier}；两个资源分别生成，非同时快照'),
+            ],
           ),
         ],
       ),
@@ -682,6 +828,7 @@ class _OverviewPageState extends State<OverviewPage>
             b.bucketStart,
         ];
   Widget mainChart() {
+    final paired = enhancedDriving(results['driving']);
     final isCharging = metric == _Metric.charge || metric == _Metric.cost;
     final displayed = ranges[isCharging ? 'charging' : 'driving']?.current;
     if ((isCharging ? charging : driving) == null) return const SizedBox();
@@ -702,9 +849,15 @@ class _OverviewPageState extends State<OverviewPage>
               metric == _Metric.cost ? b.cost : b.energyAddedKwh,
           ]
         : [
-            for (final b in driving!.buckets)
+            for (final (index, b) in driving!.buckets.indexed)
               switch (metric) {
-                _Metric.net => b.consumptionWhKmNet,
+                _Metric.net =>
+                  pairedAvailable
+                      ? paired?.buckets
+                            .elementAtOrNull(index)
+                            ?.netConsumptionPaired
+                            .valueWhKm
+                      : b.consumptionWhKmNet,
                 _Metric.energy => b.energyKwh,
                 _ => b.distanceKm,
               },
@@ -712,7 +865,7 @@ class _OverviewPageState extends State<OverviewPage>
     return TimeChart(
       key: chartKey,
       plotKey: plotKey,
-      title: title,
+      title: metric == _Metric.net && pairedAvailable ? '配对净电耗趋势 · 估算' : title,
       unit: unit,
       times: chartTimes,
       series: [ChartSeries(label: label, values: values)],
@@ -816,8 +969,9 @@ class _OverviewPageState extends State<OverviewPage>
         pairs([
           MetricTile(label: '充电次数', value: '${charging!.totals.sessions} 次'),
           MetricTile(
-            label: '已知费用均价',
-            value: '${widget.currency.amount(charging!.totals.costPerKwh)}/kWh',
+            label: coverageAvailable ? '有效入电均价' : '已知费用均价',
+            value:
+                '${widget.currency.amount(coverageAvailable ? enhancedCharging?.totals.unitCostAdded.value : charging!.totals.costPerKwh)}/kWh',
           ),
         ]),
         EnergyComparison(
@@ -988,9 +1142,17 @@ class _OverviewPageState extends State<OverviewPage>
                 _Metric.distance,
               ),
               metricCard(
-                '驾驶净电耗 · 估算',
-                number(driving?.totals.consumptionWhKmNet, 'Wh/km'),
-                '点按查看电耗变化',
+                pairedAvailable ? '驾驶净电耗 · 配对估算' : '驾驶净电耗 · 估算',
+                number(
+                  pairedAvailable
+                      ? enhancedDriving(results['driving'])
+                            ?.totals
+                            .netConsumptionPaired
+                            .valueWhKm
+                      : driving?.totals.consumptionWhKmNet,
+                  'Wh/km',
+                ),
+                pairedAvailable ? '同批有效能量与里程' : '点按查看电耗变化',
                 _Metric.net,
               ),
             ]),
@@ -1009,6 +1171,38 @@ class _OverviewPageState extends State<OverviewPage>
               ),
             ]),
             mainChart(),
+            if (capabilityError != null) ...[
+              Text(capabilityError!),
+              TextButton(
+                onPressed: () => loadCapabilities(force: true),
+                child: const Text('重试扩展能力'),
+              ),
+            ],
+            if (coverageAvailable && charging != null)
+              DataCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '已知费用的覆盖',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    if (enhancedCharging case final s?) ...[
+                      Text(
+                        '费用有记录 ${s.totals.costKnownSessions} / ${s.totals.sessions} 次 · 对应入电 ${number(s.totals.costKnownEnergyKwh, 'kWh', decimals: 1)}',
+                      ),
+                      Text(
+                        '有效入电均价 ${widget.currency.amount(s.totals.unitCostAdded.value)}/kWh',
+                      ),
+                      const Text(
+                        '已知支出不等于全部用车成本',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ] else
+                      const Text('费用覆盖字段缺失或不兼容，未按完整费用显示'),
+                  ],
+                ),
+              ),
             if (widget.onInsight != null && range != null) ...[
               const SizedBox(height: 12),
               Text('读懂这辆车', style: Theme.of(context).textTheme.titleMedium),

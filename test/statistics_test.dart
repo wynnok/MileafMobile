@@ -30,9 +30,7 @@ Future<void> openStats(
     });
   var statisticsVisible = false;
   final boundary = MockClient((request) async {
-    if (statisticsVisible &&
-        !statisticsInsights &&
-        request.url.path.endsWith('/meta')) {
+    if (!statisticsInsights && request.url.path.endsWith('/meta')) {
       return fixture('meta');
     }
     if (!statisticsVisible && request.url.path.endsWith('/stats')) {
@@ -489,6 +487,7 @@ void main() {
     final requests = <http.Request>[];
     var fail = false;
     final client = MockClient((r) async {
+      if (r.url.path.endsWith('/meta')) return fixture('meta');
       if (r.url.path.endsWith('/vehicles')) {
         return http.Response(
           File('test/fixtures/vehicles.json').readAsStringSync(),

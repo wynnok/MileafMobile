@@ -622,6 +622,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                           ? ChartPresentation.groupedBars
                           : ChartPresentation.bars,
                     ),
+                    if (comparable && stats.buckets.isNotEmpty)
+                      Text(
+                        '本期读数 ${_metricValue(enhanced.buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]} · 参照读数 ${_metricValue(insights.DrivingStats.fromJson(other).buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]}',
+                      ),
                     const SizedBox(height: 12),
                     DataCard(
                       child: MetricGrid(
@@ -662,10 +666,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                         ],
                       ),
                     ),
-                    if (comparable && stats.buckets.isNotEmpty)
-                      Text(
-                        '本期读数 ${_metricValue(enhanced.buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]} · 参照读数 ${_metricValue(insights.DrivingStats.fromJson(other).buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]}',
-                      ),
                     if (other != null)
                       ExpansionTile(
                         title: const Text('参照原值与质量'),

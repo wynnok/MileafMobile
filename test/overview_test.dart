@@ -27,6 +27,15 @@ http.Response overviewTrendResponse([String? kind]) => http.Response(
   },
 );
 
+http.Response overviewMetaResponse() => http.Response(
+  File('test/fixtures/meta.json').readAsStringSync(),
+  200,
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'max-age=30',
+  },
+);
+
 void background(WidgetTester tester) {
   for (final state in [
     AppLifecycleState.inactive,
@@ -57,6 +66,7 @@ void main() {
       });
     var refreshed = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) {
         return overviewTrendResponse(request.url.queryParameters['kind']);
       }
@@ -137,6 +147,7 @@ void main() {
     final old = Completer<http.Response>();
     var fail = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) {
         return overviewTrendResponse(request.url.queryParameters['kind']);
       }
@@ -209,6 +220,7 @@ void main() {
     var unsolicited = true;
     final queries = <String>[];
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) {
         return overviewTrendResponse(request.url.queryParameters['kind']);
       }
@@ -272,6 +284,7 @@ void main() {
       });
     var missing = false;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) {
         return overviewTrendResponse(request.url.queryParameters['kind']);
       }

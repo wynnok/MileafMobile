@@ -12,7 +12,8 @@ import 'package:mileaf/src/workspace.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
-import 'overview_test.dart' show background, foreground, overviewTrendResponse;
+import 'overview_test.dart'
+    show background, foreground, overviewTrendResponse, overviewMetaResponse;
 
 void main() {
   for (final retryHeader in ['60', 'Sun, 15 Mar 2026 12:01:00 GMT']) {
@@ -28,6 +29,7 @@ void main() {
           'expires_at': '2099-01-01T00:00:00Z',
         });
       final client = MockClient((request) async {
+        if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
         if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
         if (request.url.path.endsWith('/vehicles')) {
           return http.Response(
@@ -92,6 +94,7 @@ void main() {
     final current = jsonDecode(fixture) as Map<String, dynamic>;
     current['battery']['level'] = 21;
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
@@ -160,6 +163,7 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
@@ -204,6 +208,7 @@ void main() {
         'expires_at': '2099-01-01T00:00:00Z',
       });
     final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
       if (request.url.path.endsWith('/stats')) return overviewTrendResponse();
       if (request.url.path.endsWith('/vehicles')) {
         return http.Response(
