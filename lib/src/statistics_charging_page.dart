@@ -8,6 +8,7 @@ import 'charging_detail.dart';
 import 'charging_experience_contract.g.dart' as expanded;
 import 'charging_statistics_contract.g.dart' as legacy;
 import 'data_cards.dart';
+import 'collage.dart';
 import 'data_chart.dart';
 import 'statistics_insights_page.dart';
 
@@ -248,7 +249,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
         '次',
       ];
       return ListView(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(12),
         children: [
           Text('补能账目', style: Theme.of(context).textTheme.headlineSmall),
           const Text('按结束日 · 仅已完成充电'),
@@ -263,10 +264,18 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
             ),
           ),
           if (totals != null) ...[
-            DataCard(
+            CollageTile(
+              surface: CollageSurface.hero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    '已知支出 · 覆盖同时看',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   MetricTile(
                     label: '已知充电支出',
                     value: scope.currency.amount(totals.cost),
@@ -334,9 +343,9 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
                 ],
               ),
             ),
-          if (expandedAvailable && stats.buckets.isNotEmpty)
+            if (expandedAvailable && stats.buckets.isNotEmpty)
               TextButton(onPressed: openBucket, child: const Text('查看此期间补能')),
-            DataCard(
+            CollageTile(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -366,7 +375,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
                 ],
               ),
             ),
-            DataCard(
+            CollageTile(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -407,9 +416,44 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
                           ? '分类记录时长缺失'
                           : '分类记录时长：AC ${rich.acDurationMin} / DC ${rich.dcDurationMin} / 未知 ${rich.unknownDurationMin} 分钟',
                     ),
+                  const Text('DC 占比分母：AC + DC 已知分类能量'),
                   const Text('未知不归AC；记录时长不是等待时间'),
                 ],
               ),
+            ),
+            TimeChart(
+              title: 'AC / DC / 未知时间分布',
+              unit: 'kWh',
+              times: [for (final bucket in stats.buckets) bucket.bucketStart],
+              series: [
+                for (final kind in ['AC', 'DC', if (detail != null) '未知'])
+                  ChartSeries(
+                    label: kind,
+                    values: [
+                      for (var i = 0; i < stats.buckets.length; i++)
+                        if (detail != null &&
+                            detail.buckets[i].sessions > 0 &&
+                            detail.buckets[i].energyKnownSessions == 0)
+                          null
+                        else
+                          switch (kind) {
+                            'AC' => stats.buckets[i].acEnergyKwh,
+                            'DC' => stats.buckets[i].dcEnergyKwh,
+                            _ => detail!.buckets[i].unknownEnergyKwh,
+                          },
+                    ],
+                  ),
+              ],
+              timestamp: (t) => scope.workspace.calendar!
+                  .local(t)
+                  .toString()
+                  .split('.')
+                  .first,
+              tickLabel: (t) {
+                final d = scope.workspace.calendar!.local(t);
+                return '${d.month}/${d.day}';
+              },
+              presentation: ChartPresentation.bars,
             ),
           ] else if (!loading && error == null)
             const Text('尚无补能统计'),
@@ -459,11 +503,25 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
               child: const Text('查看期间补能记录'),
             ),
           ],
-          if (checkedAt != null)
-            Text(
-              '查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+          ExpansionTile(
+            title: const Text('数据说明'),
+            children: [
+              const ListTile(
+                title: Text('仅已结束充电按 ended_at 归期；充电列表按开始日，跨夜记录的日期可能不同。'),
+              ),
+              if (rich != null)
+                ListTile(
+                  title: Text(
+                    '入电配对费用 ${scope.currency.amount(rich.unitCostAdded.numeratorCost)} / ${rich.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amount(rich.unitCostGrid.numeratorCost)} / ${rich.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率。',
+                  ),
+                ),
+              if (checkedAt != null)
+                Text(
+                  '查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+          ),
         ],
       );
     },
