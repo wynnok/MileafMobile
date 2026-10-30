@@ -1,0 +1,30 @@
+# C「数据拼贴」：共享视觉与概览（#8）
+
+2026-10-30。本地代码与合成 HTTP 验证；不代表真机、真实站点、底图或性能外部验收，不关闭工单。
+
+本切片基于 7fcc120（包含 #5 会话恢复），按 GitHub #8 的 C 增量实施。primary source 为原工作区 `/Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile/docs/specs/mobile-v1.md` 2026-10-30 章节、`docs/adr/0001-visual-direction-c.md`、`docs/prototypes/visual-refresh/prototype.js` 的 cOverview 与 `renders/compare-light.png`。这些未提交设计文件没有复制进本切片。
+
+概览顺序：深色车况（SOC、续航、状态、今日与非实时）→ 大里程 tile + 净电耗/费用辅助 tile → 满幅真实日图 → 补能、参照与最近记录 → 四章节。驾驶消耗/补能长说明收进展开层；车辆、采样时间、归期时区仍可从“车辆与数据时间”核查。最近充电条仅表示实际结束 SOC，不伪造起点；summary 未提供路线坐标，最近行程保留真实时间/距离/下钻，不画合成路线。
+
+里程差仅在扩展字段可解析、两期及查询通过现有 canCompare 质量/日历校验且参照无错误时显示服务端 totals 的绝对差；旧站点或缺字段显示参照不足，不猜百分比。API、缓存、时区、车辆/会话隔离、请求数与净/毛/费用口径不改。
+
+## 后续复用
+
+- `lib/src/collage.dart`：`CollageTile(child:, surface:, padding:)`，表面枚举 `paper/hero/mint/sand`；hero 带浅字与湖绿图形主题。默认圆角20、内边距12、下间距8。
+- `CollageBento(lead:, evidence:)`：默认6:5主辅两列，字号达到150%强制单列（覆盖200%）。调用方决定内容与高度；不缓存/加载业务数据。
+- `lib/src/visual_theme.dart`：lakeTheme 使用 C 的暖雾底、纸面、主墨、湖绿与深色对应 token。既有 TimeChart/DataCard 继续共享该主题与比较系列琥珀色/虚线，不另造绘图实现。
+- 概览主数44，辅助数沿既有 titleLarge，数字使用 tabularFigures；主数/单位可换行。所有文本跟随系统字号，不引入字体或依赖。
+
+## 验证
+
+TDD：首个布局测试先失败（里程tile160宽，预期>175），实施后通过；同期里程可见结果先失败（缺少0.0km同期差），严格质量校验接入后通过。缺字段旧站点回归验证不会解析不兼容扩展。
+
+- #8目标：overview_test、overview_visualization_test、overview_briefing_test、owner_experience_test、overview_verification_test，共34项通过。
+- `flutter analyze --no-pub`：无问题；修改文件格式检查与 git diff --check 通过。
+- `test/collage_render_test.dart`：独立 opt-in Flutter渲染1项通过，24张PNG，正常/空/缺失 × 浅/深 ×100/200，每组合首屏及净电耗图。360×800、pixelRatio2；每次保存检查无Flutter异常。空态不画全零趋势，真实0/缺失语义沿用已有图表。
+- 已目视检查正常浅色首屏与缺失深色200%：深色车况是第一视觉、里程比辅助数突出；默认首屏真实绘图区完整可见；200%单列、允许纵向滚动、未见横向溢出。新首屏测试同时检查实际图表上下边界、关键车况命中与主数宽度。
+- 全量回归曾执行，245项通过、6跳过、2旧用例失败（旧定位首屏采样时间/时区）；两处改为展开资料后定位，已包含随后34项全绿。最终集成全量及构建由#17复验。
+
+重现：设置 `MILEAF_FLUTTER_SDK` 指向项目SDK，执行 `tool/flutterw test --no-pub test/collage_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/overview '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'`。
+
+渲染目录：`docs/implementation/collage-renders/overview/`。未修改外部链接仓库、配置、依赖/锁文件；未推送、部署、设备操作或修改工单。

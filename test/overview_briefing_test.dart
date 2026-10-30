@@ -61,7 +61,10 @@ void main() {
       briefing: true,
       now: () => now,
     );
+    await tester.scrollUntilVisible(find.text('充入电池'), 120);
     expect(find.text('160.0 kWh'), findsOneWidget);
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, 1500));
+    await tester.pumpAndSettle();
     now = DateTime.utc(2026, 4, 1, 12);
     fail = true;
     await tester.drag(find.byType(RefreshIndicator), const Offset(0, 400));
@@ -147,6 +150,9 @@ void main() {
         currencyPreferences: currency,
       );
       expect(find.bySemanticsLabel('已知充电费用 0 CNY，仅含费用已知记录'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+      await tester.tap(find.text('数据说明与更多'));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('AC'), 150);
       await tester.pumpAndSettle();
       expect(find.text('120.00 kWh'), findsOneWidget);
@@ -229,10 +235,12 @@ void main() {
     );
     await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('充入电池'), 120);
     expect(find.text('23.7 kWh'), findsOneWidget);
     oldCharge.complete(overviewResponse(overviewFixture('charging-stats')));
     oldPrior.complete(overviewResponse(overviewFixture('driving-stats')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('充入电池'), 120);
     expect(find.text('23.7 kWh'), findsOneWidget);
     expect(find.text('160.0 kWh'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -290,9 +298,9 @@ void main() {
     }, briefing: true);
     await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电统计'), 150);
+    await tester.scrollUntilVisible(find.text('补能账本'), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电统计'));
+    await tester.tap(find.text('补能账本'));
     await tester.pumpAndSettle();
     expect(find.text('2026-03-09 至 2026-03-15'), findsOneWidget);
     expect(find.text('充电结果'), findsOneWidget);
@@ -376,7 +384,9 @@ void main() {
         );
       }, briefing: true);
       expect(find.text('已知充电费用'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('充入电池'), 120);
       expect(find.bySemanticsLabel('充入电池 160.0 kWh，8 次充电'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('已知充电费用'), -120);
       await tester.tap(find.text('已知充电费用'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.bySemanticsLabel('已知费用趋势图表'), 120);

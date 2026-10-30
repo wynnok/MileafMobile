@@ -242,7 +242,7 @@ void main() {
     expect(find.text('21 %'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('A概览360x800默认字号首屏有关键结果和完整实际绘图区', (tester) async {
+  testWidgets('C概览360x800主数优先且首屏有实际绘图区', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -257,6 +257,10 @@ void main() {
             ? overviewFixture('summary')
             : monthTrend(),
       ),
+    );
+    expect(
+      tester.getSize(find.bySemanticsLabel('驾驶里程 960.0 km，49 次行程')).width,
+      greaterThan(175),
     );
     final graph = tester.getRect(find.bySemanticsLabel('本月里程图表'));
     final viewport = tester.getRect(find.byType(RefreshIndicator));

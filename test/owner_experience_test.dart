@@ -68,6 +68,7 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
+    expect(find.text('里程较参照差 0.0 km'), findsOneWidget);
     expect(find.text('驾驶净电耗 · 配对估算'), findsOneWidget);
     expect(find.text('188 Wh/km'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('费用有记录 2 / 8 次'), 120);

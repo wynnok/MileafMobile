@@ -110,8 +110,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(refreshed, isTrue);
     expect(find.textContaining('68 %'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('位置采样'), 300);
-    expect(find.textContaining('位置采样'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
@@ -273,6 +271,9 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.last, 'America/New_York');
+    await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    await tester.tap(find.text('车辆与数据时间'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('America/New_York'), findsOneWidget);
   });
   testWidgets('所选车辆404刷新车辆列表后恢复仍存在车辆并提示', (tester) async {
