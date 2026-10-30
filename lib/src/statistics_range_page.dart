@@ -251,6 +251,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                     Theme.of(context).colorScheme,
                     c.workspace.calendar!,
                     MediaQuery.textScalerOf(context).scale(11),
+                    Theme.of(context).textTheme.bodySmall ?? const TextStyle(),
                   ),
                 ),
               ),
@@ -340,12 +341,14 @@ class _RangePainter extends CustomPainter {
     this.colors,
     this.calendar,
     this.fontSize,
+    this.labelStyle,
   );
   final List<Map<String, dynamic>> rows;
   final int selected;
   final ColorScheme colors;
   final CalendarContext calendar;
   final double fontSize;
+  final TextStyle labelStyle;
   @override
   void paint(Canvas canvas, Size size) {
     final values = [
@@ -367,8 +370,7 @@ class _RangePainter extends CustomPainter {
       final t = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(
-            fontFamily: 'Roboto',
+          style: labelStyle.copyWith(
             color: colors.onSurfaceVariant,
             fontSize: fontSize,
           ),

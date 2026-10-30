@@ -254,6 +254,8 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                         selected,
                         Theme.of(context).colorScheme,
                         MediaQuery.textScalerOf(context).scale(11),
+                        Theme.of(context).textTheme.bodySmall ??
+                            const TextStyle(),
                       ),
                       size: Size(box.maxWidth, 190),
                     ),
@@ -345,8 +347,15 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
 }
 
 class _ParkingPainter extends CustomPainter {
-  _ParkingPainter(this.rows, this.selected, this.colors, this.fontSize);
+  _ParkingPainter(
+    this.rows,
+    this.selected,
+    this.colors,
+    this.fontSize,
+    this.labelStyle,
+  );
   final double fontSize;
+  final TextStyle labelStyle;
   final List<Map<String, dynamic>> rows;
   final int selected;
   final ColorScheme colors;
@@ -363,8 +372,7 @@ class _ParkingPainter extends CustomPainter {
       final t = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(
-            fontFamily: 'Roboto',
+          style: labelStyle.copyWith(
             color: colors.onSurface,
             fontSize: fontSize,
           ),

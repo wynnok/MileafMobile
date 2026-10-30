@@ -162,6 +162,12 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
                           selected,
                           Theme.of(context).colorScheme.primary,
                           Theme.of(context).colorScheme.outline,
+                          (Theme.of(context).textTheme.bodySmall ??
+                                  const TextStyle())
+                              .copyWith(
+                                fontSize: MediaQuery.textScalerOf(context)
+                                    .scale(12),
+                              ),
                         ),
                       ),
                     ),
@@ -273,10 +279,17 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
 }
 
 class _TemperaturePlot extends CustomPainter {
-  _TemperaturePlot(this.bins, this.selected, this.color, this.axis);
+  _TemperaturePlot(
+    this.bins,
+    this.selected,
+    this.color,
+    this.axis,
+    this.labelStyle,
+  );
   final List<Map<String, dynamic>> bins;
   final int selected;
   final Color color, axis;
+  final TextStyle labelStyle;
   @override
   void paint(Canvas canvas, Size size) {
     final values = bins.map((b) => b['consumption_wh_km']).whereType<num>();
@@ -296,7 +309,7 @@ class _TemperaturePlot extends CustomPainter {
         text: TextSpan(
           text:
               '${conditionsValue(bins[i]['lower_c'])}–${conditionsValue(bins[i]['upper_c'])}',
-          style: TextStyle(fontFamily: 'Roboto', color: axis, fontSize: 12),
+          style: labelStyle.copyWith(color: axis),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -330,7 +343,7 @@ class _TemperaturePlot extends CustomPainter {
       final text = TextPainter(
         text: TextSpan(
           text: conditionsValue(v),
-          style: TextStyle(fontFamily: 'Roboto', color: color, fontSize: 12),
+          style: labelStyle.copyWith(color: color),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
