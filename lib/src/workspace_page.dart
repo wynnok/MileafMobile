@@ -46,6 +46,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   final chargingFilter = ChargingFilter();
   int tab = 0;
   int statisticsKind = 0;
+  int statisticsEntry = 0;
   String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
@@ -257,7 +258,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                         initialTopic: statisticsTopic,
                         initialSelection: statisticsSelection,
                         currency: currency,
-                        key: ValueKey('statistics:$selected'),
+                        key: ValueKey('statistics:$selected:$statisticsEntry'),
                         workspace: workspace,
                       )
                     : Center(
@@ -271,6 +272,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
           selectedIndex: tab,
           onDestinationSelected: (index) => setState(() {
             if (index == 3) {
+              statisticsEntry++;
               statisticsKind = 0;
               statisticsTopic = null;
               statisticsSelection = const StatisticsSelection();
