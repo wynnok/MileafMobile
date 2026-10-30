@@ -54,6 +54,7 @@
     "test/drives_test.dart": "208a1989e6aa88fdfb2bbfa7609757458f3563d27a744b5dfe1d521ea910f9fa",
     "test/charging_detail_test.dart": "6cb57fcedbfdcf7314b79e449acca2ed86750b93698878e70c4de6b41fb8c9b6",
     "test/full_flow_test.dart": "544c82a64976138d5be16e19ee0c8776d81d1a5342eb42f890fa3b129a4f14c5",
+    "test/overview_state_render_test.dart": "245ee02560f99bdefeec76b76dd781b9685478e85066c130d78bfb34c9af2199",
     "test/charging_test.dart": "eb27be4c4d59c0afd6b234f1ad2ae8e1d8819a4af1c89d310647447e34e69ef3",
     "test/map_candidate_test.dart": "2658faa589da8d62bd0aa4d0361f1ac6b92c07fecc79b0ede143c14d00a049d8",
     "test/charging_expansion_test.dart": "e33d0bbc6441e7d4f25fb22624f6c24fd0f6618c2abb99758a67fb8438c8223c",
@@ -83,6 +84,7 @@
     "test/connection_management_test.dart": "e74590f551cb5d87985d8f9002ae0ff86f486388030766e7f6e74e245eeb5a46",
     "test/statistics_usage_test.dart": "7d4143291edcbcef608bffa25417debb540f7a667e10db9cc3b77a1b9afa8e75",
     "test/statistics_range_test.dart": "1bc3b756e09e03c74cb9c2b8926054c283d5722c609da830e404427bbcf00cf3",
+    "test/overview_verification_test.dart": "4ffb5b69d12b755486578c60017e9d4e51bd60373fb63bb9d95ac858c0e0b440",
     "test/fixtures/summary.json": "d256d95d8a70e7c6bdaa9215abc5d0d43ff789fbbf15a1da16a72a893d30b069",
     "test/fixtures/drive-series.json": "5f9bf3bffc4857b04349ec7a444fe0820508754536a7e9a11033bb220199e0b7",
     "test/fixtures/charging-active.json": "488bdccad46b0dc053822b3f8de3683d95006f8beb164701afb71ebbb688c5bc",
@@ -215,5 +217,6 @@
     "长期-normal-dark-200.png": "9e2fb37408ce87790278e249a27dbce0e1839120a556dc8f8c5e25c748d53540",
     "长期-normal-light-100.png": "982c4e3632696388312d9553136a0e01ec534e96e106d5d9bc225b5f19b9be75",
     "长期-normal-light-200.png": "f4231cf8d7e9294b95ff9a0081817173f15e90db499b7722e81fc020b0e72e2b"
-  }
+  },
+  "source_commit": "c30e621"
 }
