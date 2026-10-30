@@ -590,11 +590,9 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
             minimum: metric == 'soc' ? 0 : null,
             maximum: metric == 'soc' ? 100 : null,
             plotKey: const Key('charging-time-chart'),
-            subtitle: '服务端采样 ${widget.series.points} 点',
             controls: controls,
             selectedIndex: selected,
             onSelected: (index) => setState(() => selected = index),
-            note: '缺失值断线，不补点、不补零；采样峰值不等同原始峰值。累计入电可能重置，续航不是实际可达距离。',
           )
         else
           DataCard(
@@ -719,6 +717,13 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
               ],
             ),
           ),
+        ExpansionTile(
+          title: const Text('曲线数据说明'),
+          children: [
+            Text('服务端采样 ${widget.series.points} 点'),
+            const Text('缺失值断线，不补点、不补零；采样峰值不等同原始峰值。累计入电可能重置，续航不是实际可达距离。'),
+          ],
+        ),
         if (points.isEmpty) const Text('此充电没有序列采样'),
         if (points.isNotEmpty &&
             points.where((p) => reading(p) != null).length < 2)
@@ -981,7 +986,6 @@ class _ChargingCurveState extends State<ChargingCurve> {
           minimum: power ? null : 0,
           maximum: power ? null : 100,
           plotKey: const Key('charging-time-chart'),
-          subtitle: '服务端采样 ${widget.series.points} 点 · 当前指标有效 $valid 点',
           controls: Wrap(
             spacing: 8,
             children: [
@@ -997,7 +1001,13 @@ class _ChargingCurveState extends State<ChargingCurve> {
               ),
             ],
           ),
-          note: '低强调连线仅示意采样，不代表连续观测。缺失值断线，不补点、不补零；采样峰值不等同原始峰值。',
+        ),
+        ExpansionTile(
+          title: const Text('曲线数据说明'),
+          children: [
+            Text('服务端采样 ${widget.series.points} 点 · 当前指标有效 $valid 点'),
+            const Text('缺失值断线，不补点、不补零；采样峰值不等同原始峰值。累计入电可能重置，续航不是实际可达距离。'),
+          ],
         ),
         if (points.isEmpty) const Text('此充电没有序列采样'),
         if (points.isNotEmpty && valid < 2) const Text('有效采样不足两点，仅显示可用点与读数'),

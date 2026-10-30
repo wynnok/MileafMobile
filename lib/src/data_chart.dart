@@ -32,6 +32,7 @@ class TimeChart extends StatefulWidget {
     this.minimum,
     this.maximum,
     this.plotKey,
+    this.plotObserverKey,
     this.valueLabel,
     this.selectedIndex,
     this.onSelected,
@@ -50,6 +51,7 @@ class TimeChart extends StatefulWidget {
   final double height;
   final double? minimum, maximum;
   final Key? plotKey;
+  final Key? plotObserverKey;
   final String Function(num?)? valueLabel;
   final int? selectedIndex;
   final ValueChanged<int>? onSelected;
@@ -214,30 +216,33 @@ class _TimeChartState extends State<TimeChart> {
                         at(d.localPosition);
                       },
                       onHorizontalDragUpdate: (d) => at(d.localPosition),
-                      child: CustomPaint(
+                      child: SizedBox(
                         key: widget.plotKey,
-                        size: Size(
-                          constraints.maxWidth,
-                          widget.height * math.min(scale, 1.4),
-                        ),
-                        painter: _TimePainter(
-                          times: widget.times,
-                          series: widget.series,
-                          selected: selected,
-                          presentation: widget.presentation,
-                          colors: colors,
-                          grid: scheme.outlineVariant,
-                          text: scheme.onSurfaceVariant,
-                          fontFamily: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.fontFamily,
-                          scale: scale,
-                          left: left,
-                          minimum: widget.minimum,
-                          maximum: widget.maximum,
-                          unit: widget.unit,
-                          tick: tick,
+                        child: CustomPaint(
+                          key: widget.plotObserverKey,
+                          size: Size(
+                            constraints.maxWidth,
+                            widget.height * math.min(scale, 1.4),
+                          ),
+                          painter: _TimePainter(
+                            times: widget.times,
+                            series: widget.series,
+                            selected: selected,
+                            presentation: widget.presentation,
+                            colors: colors,
+                            grid: scheme.outlineVariant,
+                            text: scheme.onSurfaceVariant,
+                            fontFamily: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.fontFamily,
+                            scale: scale,
+                            left: left,
+                            minimum: widget.minimum,
+                            maximum: widget.maximum,
+                            unit: widget.unit,
+                            tick: tick,
+                          ),
                         ),
                       ),
                     ),

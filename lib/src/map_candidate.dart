@@ -387,14 +387,15 @@ class _CandidateMapState extends State<CandidateMap>
             child: const Text('重试底图'),
           ),
         ],
-        Text(
-          points.isEmpty
-              ? '没有有效轨迹坐标，已显示可用起终点'
-              : points.length == 1
-              ? '单个采样点'
-              : '${points.length} 个有效采样点 · ${segments.length} 段轨迹',
+        if (points.length < 2)
+          Text(points.isEmpty ? '没有有效轨迹坐标，已显示可用起终点' : '单个采样点'),
+        ExpansionTile(
+          title: const Text('地图数据说明'),
+          children: [
+            Text('${points.length} 个有效采样点 · ${segments.length} 段轨迹'),
+            if (points.length > 1) const Text('采样连线仅为示意；缺失坐标处已断开。'),
+          ],
         ),
-        if (points.length > 1) const Text('采样连线仅为示意；缺失坐标处已断开。'),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

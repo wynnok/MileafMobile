@@ -66,6 +66,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('允许加载底图').hitTestable(), 160);
     await tester.tap(find.text('允许加载底图'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byType(FlutterMap), 80);
     await tester.ensureVisible(find.byType(FlutterMap));
     await tester.pumpAndSettle();
     final bounds = tester.getRect(find.byType(FlutterMap));
@@ -78,8 +79,7 @@ void main() {
     await scrollPageTo(tester, find.text('后一个采样'), 180);
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
-    await scrollPageTo(tester, find.text('行程地图'), -180);
-    await tester.ensureVisible(find.byType(FlutterMap));
+    await scrollPageTo(tester, find.byType(FlutterMap), -180);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('selected-drive-sample')).hitTestable(),
@@ -114,8 +114,7 @@ void main() {
     await scrollPageTo(tester, find.text('后一个采样'), 180);
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
-    await scrollPageTo(tester, find.text('行程地图'), -180);
-    await tester.ensureVisible(find.byType(FlutterMap));
+    await scrollPageTo(tester, find.byType(FlutterMap), -180);
     await tester.pumpAndSettle();
     expect(
       find.bySemanticsLabel(
@@ -126,8 +125,7 @@ void main() {
     await scrollPageTo(tester, find.text('后一个采样'), 180);
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
-    await scrollPageTo(tester, find.text('行程地图'), -180);
-    await tester.ensureVisible(find.byType(FlutterMap));
+    await scrollPageTo(tester, find.byType(FlutterMap), -180);
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp('选中采样位置')), findsNothing);
     semantics.dispose();
@@ -164,6 +162,10 @@ void main() {
     await tester.ensureVisible(find.text('重试底图'));
     await tester.pumpAndSettle();
     expect(calls, greaterThan(0));
+    expect(find.text('4 个有效采样点 · 2 段轨迹'), findsNothing);
+    await tester.scrollUntilVisible(find.text('地图数据说明').hitTestable(), 100);
+    await tester.tap(find.text('地图数据说明').hitTestable());
+    await tester.pumpAndSettle();
     expect(find.text('4 个有效采样点 · 2 段轨迹'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('行程地图'), -180);
     expect(
