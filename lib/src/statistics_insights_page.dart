@@ -185,9 +185,24 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             body: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(() {
+                      final zone = workspace.calendar!;
+                      String date(DateTime instant) {
+                        final local = zone.local(instant);
+                        return '${local.year}/${local.month}/${local.day}';
+                      }
+
+                      return '${date(captured.window.from)} — ${date(captured.window.to)}';
+                    }()),
+                    subtitle: const Text('数据说明'),
+                    children: [
+                      Text(
+                        '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(

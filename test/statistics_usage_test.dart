@@ -107,13 +107,11 @@ http.Client usageClient(
   if (r.url.path.endsWith('/summary')) return fixture('summary');
   if (r.url.path.endsWith('/meta')) {
     return http.Response(
-      jsonEncode({
-        'statistics_insights': {
-          'contract_version': 'statistics-insights-v1',
-          'minimum_server_version': '0.3.0',
-          'features': {'driving_coverage': true, 'driving_analysis': true},
-        },
-      }),
+      jsonEncode(
+        statisticsInsightsMeta(
+          features: {'driving_coverage': true, 'driving_analysis': true},
+        ),
+      ),
       200,
     );
   }
@@ -143,10 +141,12 @@ void main() {
       find.widgetWithText(TextButton, '节奏').hitTestable(),
       150,
     );
+    expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
     await tester.tap(find.widgetWithText(TextButton, '节奏'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('活跃 12 天'), 200);
     expect(find.text('活跃 12 天'), findsOneWidget);
+    expect(find.text('这段时间的用车节奏'), findsOneWidget);
     expect(
       seen.any(
         (u) =>
@@ -155,6 +155,12 @@ void main() {
       ),
       isTrue,
     );
+    final usage = seen.firstWhere((u) => u.path.endsWith('/driving-analysis'));
+    expect(usage.queryParameters['tz'], 'Asia/Shanghai');
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextButton, '节奏'), findsOneWidget);
+    expect(find.text('这段时间的用车节奏'), findsNothing);
   });
   testWidgets('无已完成行程与未知指标明确区分', (tester) async {
     await openStats(

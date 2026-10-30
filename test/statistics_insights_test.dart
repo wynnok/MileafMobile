@@ -66,6 +66,9 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, '节奏'));
     await tester.pumpAndSettle();
     expect(find.byType(BackButton), findsOneWidget);
+    expect(find.textContaining('Asia/Shanghai'), findsNothing);
+    await tester.tap(find.text('数据说明'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Asia/Shanghai'), findsWidgets);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
