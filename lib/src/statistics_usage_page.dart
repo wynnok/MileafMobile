@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'statistics_insights_page.dart';
+import 'collage.dart';
 
 String usageValue(Object? value) => value is num
     ? value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)
@@ -144,32 +145,53 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
       if (d != null && d['status'] == 'unsupported')
         const Text('当前站点不支持用车节奏分析'),
       if (d != null && d['status'] != 'unsupported') ...[
-        Text(
-          '活跃 ${usageValue(d['active_days'])} 天',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        if (d['partial_today'] == true) const Text('今天尚未结束'),
-        Wrap(
-          spacing: 20,
-          runSpacing: 12,
-          children: [
-            metric('驾驶记录时长', d['driving_duration_min'], '分钟'),
-            metric('每活跃日', d['distance_per_active_day_km'], 'km'),
-            metric('单程中位数', d['distance_p50_km'], 'km'),
+        CollageBento(
+          lead: CollageTile(
+            surface: CollageSurface.hero,
+            child: Builder(
+              builder: (context) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('这段时间的用车节奏'),
+                  const SizedBox(height: 10),
+                  Text(
+                    '活跃 ${usageValue(d['active_days'])} 天',
+                    style: Theme.of(context).textTheme.headlineLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('有行程的日子'),
+                  if (d['partial_today'] == true) const Text('今天尚未结束'),
+                ],
+              ),
+            ),
+          ),
+          evidence: [
+            CollageTile(
+              surface: CollageSurface.mint,
+              child: metric('驾驶记录时长', d['driving_duration_min'], '分钟'),
+            ),
+            CollageTile(
+              surface: CollageSurface.sand,
+              child: metric('每活跃日', d['distance_per_active_day_km'], 'km'),
+            ),
           ],
         ),
         if (calendarError != null) Text(calendarError!),
-        if (calendar != null) calendarView(),
+        if (calendar != null) CollageTile(child: calendarView()),
         if (!source.compact) ...[
-          Wrap(
-            spacing: 20,
-            runSpacing: 12,
-            children: [
-              metric('较长单程 P90', d['distance_p90_km'], 'km'),
-              metric('记录时长 P50', d['duration_p50_min'], '分钟'),
-              metric('记录时长 P90', d['duration_p90_min'], '分钟'),
-              metric('平均记录速度', d['mean_speed_kmh'], 'km/h'),
-            ],
+          CollageTile(
+            child: Wrap(
+              spacing: 20,
+              runSpacing: 12,
+              children: [
+                metric('单程中位数', d['distance_p50_km'], 'km'),
+                metric('较长单程 P90', d['distance_p90_km'], 'km'),
+                metric('记录时长 P50', d['duration_p50_min'], '分钟'),
+                metric('记录时长 P90', d['duration_p90_min'], '分钟'),
+                metric('平均记录速度', d['mean_speed_kmh'], 'km/h'),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           Text('短途、中途与长途', style: Theme.of(context).textTheme.titleMedium),
@@ -197,6 +219,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
             ),
           const SizedBox(height: 12),
           Text('一周的用车节奏', style: Theme.of(context).textTheme.titleMedium),
+          const Text('按星期累计里程 · km'),
           weekdayView(usageItems(d['weekday_bins'])),
           const Text('按开始日分组 · 星期分布仅供观察，不自动判断通勤'),
           ExpansionTile(

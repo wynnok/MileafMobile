@@ -48,6 +48,27 @@ Future<void> openDetail(
 }
 
 void main() {
+  testWidgets('C详情以满幅地图开场再读路线与结果', (tester) async {
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    final map = tester.getRect(find.byType(CandidateMap));
+    final route = tester.getRect(find.textContaining(' → ').first);
+    expect(map.top, lessThan(route.top));
+    expect(map.left, 0);
+    expect(
+      map.width,
+      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+    );
+  });
+
   testWidgets('电耗对照保留负值与真实零并提供共同尺度说明', (tester) async {
     await openDetail(
       tester,
@@ -275,6 +296,10 @@ void main() {
         ),
       );
     });
+    await tester.scrollUntilVisible(
+      find.text('未知地点 → 办公地点').hitTestable(),
+      120,
+    );
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
     expect(find.text('起点围栏：住宅围栏'), findsOneWidget);
     expect(find.text('起点地址：样例路1号'), findsOneWidget);
@@ -286,6 +311,10 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('未知地点 → 办公地点').hitTestable(),
+      120,
+    );
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('更多行程指标'), 200);
     await tester.pumpAndSettle();
@@ -341,6 +370,7 @@ void main() {
       return jsonResponse(jsonEncode(fixture('drive-detail')));
     });
     expect(find.text('行程 #1'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('本次估算净电耗').hitTestable(), 160);
     expect(find.bySemanticsLabel('本次估算净电耗 188 Wh/km'), findsWidgets);
     await tester.scrollUntilVisible(find.textContaining('最高速度 90'), 200);
     expect(find.textContaining('最高速度 90 km/h'), findsOneWidget);
