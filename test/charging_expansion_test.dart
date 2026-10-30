@@ -403,6 +403,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电'), 300);
     await tester.tap(find.text('最近充电'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('过程数据说明').hitTestable(), 200);
+    await tester.tap(find.text('过程数据说明').hitTestable());
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('原始功率峰值'), 200);
     expect(find.textContaining('原始功率峰值 175'), findsOneWidget);
     expect(find.textContaining('记录平均功率 87.4'), findsOneWidget);
@@ -422,6 +425,8 @@ void main() {
     expect(find.byKey(const Key('charging-soc-chart')), findsOneWidget);
     expect(find.textContaining('横轴为电量'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电池加热状态变化').hitTestable(), 200);
+    await tester.tap(find.text('电池加热状态变化').hitTestable());
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('charging-heater-battery_heater_on')),
       findsOneWidget,

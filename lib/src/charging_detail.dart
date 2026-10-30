@@ -8,6 +8,7 @@ import 'data_chart.dart';
 import 'charging_detail_contract.g.dart' as dto;
 import 'charging_experience_contract.g.dart' as expanded;
 import 'currency.dart';
+import 'collage.dart';
 import 'workspace.dart';
 
 Future<void> openChargingDetail(
@@ -251,7 +252,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           children: [
             if (detailLoading) const LinearProgressIndicator(),
             if (detailError != null) ...[
@@ -269,63 +270,67 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 onPressed: () => Navigator.pop(context),
                 child: const Text('返回上一页'),
               ),
-            if (detail case final d?)
-              DataCard(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            if (detail case final d?) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  d.location.displayName?.trim().isNotEmpty == true
+                      ? d.location.displayName!
+                      : '未知地点',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              CollageTile(
+                surface: CollageSurface.hero,
+                child: Builder(
+                  builder: (context) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text('电量变化'),
+                      SizedBox(
+                        height: 36,
+                        child: CustomPaint(
+                          painter: _BatteryArc(
+                            d.startSoc,
+                            d.endSoc,
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束'),
+                    ],
+                  ),
+                ),
+              ),
+              CollageTile(
+                surface: CollageSurface.mint,
+                child: Wrap(
+                  spacing: 18,
+                  runSpacing: 6,
                   children: [
                     Text(
-                      d.location.displayName?.trim().isNotEmpty == true
-                          ? d.location.displayName!
-                          : '未知地点',
+                      '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 12),
-                    Text.rich(
-                      TextSpan(
-                        text: '充入电池 ',
-                        style: Theme.of(context).textTheme.labelMedium,
-                        children: [
-                          TextSpan(
-                            text: number(d.energyAddedKwh, 'kWh'),
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 18,
-                      runSpacing: 5,
-                      children: [
-                        Text('费用 ${widget.currency.amount(d.cost)}'),
-                        Text('时长 ${number(d.durationMin, '分钟')}'),
-                        Text(
-                          d.isDc == null
-                              ? '分类未知'
-                              : d.isDc!
-                              ? 'DC'
-                              : 'AC',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
+                    Text('费用 ${widget.currency.amount(d.cost)}'),
+                    Text('时长 ${number(d.durationMin, '分钟')}'),
                     Text(
-                      d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      d.isDc == null
+                          ? '分类未知'
+                          : d.isDc!
+                          ? 'DC'
+                          : 'AC',
                     ),
-                    if (expandedDetail != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '电量 ${number(d.startSoc, '%')} → ${number(d.endSoc, '%')}',
-                      ),
-                      SocInterval(start: d.startSoc, end: d.endSoc),
-                    ],
                   ],
                 ),
               ),
+            ],
             if (seriesLoading) const LinearProgressIndicator(),
             if (seriesError != null) ...[
               Semantics(liveRegion: true, child: Text(seriesError!)),
@@ -349,50 +354,6 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 calendar: workspace.calendar!,
               ),
             if (detail case final d?) ...[
-              if (expandedDetail == null)
-                DataCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '电量变化',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '电量 ${number(d.startSoc, '%')} → ${number(d.endSoc, '%')}',
-                      ),
-                      SocInterval(start: d.startSoc, end: d.endSoc),
-                    ],
-                  ),
-                ),
-              if (expandedDetail?.processMetrics case final process?)
-                DataCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('原始功率峰值 ${number(process.powerMaxKw, 'kW')}'),
-                      Text(
-                        '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
-                      ),
-                      Text(
-                        '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
-                      ),
-                      for (final window in process.socWindows)
-                        Text(
-                          !d.isActive &&
-                                  window.status == 'available' &&
-                                  window.elapsedSeconds != null
-                              ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
-                              : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
-                        ),
-                      const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
-                    ],
-                  ),
-                ),
-              if (expandedDetail != null &&
-                  expandedDetail!.processMetrics == null)
-                const Text('原始充电过程指标暂不可用。'),
               DataCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,6 +368,38 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     ),
                   ],
                 ),
+              ),
+              ExpansionTile(
+                title: const Text('过程数据说明'),
+                children: [
+                  if (expandedDetail?.processMetrics case final process?)
+                    DataCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('原始功率峰值 ${number(process.powerMaxKw, 'kW')}'),
+                          Text(
+                            '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
+                          ),
+                          Text(
+                            '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
+                          ),
+                          for (final window in process.socWindows)
+                            Text(
+                              !d.isActive &&
+                                      window.status == 'available' &&
+                                      window.elapsedSeconds != null
+                                  ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
+                                  : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
+                            ),
+                          const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
+                        ],
+                      ),
+                    ),
+                  if (expandedDetail != null &&
+                      expandedDetail!.processMetrics == null)
+                    const Text('原始充电过程指标暂不可用。'),
+                ],
               ),
               if (expandedDetail case final extra?) ...[
                 DataCard(
@@ -731,117 +724,122 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
             points.where((p) => reading(p) != null).length < 2)
           const Text('有效采样不足两点，仅显示可用点与读数'),
         if (events != null)
-          DataCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('电池加热状态变化', style: Theme.of(context).textTheme.titleSmall),
-                const Text('状态记录不代表加热耗能；时间为原始状态变化。'),
-                if (events.truncated)
-                  Text(
-                    '仅显示 ${events.events.length} / ${events.totalEvents} 条事件，状态记录已截断。',
-                  ),
-                if (events.events.isEmpty) const Text('没有可用状态变化'),
-                if (events.events.isNotEmpty) ...[
-                  const Text('● 是  ○ 否  × 未知；重合事件可展开查看'),
-                  for (final field
-                      in events.events.map((e) => e.field).toSet()) ...[
-                    Text(heatingLabel(field)),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final samples = widget.series.series;
-                        final start = samples.isEmpty
-                            ? events.events.first.t
-                            : samples.first.t;
-                        final end = samples.isEmpty
-                            ? events.events.last.t
-                            : samples.last.t;
-                        final span = end.difference(start).inMicroseconds;
-                        final width = math.max(1.0, constraints.maxWidth - 16);
-                        return SizedBox(
-                          key: ValueKey('charging-heater-$field'),
-                          height: 24,
-                          child: Stack(
-                            children: [
-                              Positioned(
-                                left: 8,
-                                right: 8,
-                                top: 11,
-                                child: Divider(
-                                  height: 1,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant,
-                                ),
-                              ),
-                              for (final event in events.events.where(
-                                (e) => e.field == field,
-                              ))
+          ExpansionTile(
+            title: const Text('电池加热状态变化'),
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('状态记录不代表加热耗能；时间为原始状态变化。'),
+                  if (events.truncated)
+                    Text(
+                      '仅显示 ${events.events.length} / ${events.totalEvents} 条事件，状态记录已截断。',
+                    ),
+                  if (events.events.isEmpty) const Text('没有可用状态变化'),
+                  if (events.events.isNotEmpty) ...[
+                    const Text('● 是  ○ 否  × 未知；重合事件可展开查看'),
+                    for (final field
+                        in events.events.map((e) => e.field).toSet()) ...[
+                      Text(heatingLabel(field)),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final samples = widget.series.series;
+                          final start = samples.isEmpty
+                              ? events.events.first.t
+                              : samples.first.t;
+                          final end = samples.isEmpty
+                              ? events.events.last.t
+                              : samples.last.t;
+                          final span = end.difference(start).inMicroseconds;
+                          final width = math.max(
+                            1.0,
+                            constraints.maxWidth - 16,
+                          );
+                          return SizedBox(
+                            key: ValueKey('charging-heater-$field'),
+                            height: 24,
+                            child: Stack(
+                              children: [
                                 Positioned(
-                                  left:
-                                      (span <= 0
-                                              ? 0.0
-                                              : event.t
-                                                        .difference(start)
-                                                        .inMicroseconds /
-                                                    span *
-                                                    width)
-                                          .clamp(0.0, width),
-                                  child: Semantics(
-                                    label:
-                                        '${heatingLabel(field)} ${event.value == null
-                                            ? '未知'
+                                  left: 8,
+                                  right: 8,
+                                  top: 11,
+                                  child: Divider(
+                                    height: 1,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant,
+                                  ),
+                                ),
+                                for (final event in events.events.where(
+                                  (e) => e.field == field,
+                                ))
+                                  Positioned(
+                                    left:
+                                        (span <= 0
+                                                ? 0.0
+                                                : event.t
+                                                          .difference(start)
+                                                          .inMicroseconds /
+                                                      span *
+                                                      width)
+                                            .clamp(0.0, width),
+                                    child: Semantics(
+                                      label:
+                                          '${heatingLabel(field)} ${event.value == null
+                                              ? '未知'
+                                              : event.value!
+                                              ? '是'
+                                              : '否'} ${widget.calendar.local(event.t)}',
+                                      child: Text(
+                                        event.value == null
+                                            ? '×'
                                             : event.value!
-                                            ? '是'
-                                            : '否'} ${widget.calendar.local(event.t)}',
-                                    child: Text(
-                                      event.value == null
-                                          ? '×'
-                                          : event.value!
-                                          ? '●'
-                                          : '○',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                            ? '●'
+                                            : '○',
+                                        style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    ExpansionTile(
+                      title: const Text('状态变化明细'),
+                      tilePadding: EdgeInsets.zero,
+                      children: [
+                        for (final event in events.events)
+                          ListTile(
+                            dense: true,
+                            title: Text(heatingLabel(event.field)),
+                            subtitle: Text(
+                              widget.calendar
+                                  .local(event.t)
+                                  .toString()
+                                  .split('.')
+                                  .first,
+                            ),
+                            trailing: Text(
+                              event.value == null
+                                  ? '未知'
+                                  : event.value!
+                                  ? '是'
+                                  : '否',
+                            ),
                           ),
-                        );
-                      },
+                      ],
                     ),
                   ],
-                  ExpansionTile(
-                    title: const Text('状态变化明细'),
-                    tilePadding: EdgeInsets.zero,
-                    children: [
-                      for (final event in events.events)
-                        ListTile(
-                          dense: true,
-                          title: Text(heatingLabel(event.field)),
-                          subtitle: Text(
-                            widget.calendar
-                                .local(event.t)
-                                .toString()
-                                .split('.')
-                                .first,
-                          ),
-                          trailing: Text(
-                            event.value == null
-                                ? '未知'
-                                : event.value!
-                                ? '是'
-                                : '否',
-                          ),
-                        ),
-                    ],
-                  ),
                 ],
-              ],
-            ),
+              ),
+            ],
           ),
       ],
     );
@@ -1006,4 +1004,41 @@ class _ChargingCurveState extends State<ChargingCurve> {
       ],
     );
   }
+}
+
+/// Endpoints are independent observations; missing endpoints never draw a range.
+class _BatteryArc extends CustomPainter {
+  _BatteryArc(this.start, this.end, this.color);
+  final num? start, end;
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCenter(
+      center: Offset(size.width / 2, 32),
+      width: 128,
+      height: 48,
+    );
+    final pen = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round
+      ..color = color.withValues(alpha: .18);
+    canvas.drawArc(rect, math.pi, math.pi, false, pen);
+    if (start != null && end != null) {
+      pen.color = color;
+      final low = math.min(start!, end!).clamp(0, 100) / 100;
+      final high = math.max(start!, end!).clamp(0, 100) / 100;
+      canvas.drawArc(
+        rect,
+        math.pi + math.pi * low,
+        math.pi * (high - low),
+        false,
+        pen,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BatteryArc old) =>
+      start != old.start || end != old.end || color != old.color;
 }
