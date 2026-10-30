@@ -53,6 +53,15 @@ Map<String, dynamic> conditionsFixture() => {
       },
   ],
 };
+Future<void> openConditions(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.widgetWithText(TextButton, '能耗').hitTestable(),
+    200,
+  );
+  await tester.tap(find.widgetWithText(TextButton, '能耗').hitTestable());
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('能耗条件显示负温度半开组与服务端配对值并下钻完整证据', (tester) async {
     final seen = <Uri>[];
@@ -84,15 +93,15 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.tap(find.text('能耗'));
-    await tester.pumpAndSettle();
+    await openConditions(tester);
+    expect(find.text('温度下的用车能耗'), findsOneWidget);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.widgetWithText(ChoiceChip, '[-5, 0) °C'),
       120,
     );
     expect(find.text('[-5, 0) °C'), findsWidgets);
-    await tester.scrollUntilVisible(find.textContaining('210 Wh/km'), 150);
+    await tester.scrollUntilVisible(find.textContaining('210 Wh/km'), -150);
     expect(find.textContaining('210 Wh/km'), findsWidgets);
     await tester.scrollUntilVisible(find.text('查看该温度组行程').hitTestable(), 200);
     await tester.tap(find.text('查看该温度组行程'));
@@ -135,17 +144,16 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.tap(find.text('能耗'));
-    await tester.pumpAndSettle();
+    await openConditions(tester);
     await tester.scrollUntilVisible(find.text('[0, 5) °C').hitTestable(), 120);
     await tester.tap(find.text('[0, 5) °C'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('0 Wh/km'), 120);
+    await tester.scrollUntilVisible(find.text('0 Wh/km'), -120);
     expect(find.text('0 Wh/km'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('下一温度组').hitTestable(), -120);
+    await tester.scrollUntilVisible(find.text('下一温度组').hitTestable(), 120);
     await tester.tap(find.text('下一温度组'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('— Wh/km'), 120);
+    await tester.scrollUntilVisible(find.text('— Wh/km'), -120);
     expect(find.text('配对样本不足'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -168,8 +176,7 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.tap(find.text('能耗'));
-    await tester.pumpAndSettle();
+    await openConditions(tester);
     expect(find.text('能耗条件读取失败'), findsOneWidget);
     fail = false;
     await tester.tap(find.text('重试能耗条件'));
@@ -180,6 +187,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('能耗条件读取失败，保留上次快照'), findsOneWidget);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
+  });
+  testWidgets('章节专题返回后切换期间仅按新期间请求', (tester) async {
+    final seen = <Uri>[];
+    final base = usageClient(seen);
+    final client = MockClient((r) async {
+      if (r.url.path.endsWith('/driving-analysis') &&
+          r.url.queryParameters['view'] == 'conditions') {
+        seen.add(r.url);
+        return http.Response(jsonEncode(conditionsFixture()), 200);
+      }
+      return base.get(r.url);
+    });
+    await openStats(
+      tester,
+      client,
+      () => DateTime.utc(2026, 10, 28, 11),
+      () => 'Asia/Shanghai',
+      statisticsInsights: true,
+    );
+    expect(
+      seen.where((u) => u.queryParameters['view'] == 'conditions'),
+      isEmpty,
+    );
+    await openConditions(tester);
+    final month = seen.last.queryParameters;
+    expect(month['from'], '2026-09-30T16:00:00.000Z');
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, '本周'));
+    await tester.pumpAndSettle();
+    await openConditions(tester);
+    final week = seen.last.queryParameters;
+    expect(week['from'], '2026-10-25T16:00:00.000Z');
+    expect(week['tz'], 'Asia/Shanghai');
+    expect(week['to'], month['to']);
+    expect(seen.last.path, contains('/vehicles/1/'));
   });
   testWidgets('切车后迟到条件结果不能覆盖新车', (tester) async {
     final pending = Completer<http.Response>();
@@ -202,14 +245,14 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.tap(find.text('能耗'));
-    await tester.pump();
+    await openConditions(tester);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('能耗'));
-    await tester.pumpAndSettle();
+    await openConditions(tester);
     expect(find.text('未知温度 7 趟'), findsOneWidget);
     pending.complete(http.Response(jsonEncode(conditionsFixture()), 200));
     await tester.pumpAndSettle();
