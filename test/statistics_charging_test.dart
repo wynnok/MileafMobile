@@ -191,7 +191,7 @@ void main() {
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('查看此期间补能'),
+      find.text('查看此期间补能').hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
