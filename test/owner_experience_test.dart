@@ -3,11 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'overview_visualization_test.dart';
 import 'statistics_usage_test.dart' show usageClient;
-import 'statistics_test.dart' show openStats;
+import 'statistics_test.dart' show openStats, custom;
 import 'support/statistics_insights_fixture.dart';
 import 'charging_expansion_test.dart' show chargingStatsV2;
 
 void main() {
+  testWidgets('默认统计入口在总览自定义后恢复本月', (tester) async {
+    final seen = <Uri>[];
+    await openStats(
+      tester,
+      usageClient(seen),
+      () => DateTime.utc(2026, 10, 28, 11),
+      () => 'Asia/Shanghai',
+      statisticsInsights: true,
+    );
+    await custom(tester, '2026-10-02', '2026-10-03');
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '本月')).selected,
+      isFalse,
+    );
+    seen.clear();
+    await tester.tap(find.widgetWithText(NavigationDestination, '统计'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '本月')).selected,
+      isTrue,
+    );
+    expect(
+      seen
+          .where((u) => u.queryParameters['kind'] == 'driving')
+          .any((u) => u.queryParameters['from'] == '2026-09-30T16:00:00.000Z'),
+      isTrue,
+    );
+  });
+
   testWidgets('概览使用已声明配对净电耗和费用覆盖，旧值不冒充配对值', (tester) async {
     await openOverviewVisual(
       tester,

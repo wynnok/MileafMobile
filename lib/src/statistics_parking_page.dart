@@ -363,7 +363,11 @@ class _ParkingPainter extends CustomPainter {
       final t = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(color: colors.onSurface, fontSize: fontSize),
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            color: colors.onSurface,
+            fontSize: fontSize,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

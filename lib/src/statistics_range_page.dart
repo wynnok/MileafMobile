@@ -367,7 +367,11 @@ class _RangePainter extends CustomPainter {
       final t = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyle(color: colors.onSurfaceVariant, fontSize: fontSize),
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            color: colors.onSurfaceVariant,
+            fontSize: fontSize,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

@@ -296,7 +296,7 @@ class _TemperaturePlot extends CustomPainter {
         text: TextSpan(
           text:
               '${conditionsValue(bins[i]['lower_c'])}–${conditionsValue(bins[i]['upper_c'])}',
-          style: TextStyle(color: axis, fontSize: 12),
+          style: TextStyle(fontFamily: 'Roboto', color: axis, fontSize: 12),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -330,7 +330,7 @@ class _TemperaturePlot extends CustomPainter {
       final text = TextPainter(
         text: TextSpan(
           text: conditionsValue(v),
-          style: TextStyle(color: color, fontSize: 12),
+          style: TextStyle(fontFamily: 'Roboto', color: color, fontSize: 12),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
