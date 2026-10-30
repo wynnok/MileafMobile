@@ -1,3 +1,5 @@
+import 'support/render_png.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,10 +9,7 @@ import 'statistics_range_test.dart' as ranges;
 import 'statistics_parking_test.dart' as parking;
 import 'statistics_conditions_test.dart' as conditions;
 
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
@@ -50,21 +49,8 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     final boundary = GlobalKey();
-    Future<void> save(String name) async {
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: name);
-      final render = tester.renderObject<RenderRepaintBoundary>(
-        find.byKey(boundary),
-      );
-      await tester.runAsync(() async {
-        final image = await render.toImage(pixelRatio: 2);
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        final file = File('$output/$name.png');
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(bytes!.buffer.asUint8List());
-        image.dispose();
-      });
-    }
+    Future<void> save(String name) =>
+        saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
 
     for (final scenario in ['normal', 'empty', 'missing']) {
       for (final brightness in Brightness.values) {
