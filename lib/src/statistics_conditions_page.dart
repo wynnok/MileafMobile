@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'statistics_insights_page.dart';
+import 'collage.dart';
 import 'statistics_usage_page.dart';
 import 'statistics_conditions_contract.g.dart' as dto;
 
@@ -107,8 +108,33 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        Text('温度与能耗', style: Theme.of(context).textTheme.headlineSmall),
-        const Text('行程室外均温 · 5°C半开分组 · 关联观察，不代表因果或排名'),
+        CollageTile(
+          surface: CollageSurface.hero,
+          child: Builder(
+            builder: (context) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('温度下的用车能耗'),
+                if (b != null && d?['status'] == 'available') ...[
+                  Text(
+                    '${conditionsValue(b['consumption_wh_km'])} Wh/km',
+                    style: MediaQuery.textScalerOf(context).scale(14) >= 21
+                        ? Theme.of(context).textTheme.headlineSmall
+                        : Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  Text('室外均温 ${label(b)}'),
+                  Text(switch (b['sample_status']) {
+                    'adequate' => '样本达到暂定门槛',
+                    'sparse' => '小样本，仅供点读',
+                    _ => '配对样本不足',
+                  }),
+                ] else
+                  const Text('等待可用的温度与配对样本'),
+                const Text('关联观察，不代表因果或排名'),
+              ],
+            ),
+          ),
+        ),
         if (error != null) Text(error!),
         if (d != null)
           TextButton(
@@ -127,11 +153,15 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
             const Text('区间内无已完成行程')
           else ...[
             Text('未知温度 ${conditionsValue(d['unknown_temperature_drives'])} 趟'),
-            Text(
-              '完整区间 ${conditionsValue(usageMap(d['summary'])['driving_distance_km'])} km · 单程中位数 ${conditionsValue(usageMap(d['summary'])['distance_p50_km'])} km',
+            CollageTile(
+              surface: CollageSurface.mint,
+              child: Text(
+                '完整区间 ${conditionsValue(usageMap(d['summary'])['driving_distance_km'])} km · 单程中位数 ${conditionsValue(usageMap(d['summary'])['distance_p50_km'])} km',
+              ),
             ),
             const SizedBox(height: 16),
             const Text('加权净电耗 · Wh/km'),
+            const Text('行程室外均温 · 5°C半开分组'),
             if (bins.isNotEmpty) ...[
               Semantics(
                 label: '温度分类点图，横向拖动选择温度组',
@@ -154,7 +184,9 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
                               .clamp(0, bins.length - 1),
                     ),
                     child: SizedBox(
-                      height: 160,
+                      height: MediaQuery.textScalerOf(context).scale(14) >= 21
+                          ? 230
+                          : 180,
                       width: double.infinity,
                       child: CustomPaint(
                         painter: _TemperaturePlot(
@@ -206,15 +238,6 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
             if (b != null) ...[
               Text(label(b), style: Theme.of(context).textTheme.titleLarge),
               Text(
-                '${conditionsValue(b['consumption_wh_km'])} Wh/km',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              Text(switch (b['sample_status']) {
-                'adequate' => '样本达到暂定门槛',
-                'sparse' => '小样本，仅供点读',
-                _ => '配对样本不足',
-              }),
-              Text(
                 '候选 ${conditionsValue(b['drives'])} 趟 · 已知里程 ${conditionsValue(b['distance_km'])} km',
               ),
               Text(
@@ -226,7 +249,10 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
               Text(
                 '单程中位数 ${conditionsValue(b['median_drive_distance_km'])} km · 平均记录速度 ${conditionsValue(b['mean_trip_speed_kmh'])} km/h',
               ),
-              coverage(b['coverage']),
+              ExpansionTile(
+                title: const Text('该组数据覆盖'),
+                children: [coverage(b['coverage'])],
+              ),
               if (b['evidence_filter'] is Map)
                 TextButton(
                   onPressed: () => openDrivingEvidence(
@@ -257,7 +283,10 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
               Text(
                 '${conditionsValue(item['drives'])} 趟 · 配对 ${conditionsValue(item['paired_energy_kwh'])} kWh / ${conditionsValue(item['paired_distance_km'])} km',
               ),
-              coverage(item['coverage']),
+              ExpansionTile(
+                title: const Text('距离组数据覆盖'),
+                children: [coverage(item['coverage'])],
+              ),
             ],
             ExpansionTile(
               title: const Text('数据覆盖与暂定口径'),
