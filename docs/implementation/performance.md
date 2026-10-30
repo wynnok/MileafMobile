@@ -19,13 +19,13 @@ Android 先用 `tool/flutterw android --version` 确认既有 JDK21，profile �
 | resume / warmOverviewFrameworkReady | 已读过概览后前台恢复；当前车summary/主趋势快照正确且绘图区可见的framework帧候选，刷新独立继续 | 仅以恢复回调或缓存命中当作实际可见首帧 |
 | driveClick | 用户从列表/概览点击行程的处理入口，生成 trial | 原始触摸硬件时间 |
 | driveMetricsAvailable / driveSeriesAvailable | 当前车辆正确资源分别成功解码；默认请求字段与 200 点参数未改变 | 两个 HTTP 时间的和等于端到端时间 |
-| driveFrameworkReady | 同一 trial 明细与默认速度序列均成功、无局部错误后，当前路由的 framework 帧候选 | 底图首图；lazy/offscreen 曲线已显示；raster/present 已完成 |
+| driveFrameworkReady | 同一 trial 明细与默认速度序列均成功、无局部错误，默认速度绘图区完整进入当前路由视口后的 framework 帧候选 | 底图首图；lazy/offscreen 曲线已显示；raster/present 已完成 |
 | overviewFailed / driveFailed | 当前有效请求失败；可辨识一次 trial 内的失败经历 | 静默剔除失败后重新计数 |
 | mapRequest / mapFirstTileDecoded / mapFailed | 地图每次加载的开始、首张真实瓦片成功解码候选与失败 hook | 单张解码即完整视口可见；失败透明底片等于首图 |
 
 post-frame 回调位于 framework 帧尾，不是 GPU/OS 呈现完成。正式样本必须将候选事件关联到其 Flutter frame、raster 完成及 OS 实际 present；DevTools 用于定位，Android 使用已有系统 trace（如 Perfetto），iOS 使用已有 Instruments/系统呈现证据。两端都先证明所用工具能够捕获所需起终点、采用同一时钟或有可验证时钟映射，再采样。不能直接相减未经对齐的 OS 时间与 Dart Timeline 时间戳。无法对齐的样本标为采集失败，不换用 Dart main 缩短冷启动。
 
-行程详情现将主要指标与默认曲线放在次要字段和地图之前。App/HTTP 回归确认 360×800、正常字体下主要指标与完整默认图形位于初始视口，200% 字体下全字段与图表可纵向阅读。该几何检查不是设备呈现或性能证据；数据已可供构建不保证目标设备的曲线已在当前视口绘制，仍必须以录屏/帧证据核查主要指标和默认曲线的实际可读状态。若固定验收视口无法在初始交互帧呈现目标，就记录该限制及真实可达路径，不能将本候选标记包装成满足预算。测量过程需要额外用户滚动或修复操作时不能混入“点击到默认可读”成功样本。
+以下为旧 A 布局历史验证，不能沿用为当前 C 首屏曲线结论。旧 A 行程详情将主要指标与默认曲线放在次要字段和地图之前。App/HTTP 回归确认 360×800、正常字体下主要指标与完整默认图形位于初始视口，200% 字体下全字段与图表可纵向阅读。该几何检查不是设备呈现或性能证据；数据已可供构建不保证目标设备的曲线已在当前视口绘制，仍必须以录屏/帧证据核查主要指标和默认曲线的实际可读状态。若固定验收视口无法在初始交互帧呈现目标，就记录该限制及真实可达路径，不能将本候选标记包装成满足预算。测量过程需要额外用户滚动或修复操作时不能混入“点击到默认可读”成功样本。
 
 地图 hook 单独配对：地图实例接受展示后 start(mapRequest)，每加载代次首次真正 HTTP 成功并 decode 完成时 mark(mapFirstTileDecoded, trial: ...)，失败 mark(mapFailed, trial: ...)；透明降级图片绝不发成功事件。现已接入 CandidateMap 的加载代次和成功 decode 专用回调，每代仅首个成功瓦片发一次事件；实际首图仍取对应瓦片在正确视口呈现的证据。地图未获同意、瓦片错误、网络失败均不算成功首图。底图失败时指标/默认曲线继续可读，恢复行为另验。
 
@@ -93,3 +93,7 @@ post-frame 回调位于 framework 帧尾，不是 GPU/OS 呈现完成。正式�
 未达预算先关联客户端 build/raster、网络往返和后端分段证据，定位瓶颈后仅修对应客户端路径，再重测完整对应批次，保留修复前结果。外部服务或设备/网络无法满足时明确为依赖，不能提高手机配置、删失败、缩小数据集或改变指标定义制造达标。
 
 本轮沿用已批准 App/HTTP 行为边界执行回归和静态分析，分别覆盖标记默认关闭与编译定义开启时的原有用户路径；没有新增私有状态测试或未经确认的CLI报告器测试层。
+
+## 2026-10-30 C 集成复核
+
+C 地图优先；初始详情默认速度绘图区未完整可见时不发 driveFrameworkReady。候选增加真实 CustomPaint 绘图区完整处于 ListView 视口的 post-frame 守卫，滚动重新检查；仍核对当前会话、车辆、路由、默认速度及独立详情/序列成功。App＋可控 HTTP＋VM Timeline 测试红绿验证初始0事件、完整曲线可见后1事件。地图优先所需滚动不能计为“点击即默认可读”性能成功样本。设备 N=0，raster/present、正式预算仍待验，未执行设备。见 [C集成验证](collage-integration.md)。
