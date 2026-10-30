@@ -41,9 +41,9 @@ Future<void> scrollPageTo(
 ) async {
   for (var i = 0; i < 30 && target.hitTestable().evaluate().isEmpty; i++) {
     final viewport = tester.getRect(find.byType(RefreshIndicator));
-    // Drag the page margin so a map pan does not consume this gesture.
+    // The C map spans the width; swipe below its first viewport.
     await tester.dragFrom(
-      Offset(viewport.right - 4, viewport.center.dy),
+      Offset(viewport.right - 4, viewport.bottom - 8),
       Offset(0, -delta),
     );
     await tester.pumpAndSettle();
@@ -79,6 +79,8 @@ void main() {
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
     await scrollPageTo(tester, find.text('行程地图'), -180);
+    await tester.ensureVisible(find.byType(FlutterMap));
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('selected-drive-sample')).hitTestable(),
       findsOneWidget,
@@ -113,6 +115,8 @@ void main() {
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
     await scrollPageTo(tester, find.text('行程地图'), -180);
+    await tester.ensureVisible(find.byType(FlutterMap));
+    await tester.pumpAndSettle();
     expect(
       find.bySemanticsLabel(
         RegExp('选中采样位置.*2026-03-15 16:01:00', dotAll: true),
@@ -123,6 +127,8 @@ void main() {
     await tester.tap(find.text('后一个采样'));
     await tester.pumpAndSettle();
     await scrollPageTo(tester, find.text('行程地图'), -180);
+    await tester.ensureVisible(find.byType(FlutterMap));
+    await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp('选中采样位置')), findsNothing);
     semantics.dispose();
   });
