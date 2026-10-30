@@ -1,3 +1,4 @@
+import 'collage.dart';
 import 'api.dart';
 
 import 'package:flutter/material.dart';
@@ -385,7 +386,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
         return false;
       },
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           Row(
@@ -416,10 +417,6 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                 custom == null
                     ? '最近$recentDays个本地日历日'
                     : '${date(custom!.start)} 至 ${date(custom!.end)}（含首尾）',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                '归期时区：${workspace.calendar!.identifier}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -462,24 +459,34 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
             ),
           ],
           if (driving case final s?) ...[
-            Card(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Column(
+            CollageTile(
+              surface: CollageSurface.hero,
+              child: Builder(
+                builder: (context) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '期间里程 ${number(s.totals.distanceKm, 'km', decimals: 1)}',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                    const Text('已完成行程'),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '期间里程 ',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          TextSpan(
+                            text: number(
+                              s.totals.distanceKm,
+                              'km',
+                              decimals: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     Wrap(
-                      spacing: 12,
-                      runSpacing: 2,
+                      spacing: 10,
                       children: [
                         Text('期间行程 ${s.totals.drives} 次'),
                         Text(
@@ -489,10 +496,6 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                           '期间估算净电耗 ${number(s.totals.consumptionWhKmNet, 'Wh/km')}',
                         ),
                       ],
-                    ),
-                    Text(
-                      '已完成行程 · ${timeRange(statsSnapshot)}',
-                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -562,22 +565,25 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
               },
               child: const Text('返回完整区间'),
             ),
+          if (items.isNotEmpty) const Text('最近的路'),
           for (final (index, d) in items.indexed) ...[
             if (index == 0 ||
                 recordDay(items[index - 1].startedAt) != recordDay(d.startedAt))
               Padding(
-                padding: const EdgeInsets.only(top: 16, bottom: 10),
+                padding: const EdgeInsets.only(top: 8, bottom: 6),
                 child: Text(
                   recordDay(d.startedAt),
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
-            Card(
+            CollageTile(
+              surface: index == 0 ? CollageSurface.mint : CollageSurface.paper,
+              padding: EdgeInsets.zero,
               child: InkWell(
                 key: ValueKey('drive-${d.id}'),
                 onTap: () => widget.onRecord?.call(d.id),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -599,7 +605,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 6),
                       Text(
                         '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -647,10 +653,17 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
             ),
           if (loaded && cursor == null && items.isNotEmpty)
             const Text('已显示全部行程'),
-          if (result != null)
-            Text(
-              '校验时间：${workspace.calendar!.local(result!.checkedAt).toString().split('.').first}',
-            ),
+          ExpansionTile(
+            title: const Text('数据说明'),
+            children: [
+              Text('归期时区：${workspace.calendar!.identifier}'),
+              Text('已完成行程 · ${timeRange(statsSnapshot)}'),
+              if (result != null)
+                Text(
+                  '校验时间：${workspace.calendar!.local(result!.checkedAt).toString().split('.').first}',
+                ),
+            ],
+          ),
         ],
       ),
     ),
