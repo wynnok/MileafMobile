@@ -34,9 +34,15 @@ void main() {
       () => 'UTC',
       statisticsInsights: true,
     );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     expect(find.text('补能账目'), findsOneWidget);
+    expect(find.text('已知支出 · 覆盖同时看'), findsOneWidget);
     expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('有效入电均价 0.4'),
@@ -44,6 +50,12 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('有效入电均价 0.4'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('AC / DC / 未知时间分布'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('AC / DC / 未知时间分布'), findsOneWidget);
   });
   testWidgets('统计地点账目以结束日和同一地点进入已有记录', (tester) async {
     final queries = <Map<String, String>>[];
@@ -58,6 +70,11 @@ void main() {
       () => DateTime.utc(2026, 3, 30, 12),
       () => 'UTC',
       statisticsInsights: true,
+    );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
@@ -98,6 +115,11 @@ void main() {
       () => 'UTC',
       statisticsInsights: true,
     );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     failing = true;
@@ -133,6 +155,11 @@ void main() {
       () => 'UTC',
       statisticsInsights: true,
     );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -155,6 +182,11 @@ void main() {
       () => DateTime.utc(2026, 3, 30, 12),
       () => 'UTC',
       statisticsInsights: true,
+    );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
@@ -192,6 +224,11 @@ void main() {
       () => DateTime.utc(2026, 3, 30, 12),
       () => 'UTC',
       statisticsInsights: true,
+    );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
