@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'data_cards.dart';
+import 'collage.dart';
 import 'data_chart.dart';
 
 import 'charging_contract.g.dart' as dto;
@@ -782,101 +783,79 @@ class _ChargingPageState extends State<ChargingPage>
 
   Widget summary(expanded.ChargingStats stats) {
     final total = stats.totals;
-    final price = total.unitCostAdded.value;
     final energy = total.sessions > 0 && total.energyKnownSessions == 0
         ? '—（缺失）'
         : '${decimal(total.energyAddedKwh)} kWh';
     final minutes = total.sessions > 0 && total.durationKnownSessions == 0
         ? '—（缺失）'
         : '${decimal(total.durationMinTotal)} 分钟';
-    return DataCard(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('已知充电费用', style: Theme.of(context).textTheme.labelMedium),
-          Text.rich(
-            TextSpan(
-              text: total.cost == null ? '—' : decimal(total.cost!),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CollageTile(
+          surface: CollageSurface.hero,
+          child: Builder(
+            builder: (context) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(
-                  text: total.cost == null
-                      ? '（缺失）'
-                      : ' ${widget.currency.code ?? '（币种未知）'}',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                const Text('已知充电费用'),
+                Text(
+                  total.cost == null ? '—' : decimal(total.cost!),
+                  style: Theme.of(context).textTheme.displaySmall
+                      ?.copyWith(fontSize: 44),
                 ),
-              ],
-            ),
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          Text(
-            '费用有记录 ${total.costKnownSessions} / ${total.sessions} 次 · 对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          if (total.sessions > 0) ...[
-            const SizedBox(height: 6),
-            Semantics(
-              label: '费用记录覆盖：${total.costKnownSessions}/${total.sessions}次',
-              child: LinearProgressIndicator(
-                value: total.costKnownSessions / total.sessions,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(2),
-                backgroundColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerLow,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked = MediaQuery.textScalerOf(context).scale(12) > 18;
-              final width = stacked
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 16) / 3;
-              return Wrap(
-                spacing: 8,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    width: width,
-                    child: MetricTile(
-                      label: '补入电池',
-                      value: energy,
-                      note: total.sessions == 0
-                          ? null
-                          : '${total.energyKnownSessions}/${total.sessions}次有记录',
-                    ),
-                  ),
-                  SizedBox(
-                    width: width,
-                    child: MetricTile(
-                      label: '有效入电均价',
-                      value: price == null ? '—（缺失）' : decimal(price),
-                      note: '${widget.currency.code ?? '币种未知'}/kWh',
-                    ),
-                  ),
-                  SizedBox(
-                    width: width,
-                    child: MetricTile(
-                      label: '记录时长',
-                      value: minutes,
-                      note: total.sessions == 0
-                          ? '非等待时间'
-                          : '${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间',
+                Text(
+                  '${total.cost == null ? '缺失 · ' : ''}${widget.currency.code ?? '（币种未知）'}',
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '有效入电均价 ${total.unitCostAdded.value == null ? '—（缺失）' : decimal(total.unitCostAdded.value!)} ${widget.currency.code ?? '币种未知'}/kWh',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const Text('费用覆盖'),
+                Text(
+                  '费用有记录 ${total.costKnownSessions} / ${total.sessions} 次 · 对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (total.sessions > 0) ...[
+                  const SizedBox(height: 8),
+                  Semantics(
+                    label:
+                        '费用记录覆盖：${total.costKnownSessions}/${total.sessions}次',
+                    child: LinearProgressIndicator(
+                      value: total.costKnownSessions / total.sessions,
+                      minHeight: 4,
+                      color: const Color(0xFF8AD6AF),
+                      backgroundColor: const Color(0xFF315344),
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-          if (total.unitCostAdded.excludedCostSessions > 0)
-            Text(
-              '均价不含 ${total.unitCostAdded.excludedCostSessions} 次能量无效的已知费用。',
-              style: Theme.of(context).textTheme.bodySmall,
+              ],
             ),
-        ],
-      ),
+          ),
+        ),
+        CollageBento(
+          lead: CollageTile(
+            surface: CollageSurface.mint,
+            child: MetricTile(
+              label: '补入电池',
+              value: energy,
+              note: '${total.energyKnownSessions}/${total.sessions}次有记录',
+            ),
+          ),
+          evidence: [
+            CollageTile(
+              surface: CollageSurface.sand,
+              child: MetricTile(
+                label: '记录时长',
+                value: minutes,
+                note:
+                    '${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -889,7 +868,7 @@ class _ChargingPageState extends State<ChargingPage>
     ];
     final metric = entries[chartMetric];
     return TimeChart(
-      title: '补能的节奏',
+      title: '每日补能',
       unit: metric.$2,
       times: stats.buckets.map((bucket) => bucket.bucketStart).toList(),
       series: [
@@ -1044,7 +1023,7 @@ class _ChargingPageState extends State<ChargingPage>
         },
         child: ListView(
           controller: scroll,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(12),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             Row(
@@ -1076,12 +1055,13 @@ class _ChargingPageState extends State<ChargingPage>
                 ),
               ],
             ),
-            Text(
-              '按${expandedAvailable ? '结束' : '开始'}时间归期 · 时区：${workspace.calendar!.identifier}',
-              style: expandedAvailable
-                  ? Theme.of(context).textTheme.bodySmall
-                  : null,
-            ),
+            if (!expandedAvailable)
+              Text(
+                '按${expandedAvailable ? '结束' : '开始'}时间归期 · 时区：${workspace.calendar!.identifier}',
+                style: expandedAvailable
+                    ? Theme.of(context).textTheme.bodySmall
+                    : null,
+              ),
             Text(
               '${widget.filter.first == null ? '近$recentDays日本地日历日' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}',
               style: expandedAvailable
@@ -1216,7 +1196,13 @@ class _ChargingPageState extends State<ChargingPage>
             if (expandedStats case final stats? when !recordsOnly) ...[
               summary(stats),
               trend(stats),
-              DataCard(
+              if (stats.totals.unitCostAdded.excludedCostSessions > 0)
+                Text(
+                  '均价不含 ${stats.totals.unitCostAdded.excludedCostSessions} 次能量无效的已知费用。',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              CollageTile(
+                surface: CollageSurface.sand,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1327,6 +1313,16 @@ class _ChargingPageState extends State<ChargingPage>
                   child: const Text('加载更多地点'),
                 ),
             ],
+            if (expandedAvailable)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('数据说明'),
+                children: [
+                  Text(
+                    '按结束时间归期 · 时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
+                  ),
+                ],
+              ),
             if (loading) const LinearProgressIndicator(),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),
