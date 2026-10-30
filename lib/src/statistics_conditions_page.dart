@@ -298,7 +298,11 @@ class _TemperaturePlot extends CustomPainter {
       if (v < low) low = v.toDouble();
       if (v > high) high = v.toDouble();
     }
-    final baseline = 140 - (0 - low) / (high - low) * 120;
+    final fontSize = labelStyle.fontSize ?? 12;
+    final plotTop = fontSize * 1.5 + 8;
+    final plotBottom = size.height - fontSize * 1.5 - 4;
+    final plotHeight = (plotBottom - plotTop).clamp(1.0, size.height);
+    final baseline = plotBottom - (0 - low) / (high - low) * plotHeight;
     canvas.drawLine(
       Offset(0, baseline),
       Offset(size.width, baseline),
@@ -320,7 +324,7 @@ class _TemperaturePlot extends CustomPainter {
             0,
             size.width - label.width,
           ),
-          145,
+          size.height - label.height,
         ),
       );
       final v = bins[i]['consumption_wh_km'];
@@ -328,7 +332,7 @@ class _TemperaturePlot extends CustomPainter {
       if (v is! num) continue;
       final point = Offset(
         (i + .5) * size.width / bins.length,
-        140 - (v - low) / (high - low) * 120,
+        plotBottom - (v - low) / (high - low) * plotHeight,
       );
       canvas.drawCircle(
         point,
@@ -351,7 +355,7 @@ class _TemperaturePlot extends CustomPainter {
         canvas,
         Offset(
           (point.dx - text.width / 2).clamp(0, size.width - text.width),
-          point.dy - 20,
+          point.dy - text.height - 6,
         ),
       );
     }

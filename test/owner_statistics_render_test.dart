@@ -168,6 +168,17 @@ void main() {
           for (final topic in ['节奏', '能耗', '补能', '长期']) {
             await tester.tap(find.widgetWithText(ChoiceChip, topic));
             await save('$topic-$suffix');
+            if (topic == '能耗' && scenario != 'failure') {
+              await tester.scrollUntilVisible(
+                find.bySemanticsLabel('温度分类点图，横向拖动选择温度组'),
+                100,
+                scrollable: find.byType(Scrollable).last,
+              );
+              await tester.ensureVisible(
+                find.bySemanticsLabel('温度分类点图，横向拖动选择温度组'),
+              );
+              await save('conditions-chart-$suffix');
+            }
           }
           await tester.scrollUntilVisible(
             find.text('展开长期续航').hitTestable(),

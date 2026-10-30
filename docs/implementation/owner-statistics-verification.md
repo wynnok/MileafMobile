@@ -9,13 +9,13 @@
 | UX05/09 兼容和隔离 | 独立features、旧站点承载、区域失败/快照及请求代次守卫 | 复验既有统计主题测试，未发现需要新增后端或重建承载的缺口 |
 | UX08 节奏/条件/补能 | 活跃日/分位/完整证据、条件稀疏组、有效单价/地点复用 | 在正常与边界合成样本重新渲染，不从日桶或证据分页补算 |
 | UX08 长期/停放 | 6/12月波动带、稀疏/缺月、闭合窗口四状态与分页 | 新增完整专题及实际绘图区截图，避免仅长期摘要就声称图形已验收 |
-| UX10 可读图形 | Widget文本字体已载入，裸TextPainter仍用引擎默认字体 | 正式渲染暴露自绘range/parking/conditions刻度使用Ahem方块。从build传入Material主题bodySmall TextStyle，自绘标签继承平台字体/回退与字重，并保留系统字号缩放；真实CJK字体加载后复核刻度/月标签可读，不硬编码Roboto，也不改数据或绘制几何 |
+| UX10 可读图形 | Widget文本字体已载入，裸TextPainter仍用引擎默认字体 | 正式渲染暴露自绘range/parking/conditions刻度使用Ahem方块。从build传入Material主题bodySmall TextStyle，自绘标签继承平台字体/回退与字重，并保留系统字号缩放；真实CJK字体加载后复核刻度/月标签可读，不硬编码Roboto；温度图同时按放大标签高度预留上下绘图空间，避免顶部读数和底部组标签越界，不改数据口径 |
 
 ## 验证
 
 - 默认入口行为在修复前失败于本月未选中；修复后本月选中，当前驾驶查询恢复本地月初，参照仍独立读取（不把最后一个参照请求误当本期）。
-- owner及statistics_insights/usage/conditions/range/parking/charging七组定向回归44项通过。最终全App回归由根集成执行，不把44当全套。
-- `tool/flutterw analyze --no-pub lib test`无诊断。正式Flutter渲染360×800，浅深色及100%/200%，正常/edge/failure共108张，见[图册](owner-statistics-renders/index.html)与[指纹](owner-statistics-renders/provenance.json)。
+- owner及statistics_insights/usage/conditions/range/parking/charging七组定向回归44项通过。最终温度图标签空间调整后另执行条件+owner回归9项通过。最终全App回归由根集成执行，不把44当全套。
+- `tool/flutterw analyze --no-pub lib test`无诊断。正式Flutter渲染360×800，浅深色及100%/200%，正常/edge/failure共116张，见[图册](owner-statistics-renders/index.html)与[指纹](owner-statistics-renders/provenance.json)。
 - edge场景为usage无已完成行程、温度原样稀疏分组、续航稀疏/末月缺失、停放无有效窗口；failure为条件专题503，其余专题仍可切换阅读。不是所有资源的全排列失败测试；这些由既有行为回归补充。
 - 本轮渲染使用受控合成HTTP和本地CJK字体，不调用真实站点或设备，不把图册作为真实数据/用户审美验收。
 
