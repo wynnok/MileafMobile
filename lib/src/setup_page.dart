@@ -1,0 +1,107 @@
+import 'package:flutter/material.dart';
+
+import 'session.dart';
+
+class SetupPage extends StatefulWidget {
+  const SetupPage({super.key, required this.session});
+  final SessionController session;
+  @override
+  State<SetupPage> createState() => _SetupPageState();
+}
+
+class _SetupPageState extends State<SetupPage> {
+  final _form = GlobalKey<FormState>();
+  final _password = TextEditingController();
+  final _confirmation = TextEditingController();
+
+  @override
+  void dispose() {
+    _password.dispose();
+    _confirmation.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initialize() async {
+    if (!_form.currentState!.validate()) return;
+    final value = _password.text;
+    _password.clear();
+    _confirmation.clear();
+    final finished = await widget.session.initialize(value);
+    if (mounted && finished) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.session,
+    builder: (context, _) {
+      final session = widget.session;
+      return PopScope(
+        canPop: !session.loading,
+        child: Scaffold(
+          appBar: AppBar(title: const Text('首次初始化站点')),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _form,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(session.site!.uri.toString()),
+                    const SizedBox(height: 16),
+                    const Text('仅适用于尚未设置访问口令的站点。已有站点请返回登录。'),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _password,
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      enabled: !session.loading,
+                      decoration: const InputDecoration(
+                        labelText: '新站点口令',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) => (value?.runes.length ?? 0) < 10
+                          ? '口令至少需要 10 个字符'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmation,
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      enabled: !session.loading,
+                      decoration: const InputDecoration(
+                        labelText: '再次输入口令',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) =>
+                          value != _password.text ? '两次输入的口令不一致' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: session.canLogin ? _initialize : null,
+                      child: Text(session.loading ? '正在初始化…' : '设置口令并登录'),
+                    ),
+                    TextButton(
+                      onPressed: session.loading
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('返回登录'),
+                    ),
+                    if (session.message != null)
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(session.message!),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}

@@ -1,0 +1,51 @@
+{
+  "items": [
+    {
+      "id": 17,
+      "started_at": "2026-03-30T02:00:00Z",
+      "ended_at": "2026-03-30T02:30:00Z",
+      "distance_km": 20.0,
+      "duration_min": 30,
+      "energy_kwh": 3.75,
+      "consumption_wh_km": 188.0,
+      "start": {
+        "display_name": null,
+        "geofence": null,
+        "address": null,
+        "lat": null,
+        "lon": null
+      },
+      "end": {
+        "display_name": null,
+        "geofence": null,
+        "address": null,
+        "lat": null,
+        "lon": null
+      }
+    },
+    {
+      "id": 16,
+      "started_at": "2026-03-29T21:30:00Z",
+      "ended_at": "2026-03-29T22:00:00Z",
+      "distance_km": 20.0,
+      "duration_min": 30,
+      "energy_kwh": 3.75,
+      "consumption_wh_km": 188.0,
+      "start": {
+        "display_name": null,
+        "geofence": null,
+        "address": null,
+        "lat": null,
+        "lon": null
+      },
+      "end": {
+        "display_name": null,
+        "geofence": null,
+        "address": null,
+        "lat": null,
+        "lon": null
+      }
+    }
+  ],
+  "next_cursor": "MjAyNi0wMy0yOVQyMTozMDowMCswMDowMHwxNg"
+}

@@ -1,0 +1,158 @@
+[
+  {
+    "name": "A-home-light-first",
+    "query": "?export=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-home-light-full",
+    "query": "?export=1&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-energy-light-first",
+    "query": "?export=1&screen=energy",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-energy-light-full",
+    "query": "?export=1&screen=energy&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "B-home-light-first",
+    "query": "?export=1&variant=B",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "B-home-light-full",
+    "query": "?export=1&variant=B&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "C-home-light-first",
+    "query": "?export=1&variant=C",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "C-home-light-full",
+    "query": "?export=1&variant=C&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-charging-light-first",
+    "query": "?export=1&screen=charging",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-charging-light-full",
+    "query": "?export=1&screen=charging&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-long-light-first",
+    "query": "?export=1&screen=long",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-long-light-full",
+    "query": "?export=1&screen=long&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-parking-light-full",
+    "query": "?export=1&screen=parking&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-home-dark-first",
+    "query": "?export=1&theme=dark",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-energy-dark-full",
+    "query": "?export=1&screen=energy&theme=dark&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-home-200-full",
+    "query": "?export=1&size=200&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "B-home-200-full",
+    "query": "?export=1&variant=B&size=200&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "C-home-200-full",
+    "query": "?export=1&variant=C&size=200&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-existing-full",
+    "query": "?export=1&mode=existing&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-missing-full",
+    "query": "?export=1&data=missing&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-empty-first",
+    "query": "?export=1&data=empty",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-baselinezero-first",
+    "query": "?export=1&data=baselinezero",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-referencefail-first",
+    "query": "?export=1&data=referencefail",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-insufficient-full",
+    "query": "?export=1&data=insufficient&full=1",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-currency-none-first",
+    "query": "?export=1&currency=none",
+    "scrollWidth": 360,
+    "width": 360
+  },
+  {
+    "name": "A-chargefail-first",
+    "query": "?export=1&data=chargefail",
+    "scrollWidth": 360,
+    "width": 360
+  }
+]

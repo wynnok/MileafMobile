@@ -1,0 +1,7 @@
+{
+  "serverCommit": "86bf3111606aca9277e26a3024098c29b2c8f152",
+  "serverVersion": "0.3.0",
+  "sha256": "766ae062a908a5ef47d6c87656e9e696bb5d1e8d73552a57cc65cc9bdab52476",
+  "source": "MileafServer/docs/api/openapi-0.3.0.json",
+  "note": "Copied frozen artifact without service startup or database access."
+}

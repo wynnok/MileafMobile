@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+project_root="$PWD"
+host_android_sdk="${MILEAF_HOST_ANDROID_SDK:-${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}}"
+export CI=true FLUTTER_SUPPRESS_ANALYTICS=true
+export PUB_CACHE="$project_root/.cache/pub"
+export XDG_CONFIG_HOME="$project_root/.cache/config"
+export XDG_CACHE_HOME="$project_root/.cache/cache"
+export GRADLE_USER_HOME="$project_root/.cache/gradle"
+export ANDROID_USER_HOME="$project_root/.cache/android"
+export ANDROID_HOME="${MILEAF_ANDROID_SDK:-$project_root/.tooling/android-sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export CLANG_MODULE_CACHE_PATH="$project_root/.cache/clang"
+export SWIFTPM_MODULECACHE_OVERRIDE="$project_root/.cache/swift"
+export CP_HOME_DIR="$project_root/.cache/cocoapods/home"
+export CP_CACHE_DIR="$project_root/.cache/cocoapods/cache"
+export CP_REPOS_DIR="$project_root/.cache/cocoapods/repos"
+export GEM_SPEC_CACHE="$project_root/.cache/gem/specs"
+export COCOAPODS_DISABLE_STATS=true COCOAPODS_SKIP_UPDATE_MESSAGE=true
+flutter_sdk="${MILEAF_FLUTTER_SDK:-$project_root/.tooling/flutter}"
+if [[ ! -x "$flutter_sdk/bin/flutter" ]]; then
+  echo 'Missing project Flutter SDK. See docs/implementation/toolchain.md.' >&2
+  exit 1
+fi
+if [[ "${1:-}" == dart ]]; then
+  shift
+  exec "$flutter_sdk/bin/dart" "$@"
+fi
+# Native invocations must run in a verified macOS process sandbox. Do not
+# replace HOME, alter Flutter sources, or reuse a daemon started outside it.
+native=false
+for argument in "$@"; do
+  case "$argument" in android|build|run|install|drive) native=true ;; esac
+done
+if ! "$native"; then
+  exec "$flutter_sdk/bin/flutter" "$@"
+fi
+fail_closed() { echo "Native execution refused: $*" >&2; exit 78; }
+# Project-local CocoaPods avoids the nested SwiftPM manifest sandbox.
+# Device execution and other native entry points still require their own evidence.
+if [[ "${1:-}" != android && !( "${1:-}" == build && ( "${2:-}" == apk || "${2:-}" == appbundle || "${2:-}" == ios ) ) ]]; then
+  fail_closed 'only Android builds and project-local CocoaPods iOS builds are enabled'
+fi
+[[ "$(uname -s)" == Darwin && -x /usr/bin/sandbox-exec ]] || fail_closed 'macOS sandbox-exec unavailable'
+[[ -n "$host_android_sdk" && -d "$host_android_sdk" ]] || fail_closed 'set MILEAF_HOST_ANDROID_SDK to the protected host SDK'
+[[ -d "$ANDROID_HOME" ]] || fail_closed 'project Android SDK missing'
+host_android_sdk="$(cd "$host_android_sdk" && pwd -P)"
+project_android_sdk="$(cd "$ANDROID_HOME" && pwd -P)"
+[[ "$host_android_sdk" != "$project_android_sdk" ]] || fail_closed 'host and project SDK must differ'
+host_probe="$host_android_sdk/platform-tools/source.properties"
+[[ -f "$host_probe" ]] || fail_closed 'host SDK write-permission probe file missing'
+mkdir -p "$project_root/.cache/isolation"
+probe_dir="$(mktemp -d "$project_root/.cache/isolation/probe.XXXXXX")"
+legacy_fixture="$probe_dir/.flutter_settings"
+printf 'non-secret legacy fixture\n' > "$legacy_fixture"
+cleanup_probe() { rm -f "$legacy_fixture" "$probe_dir/project-write"; rmdir "$probe_dir"; }
+trap cleanup_probe EXIT
+sandbox_args=(-D "HOST_ANDROID_SDK=$host_android_sdk"
+  -D "GLOBAL_CP_HOME=$HOME/.cocoapods"
+  -D "GLOBAL_CP_CACHE=$HOME/Library/Caches/CocoaPods"
+  -D "GLOBAL_GEMS=$HOME/.gem"
+  -D "LEGACY_STATE=$HOME/.flutter_tool_state"
+  -D "LEGACY_DEVICES=$HOME/.flutter_custom_devices.json"
+  -f "$project_root/tool/build-sandbox.sb")
+# An explicit shell descendant verifies inheritance, not only the launcher.
+/usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$legacy_fixture" /bin/sh -c 'exec /usr/bin/ruby "$@"' probe \
+  "$project_root/tool/build-sandbox-probe.rb" "$legacy_fixture" "$host_probe" "$probe_dir/project-write" \
+  || fail_closed 'sandbox preflight did not prove isolation'
+printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
+  "$project_android_sdk" "$flutter_sdk" > "$project_root/android/local.properties"
+set +e
+if [[ "${1:-}" == android ]]; then
+  shift
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$HOME/.flutter_settings" "$project_root/android/gradlew" -p "$project_root/android" --no-daemon "$@"
+else
+  /usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$HOME/.flutter_settings" "$flutter_sdk/bin/flutter" "$@"
+fi
+build_status=$?
+set -e
+actual_sdk="$(sed -n 's/^sdk.dir=//p' "$project_root/android/local.properties")"
+[[ "$actual_sdk" == "$project_android_sdk" ]] || fail_closed 'Flutter changed sdk.dir; build is not accepted'
+exit "$build_status"

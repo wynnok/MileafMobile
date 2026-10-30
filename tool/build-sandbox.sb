@@ -1,0 +1,12 @@
+(version 1)
+(allow default)
+; Flutter uses these legacy home files before consulting XDG_CONFIG_HOME.
+(deny file-read* file-write* (literal (param "LEGACY_SETTINGS"))
+                           (literal (param "LEGACY_STATE"))
+                           (literal (param "LEGACY_DEVICES")))
+; Defense in depth: even a newly discovered SDK-selection path cannot mutate it.
+(deny file-write* (subpath (param "HOST_ANDROID_SDK")))
+; CocoaPods is project-local; refuse accidental user-level gem/pod cache writes.
+(deny file-write* (subpath (param "GLOBAL_CP_HOME"))
+                  (subpath (param "GLOBAL_CP_CACHE"))
+                  (subpath (param "GLOBAL_GEMS")))
