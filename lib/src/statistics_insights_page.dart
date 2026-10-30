@@ -189,6 +189,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     title: Text(() {
+                      if (key == 'range') return '独立6/12个本地月窗口';
                       final zone = workspace.calendar!;
                       String date(DateTime instant) {
                         final local = zone.local(instant);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'statistics_insights_page.dart';
 import 'data_cards.dart';
+import 'collage.dart';
 import 'workspace.dart';
 import 'range_observations_contract.g.dart' as dto;
 
@@ -169,12 +170,6 @@ class _RangeObservationPageState extends State<RangeObservationPage>
           ),
         ],
       ),
-      const Text('记录估计 · 非电池健康检测'),
-      if (d != null)
-        Text(
-          '查询生成时间：${d['as_of']}（非采样时间）',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
       if (loading) const LinearProgressIndicator(),
       if (error != null) Text(error!),
       if (error != null)
@@ -188,11 +183,6 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         const Text('观察窗口内无充电记录'),
       if (d != null && totals?['status'] == 'insufficient_data')
         const Text('尚无有效续航样本'),
-      if (d != null)
-        Text(
-          '$months个本地月 · ${d['query']['from']} 至 ${d['query']['to']}',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
       if (compact) ...[
         Text(
           '${value(totals?['median_range_km'])} km',
@@ -281,7 +271,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                           ? '有效样本'
                           : '无有效样本'}',
                     ),
-                    Row(
+                    Wrap(
                       children: [
                         TextButton(
                           onPressed: selected > 0
@@ -318,17 +308,51 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         ),
       ],
     ];
-    final body = DataCard(
+    final chosen = rows.isEmpty ? null : rows[selected];
+    final headline = CollageTile(
+      surface: CollageSurface.hero,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: contents,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('所选月中位数'),
+          Text(
+            '${value(chosen?['median_range_km'])} km',
+            style: Theme.of(context).textTheme.displaySmall
+                ?.copyWith(color: const Color(0xFFEEF7EF)),
+          ),
+          Text('独立$months个月观察窗口'),
+          const Text('满电等效额定续航 · 记录估计'),
+          const Text('非电池健康检测 · 非实际可开距离'),
+          if (chosen?['sample_status'] == 'sparse') const Text('覆盖不足 · 仅供点读'),
+        ],
       ),
+    );
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!compact) headline,
+        CollageTile(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: contents,
+          ),
+        ),
+        if (!compact && d != null)
+          ExpansionTile(
+            title: const Text('数据说明'),
+            children: [
+              Text('$months个本地月 · ${d['query']['from']} 至 ${d['query']['to']}'),
+              Text('查询生成时间：${d['as_of']}（非采样时间）'),
+              const Text('此窗口独立于首页期间；不代表 SOH、容量或衰减。'),
+            ],
+          ),
+      ],
     );
     return compact
         ? body
         : LayoutBuilder(
             builder: (context, constraints) => constraints.hasBoundedHeight
-                ? ListView(padding: const EdgeInsets.all(18), children: [body])
+                ? ListView(padding: const EdgeInsets.all(12), children: [body])
                 : body,
           );
   }

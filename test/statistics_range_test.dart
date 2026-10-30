@@ -12,6 +12,7 @@ Map<String, dynamic> rangeResponse({
   int months = 6,
   bool sparse = false,
   bool missing = false,
+  bool empty = false,
 }) => {
   'query': {
     'vehicle_id': 1,
@@ -28,11 +29,11 @@ Map<String, dynamic> rangeResponse({
   'first_observed_at': '2026-05-02T00:00:00Z',
   'first_observed_scope': 'query',
   'totals': {
-    'status': 'available',
+    'status': empty ? 'no_records' : 'available',
     'sample_status': sparse ? 'sparse' : 'adequate',
   },
   'buckets': [
-    for (var m = 0; m < months; m++)
+    for (var m = 0; m < (empty ? 0 : months); m++)
       {
         'bucket_start': DateTime.utc(
           2026,
@@ -73,6 +74,7 @@ Future<void> openRange(
   List<int> requests, {
   bool sparse = false,
   bool missing = false,
+  bool empty = false,
   bool fail = false,
 }) async {
   await openStats(
@@ -98,6 +100,7 @@ Future<void> openRange(
           jsonEncode(
             rangeResponse(
               sparse: sparse,
+              empty: empty,
               missing: missing,
               months: int.parse(r.url.queryParameters['months']!),
             ),
@@ -111,7 +114,12 @@ Future<void> openRange(
     () => 'Asia/Shanghai',
     statisticsInsights: true,
   );
-  await tester.tap(find.text('长期'));
+  await tester.scrollUntilVisible(
+    find.text('长期').hitTestable(),
+    150,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(find.text('长期').hitTestable());
   await tester.pumpAndSettle();
   await tester.scrollUntilVisible(
     find.text('展开长期续航').hitTestable(),
@@ -127,6 +135,10 @@ void main() {
     final requests = <int>[];
     await openRange(tester, requests);
     expect(find.textContaining('满电等效额定续航'), findsWidgets);
+    expect(find.text('独立6个月观察窗口'), findsOneWidget);
+    expect(find.text('所选月中位数'), findsOneWidget);
+    expect(find.text('独立6/12个本地月窗口'), findsOneWidget);
+    expect(find.text('2026/10/1 — 2026/10/28'), findsNothing);
 
     expect(find.byKey(const Key('range-observation-chart')), findsOneWidget);
     expect(find.textContaining('P10–P90'), findsWidgets);
@@ -165,6 +177,6 @@ void main() {
     await openRange(tester, <int>[], fail: true);
     expect(find.text('续航观察读取失败'), findsOneWidget);
     expect(find.text('重试续航观察'), findsOneWidget);
-    expect(find.text('用车洞察'), findsOneWidget);
+    expect(find.text('长期续航'), findsOneWidget);
   });
 }
