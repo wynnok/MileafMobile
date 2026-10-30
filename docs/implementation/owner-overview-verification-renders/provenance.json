@@ -95,13 +95,13 @@
     "lib/src/charging_experience_contract.g.dart": "e8afb666479e73ff5c95602029b286dea8bedd34dca695653141a66ebb70a76d",
     "lib/src/overview_contract.g.dart": "aa1f670aa9d927106ec87a4970ef57da1f5c2d4a9f6ef12469918f91e6775c2f",
     "lib/src/sample_chart.dart": "f8bc0c9e639a6c4df412ffe29ee3aa29011fd7500a5e8a5b362b75e7a86c62d6",
-    "lib/src/workspace_page.dart": "80dedbdebf358f2aebe07cc66d66381358407aa8adc2fca64ec52a21acb9714c",
+    "lib/src/workspace_page.dart": "7f30a97eb1cbd0a3e74703c17bffb3feb6f5aa1d990d7fe3e17ae90fad87d9b2",
     "lib/src/drive_detail_page.dart": "46dbe8bfc326b74d4795aba936454910f3bbf623250ffcfb6a78d92da6cb59dd",
     "lib/src/charging_detail.dart": "5936dc76ffe195fad4635064c044e212ddc54080e61e7d5ee3d33a8dd175e0cb",
     "lib/src/range_observations_contract.g.dart": "84ecbed5c3c3e1fb6291bc1112f6d9fb1a3673b641005c0dce3fb56a590e7c23",
     "lib/src/statistics_usage_page.dart": "41983f07abf2bd114dfa4e8520a621fe55e89c94bec7bc6039b0d24e48d7f0c3",
     "lib/src/auth_contract.g.dart": "e6e0874a940e95dc1b87bfafe07798b54b7332c65f00066e5ab0ecb6b394667a",
-    "lib/src/statistics_range_page.dart": "583ad2f6790132ae10f74ab1b6436d469a4df5dbadd5441fd7e230031d960b33",
+    "lib/src/statistics_range_page.dart": "bff195a3973eda7d35f2ceb4d02a6521579551f50a6a5197678cf01c8b8f96e7",
     "lib/src/currency.dart": "de747b767473ccc0bfd8affbc417519e271a1b81b6ee6bb4651044ae3e9152e8",
     "lib/src/visual_theme.dart": "a208841eb9b28491cb607504df135c7eac51a075ebbba0baef62f7a0f0bcf44c",
     "lib/src/data_chart.dart": "c6a3f0a8ab045dcdb1981fdd001cee6f407cb1f22ef979c6d4089b6239b0e307",
@@ -115,7 +115,7 @@
     "lib/src/performance_trace.dart": "05fb9636ab332153eb5833dbe6a0e916d861d15a9fb23b521995b40713f1d8fb",
     "lib/src/session_pages.dart": "b40c0b2708542176b1a6f0ae4d324792e17ce9789984cf168d47ea079827e471",
     "lib/src/connection_management.dart": "0a8a01a6f397341fd7b0bdb2c0fdafeb2ccbcd2eab1eba72365f29c9883f9e14",
-    "lib/src/statistics_conditions_page.dart": "e9c87279cd70611f6f16c9e1d4c136e973a84b0a512393ebdde406aa12b24685",
+    "lib/src/statistics_conditions_page.dart": "997c6960dd38caf1ba7952441a395b57eef74e45c32a8f41c2d99c545380f05e",
     "lib/src/charging_statistics_contract.g.dart": "ed329ce9dc18570831e6a465eba1019704d65da89825e6ab57b8151d3d191c06",
     "lib/src/workspace.dart": "eec717b1366bd8239f5e41ea5ad952be3f4f56aeb222ee01c1e5f03b95a55a85",
     "lib/src/setup_page.dart": "c148d78f3198a9e298fd3d2e507db53ef1f5da0e27b1fb8ab7111210ed202c54",
@@ -123,7 +123,7 @@
     "lib/src/statistics_page.dart": "d22d6d7ac02c2067f2211dbf5a40be2d4bdf68686b87b073658e71175a7e02cd",
     "lib/src/session.dart": "5f038d6b13b2e732f227d0278107e4b464b43354dc79820a186656c335110438",
     "lib/src/statistics_insights_page.dart": "a4db311db20ecafc74fc679a6ee2b370a79b4b1b46697fddcfc2e87939f5ee85",
-    "lib/src/statistics_parking_page.dart": "86702a8b1e9c041fdc2c39640ff4c7cb2be89c6c7c67a010210a5bcf95089865",
+    "lib/src/statistics_parking_page.dart": "12baebf57e08e7e94b264185e0d8711436ed47167cca904d2c05b2d1ca29c5bb",
     "lib/src/api.dart": "b2453542d90d1f82d409cf473adfe306b760911566d8e19247711dc659c5e422",
     "test/overview_state_render_test.dart": "245ee02560f99bdefeec76b76dd781b9685478e85066c130d78bfb34c9af2199",
     "test/overview_verification_test.dart": "4ffb5b69d12b755486578c60017e9d4e51bd60373fb63bb9d95ac858c0e0b440",
@@ -131,5 +131,7 @@
     "test/support/statistics_insights_fixture.dart": "b946fb0e5281229bde663360d4c485b0d7992dc945ade4514086d687537150e0",
     "test/charging_expansion_test.dart": "e33d0bbc6441e7d4f25fb22624f6c24fd0f6618c2abb99758a67fb8438c8223c",
     "pubspec.lock": "a1a8b24a5453c63b5ce180d9cf5f2cd47397e5023f007bdc9f869a395c7eaeb0"
-  }
+  },
+  "integration_commit": "23ee92d",
+  "integration_rerender_date": "2026-10-30"
 }
