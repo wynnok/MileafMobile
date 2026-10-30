@@ -26,7 +26,11 @@ Map<String, dynamic> aggregate({bool empty = false}) => {
   'unknown_share': .25,
   'excluded_by_reason': {'missing_soc': 1},
 };
-Map<String, dynamic> parkingResponse(Uri uri, {bool empty = false}) => {
+Map<String, dynamic> parkingResponse(
+  Uri uri, {
+  bool empty = false,
+  bool missing = false,
+}) => {
   'status': empty ? 'insufficient_data' : 'available',
   'query': {
     'vehicle_id': 1,
@@ -37,12 +41,13 @@ Map<String, dynamic> parkingResponse(Uri uri, {bool empty = false}) => {
   'as_of': '2026-10-29T12:00:00Z',
   'totals': aggregate(empty: empty),
   'buckets': [
-    for (final change in [-2, 0, 1])
-      {
-        'bucket_start': uri.queryParameters['from'],
-        ...aggregate(empty: empty),
-        'soc_change_pp': empty ? null : change,
-      },
+    if (!empty)
+      for (final change in [-2, 0, 1])
+        {
+          'bucket_start': uri.queryParameters['from'],
+          ...aggregate(empty: empty),
+          'soc_change_pp': missing ? null : change,
+        },
   ],
   'matched_windows': 4,
   'next_cursor': uri.queryParameters.containsKey('cursor') ? null : 'page2',
@@ -123,6 +128,7 @@ Future<void> openParking(
   List<Uri> requests, {
   bool empty = false,
   bool fail = false,
+  bool missing = false,
 }) async {
   await openStats(
     tester,
@@ -146,7 +152,7 @@ Future<void> openParking(
         requests.add(r.url);
         if (fail) return http.Response('{}', 503);
         return http.Response(
-          jsonEncode(parkingResponse(r.url, empty: empty)),
+          jsonEncode(parkingResponse(r.url, empty: empty, missing: missing)),
           200,
         );
       }
@@ -156,7 +162,12 @@ Future<void> openParking(
     () => 'Asia/Shanghai',
     statisticsInsights: true,
   );
-  await tester.tap(find.text('长期'));
+  await tester.scrollUntilVisible(
+    find.text('长期').hitTestable(),
+    150,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(find.text('长期').hitTestable());
   await tester.pumpAndSettle();
   await tester.scrollUntilVisible(
     find.text('展开停放观察').hitTestable(),
@@ -202,12 +213,15 @@ void main() {
     await tester.tap(find.text('重试停放观察'));
     await tester.pumpAndSettle();
     expect(requests.length, beforeRetry + 1);
-    expect(find.text('用车洞察'), findsOneWidget);
+    expect(find.text('停放观察'), findsOneWidget);
   });
   testWidgets('停车服务端汇总与冻结分页证据独立显示', (tester) async {
     final requests = <Uri>[];
     await openParking(tester, requests);
     expect(find.textContaining('停放SOC变化'), findsWidgets);
+    expect(find.text('仅代表有效观测窗口'), findsOneWidget);
+    expect(find.text('数据说明'), findsWidgets);
+    expect(find.textContaining('查询生成：'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('parking-trend-chart')), findsOneWidget);
     expect(find.textContaining('-2.0 pp'), findsWidgets);
@@ -238,6 +252,15 @@ void main() {
     expect(find.textContaining('open-tail'), findsWidgets);
     expect(find.textContaining('-2.0 pp'), findsWidgets);
     expect(find.textContaining('partial_state_coverage'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.text('数据说明').last.hitTestable(),
+      -100,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('数据说明').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('查询生成：'), findsOneWidget);
+    expect(find.textContaining('方法 closed-window-soc-v1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('无有效窗口不展示零损耗', (tester) async {

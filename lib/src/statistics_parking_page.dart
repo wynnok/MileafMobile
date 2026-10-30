@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'data_cards.dart';
+import 'collage.dart';
 import 'statistics_insights_page.dart';
 import 'parking_observations_contract.g.dart' as dto;
 
@@ -197,7 +198,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         for (final x in d['buckets'] as List)
           Map<String, dynamic>.from(x as Map),
     ];
-    final body = DataCard(
+    final chart = CollageTile(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -216,10 +217,6 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
               ),
             ],
           ),
-          Text(change(t), style: Theme.of(context).textTheme.headlineSmall),
-          Text(
-            '有效窗口 ${t?['valid_windows'] ?? 0} · 观测 ${n(t?['observed_hours'])} h',
-          ),
           if (busy) const LinearProgressIndicator(),
           if (error != null) Text(error!),
           if (error != null)
@@ -228,8 +225,10 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
               child: const Text('重试停放观察'),
             ),
           if (!compact) ...[
-            if (d != null) Text('状态：${d['status']} · 查询生成：${d['as_of']}'),
             const Text('SOC百分点变化 · 负值下降，正值回弹，零为不变；标准化率为已观测结果，不预测未来24小时。'),
+            if (rows.isNotEmpty &&
+                rows.every((row) => row['soc_change_pp'] == null))
+              const Text('分桶SOC变化缺失，不补零'),
             if (rows.isNotEmpty) ...[
               SizedBox(
                 height: 190,
@@ -293,11 +292,17 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
               ),
               Text('排除原因：${t['excluded_by_reason']}'),
             ],
-            const Text(
-              '按窗口开始时间归期；闭合结束可晚于查询结束，但已发生且不晚于查询生成时间。不裁切或分摊SOC。精确事件边界取值，持续≥1h，绝对里程差<1km。状态仅代表记录，不归因车辆功能；离线不等于睡眠，开放状态归未知。',
-            ),
-            Text(
-              '方法 closed-window-soc-v1 · provisional · 阈值 ${d?['thresholds'] ?? '默认：≥1h，绝对里程差<1km'}',
+            ExpansionTile(
+              title: const Text('数据说明'),
+              children: [
+                if (d != null) Text('状态：${d['status']} · 查询生成：${d['as_of']}'),
+                const Text(
+                  '按窗口开始时间归期；闭合结束可晚于查询结束，但已发生且不晚于查询生成时间。不裁切或分摊SOC。精确事件边界取值，持续≥1h，绝对里程差<1km。状态仅代表记录，不归因车辆功能；离线不等于睡眠，开放状态归未知。',
+                ),
+                Text(
+                  '方法 closed-window-soc-v1 · provisional · 阈值 ${d?['thresholds'] ?? '默认：≥1h，绝对里程差<1km'}',
+                ),
+              ],
             ),
             Text(
               '匹配窗口 ${d?['matched_windows'] ?? 0} · 已载证据 ${items.length}（匹配数不等于有效数）',
@@ -335,6 +340,33 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
           ],
         ],
       ),
+    );
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CollageTile(
+          surface: CollageSurface.hero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('有效窗口SOC变化'),
+              Text(
+                '${n(t?['soc_change_pp'])} pp',
+                style: Theme.of(context).textTheme.displaySmall
+                    ?.copyWith(color: const Color(0xFFEEF7EF)),
+              ),
+              Text(
+                '有效窗口 ${t?['valid_windows'] ?? 0} · 观测 ${n(t?['observed_hours'])} h',
+              ),
+              Text('标准化率 ${n(t?['soc_change_pp_per_24h'])} pp/24h'),
+              const Text('仅代表有效观测窗口'),
+              if (d != null && t?['valid_windows'] == 0)
+                const Text('暂无有效窗口，不能判断SOC变化'),
+            ],
+          ),
+        ),
+        chart,
+      ],
     );
     return compact
         ? body
