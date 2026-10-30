@@ -162,7 +162,8 @@ void main() {
     );
     expect(find.text('记录驾驶时长'), findsOneWidget);
     expect(find.text('60 分钟'), findsOneWidget);
-    await tester.tap(find.widgetWithText(ChoiceChip, '节奏'));
+    await tester.ensureVisible(find.widgetWithText(TextButton, '节奏'));
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
     await tester.pumpAndSettle();
     expect(find.text('短途、中途与长途'), findsOneWidget);
     expect(tester.takeException(), isNull);

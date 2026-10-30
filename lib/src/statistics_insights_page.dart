@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'currency.dart';
+import 'collage.dart';
 import 'session.dart';
 import 'data_cards.dart';
 import 'data_chart.dart';
@@ -143,15 +144,102 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   }
 
   void selectTopic(String key) {
-    setState(() => topic = key);
-    if (key == 'overview' && !busy) {
-      if (current == null) {
-        load();
-      } else if (reference == null) {
-        retryReference();
-      }
+    if (key == 'overview') {
+      setState(() => topic = key);
+      if (current == null && !busy) load();
+      return;
     }
+    final captured = topicContext();
+    final capturedRevision = workspace.revision;
+    final capturedOwner = workspace.session.current;
+    final capturedZone = workspace.calendar?.identifier;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (routeContext) => AnimatedBuilder(
+          animation: workspace,
+          builder: (_, child) {
+            if (workspace.revision != capturedRevision ||
+                !identical(workspace.session.current, capturedOwner) ||
+                workspace.calendar?.identifier != capturedZone) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (routeContext.mounted) Navigator.of(routeContext).pop();
+              });
+              return const SizedBox.shrink();
+            }
+            return child!;
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                const {
+                      'usage': '节奏',
+                      'energy': '能耗',
+                      'charging': '补能',
+                      'long': '长期',
+                      'range': '长期续航',
+                      'parking': '停放观察',
+                    }[key] ??
+                    '统计专题',
+              ),
+            ),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
+                  ),
+                ),
+                Expanded(
+                  child: key == 'long'
+                      ? longTopics()
+                      : widget.topics[key]?.call(captured) ??
+                            widget.legacyBuilder(selection),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
+
+  Widget chapters() => LayoutBuilder(
+    builder: (context, constraints) {
+      final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 0,
+        children: [
+          for (final entry in const {
+            'usage': '节奏',
+            'energy': '能耗',
+            'charging': '补能',
+            'long': '长期',
+          }.entries)
+            SizedBox(
+              width: single
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 8) / 2,
+              child: CollageTile(
+                surface: entry.key == 'usage'
+                    ? CollageSurface.mint
+                    : CollageSurface.paper,
+                child: TextButton(
+                  onPressed: () => selectTopic(entry.key),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(entry.value)),
+                      const Icon(Icons.arrow_forward, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
 
   Future<void> load({bool force = false}) async {
     final owner = workspace.session.current,
@@ -331,7 +419,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 true) ...[
           widget.topics[key]!(topicContext(compact: true)),
           TextButton(
-            onPressed: () => setState(() => topic = key),
+            onPressed: () => selectTopic(key),
             child: Text(key == 'range' ? '展开长期续航' : '展开停放观察'),
           ),
         ],
@@ -343,6 +431,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       children: [
         Row(
           children: [
+            if (topic != 'overview')
+              IconButton(
+                tooltip: '返回统计',
+                onPressed: () => selectTopic('overview'),
+                icon: const Icon(Icons.arrow_back),
+              ),
             Text('用车洞察', style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             IconButton(
@@ -365,36 +459,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             });
             load();
           },
-        ),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final label in ['总览', '节奏', '能耗', '补能', '长期'])
-              ChoiceChip(
-                label: Text(label),
-                visualDensity: VisualDensity.compact,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 3),
-                showCheckmark: false,
-                selected:
-                    topic ==
-                    const {
-                      '总览': 'overview',
-                      '节奏': 'usage',
-                      '能耗': 'energy',
-                      '补能': 'charging',
-                      '长期': 'long',
-                    }[label],
-                onSelected: (_) => selectTopic(
-                  const {
-                    '总览': 'overview',
-                    '节奏': 'usage',
-                    '能耗': 'energy',
-                    '补能': 'charging',
-                    '长期': 'long',
-                  }[label]!,
-                ),
-              ),
-          ],
         ),
       ],
     ),
@@ -466,6 +530,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (busy) const CircularProgressIndicator(),
+                        chapters(),
                         if (error != null) Text(error!),
                         TextButton(
                           onPressed: () => load(force: true),
@@ -504,7 +569,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               : topic != 'overview'
               ? widget.legacyBuilder(selection)
               : ListView(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(12),
                   children: [
                     if (error != null) Text(error!),
                     if (referenceError != null)
@@ -517,15 +582,91 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                           ),
                         ],
                       ),
-                    Text(
-                      '这段时间的用车回顾',
-                      style: Theme.of(context).textTheme.labelMedium,
+                    CollageTile(
+                      surface: CollageSurface.hero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('这段时间的用车回顾'),
+                          MetricTile(
+                            label: '期间里程',
+                            value: '${stats.totals.distanceKm} km',
+                            emphasize: true,
+                          ),
+                          Text(
+                            '配对估算净电耗 ${paired?['value_wh_km'] ?? '—'} Wh/km',
+                          ),
+                        ],
+                      ),
                     ),
-                    MetricTile(
-                      label: '期间里程',
-                      value: '${stats.totals.distanceKm} km',
-                      emphasize: true,
+                    if (comparable)
+                      Text(
+                        '里程较参照 ${_relative(stats.totals.distanceKm, legacy.DrivingStats.fromJson(other).totals.distanceKm)} · 净电耗差 ${((paired!['value_wh_km'] as num) - (other['totals']['net_consumption_paired']['value_wh_km'] as num)).toStringAsFixed(1)} Wh/km（${_relative(paired['value_wh_km'] as num, other['totals']['net_consumption_paired']['value_wh_km'] as num)}）',
+                      )
+                    else
+                      const Text('参照质量或口径不满足时，仅展示原值'),
+                    Row(
+                      children: [
+                        const Text('趋势指标'),
+                        const SizedBox(width: 12),
+                        DropdownButton<int>(
+                          value: metric,
+                          items: [
+                            for (final (i, label) in [
+                              '里程',
+                              '次数',
+                              '估算能量',
+                              '最高速度',
+                              '配对净电耗',
+                            ].indexed)
+                              DropdownMenuItem(value: i, child: Text(label)),
+                          ],
+                          onChanged: (i) {
+                            if (i != null) setState(() => metric = i);
+                          },
+                        ),
+                      ],
                     ),
+                    TimeChart(
+                      height: 105,
+                      title: ['里程走势', '行程次数', '估算能量', '最高速度', '配对净电耗'][metric],
+                      unit: ['km', '次', 'kWh', 'km/h', 'Wh/km'][metric],
+                      times: enhanced.buckets
+                          .map((b) => b.bucketStart)
+                          .toList(),
+                      series: [
+                        ChartSeries(
+                          label: '本期',
+                          values: enhanced.buckets
+                              .map((b) => _metricValue(b, metric))
+                              .toList(),
+                        ),
+                        if (comparable)
+                          ChartSeries(
+                            label: '参照（同进度）',
+                            values: insights.DrivingStats.fromJson(other)
+                                .buckets
+                                .map((b) => _metricValue(b, metric))
+                                .toList(),
+                          ),
+                      ],
+                      timestamp: (t) => cal.local(t).toString(),
+
+                      plotKey: const ValueKey('statistics-insights-chart'),
+                      compact: true,
+                      selectedIndex: point,
+                      onSelected: (i) => setState(() => point = i),
+                      presentation: metric == 4
+                          ? ChartPresentation.line
+                          : comparable
+                          ? ChartPresentation.groupedBars
+                          : ChartPresentation.bars,
+                    ),
+                    if (comparable && stats.buckets.isNotEmpty)
+                      Text(
+                        '本期读数 ${_metricValue(enhanced.buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]} · 参照读数 ${_metricValue(insights.DrivingStats.fromJson(other).buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]}',
+                      ),
+                    chapters(),
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
@@ -560,72 +701,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                         ),
                       ],
                     ),
-                    if (comparable)
-                      Text(
-                        '里程较参照 ${_relative(stats.totals.distanceKm, legacy.DrivingStats.fromJson(other).totals.distanceKm)} · 净电耗差 ${((paired!['value_wh_km'] as num) - (other['totals']['net_consumption_paired']['value_wh_km'] as num)).toStringAsFixed(1)} Wh/km（${_relative(paired['value_wh_km'] as num, other['totals']['net_consumption_paired']['value_wh_km'] as num)}）',
-                      )
-                    else
-                      const Text('参照质量或口径不满足时，仅展示原值'),
-                    Row(
-                      children: [
-                        const Text('趋势指标'),
-                        const SizedBox(width: 12),
-                        DropdownButton<int>(
-                          value: metric,
-                          items: [
-                            for (final (i, label) in [
-                              '里程',
-                              '次数',
-                              '估算能量',
-                              '最高速度',
-                              '配对净电耗',
-                            ].indexed)
-                              DropdownMenuItem(value: i, child: Text(label)),
-                          ],
-                          onChanged: (i) {
-                            if (i != null) setState(() => metric = i);
-                          },
-                        ),
-                      ],
-                    ),
-                    TimeChart(
-                      title: ['里程走势', '行程次数', '估算能量', '最高速度', '配对净电耗'][metric],
-                      unit: ['km', '次', 'kWh', 'km/h', 'Wh/km'][metric],
-                      times: enhanced.buckets
-                          .map((b) => b.bucketStart)
-                          .toList(),
-                      series: [
-                        ChartSeries(
-                          label: '本期',
-                          values: enhanced.buckets
-                              .map((b) => _metricValue(b, metric))
-                              .toList(),
-                        ),
-                        if (comparable)
-                          ChartSeries(
-                            label: '参照（同进度）',
-                            values: insights.DrivingStats.fromJson(other)
-                                .buckets
-                                .map((b) => _metricValue(b, metric))
-                                .toList(),
-                          ),
-                      ],
-                      timestamp: (t) => cal.local(t).toString(),
-                      height: 135,
-                      plotKey: const ValueKey('statistics-insights-chart'),
-                      compact: true,
-                      selectedIndex: point,
-                      onSelected: (i) => setState(() => point = i),
-                      presentation: metric == 4
-                          ? ChartPresentation.line
-                          : comparable
-                          ? ChartPresentation.groupedBars
-                          : ChartPresentation.bars,
-                    ),
-                    if (comparable && stats.buckets.isNotEmpty)
-                      Text(
-                        '本期读数 ${_metricValue(enhanced.buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]} · 参照读数 ${_metricValue(insights.DrivingStats.fromJson(other).buckets[point.clamp(0, stats.buckets.length - 1)], metric)?.toStringAsFixed(1) ?? '—'} ${['km', '次', 'kWh', 'km/h', 'Wh/km'][metric]}',
-                      ),
                     const SizedBox(height: 12),
                     DataCard(
                       child: MetricGrid(
@@ -698,24 +773,13 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       ),
                       child: const Text('全部指标与口径'),
                     ),
-                    if (widget.topics.containsKey('usage')) ...[
-                      widget.topics['usage']!(
-                        StatisticsInsightsContext(
-                          workspace,
-                          widget.currency,
-                          selection,
-                          features!,
-                          compact: true,
-                          window: loadedWindow,
+                    ExpansionTile(
+                      title: const Text('数据说明'),
+                      children: [
+                        Text(
+                          '${cal.identifier} · 行程按开始日归期\n本期 ${cal.local(enhanced.query.from)} — ${cal.local(enhanced.query.to)}\n生成时间 ${cal.local(enhanced.asOf)}，非车辆采样时间',
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => topic = 'usage'),
-                        child: const Text('展开用车节奏'),
-                      ),
-                    ],
-                    Text(
-                      '${cal.identifier} · 行程按开始日归期\n本期 ${cal.local(enhanced.query.from)} — ${cal.local(enhanced.query.to)}\n生成时间 ${cal.local(enhanced.asOf)}，非车辆采样时间',
+                      ],
                     ),
                   ],
                 ),

@@ -139,6 +139,12 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '节奏').hitTestable(),
+      150,
+    );
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('活跃 12 天'), 200);
     expect(find.text('活跃 12 天'), findsOneWidget);
     expect(
@@ -158,7 +164,12 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(find.text('区间内无已完成行程'), 200);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '节奏').hitTestable(),
+      150,
+    );
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.pumpAndSettle();
     expect(find.text('区间内无已完成行程'), findsOneWidget);
   });
   testWidgets('距离分组使用完整证据筛选且翻页保持原截止', (tester) async {
@@ -190,8 +201,11 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(find.text('展开用车节奏').hitTestable(), 200);
-    await tester.tap(find.text('展开用车节奏'));
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '节奏').hitTestable(),
+      200,
+    );
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('0–10 km').hitTestable(), 200);
     await tester.tap(find.text('0–10 km'));
@@ -227,8 +241,11 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(find.text('展开用车节奏').hitTestable(), 200);
-    await tester.tap(find.text('展开用车节奏'));
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '节奏').hitTestable(),
+      200,
+    );
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('一周的用车节奏').hitTestable(), 200);
     expect(tester.takeException(), isNull);

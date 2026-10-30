@@ -45,6 +45,7 @@ void main() {
       statisticsInsights: true,
     );
     expect(find.text('用车洞察'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
     expect(find.textContaining('187.5'), findsWidgets);
 
     expect(
@@ -61,6 +62,14 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(find.textContaining('参照读数 20.0 km'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(TextButton, '节奏'));
+    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.textContaining('Asia/Shanghai'), findsWidgets);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('用车洞察'), findsOneWidget);
   });
   testWidgets('统计能力读取失败时仍可阅读旧统计', (tester) async {
     final client = MockClient((r) async {
