@@ -378,6 +378,10 @@ void main() {
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
     expect(find.textContaining('电量读数 70 %'), findsOneWidget);
+    expect(find.textContaining('不代表连续观测'), findsNothing);
+    await tester.scrollUntilVisible(find.text('电量数据说明').hitTestable(), 160);
+    await tester.tap(find.text('电量数据说明').hitTestable());
+    await tester.pumpAndSettle();
     expect(find.textContaining('不代表连续观测'), findsOneWidget);
   });
   testWidgets('series失败不遮明细，局部重试支持null省略与单点，大字体读数可达', (tester) async {

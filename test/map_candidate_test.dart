@@ -194,6 +194,8 @@ void main() {
     );
     await tester.tap(find.text('允许加载底图'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('地图数据说明'));
+    await tester.pumpAndSettle();
     expect(find.text('4 个有效采样点 · 2 段轨迹'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('首个采样点')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('末个采样点')), findsOneWidget);

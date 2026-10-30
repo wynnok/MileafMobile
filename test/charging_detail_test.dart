@@ -340,6 +340,9 @@ void main() {
     await tester.tap(find.byTooltip('刷新充电曲线').hitTestable());
     await tester.pumpAndSettle();
     expect(validated, ['detail', 'series']);
+    await tester.scrollUntilVisible(find.text('曲线数据说明').hitTestable(), 200);
+    await tester.tap(find.text('曲线数据说明').hitTestable());
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('服务端采样 24 点'), 200);
     expect(find.textContaining('服务端采样 24 点'), findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -77,6 +77,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电'), 300);
     await tester.tap(find.text('最近充电'));
     await tester.pumpAndSettle();
+    expect(find.textContaining('服务端采样'), findsNothing);
+    expect(find.textContaining('采样峰值不等同原始峰值'), findsNothing);
     expect(find.text('电量变化'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('电量变化')).dy,
