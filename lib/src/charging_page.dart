@@ -674,7 +674,7 @@ class _ChargingPageState extends State<ChargingPage>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: const Text('筛选充电日期'),
+          title: const Text('按日期筛选'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
