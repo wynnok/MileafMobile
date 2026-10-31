@@ -215,7 +215,18 @@ void main() {
     );
     await tester.tap(find.text('全部指标与口径').hitTestable());
     await tester.pumpAndSettle();
-    expect(queries.last['from'], '2026-10-25T16:00:00.000Z');
+    // C03: every metric entry is a topic, never a second equal-weight tab bar.
+    expect(find.text('驾驶统计'), findsNothing);
+    for (final topic in ['节奏', '能耗', '补能', '长期']) {
+      expect(find.text(topic), findsWidgets);
+    }
+    await tester.tap(find.text('节奏').first);
+    await tester.pumpAndSettle();
+    expect(
+      queries.any((q) => q['from'] == '2026-10-25T16:00:00.000Z'),
+      isTrue,
+      reason: '专题沿用本周区间',
+    );
   });
   for (final c in [
     ('月末', '2026-05-31T11:00:00Z', 'Asia/Shanghai', '本月'),

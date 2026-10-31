@@ -855,9 +855,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                     TextButton(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => Scaffold(
-                            appBar: AppBar(title: const Text('全部指标与口径')),
-                            body: widget.legacyBuilder(selection),
+                          builder: (_) => _AllMetricsPage(
+                            timezone: cal.identifier,
+                            onTopic: (key) {
+                              Navigator.of(context).pop();
+                              selectTopic(key);
+                            },
                           ),
                         ),
                       ),
@@ -1023,3 +1026,38 @@ num? _metricValue(insights.DrivingBucket b, int metric) => switch (metric) {
 String _relative(num current, num reference) => reference == 0
     ? '—（基期为0）'
     : '${((current - reference) / reference * 100).toStringAsFixed(1)}%';
+
+/// C03: every metric entry is a topic, not a second equal-weight tab bar.
+class _AllMetricsPage extends StatelessWidget {
+  const _AllMetricsPage({required this.timezone, required this.onTopic});
+  final String timezone;
+  final ValueChanged<String> onTopic;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('全部指标与口径')),
+    body: ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        for (final entry in const {
+          'usage': ('节奏', '驾驶时间、单程与星期分布'),
+          'energy': ('能耗', '温度与距离条件'),
+          'charging': ('补能', '费用、均价与 AC/DC'),
+          'long': ('长期', '额定续航与停放观察'),
+        }.entries)
+          ListTile(
+            title: Text(entry.value.$1),
+            subtitle: Text(entry.value.$2),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => onTopic(entry.key),
+          ),
+        ExpansionTile(
+          title: const Text('数据说明'),
+          children: [
+            Text('沿用当前车辆与期间；归期时区 $timezone。'),
+            const Text('各专题只回答一个问题，指标口径与统计首页一致。'),
+          ],
+        ),
+      ],
+    ),
+  );
+}
