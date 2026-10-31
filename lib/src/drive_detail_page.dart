@@ -319,6 +319,11 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
+  String shortDay(DateTime t) {
+    final d = workspace.calendar!.local(t);
+    return '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
   String place(String? p) => p == null || p.trim().isEmpty ? '未知地点' : p;
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -398,17 +403,42 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                 ),
               ],
               if (detail case final d?)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                CollageTile(
+                  surface: CollageSurface.hero,
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        '${shortDay(d.startedAt)} · 最近行程',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
                         '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Text(
                         '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '路线示意 · 非导航',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
