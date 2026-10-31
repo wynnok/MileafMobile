@@ -143,10 +143,15 @@ class BatteryLevelIndicator extends StatelessWidget {
     this.showLabel = true,
   });
   final num? level;
+
+  /// 环的外径；描边向内收，绘制不越出这个方框。
   final double size;
 
   /// 小尺寸（如 200% 文本下的 hero）只留电量，避免标签撑破圆环。
   final bool showLabel;
+
+  /// 描边宽度；调用方想保持居中描边时代的环径时按它补回外径。
+  static const strokeWidth = 6.0;
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
@@ -160,7 +165,9 @@ class BatteryLevelIndicator extends StatelessWidget {
           SizedBox.expand(
             child: CircularProgressIndicator(
               value: level == null ? 0 : (level! / 100).clamp(0, 1),
-              strokeWidth: 6,
+              strokeWidth: strokeWidth,
+              // 默认居中的描边会让弧线外溢半个笔画，被外层裁切后右侧成直线。
+              strokeAlign: CircularProgressIndicator.strokeAlignInside,
               strokeCap: StrokeCap.round,
               backgroundColor: Theme.of(context).colorScheme.surface,
             ),

@@ -28,3 +28,14 @@ TDD：首个布局测试先失败（里程tile160宽，预期>175），实施后
 重现：设置 `MILEAF_FLUTTER_SDK` 指向项目SDK，执行 `tool/flutterw test --no-pub test/collage_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/overview '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'`。
 
 渲染目录：`docs/implementation/collage-renders/overview/`。未修改外部链接仓库、配置、依赖/锁文件；未推送、部署、设备操作或修改工单。
+
+## 2026-10-31 显示修正（用户截图）
+
+截图暴露两处纯显示缺陷；不改数据、口径、版式顺序与交互。
+
+1. **电量环右侧被切平**：`CircularProgressIndicator` 默认居中描边，弧线实际外溢半个笔画（3dp）；hero 的 `Stack` 因车轮廓负偏移产生视觉溢出，默认 `Clip.hardEdge` 于是按内容区裁切，环又贴住内容区右缘，右侧被削成直线。改为 `strokeAlignInside`（绘制不越出布局盒），`size` 语义随之变为外径，调用处补回一个 `strokeWidth` 保持原环径；hero 内再加 2dp 右留白，抗锯齿边缘也落在裁切边界内。
+2. **最近充电卡文字不可读**：`CollageTile` 只在自己子树内切换主题，该卡先用外层（浅色）上下文取 `titleSmall/labelSmall/headlineSmall` 再传入，深底上成为近黑字（实测对比度 1.09）。改为在 tile 内用 `Builder` 取主题再构建标题与正文（正文签名改为 `WidgetBuilder`）。
+
+回归：`test/collage_overview_test.dart` 6 项——环描边内收、右侧至少落在内容区内 1dp、四边不出内容区（390dp×100%/130%/200%、320dp×130% 四档，含 ≥150% 的纵向堆叠分支），以及深色 tile 内每处文字与卡底对比度 ≥4.5、卡底确为深色（浅/深两种系统外观）。修正前这些断言均失败（描边为 null、文字对比度 1.09），修正后通过；全量 `tool/flutterw test --no-pub` 272 项通过、19 项 opt-in 渲染跳过；`flutter analyze --no-pub` 无问题。渲染复核：320dp×130%（热门最紧处主数不换行、环完整）、390dp×100/130/200%（浅/深），环均为完整圆弧，深色卡标题/正文/时间可读。
+
+已知未改：环轨道读 `colorScheme.surface`、最近充电进度轨道读 `secondaryContainer`，都是浅色 token 漏到深色 tile 上（轨道比进度亮，但两张截图未提出）。真正的修法是在 `collage.dart` 的 hero 主题里统一覆盖这些容器色，属独立一轮。C10 的 `c-fidelity-scratch/latest-overview-*.png` 对这两处不再是最新证据。

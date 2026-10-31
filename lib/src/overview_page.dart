@@ -762,8 +762,15 @@ class _OverviewPageState extends State<OverviewPage>
     );
     final battery = BatteryLevelIndicator(
       level: d.battery?.level,
-      size: scale > 1.4 ? 60 : 66 * scale,
+      // 描边内收后 size 即环的外径，补回笔画宽度以保持 hero 原有环径。
+      size:
+          (scale > 1.4 ? 60.0 : 66 * scale) + BatteryLevelIndicator.strokeWidth,
       showLabel: scale <= 1.4,
+    );
+    // hero 的 Stack 会按内容区裁切溢出的绘制：环贴住右缘时弧线被切平。
+    final ring = Padding(
+      padding: const EdgeInsets.only(right: 2),
+      child: battery,
     );
     Widget stat(String value, String label) => Expanded(
       child: Column(
@@ -810,14 +817,14 @@ class _OverviewPageState extends State<OverviewPage>
                   children: [
                     if (scale > 1.4) ...[
                       values,
-                      Align(alignment: Alignment.centerRight, child: battery),
+                      Align(alignment: Alignment.centerRight, child: ring),
                     ] else
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(child: values),
                           const SizedBox(width: 8),
-                          battery,
+                          ring,
                         ],
                       ),
                   ],
@@ -1168,7 +1175,7 @@ class _OverviewPageState extends State<OverviewPage>
           required String title,
           required VoidCallback? onTap,
           required CollageSurface surface,
-          required Widget body,
+          required WidgetBuilder body,
         }) => SizedBox(
           width: width,
           child: CollageTile(
@@ -1176,26 +1183,30 @@ class _OverviewPageState extends State<OverviewPage>
             padding: EdgeInsets.zero,
             child: InkWell(
               onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleSmall,
+              // CollageTile 只在自己的子树内换主题；深色 tile 的标题和正文
+              // 若沿用外层取到的样式，会变成深底上的近黑字而看不清。
+              child: Builder(
+                builder: (context) => Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
                           ),
-                        ),
-                        if (onTap != null)
-                          const Icon(Icons.chevron_right, size: 18),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    body,
-                  ],
+                          if (onTap != null)
+                            const Icon(Icons.chevron_right, size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      body(context),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1211,7 +1222,7 @@ class _OverviewPageState extends State<OverviewPage>
               onTap: d.lastDrive == null
                   ? null
                   : () => widget.onRecord?.call('drive', d.lastDrive!.id),
-              body: Column(
+              body: (context) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -1243,7 +1254,7 @@ class _OverviewPageState extends State<OverviewPage>
               onTap: d.lastCharge == null
                   ? null
                   : () => widget.onRecord?.call('charging', d.lastCharge!.id),
-              body: Column(
+              body: (context) => Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
