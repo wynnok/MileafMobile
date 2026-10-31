@@ -203,6 +203,16 @@ void main() {
             if (scale == 1.0) {
               expectPage('电量区间');
             }
+            await pumpApp('overview-drive-$suffix', scenario: scenario);
+            await tester.scrollUntilVisible(
+              find.text('最近行程').hitTestable(),
+              200,
+              scrollable: find.byType(Scrollable).last,
+            );
+            await tester.tap(find.text('最近行程'));
+            await tester.pumpAndSettle();
+            await save('drive-detail-$suffix');
+            expectPage('路线示意 · 非导航');
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
           if (scenario != 'normal' || scale == 1.0) {
@@ -241,18 +251,6 @@ void main() {
           await save('drives-$suffix');
           if (scenario == 'normal' && scale == 1.0) {
             expectPage('出行节奏', absent: '筛选日期');
-          }
-
-          if (scenario == 'normal' && scale == 1.0) {
-            await tester.scrollUntilVisible(
-              find.byKey(const ValueKey('drive-17')).first,
-              200,
-              scrollable: find.byType(Scrollable).last,
-            );
-            await tester.tap(find.byKey(const ValueKey('drive-17')).first);
-            await tester.pumpAndSettle();
-            await save('drive-detail-$suffix');
-            expectPage('路线示意 · 非导航');
           }
         }
       }
