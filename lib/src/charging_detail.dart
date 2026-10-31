@@ -10,17 +10,23 @@ import 'charging_experience_contract.g.dart' as expanded;
 import 'currency.dart';
 import 'collage.dart';
 import 'workspace.dart';
+import 'map_candidate.dart';
 
 Future<void> openChargingDetail(
   BuildContext context,
   VehicleWorkspace workspace,
   CurrencySettings currency,
-  int id,
-) => Navigator.push<void>(
+  int id, {
+  MapConfiguration? mapConfiguration,
+}) => Navigator.push<void>(
   context,
   MaterialPageRoute(
-    builder: (_) =>
-        ChargingDetailPage(workspace: workspace, currency: currency, id: id),
+    builder: (_) => ChargingDetailPage(
+      workspace: workspace,
+      currency: currency,
+      id: id,
+      mapConfiguration: mapConfiguration,
+    ),
   ),
 );
 
@@ -30,10 +36,12 @@ class ChargingDetailPage extends StatefulWidget {
     required this.workspace,
     required this.currency,
     required this.id,
+    this.mapConfiguration,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final int id;
+  final MapConfiguration? mapConfiguration;
   @override
   State<ChargingDetailPage> createState() => _ChargingDetailPageState();
 }
@@ -43,6 +51,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   VehicleWorkspace get workspace => widget.workspace;
   late final owner = workspace.session.current!;
   late final vehicle = workspace.selectedId!;
+  late final mapConfiguration =
+      widget.mapConfiguration ?? MapConfiguration.fromEnvironment();
   dto.ChargingSessionDetail? detail;
   dto.ChargingSessionSeries? series;
   expanded.ChargingSessionDetail? expandedDetail;
@@ -279,6 +289,24 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                       : '未知地点',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
+              ),
+              CandidateMap(
+                key: ValueKey(
+                  'charging-map:${owner.generation}:$vehicle:${widget.id}',
+                ),
+                coordinates: [
+                  MapCoordinate(
+                    d.location.lat?.toDouble(),
+                    d.location.lon?.toDouble(),
+                  ),
+                ],
+                start: MapCoordinate(
+                  d.location.lat?.toDouble(),
+                  d.location.lon?.toDouble(),
+                ),
+                provider: mapConfiguration.provider,
+                sourceCrs: mapConfiguration.sourceCrs,
+                tileClient: mapConfiguration.tileClient,
               ),
               CollageTile(
                 surface: CollageSurface.hero,

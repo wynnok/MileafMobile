@@ -118,7 +118,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
       );
       return;
     }
-    openChargingDetail(context, workspace, currency, id);
+    openChargingDetail(
+      context,
+      workspace,
+      currency,
+      id,
+      mapConfiguration: widget.mapConfiguration,
+    );
   }
 
   @override

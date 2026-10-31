@@ -1,8 +1,8 @@
+import 'support/render_png.dart';
+
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -41,25 +41,11 @@ void main() {
             missing: state == 'missing',
             empty: state == 'empty',
           );
-          Future<void> save(String part) async {
-            await tester.pumpAndSettle();
-            expect(tester.takeException(), isNull);
-            final boundary = tester.renderObject<RenderRepaintBoundary>(
-              find.byType(RepaintBoundary).first,
-            );
-            await tester.runAsync(() async {
-              final image = await boundary.toImage(pixelRatio: 2);
-              final bytes = await image.toByteData(
-                format: ui.ImageByteFormat.png,
-              );
-              final file = File(
-                '$output/$state-${brightness.name}-${scale == 1 ? 100 : 200}-$part.png',
-              );
-              await file.parent.create(recursive: true);
-              await file.writeAsBytes(bytes!.buffer.asUint8List());
-              image.dispose();
-            });
-          }
+          Future<void> save(String part) => saveRenderPng(
+            tester,
+            find.byType(RepaintBoundary).first,
+            '$output/$state-${brightness.name}-${scale == 1 ? 100 : 200}-$part.png',
+          );
 
           await save('result');
           if (state != 'empty') {

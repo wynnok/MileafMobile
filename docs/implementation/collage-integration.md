@@ -35,3 +35,10 @@
 - C 图册使用各 `collage*_render_test.dart`，传 `MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/<章节目录>` 与 `MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf`；目录与命令见各 collage 切片实施记录。
 
 [provenance.json](collage-renders/provenance.json) 记录来源提交、全部 lib/test 源文件、清单/锁文件、字体和280图片的 SHA256；原工作区未提交 Spec/ADR/prototype/style 只读计算指纹，未复制或覆盖用户设计文件。集成基线在交付前复核仍为4471729。双轴 code-review 由 merger 在合并后统一执行，本记录不提前宣称审查通过。
+
+## 本轮双轴审查与修复
+
+- Standards：0硬性违规，1项P3重复PNG保存。小型helper统一异常检查、pixelRatio2保存及dispose，11入口场景和数据保留；range/parking实际渲染2项通过，详情实际渲染2项通过。
+- Spec：1项P2缺充电地点图。现已复用冻结lat/lon与CandidateMap、现有配置，不改契约/API/供应商，纠正文档。App红绿及3条地图路径通过。详情36张图片更新来源，其余切片图片保留原来源。
+- 最终VMservice真实Timeline完整回归256通过、17渲染测试跳过；格式化、静态分析、diff检查通过。修复后交既有reviewer仅复核原发现，此处不提前声称复核通过。
+- 用户视觉、真机、真实站点/Grafana、真实地图/CRS/网络及设备性能仍待验；N=0、native build=0。不推送、部署或关闭票。
