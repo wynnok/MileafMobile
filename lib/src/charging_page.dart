@@ -1029,13 +1029,22 @@ class _ChargingPageState extends State<ChargingPage>
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    recordsOnly
-                        ? '充电记录'
-                        : expandedAvailable
-                        ? '充电'
-                        : '充电历史',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recordsOnly
+                            ? '充电记录'
+                            : expandedAvailable
+                            ? '充电'
+                            : '充电历史',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      Text(
+                        '近$recentDays天 · 按${expandedAvailable ? '结束' : '开始'}时间归期',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                 ),
                 if (expandedAvailable)
@@ -1055,48 +1064,49 @@ class _ChargingPageState extends State<ChargingPage>
                 ),
               ],
             ),
-            if (!expandedAvailable)
-              Text(
-                '按${expandedAvailable ? '结束' : '开始'}时间归期 · 时区：${workspace.calendar!.identifier}',
-                style: expandedAvailable
-                    ? Theme.of(context).textTheme.bodySmall
-                    : null,
-              ),
             Text(
-              '${widget.filter.first == null ? '近$recentDays日本地日历日' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}',
-              style: expandedAvailable
-                  ? Theme.of(context).textTheme.bodySmall
-                  : null,
+              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first} · 时区：${workspace.calendar!.identifier}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (expandedAvailable)
-              Wrap(
-                spacing: 8,
+              Row(
                 children: [
-                  TextButton(
-                    onPressed: filterDates,
-                    child: const Text('筛选充电日期'),
-                  ),
                   for (final days in [30, 7])
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor:
-                            widget.filter.first == null && recentDays == days
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : null,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(
+                          days == 30 ? '近30天' : '近7天',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                        selected:
+                            widget.filter.first == null &&
+                            recentDays == days,
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (_) {
+                          recentDays = days;
+                          widget.filter.first = null;
+                          widget.filter.last = null;
+                          interval();
+                          applyFilters();
+                        },
                       ),
-                      onPressed: () {
-                        recentDays = days;
-                        widget.filter.first = null;
-                        widget.filter.last = null;
-                        interval();
-                        applyFilters();
-                      },
-                      child: Text('最近$days日'),
                     ),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: filterDates,
+                    icon: const Icon(Icons.calendar_today_outlined, size: 14),
+                    label: const Text('日期'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                  ),
                 ],
               )
             else
-              TextButton(onPressed: filterDates, child: const Text('筛选充电日期')),
+              TextButton(onPressed: filterDates, child: const Text('日期')),
             if (widget.filter.first != null)
               TextButton(
                 onPressed: () {
