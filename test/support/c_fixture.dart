@@ -391,6 +391,51 @@ Map<String, dynamic> cDrivesStats(Uri uri) {
   return body;
 }
 
+/// C drive-detail: the 32.9 km / 46 min / 154 Wh/km representative trip.
+Map<String, dynamic> cDriveDetail() {
+  final body = _json('drive-detail');
+  body['id'] = 17;
+  body['started_at'] = '2026-10-26T09:52:00Z';
+  body['ended_at'] = '2026-10-26T10:38:00Z';
+  body['distance_km'] = 32.9;
+  body['duration_min'] = 46;
+  body['consumption_wh_km'] = 154;
+  body['energy_kwh'] = 5.07;
+  body['speed_max_kmh'] = 91;
+  body['start'] = {
+    'display_name': '松岚小区',
+    'geofence': '家',
+    'address': '松岚小区',
+    'lat': 31.2304,
+    'lon': 121.4737,
+    'battery_level': 76,
+  };
+  body['end'] = {
+    'display_name': '云栖中心',
+    'geofence': '公司',
+    'address': '云栖中心',
+    'lat': 31.2450,
+    'lon': 121.5010,
+    'battery_level': 68,
+  };
+  body['outside_temp_c_avg'] = 15.0;
+  body['inside_temp_c_avg'] = 21.0;
+  return body;
+}
+
+/// Sampling curve for [cDriveDetail], shifted onto the same 2026-10-26 trip.
+Map<String, dynamic> cDriveSeries() {
+  final body = _json('drive-series');
+  final base = DateTime.utc(2026, 10, 26, 9, 52);
+  for (final (index, point) in (body['series'] as List).indexed) {
+    (point as Map<String, dynamic>)['t'] = base
+        .add(Duration(minutes: (index * 46 / 23).round()))
+        .toIso8601String();
+  }
+  body['drive_id'] = 17;
+  return body;
+}
+
 /// 26 daily charging buckets summing to the C month charging totals.
 Map<String, dynamic> cCharging(Uri uri) {
   final from = uri.queryParameters['from'] ?? '2026-10-01T00:00:00Z';

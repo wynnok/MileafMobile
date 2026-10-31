@@ -46,6 +46,8 @@ MockClient cGalleryClient({String scenario = 'normal'}) => MockClient((
   }
   if (url.path.endsWith('/meta')) return _ok(cMeta());
   if (url.path.endsWith('/drives')) return _ok(cDrives());
+  if (url.path.endsWith('/drives/17/series')) return _ok(cDriveSeries());
+  if (url.path.endsWith('/drives/17')) return _ok(cDriveDetail());
   if (url.path.endsWith('/driving-analysis')) {
     return _ok(
       url.queryParameters['view'] == 'calendar'
@@ -139,6 +141,17 @@ void main() {
           await tester.tap(find.text('行程').last);
           await tester.pumpAndSettle();
           await save('drives-$suffix');
+
+          if (scenario == 'normal' && scale == 1.0) {
+            await tester.scrollUntilVisible(
+              find.byKey(const ValueKey('drive-17')).first,
+              200,
+              scrollable: find.byType(Scrollable).last,
+            );
+            await tester.tap(find.byKey(const ValueKey('drive-17')).first);
+            await tester.pumpAndSettle();
+            await save('drive-detail-$suffix');
+          }
         }
       }
     }
