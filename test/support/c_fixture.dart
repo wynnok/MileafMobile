@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../statistics_usage_test.dart' show usageFixture;
+
 /// Canonical C「数据拼贴」visual fixture.
 ///
 /// One snapshot drives every C render/visual test: 2026-10-26 18:40 in
@@ -83,6 +85,49 @@ Map<String, dynamic> cMeta() {
   };
   return meta;
 }
+
+/// C rhythm summary: 22 active days, 13h18 driving, 18.6 km median.
+Map<String, dynamic> cUsage() => {
+  ...usageFixture(),
+  'active_days': cRhythm.activeDays,
+  'driving_duration_min': cRhythm.drivingMinutes,
+  'distance_p50_km': cRhythm.medianKm,
+  'partial_today': false,
+  'query': {
+    ...(usageFixture()['query'] as Map<String, dynamic>),
+    'from': '2026-10-01T00:00:00Z',
+    'to': '2026-10-26T10:40:00Z',
+  },
+};
+
+/// 26 daily calendar buckets with the 22 active days used by the C rhythm
+/// heatmap (zero-distance days stay at the lightest bucket).
+Map<String, dynamic> cCalendar(Uri uri) => {
+  'buckets': [
+    for (var i = 0; i < cBucketCount; i++)
+      {
+        'bucket_start': DateTime.utc(
+          2026,
+          10,
+          1 + i,
+          16,
+        ).subtract(const Duration(days: 1)).toIso8601String(),
+        'distance_km': _daily[i].distance,
+        'drives': _daily[i].drives,
+      },
+  ],
+  'partial_today': false,
+  'as_of': '2026-10-26T10:40:00Z',
+  'query': {
+    'vehicle_id': 1,
+    'from': '2026-10-01T00:00:00Z',
+    'to': '2026-10-26T10:40:00Z',
+    'tz': uri.queryParameters['tz'] ?? cZone,
+    'bucket': 'day',
+    'time_basis': 'started_at',
+    'filters': <String, String>{},
+  },
+};
 
 /// Summary tuned to the C overview hero: 320 km rated, 68 %, charging, and a
 /// month of 1,198.6 km / 46 trips with today 60 km / 3 trips.
@@ -315,6 +360,8 @@ Map<String, dynamic> cCharging(Uri uri) {
       'dc_energy_share': double.parse(
         (cChargingTotals.dcKwh / cChargingTotals.energyKwh).toStringAsFixed(3),
       ),
+      'cost_known_sessions': 8,
+      'cost_known_energy_kwh': 214.0,
     },
     'buckets': buckets,
     'as_of': '2026-10-26T10:40:00Z',

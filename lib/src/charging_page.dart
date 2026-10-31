@@ -1065,7 +1065,7 @@ class _ChargingPageState extends State<ChargingPage>
               ],
             ),
             Text(
-              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first} · 时区：${workspace.calendar!.identifier}',
+              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}${expandedAvailable ? '' : ' · 时区：${workspace.calendar!.identifier}'}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (expandedAvailable)

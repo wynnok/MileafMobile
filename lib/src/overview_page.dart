@@ -890,6 +890,7 @@ class _OverviewPageState extends State<OverviewPage>
         return '${d.month}/${d.day}';
       },
       height: 84,
+      showSteppers: false,
 
       presentation: metric == _Metric.net
           ? ChartPresentation.line
@@ -1170,15 +1171,6 @@ class _OverviewPageState extends State<OverviewPage>
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
         ),
-        OutlinedButton.icon(
-          onPressed: () => setState(() {}),
-          icon: const Icon(Icons.calendar_today_outlined, size: 14),
-          label: const Text('日期'),
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-          ),
-        ),
       ],
     ),
   );
@@ -1192,7 +1184,9 @@ class _OverviewPageState extends State<OverviewPage>
     final parts = value == null ? '—' : value.toStringAsFixed(1);
     return Semantics(
       container: true,
-      label: '本月驾驶里程 $parts km，${driving?.totals.drives ?? 0} 趟',
+      label:
+          '${period == OverviewPeriod.month ? '本月' : '近7天'}驾驶里程 $parts km，'
+          '${driving?.totals.drives ?? '—'} 趟',
       child: CollageTile(
         surface: CollageSurface.mint,
         padding: const EdgeInsets.all(14),
@@ -1205,12 +1199,14 @@ class _OverviewPageState extends State<OverviewPage>
                 children: [
                   Expanded(
                     child: Text(
-                      '本月 · 驾驶里程',
+                      period == OverviewPeriod.month
+                          ? '本月 · 驾驶里程'
+                          : '近7天 · 驾驶里程',
                       style: theme.textTheme.labelMedium,
                     ),
                   ),
                   Text(
-                    '${driving?.totals.drives ?? 0} 趟',
+                    '${driving?.totals.drives ?? '—'} 趟',
                     style: theme.textTheme.labelSmall,
                   ),
                 ],
@@ -1261,6 +1257,7 @@ class _OverviewPageState extends State<OverviewPage>
       selected: metric == _Metric.net,
       label: '净电耗 估算 ${value?.toStringAsFixed(0) ?? '缺失'} Wh/km',
       excludeSemantics: true,
+      onTap: () => setState(() => metric = _Metric.net),
       child: CollageTile(
         surface: CollageSurface.sand,
         padding: const EdgeInsets.all(12),
@@ -1329,7 +1326,9 @@ class _OverviewPageState extends State<OverviewPage>
               ),
               const SizedBox(height: 2),
               Text(
-                '${charging?.totals.sessions ?? 0} 次有记录',
+                coverageAvailable && enhancedCharging != null
+                    ? '${enhancedCharging!.totals.costKnownSessions} / ${enhancedCharging!.totals.sessions} 次有记录'
+                    : '${charging?.totals.sessions ?? '—'} 次有记录',
                 style: theme.textTheme.labelSmall,
               ),
             ],
@@ -1382,7 +1381,7 @@ class _OverviewPageState extends State<OverviewPage>
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '按同车、同期归期时区统计；数据非实时，费用为已知记录。',
+                _insightText(),
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
@@ -1391,6 +1390,12 @@ class _OverviewPageState extends State<OverviewPage>
       ),
     ),
   );
+
+  String _insightText() {
+    final comparison = mileageComparison;
+    final lead = comparison.startsWith('里程') ? comparison : '里程$comparison';
+    return '$lead；数据非实时，费用为已知记录。';
+  }
 
   Widget _chapterGrid() {
     if (widget.onInsight == null || range == null) {

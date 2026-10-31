@@ -394,7 +394,7 @@ void main() {
     expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('0 %'), 200);
     expect(find.text('0 %'), findsOneWidget);
-    expect(find.textContaining('—'), findsWidgets);
+    expect(find.textContaining('0 km'), findsNothing);
     expect(find.textContaining('最近充电功率'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));

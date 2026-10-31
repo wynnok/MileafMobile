@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui' show SemanticsAction;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mileaf/src/workspace.dart';
@@ -258,6 +260,95 @@ void main() {
           containsPair('to', '2026-03-08T12:00:00.000Z'),
         ),
       ),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('C概览补能失败重返前台尊重驾驶独立TTL', (tester) async {
+    var now = DateTime.utc(2026, 3, 15, 12);
+    final requests = <String>[];
+    await openOverviewVisual(
+      tester,
+      (r) async {
+        if (r.url.path.endsWith('/summary')) {
+          return overviewResponse(overviewFixture('summary'));
+        }
+        final kind = r.url.queryParameters['kind']!;
+        requests.add(kind);
+        if (kind == 'charging') return http.Response('', 503);
+        return overviewResponse(overviewFixture('driving-stats'), maxAge: 3600);
+      },
+      briefing: true,
+      now: () => now,
+    );
+    final before = requests.length;
+    now = now.add(const Duration(seconds: 40));
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(requests.skip(before), ['charging']);
+  });
+  testWidgets('C概览比较刷新失败保留配对数值和原区间', (tester) async {
+    var now = DateTime.utc(2026, 3, 15, 12), fail = false;
+    await openOverviewVisual(
+      tester,
+      (r) async {
+        if (r.url.path.endsWith('/summary')) {
+          return overviewResponse(overviewFixture('summary'));
+        }
+        if (r.url.queryParameters['kind'] == 'charging') {
+          return overviewResponse(overviewFixture('charging-stats'));
+        }
+        final baseline =
+            DateTime.parse(r.url.queryParameters['to']!).month == 2;
+        if (baseline && fail) return http.Response('', 503);
+        final b = overviewFixture('driving-stats');
+        b['totals']['consumption_wh_km_net'] = baseline ? 166 : 158;
+        return overviewResponse(b);
+      },
+      briefing: true,
+      now: () => now,
+      ownerCapabilities: true,
+    );
+    fail = true;
+    now = now.add(const Duration(seconds: 10));
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.tap(find.text('数据说明与更多'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('保留上次比较快照'), findsWidgets);
+  });
+  testWidgets('C概览切区间拒绝迟到旧补能与旧比较', (tester) async {
+    final oldCharge = Completer<http.Response>(),
+        oldPrior = Completer<http.Response>();
+    await openOverviewVisual(
+      tester,
+      (r) async {
+        if (r.url.path.endsWith('/summary')) {
+          return overviewResponse(overviewFixture('summary'));
+        }
+        final from = r.url.queryParameters['from'];
+        if (r.url.queryParameters['kind'] == 'charging') {
+          if (from == '2026-02-28T16:00:00.000Z') return oldCharge.future;
+          return overviewResponse(overviewFixture('charging-stats'));
+        }
+        if (from == '2026-01-31T16:00:00.000Z') return oldPrior.future;
+        return overviewResponse(overviewFixture('driving-stats'));
+      },
+      briefing: true,
+      settle: false,
+    );
+    await tester.tap(find.text('近7天'));
+    await tester.pumpAndSettle();
+    oldCharge.complete(overviewResponse(overviewFixture('charging-stats')));
+    oldPrior.complete(overviewResponse(overviewFixture('driving-stats')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '近7天'))
+          .selected,
+      isTrue,
     );
     expect(tester.takeException(), isNull);
   });

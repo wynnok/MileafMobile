@@ -201,7 +201,7 @@ void main() {
     slow.complete(jsonResponse(original));
     await tester.pumpAndSettle();
     expect(find.text('3 趟'), findsOneWidget);
-    expect(find.text('期间行程 49 次'), findsNothing);
+    expect(find.text('49 趟'), findsNothing);
   });
   testWidgets('近7日统计与列表同区间，选中一天只筛列表', (tester) async {
     final listQueries = <Map<String, String>>[];

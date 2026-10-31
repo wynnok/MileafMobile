@@ -44,7 +44,7 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    expect(find.text('统计'), findsWidgets);
+    expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
     expect(find.textContaining('187.5'), findsWidgets);
 
@@ -72,7 +72,7 @@ void main() {
     expect(find.textContaining('Asia/Shanghai'), findsWidgets);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('统计'), findsWidgets);
+    expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
   });
   testWidgets('统计能力读取失败时仍可阅读旧统计', (tester) async {
     final client = MockClient((r) async {

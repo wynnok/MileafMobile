@@ -135,7 +135,7 @@ void main() {
       ownerCapabilities: true,
     );
     expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
-    await tester.scrollUntilVisible(find.text('四个问题'), 160);
+    await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 160);
     await tester.tap(find.text('节奏').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('活跃 12 天'), findsOneWidget);

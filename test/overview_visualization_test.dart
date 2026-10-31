@@ -125,6 +125,11 @@ void main() {
       },
     ]);
     expect(find.bySemanticsLabel('每日里程图表'), findsOneWidget);
+    // C removes the A 前一个/后一个采样 steppers; readings stay reachable
+    // through the chart itself and its selected-value footer.
+    expect(find.text('前一个采样'), findsNothing);
+    expect(find.text('后一个采样'), findsNothing);
+    expect(find.textContaining('30.5 km'), findsWidgets);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
@@ -226,10 +231,12 @@ void main() {
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('21 %'), findsOneWidget);
+    expect(find.textContaining('88.0 km'), findsWidgets);
     old.complete(overviewResponse(monthTrend(firstDistance: 4)));
     await tester.pumpAndSettle();
     expect(find.text('21 %'), findsOneWidget);
     expect(find.text('68 %'), findsNothing);
+    expect(find.textContaining('4.0 km'), findsNothing);
     expect(tester.takeException(), isNull);
   });
   testWidgets('C概览360x800首屏露出车况hero、本月主数与每日里程绘图区', (tester) async {

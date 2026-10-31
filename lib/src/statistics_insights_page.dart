@@ -506,8 +506,13 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     final w = loadedWindow;
     final cal = workspace.calendar;
     if (w == null || cal == null) return '';
-    final d = cal.local(w.to);
-    final base = selection.period == StatisticsPeriod.month ? '本月' : '期间';
+    final d = cal.local(w.to.subtract(const Duration(microseconds: 1)));
+    final base = switch (selection.period) {
+      StatisticsPeriod.week => '本周',
+      StatisticsPeriod.month => '本月',
+      StatisticsPeriod.year => '本年',
+      StatisticsPeriod.custom => '期间',
+    };
     return '$base \u00b7 ${d.year}\u5e74${d.month}\u6708';
   }
 
@@ -678,7 +683,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                             comparable
                                 ? '里程较参照 ${_relative(stats.totals.distanceKm, legacy.DrivingStats.fromJson(other).totals.distanceKm)} · 净电耗差 ${((paired!['value_wh_km'] as num) - (other['totals']['net_consumption_paired']['value_wh_km'] as num)).toStringAsFixed(1)} Wh/km（${_relative(paired['value_wh_km'] as num, other['totals']['net_consumption_paired']['value_wh_km'] as num)}）'
                                 : '参照质量或口径不满足时，仅展示原值',
-                            style: Theme.of(context).textTheme.labelSmall,
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 6),
                           Text(

@@ -37,6 +37,7 @@ class TimeChart extends StatefulWidget {
     this.selectedIndex,
     this.onSelected,
     this.compact = false,
+    this.showSteppers = true,
     this.onActivateSelected,
     this.activationLabel = '查看这一天的行程',
   });
@@ -56,6 +57,7 @@ class TimeChart extends StatefulWidget {
   final int? selectedIndex;
   final ValueChanged<int>? onSelected;
   final bool compact;
+  final bool showSteppers;
   final VoidCallback? onActivateSelected;
   final String activationLabel;
   @override
@@ -344,24 +346,25 @@ class _TimeChartState extends State<TimeChart> {
                   ],
                 ),
               ),
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                children: [
-                  TextButton(
-                    onPressed: selected == 0
-                        ? null
-                        : () => select(selected - 1),
-                    child: const Text('前一个采样'),
-                  ),
-                  TextButton(
-                    onPressed: selected == widget.times.length - 1
-                        ? null
-                        : () => select(selected + 1),
-                    child: const Text('后一个采样'),
-                  ),
-                ],
-              ),
+              if (widget.showSteppers)
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: selected == 0
+                          ? null
+                          : () => select(selected - 1),
+                      child: const Text('前一个采样'),
+                    ),
+                    TextButton(
+                      onPressed: selected == widget.times.length - 1
+                          ? null
+                          : () => select(selected + 1),
+                      child: const Text('后一个采样'),
+                    ),
+                  ],
+                ),
             ],
           ],
           if (widget.note != null)
