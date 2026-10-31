@@ -487,6 +487,46 @@ Map<String, dynamic> cChargingStatsV2() {
   return body;
 }
 
+/// C07 empty charging list: zero sessions, empty buckets, null unit cost.
+Map<String, dynamic> cEmptyChargingV2() {
+  final body = cChargingStatsV2();
+  final totals = Map<String, dynamic>.from(body['totals'] as Map);
+  for (final key in totals.keys.toList()) {
+    final value = totals[key];
+    if (value is num) totals[key] = 0;
+  }
+  totals['cost'] = 0;
+  totals['cost_per_kwh'] = null;
+  totals['unit_cost_added'] = {
+    ...(totals['unit_cost_added'] as Map).cast<String, dynamic>(),
+    'value': null,
+    'numerator_cost': 0,
+    'denominator_kwh': 0,
+    'eligible_sessions': 0,
+  };
+  body['totals'] = totals;
+  body['buckets'] = <Object>[];
+  return body;
+}
+
+/// C07 missing charging list: unknown cost/energy rather than zero.
+Map<String, dynamic> cMissingChargingV2() {
+  final body = cChargingStatsV2();
+  final totals = Map<String, dynamic>.from(body['totals'] as Map);
+  totals['cost'] = null;
+  totals['cost_known_sessions'] = 0;
+  totals['cost_known_energy_kwh'] = 0;
+  totals['energy_known_sessions'] = 0;
+  totals['duration_known_sessions'] = 0;
+  totals['unit_cost_added'] = {
+    ...(totals['unit_cost_added'] as Map).cast<String, dynamic>(),
+    'value': null,
+    'eligible_sessions': 0,
+  };
+  body['totals'] = totals;
+  return body;
+}
+
 /// C charge-detail: 46.8 kWh · 18→82 % · 34 min · ¥71.28 · DC.
 Map<String, dynamic> cChargeDetailBody() {
   final body = _json('charging-detail');

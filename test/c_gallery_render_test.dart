@@ -58,7 +58,13 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
           url.path.contains('/charging-locations') ||
           (url.path.endsWith('/stats') &&
               url.queryParameters['kind'] == 'charging')) {
-        if (url.path.endsWith('/stats')) return _ok(cChargingStatsV2());
+        if (url.path.endsWith('/stats')) {
+          return _ok(switch (scenario) {
+            'empty' => cEmptyChargingV2(),
+            'missing' => cMissingChargingV2(),
+            _ => cChargingStatsV2(),
+          });
+        }
         final expanded = expansionResponse(request);
         if (url.path.endsWith('/charging-sessions')) {
           final body = jsonDecode(expanded.body) as Map<String, dynamic>;
@@ -199,14 +205,18 @@ void main() {
             }
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
-          if (scenario == 'normal') {
+          if (scenario != 'normal' || scale == 1.0) {
             await pumpApp('charging-$suffix', scenario: scenario);
             await tester.tap(find.text('充电').last);
             await tester.pumpAndSettle();
             await save('charging-list-$suffix');
-            if (scale == 1.0) {
+            if (scenario == 'normal' && scale == 1.0) {
               expectPage('已知充电费用');
               expectPage('每日补能');
+            }
+            if (scenario == 'empty' && scale == 1.0) {
+              // C07: empty must not draw a fake all-zero trend.
+              expectPage('没有采样点');
             }
           }
 
