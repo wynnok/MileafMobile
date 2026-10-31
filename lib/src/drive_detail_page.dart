@@ -33,6 +33,13 @@ class DriveDetailPage extends StatefulWidget {
   State<DriveDetailPage> createState() => _DriveDetailPageState();
 }
 
+/// 过程图可选指标：标签、图卡标题与单位在一处定义，避免并行数组各改一处。
+const _sampleMetrics = [
+  (label: '速度', title: '速度过程', unit: 'km/h'),
+  (label: '电量', title: '电量过程', unit: '%'),
+  (label: '海拔', title: '海拔过程', unit: 'm'),
+];
+
 class _DriveDetailPageState extends State<DriveDetailPage>
     with WidgetsBindingObserver {
   late final SiteSession owner;
@@ -367,7 +374,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     }
     buffer.write('；缺失不补点。');
     final text = Text(buffer.toString(), style: style);
-    return Row(
+    final line = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -414,6 +421,25 @@ class _DriveDetailPageState extends State<DriveDetailPage>
             ),
           ),
         ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        line,
+        if (referenceLoading) const LinearProgressIndicator(),
+        if (referenceError != null)
+          Row(
+            children: [
+              Expanded(
+                child: Text('个人历史参照：$referenceError', style: style),
+              ),
+              TextButton(
+                onPressed: () => loadReference(d, force: true),
+                child: const Text('重试历史参照'),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -608,9 +634,9 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                 Wrap(
                   spacing: 8,
                   children: [
-                    for (var i = 0; i < 3; i++)
+                    for (var i = 0; i < _sampleMetrics.length; i++)
                       ChoiceChip(
-                        label: Text(['速度', '电量', '海拔'][i]),
+                        label: Text(_sampleMetrics[i].label),
                         selected: metric == i,
                         onSelected: (_) => setState(() => metric = i),
                       ),
@@ -629,10 +655,10 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                         },
                       ),
                   ],
-                  label: ['速度', '电量', '海拔'][metric],
-                  title: ['速度过程', '电量过程', '海拔过程'][metric],
+                  label: _sampleMetrics[metric].label,
+                  title: _sampleMetrics[metric].title,
                   subtitle: '点按图形读值',
-                  unit: ['km/h', '%', 'm'][metric],
+                  unit: _sampleMetrics[metric].unit,
                   timestamp: time,
                   selectedIndex: selectedSample,
                   onSelected: (i) => setState(() => selectedSample = i),
@@ -646,6 +672,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   SampleChart(
                     points: [for (final p in s.series) (p.t, p.batteryLevel)],
                     label: '电量',
+                    subtitle: '点按图形读值',
                     unit: '%',
                     timestamp: time,
                     selectedIndex: selectedSample,

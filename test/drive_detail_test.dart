@@ -173,6 +173,36 @@ void main() {
       });
     });
   }
+  testWidgets('个人参照失败时口径行给出错误与独立重试，不影响明细与采样', (tester) async {
+    var fail = true;
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+      statsHandler: (_) async => fail
+          ? http.Response('', 500)
+          : jsonResponse(jsonEncode(fixture('driving-stats'))),
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('个人历史参照：').hitTestable(),
+      160,
+    );
+    expect(find.textContaining('个人历史参照：'), findsOneWidget);
+    expect(find.textContaining('参考净电耗'), findsNothing);
+    fail = false;
+    await tester.tap(find.text('重试历史参照'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('参考净电耗').hitTestable(),
+      160,
+    );
+    expect(find.textContaining('参考净电耗 188 Wh/km'), findsOneWidget);
+  });
   testWidgets('完成行程显示此前30个完整本地日的全部路线参照', (tester) async {
     await openDetail(
       tester,
