@@ -220,6 +220,9 @@ Map<String, dynamic> cDriving(Uri uri) {
   final to = DateTime.tryParse(uri.queryParameters['to'] ?? '') ?? cNow;
   final reference = to.month == 9;
   final from = uri.queryParameters['from'] ?? '2026-10-01T00:00:00Z';
+  // Same 26 bucket starts for both periods so canCompare() accepts the
+  // reference; the reference scale reproduces the C ↓/↑ 较参照 gap.
+  final scale = cReferenceDistanceKm / cMonth.distanceKm;
   final buckets = <Map<String, dynamic>>[
     for (var i = 0; i < cBucketCount; i++)
       {
@@ -229,7 +232,12 @@ Map<String, dynamic> cDriving(Uri uri) {
           1 + i,
           16,
         ).subtract(const Duration(days: 1)).toIso8601String(),
-        ..._metrics(_daily[i].distance, _daily[i].drives),
+        ..._metrics(
+          reference
+              ? double.parse((_daily[i].distance * scale).toStringAsFixed(1))
+              : _daily[i].distance,
+          _daily[i].drives,
+        ),
       },
   ];
   final totals = reference
@@ -237,7 +245,7 @@ Map<String, dynamic> cDriving(Uri uri) {
       : _metrics(cMonth.distanceKm, cMonth.drives);
   return {
     'totals': totals,
-    'buckets': reference ? <Object>[] : buckets,
+    'buckets': buckets,
     'range_kind': 'rated',
     'as_of': '2026-10-26T10:40:00Z',
     'query': {

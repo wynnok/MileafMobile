@@ -44,7 +44,7 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    expect(find.text('用车洞察'), findsOneWidget);
+    expect(find.text('统计'), findsWidgets);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
     expect(find.textContaining('187.5'), findsWidgets);
 
@@ -72,7 +72,7 @@ void main() {
     expect(find.textContaining('Asia/Shanghai'), findsWidgets);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('用车洞察'), findsOneWidget);
+    expect(find.text('统计'), findsWidgets);
   });
   testWidgets('统计能力读取失败时仍可阅读旧统计', (tester) async {
     final client = MockClient((r) async {
@@ -292,13 +292,11 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.byType(DropdownButton<int>).hitTestable(),
+      find.widgetWithText(ChoiceChip, '净电耗').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.byType(DropdownButton<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('配对净电耗').last);
+    await tester.tap(find.widgetWithText(ChoiceChip, '净电耗'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(

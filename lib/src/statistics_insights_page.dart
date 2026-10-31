@@ -220,7 +220,17 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
   }
 
-  Widget chapters() => LayoutBuilder(
+  Widget chapters() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          '四个问题',
+          style: Theme.of(context).textTheme.labelMedium,
+        ),
+      ),
+      LayoutBuilder(
     builder: (context, constraints) {
       final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
       return Wrap(
@@ -255,6 +265,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         ],
       );
     },
+      ),
+    ],
   );
 
   Future<void> load({bool force = false}) async {
@@ -453,9 +465,23 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 onPressed: () => selectTopic('overview'),
                 icon: const Icon(Icons.arrow_back),
               ),
-            Text('用车洞察', style: Theme.of(context).textTheme.titleLarge),
-            const Spacer(),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('统计', style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    _periodLabel(),
+                    style: Theme.of(context).textTheme.labelSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
             IconButton(
+              tooltip: '刷新统计',
               onPressed: () => load(force: true),
               icon: const Icon(Icons.refresh),
             ),
@@ -479,6 +505,15 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       ],
     ),
   );
+  String _periodLabel() {
+    final w = loadedWindow;
+    final cal = workspace.calendar;
+    if (w == null || cal == null) return '';
+    final d = cal.local(w.to);
+    final base = selection.period == StatisticsPeriod.month ? '本月' : '期间';
+    return '$base \u00b7 ${d.year}\u5e74${d.month}\u6708';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (features != null && features!['driving_coverage'] != true) {
@@ -599,50 +634,92 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                         ],
                       ),
                     CollageTile(
-                      surface: CollageSurface.hero,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('这段时间的用车回顾'),
-                          MetricTile(
-                            label: '期间里程',
-                            value: '${stats.totals.distanceKm} km',
-                            emphasize: true,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  selection.period ==
+                                          StatisticsPeriod.month
+                                      ? '本月 · 驾驶里程'
+                                      : '期间 · 驾驶里程',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium,
+                                ),
+                              ),
+                              Text(
+                                '${stats.totals.drives} 趟',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall,
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 6),
+                          Text.rich(
+                            TextSpan(
+                              text: '${stats.totals.distanceKm}',
+                              children: const [
+                                TextSpan(
+                                  text: ' km',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            style: Theme.of(context).textTheme.displayLarge
+                                ?.copyWith(
+                                  fontSize: 42,
+                                  height: 1,
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                          ),
+                          const SizedBox(height: 4),
                           Text(
-                            '配对估算净电耗 ${paired?['value_wh_km'] ?? '—'} Wh/km',
+                            comparable
+                                ? '里程较参照 ${_relative(stats.totals.distanceKm, legacy.DrivingStats.fromJson(other).totals.distanceKm)} · 净电耗差 ${((paired!['value_wh_km'] as num) - (other['totals']['net_consumption_paired']['value_wh_km'] as num)).toStringAsFixed(1)} Wh/km（${_relative(paired['value_wh_km'] as num, other['totals']['net_consumption_paired']['value_wh_km'] as num)}）'
+                                : '参照质量或口径不满足时，仅展示原值',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '净电耗 ${paired?['value_wh_km'] ?? '—'} Wh/km · 已知支出 ${chargingError == null ? widget.currency.amount((charging?['totals'] as Map?)?['cost'] as num?) : '—'} · ${enhanced.buckets.where((b) => b.distanceKm > 0).length} 个活跃日',
+                            style: Theme.of(context).textTheme.labelSmall,
                           ),
                         ],
                       ),
                     ),
-                    if (comparable)
-                      Text(
-                        '里程较参照 ${_relative(stats.totals.distanceKm, legacy.DrivingStats.fromJson(other).totals.distanceKm)} · 净电耗差 ${((paired!['value_wh_km'] as num) - (other['totals']['net_consumption_paired']['value_wh_km'] as num)).toStringAsFixed(1)} Wh/km（${_relative(paired['value_wh_km'] as num, other['totals']['net_consumption_paired']['value_wh_km'] as num)}）',
-                      )
-                    else
-                      const Text('参照质量或口径不满足时，仅展示原值'),
-                    Row(
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
                       children: [
-                        const Text('趋势指标'),
-                        const SizedBox(width: 12),
-                        DropdownButton<int>(
-                          value: metric,
-                          items: [
-                            for (final (i, label) in [
-                              '里程',
-                              '次数',
-                              '估算能量',
-                              '最高速度',
-                              '配对净电耗',
-                            ].indexed)
-                              DropdownMenuItem(value: i, child: Text(label)),
-                          ],
-                          onChanged: (i) {
-                            if (i != null) setState(() => metric = i);
-                          },
-                        ),
+                        for (final (i, label) in const [
+                          '里程',
+                          '次数',
+                          '能量',
+                          '速度',
+                          '净电耗',
+                        ].indexed)
+                          ChoiceChip(
+                            label: Text(
+                              label,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall,
+                            ),
+                            selected: metric == i,
+                            showCheckmark: false,
+                            visualDensity: VisualDensity.compact,
+                            onSelected: (_) => setState(() => metric = i),
+                          ),
                       ],
                     ),
+                    const SizedBox(height: 4),
                     TimeChart(
                       height: 105,
                       title: ['里程走势', '行程次数', '估算能量', '最高速度', '配对净电耗'][metric],

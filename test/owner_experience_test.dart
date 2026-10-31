@@ -150,7 +150,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.widgetWithText(NavigationDestination, '统计'));
     await tester.pumpAndSettle();
-    expect(find.text('期间里程'), findsOneWidget);
+    expect(find.textContaining('驾驶里程'), findsWidgets);
   });
 
   testWidgets('统计主结果包含驾驶时长和有效趟数，节奏有显式入口', (tester) async {
