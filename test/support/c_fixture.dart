@@ -421,6 +421,57 @@ Map<String, dynamic> cChargingStatsV2() {
     },
   });
   body['totals'] = totals;
+  // 26 daily buckets matching the C 每日补能 chart (9 sessions, 8 with cost).
+  const sessionDays = {2, 5, 8, 11, 14, 17, 20, 23, 25};
+  final orderedDays = sessionDays.toList()..sort();
+  final perEnergy = cChargingTotals.energyKwh / orderedDays.length;
+  final perCost = cChargingTotals.knownCost / 8;
+  body['buckets'] = [
+    for (var i = 0; i < cBucketCount; i++)
+      () {
+        final active = sessionDays.contains(i);
+        final knownCost = active && orderedDays.indexOf(i) < 8;
+        final energy = active
+            ? double.parse(perEnergy.toStringAsFixed(2))
+            : 0.0;
+        return {
+          'bucket_start': DateTime.utc(2026, 10, 1 + i).toIso8601String(),
+          'sessions': active ? 1 : 0,
+          'energy_added_kwh': energy,
+          'energy_known_sessions': active ? 1 : 0,
+          'cost': knownCost ? double.parse(perCost.toStringAsFixed(2)) : null,
+          'cost_per_kwh': knownCost ? 0.79 : null,
+          'cost_known_sessions': knownCost ? 1 : 0,
+          'cost_known_energy_kwh': knownCost ? energy : 0.0,
+          'duration_min_total': active ? 34.0 : 0.0,
+          'duration_known_sessions': active ? 1 : 0,
+          'classification_known_sessions': active ? 1 : 0,
+          'ac_energy_kwh': double.parse((energy * 0.5).toStringAsFixed(2)),
+          'dc_energy_kwh': double.parse((energy * 0.41).toStringAsFixed(2)),
+          'unknown_energy_kwh': double.parse(
+            (energy * 0.09).toStringAsFixed(2),
+          ),
+          'ac_duration_min': active ? 20.0 : 0.0,
+          'dc_duration_min': active ? 14.0 : 0.0,
+          'unknown_duration_min': 0.0,
+          'dc_energy_share': active ? 0.41 : null,
+          'unit_cost_grid': {
+            'value': null,
+            'numerator_cost': 0.0,
+            'denominator_kwh': 0.0,
+            'eligible_sessions': 0,
+            'excluded_cost_sessions': 0,
+          },
+          'unit_cost_added': {
+            'value': knownCost ? 0.79 : null,
+            'numerator_cost': knownCost ? perCost : 0.0,
+            'denominator_kwh': knownCost ? energy : 0.0,
+            'eligible_sessions': knownCost ? 1 : 0,
+            'excluded_cost_sessions': active && !knownCost ? 1 : 0,
+          },
+        };
+      }(),
+  ];
   return body;
 }
 

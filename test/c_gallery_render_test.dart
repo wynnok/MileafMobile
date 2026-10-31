@@ -56,7 +56,20 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
           (url.path.endsWith('/stats') &&
               url.queryParameters['kind'] == 'charging')) {
         if (url.path.endsWith('/stats')) return _ok(cChargingStatsV2());
-        return expansionResponse(request);
+        final expanded = expansionResponse(request);
+        if (url.path.endsWith('/charging-sessions')) {
+          final body = jsonDecode(expanded.body) as Map<String, dynamic>;
+          body['items'] = [
+            for (final item in (body['items'] as List).cast<Map>())
+              if (item['is_active'] != true) item,
+          ];
+          return http.Response(
+            jsonEncode(body),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+        return expanded;
       }
       if (url.path.endsWith('/charging-sessions/9')) {
         return _ok(cChargeDetailBody());
