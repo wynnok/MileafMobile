@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:mileaf/src/workspace.dart';
 
 import 'overview_visualization_test.dart';
+import 'support/statistics_insights_fixture.dart';
 import 'charging_test.dart' show MemoryCurrency;
 import 'overview_test.dart' show background, foreground;
 
@@ -75,6 +76,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('21 %'), -150);
     expect(find.text('21 %'), findsOneWidget);
     expect(find.text('68 %'), findsNothing);
+    // The failed stats must be surfaced as unavailable, never silently shown as
+    // the new month's current result.
+    expect(find.textContaining('服务暂不可用'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
   testWidgets('C概览费用零与币种、AC/DC 使用服务端原值在数据说明层', (tester) async {
@@ -261,6 +265,11 @@ void main() {
         ),
       ),
     );
+    // The server net value (158 vs 166) drives the comparison wording.
+    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.tap(find.text('数据说明与更多'));
+    await tester.pumpAndSettle();
+    expect(find.text('估算净电耗比前一同长区间低 8 Wh/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -293,6 +302,9 @@ void main() {
     await openOverviewVisual(
       tester,
       (r) async {
+        if (r.url.path.endsWith('/meta')) {
+          return overviewResponse(statisticsInsightsMeta());
+        }
         if (r.url.path.endsWith('/summary')) {
           return overviewResponse(overviewFixture('summary'));
         }
@@ -302,9 +314,9 @@ void main() {
         final baseline =
             DateTime.parse(r.url.queryParameters['to']!).month == 2;
         if (baseline && fail) return http.Response('', 503);
-        final b = overviewFixture('driving-stats');
-        b['totals']['consumption_wh_km_net'] = baseline ? 166 : 158;
-        return overviewResponse(b);
+        return overviewResponse(
+          statisticsInsightsFixture(r.url, consumption: baseline ? 166 : 158),
+        );
       },
       briefing: true,
       now: () => now,
@@ -317,7 +329,11 @@ void main() {
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('保留上次比较快照'), findsWidgets);
+    // The failed refresh must keep both the paired value and its original range.
+    expect(find.textContaining('比较暂不可用'), findsWidgets);
+    expect(find.text('配对估算净电耗'), findsOneWidget);
+    expect(find.textContaining('158'), findsWidgets);
+    expect(find.text('比较区间与口径'), findsOneWidget);
   });
   testWidgets('C概览切区间拒绝迟到旧补能与旧比较', (tester) async {
     final oldCharge = Completer<http.Response>(),
