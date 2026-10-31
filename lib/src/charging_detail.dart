@@ -392,21 +392,25 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ),
-              MapPanel(
-                key: ValueKey(
-                  'charging-map:${owner.generation}:$vehicle:${widget.id}',
-                ),
-                scene: placeScene(
-                  location: MapCoordinate(
-                    d.location.lat?.toDouble(),
-                    d.location.lon?.toDouble(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: MapPanel(
+                  key: ValueKey(
+                    'charging-map:${owner.generation}:$vehicle:${widget.id}',
                   ),
-                  brightness: Theme.of(context).brightness,
-                  interactive: false,
+                  scene: placeScene(
+                    location: MapCoordinate(
+                      d.location.lat?.toDouble(),
+                      d.location.lon?.toDouble(),
+                    ),
+                    brightness: Theme.of(context).brightness,
+                    interactive: false,
+                  ),
+                  consent: _mapConsent,
+                  platform: _mapPlatform,
+                  height: 180,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                consent: _mapConsent,
-                platform: _mapPlatform,
-                height: 180,
               ),
             ],
             if (detail case final d?) ...[

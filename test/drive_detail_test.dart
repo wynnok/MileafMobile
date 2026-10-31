@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:mileaf/src/collage.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_panel.dart';
 import 'package:mileaf/src/map/map_platform.dart';
@@ -52,7 +53,7 @@ Future<void> openDetail(
 }
 
 void main() {
-  testWidgets('C详情以满幅地图开场再读路线与结果', (tester) async {
+  testWidgets('详情地图与页面内容同边距并先于路线与结果', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -65,12 +66,15 @@ void main() {
     );
     final map = tester.getRect(find.byType(MapPanel));
     final route = tester.getRect(find.textContaining(' → ').first);
-    expect(map.top, lessThan(route.top));
-    expect(map.left, 0);
-    expect(
-      map.width,
-      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+    final tile = tester.getRect(
+      find.ancestor(of: find.text('距离'), matching: find.byType(CollageTile)),
     );
+    final viewWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(map.top, lessThan(route.top));
+    expect(map.left, tile.left);
+    expect(viewWidth - map.right, map.left);
+    expect(map.width, viewWidth - 24);
   });
 
   testWidgets('电耗口径行保留负值本次值与真实零参照并提供口径说明', (tester) async {

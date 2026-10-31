@@ -31,12 +31,16 @@ class MapPanel extends StatefulWidget {
     this.interactive = false,
     this.onExpand,
     this.showControls = false,
+    this.borderRadius = const BorderRadius.vertical(
+      bottom: Radius.circular(22),
+    ),
   });
 
   final MapScene scene;
   final MapConsentController consent;
   final MapPlatform? platform;
   final double height;
+  final BorderRadiusGeometry borderRadius;
   final Widget? overlay;
   final bool interactive;
   final VoidCallback? onExpand;
@@ -174,7 +178,7 @@ class _MapPanelState extends State<MapPanel> {
       height: widget.height,
       width: double.infinity,
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+        borderRadius: widget.borderRadius,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,

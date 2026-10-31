@@ -549,33 +549,39 @@ class _DriveDetailPageState extends State<DriveDetailPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            MapPanel(
-              key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
-              scene: _mapScene(interactive: false),
-              consent: _mapConsent,
-              platform: _mapPlatform,
-              height: 300,
-              overlay: detail == null
-                  ? null
-                  : DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.62),
-                          ],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
-                        child: _routeLines(detail!),
-                      ),
-                    ),
-              onExpand: () => _openFullMap(context),
-            ),
             ...<Widget>[
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 8),
+                child: MapPanel(
+                  key: ValueKey(
+                    'map:${owner.generation}:$vehicle:${widget.id}',
+                  ),
+                  scene: _mapScene(interactive: false),
+                  consent: _mapConsent,
+                  platform: _mapPlatform,
+                  height: 300,
+                  borderRadius: BorderRadius.circular(20),
+                  overlay: detail == null
+                      ? null
+                      : DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.62),
+                              ],
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
+                            child: _routeLines(detail!),
+                          ),
+                        ),
+                  onExpand: () => _openFullMap(context),
+                ),
+              ),
               Text('行程地图', style: Theme.of(context).textTheme.labelSmall),
               if (detailLoading) const LinearProgressIndicator(),
               if (detailError != null) ...[

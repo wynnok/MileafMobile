@@ -12,7 +12,7 @@
 - iOS：`UiKitView` + Swift `MAMapView`（`AMap3DMap-NO-IDFA` 11.2.100 + `AMapFoundation-NO-IDFA` 1.9.1）；MapKit 过渡已移除。同意后才创建 `MAMapView`；创建前 `AMapServices.enableHTTPS = true`、`apiKey` 注入、`MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)` 与 `updatePrivacyAgree(.didAgree)`。缺 key / 未同意立即 `initFailed`，回路线速写，不崩溃。
 - iOS key 绑定 Bundle ID `app.mileaf.mileaf`；`ios/Flutter/AMap.local.xcconfig`（gitignored）→ `MILEAF_AMAP_IOS_KEY` → `Info.plist` 的 `MileafAMapIosKey` → `AMapServices.apiKey`。仓库只保留 example；无 key 时构建可编译，运行时地图走速写。
 - 两端 `providerName` 同为「高德地图」；同意按供应商隔离（原 Apple 地图授权不会沿用，也不会复用路线示意授权）。
-- 行程详情：满幅 300px hero，点按进入 `DriveMapPage` 全屏缩放；充电详情地图在功率曲线之后 180px 次级。
+- 行程详情：整栏 300px hero（左右 12px 页面边距、20px 圆角），点按进入 `DriveMapPage` 全屏缩放；充电详情地图在功率曲线之后 180px 次级，同样 20px 圆角。
 - 同意：`SharedPreferences` 持久化；设置与服务 → 「地图与隐私」可撤销；撤销后不再创建新原生视图，已加载 SDK 内存状态可能持续到进程结束。
 - 删除 `map_candidate.dart`、`flutter_map`、`latlong2`、`mapkit_platform.dart`。
 
