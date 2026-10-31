@@ -394,7 +394,9 @@ void main() {
     expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('0 %'), 200);
     expect(find.text('0 %'), findsOneWidget);
-    expect(find.textContaining('0 km'), findsNothing);
+    // A missing range must render as —, never as 0 km.
+    expect(find.textContaining('— km'), findsWidgets);
+    expect(find.textContaining('额定续航'), findsOneWidget);
     expect(find.textContaining('最近充电功率'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));

@@ -762,18 +762,32 @@ class _OverviewPageState extends State<OverviewPage>
         builder: (context) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (scale > 1.4) ...[
-              values,
-              Align(alignment: Alignment.centerRight, child: battery),
-            ] else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: values),
-                  const SizedBox(width: 8),
-                  battery,
-                ],
-              ),
+            Stack(
+              children: [
+                // C hero keeps a faint car silhouette behind the numbers.
+                Positioned(
+                  right: -12,
+                  bottom: -6,
+                  child: Icon(
+                    Icons.directions_car_filled,
+                    size: 96 * scale.clamp(1.0, 1.4),
+                    color: const Color(0xFF8AD6AF).withValues(alpha: 0.10),
+                  ),
+                ),
+                if (scale > 1.4) ...[
+                  values,
+                  Align(alignment: Alignment.centerRight, child: battery),
+                ] else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: values),
+                      const SizedBox(width: 8),
+                      battery,
+                    ],
+                  ),
+              ],
+            ),
             const Divider(height: 12, color: Color(0x2266DDAA)),
             Row(
               children: [
