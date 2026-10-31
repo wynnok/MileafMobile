@@ -338,8 +338,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               ),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final large =
-                      MediaQuery.textScalerOf(context).scale(12) > 18;
+                  final large = MediaQuery.textScalerOf(context).scale(12) > 18;
                   final width = large
                       ? constraints.maxWidth
                       : (constraints.maxWidth - 16) / 3;
@@ -369,7 +368,11 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               Padding(
                 padding: const EdgeInsets.only(top: 2, bottom: 6),
                 child: Text(
-                  d.isDc == null ? '分类未知' : d.isDc! ? 'DC' : 'AC',
+                  d.isDc == null
+                      ? '分类未知'
+                      : d.isDc!
+                      ? 'DC'
+                      : 'AC',
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ),

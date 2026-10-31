@@ -88,10 +88,7 @@ Map<String, dynamic> cMeta() {
 /// month of 1,198.6 km / 46 trips with today 60 km / 3 trips.
 Map<String, dynamic> cSummary() {
   final body = _json('summary');
-  body['state'] = {
-    'value': 'charging',
-    'since': '2026-10-26T10:38:00Z',
-  };
+  body['state'] = {'value': 'charging', 'since': '2026-10-26T10:38:00Z'};
   body['battery'] = {'level': 68, 'range_km': 320.0, 'range_kind': 'rated'};
   body['charging_power_kw'] = 11.0;
   body['period'] = {
@@ -129,10 +126,10 @@ Map<String, dynamic> cSummary() {
 /// and 3 drives, summing exactly to the C month totals.
 final List<({double distance, int drives})> _daily = () {
   const zeroDays = {3, 9, 16, 22};
-  final list = List<({double distance, int drives})>.filled(
-    cBucketCount,
-    (distance: 0, drives: 0),
-  );
+  final list = List<({double distance, int drives})>.filled(cBucketCount, (
+    distance: 0,
+    drives: 0,
+  ));
   list[25] = (distance: cToday.distanceKm, drives: cToday.drives);
   final activeOthers = [
     for (var i = 0; i < 25; i++)
@@ -141,9 +138,7 @@ final List<({double distance, int drives})> _daily = () {
   var remaining = cMonth.distanceKm - cToday.distanceKm; // 1138.6
   for (var k = 0; k < activeOthers.length; k++) {
     final last = k == activeOthers.length - 1;
-    final distance = last
-        ? double.parse(remaining.toStringAsFixed(1))
-        : 54.0;
+    final distance = last ? double.parse(remaining.toStringAsFixed(1)) : 54.0;
     final drives = last ? 3 : 2;
     list[activeOthers[k]] = (distance: distance, drives: drives);
     remaining = double.parse((remaining - distance).toStringAsFixed(1));
@@ -151,11 +146,7 @@ final List<({double distance, int drives})> _daily = () {
   return list;
 }();
 
-Map<String, dynamic> _metrics(
-  double distance,
-  int drives, {
-  num? netWhKm,
-}) {
+Map<String, dynamic> _metrics(double distance, int drives, {num? netWhKm}) {
   final unit = netWhKm ?? cMonth.netWhKm;
   final net = distance > 0 ? unit.toDouble() : null;
   final energy = distance > 0
@@ -299,11 +290,7 @@ Map<String, dynamic> cCharging(Uri uri) {
   final buckets = <Map<String, dynamic>>[
     for (var i = 0; i < cBucketCount; i++)
       {
-        'bucket_start': DateTime.utc(
-          2026,
-          10,
-          1 + i,
-        ).toIso8601String(),
+        'bucket_start': DateTime.utc(2026, 10, 1 + i).toIso8601String(),
         'sessions': i == 25 ? 1 : (i % 9 == 0 ? 1 : 0),
         'energy_added_kwh': double.parse(dailyEnergy.toStringAsFixed(2)),
         'cost': double.parse((dailyEnergy * 0.79).toStringAsFixed(2)),
@@ -319,7 +306,9 @@ Map<String, dynamic> cCharging(Uri uri) {
       'energy_added_kwh': cChargingTotals.energyKwh,
       'cost': cChargingTotals.knownCost,
       'cost_per_kwh': double.parse(
-        (cChargingTotals.knownCost / cChargingTotals.energyKwh).toStringAsFixed(3),
+        (cChargingTotals.knownCost / cChargingTotals.energyKwh).toStringAsFixed(
+          3,
+        ),
       ),
       'ac_energy_kwh': cChargingTotals.acKwh,
       'dc_energy_kwh': cChargingTotals.dcKwh,

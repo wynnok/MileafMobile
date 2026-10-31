@@ -14,10 +14,7 @@ void main() {
       final totals = body['totals'] as Map<String, dynamic>;
       expect(totals['distance_km'], 1198.6);
       expect(totals['drives'], 46);
-      expect(
-        (totals['net_consumption_paired'] as Map)['value_wh_km'],
-        158,
-      );
+      expect((totals['net_consumption_paired'] as Map)['value_wh_km'], 158);
       final buckets = (body['buckets'] as List).cast<Map<String, dynamic>>();
       expect(buckets, hasLength(26));
       final today = buckets.last;
@@ -30,10 +27,7 @@ void main() {
       );
       expect(double.parse(sum.toStringAsFixed(1)), 1198.6);
       // 22 active days (drives > 0).
-      expect(
-        buckets.where((b) => (b['drives'] as int) > 0).length,
-        22,
-      );
+      expect(buckets.where((b) => (b['drives'] as int) > 0).length, 22);
     });
 
     test('September reference distance yields 91.3 km gap', () {
@@ -68,19 +62,25 @@ void main() {
       expect((body['last_charge'] as Map)['energy_kwh'], 46.8);
     });
 
-    test('capability meta enables statistics-insights + charging-experience',
-        () {
-      final meta = cMeta();
-      expect((meta['statistics_insights'] as Map)['contract_version'],
-          'statistics-insights-v1');
-      expect(
-        ((meta['statistics_insights'] as Map)['features'] as Map)[
-            'driving_coverage'],
-        true,
-      );
-      expect((meta['charging_experience'] as Map)['contract_version'],
-          'charging-experience-v1');
-    });
+    test(
+      'capability meta enables statistics-insights + charging-experience',
+      () {
+        final meta = cMeta();
+        expect(
+          (meta['statistics_insights'] as Map)['contract_version'],
+          'statistics-insights-v1',
+        );
+        expect(
+          ((meta['statistics_insights'] as Map)['features']
+              as Map)['driving_coverage'],
+          true,
+        );
+        expect(
+          (meta['charging_experience'] as Map)['contract_version'],
+          'charging-experience-v1',
+        );
+      },
+    );
 
     test('drives list has the 32.9 km representative trip', () {
       final body = cDrives();

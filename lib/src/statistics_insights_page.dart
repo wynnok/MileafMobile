@@ -225,46 +225,43 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     children: [
       Padding(
         padding: const EdgeInsets.only(bottom: 6),
-        child: Text(
-          '四个问题',
-          style: Theme.of(context).textTheme.labelMedium,
-        ),
+        child: Text('四个问题', style: Theme.of(context).textTheme.labelMedium),
       ),
       LayoutBuilder(
-    builder: (context, constraints) {
-      final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
-      return Wrap(
-        spacing: 8,
-        runSpacing: 0,
-        children: [
-          for (final entry in const {
-            'usage': '节奏',
-            'energy': '能耗',
-            'charging': '补能',
-            'long': '长期',
-          }.entries)
-            SizedBox(
-              width: single
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 8) / 2,
-              child: CollageTile(
-                surface: entry.key == 'usage'
-                    ? CollageSurface.mint
-                    : CollageSurface.paper,
-                child: TextButton(
-                  onPressed: () => selectTopic(entry.key),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(entry.value)),
-                      const Icon(Icons.arrow_forward, size: 18),
-                    ],
+        builder: (context, constraints) {
+          final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+          return Wrap(
+            spacing: 8,
+            runSpacing: 0,
+            children: [
+              for (final entry in const {
+                'usage': '节奏',
+                'energy': '能耗',
+                'charging': '补能',
+                'long': '长期',
+              }.entries)
+                SizedBox(
+                  width: single
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - 8) / 2,
+                  child: CollageTile(
+                    surface: entry.key == 'usage'
+                        ? CollageSurface.mint
+                        : CollageSurface.paper,
+                    child: TextButton(
+                      onPressed: () => selectTopic(entry.key),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(entry.value)),
+                          const Icon(Icons.arrow_forward, size: 18),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
-      );
-    },
+            ],
+          );
+        },
       ),
     ],
   );
@@ -641,20 +638,17 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                             children: [
                               Expanded(
                                 child: Text(
-                                  selection.period ==
-                                          StatisticsPeriod.month
+                                  selection.period == StatisticsPeriod.month
                                       ? '本月 · 驾驶里程'
                                       : '期间 · 驾驶里程',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelMedium,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium,
                                 ),
                               ),
                               Text(
                                 '${stats.totals.drives} 趟',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelSmall,
+                                style: Theme.of(context).textTheme.labelSmall,
                               ),
                             ],
                           ),
@@ -708,9 +702,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                           ChoiceChip(
                             label: Text(
                               label,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelSmall,
+                              style: Theme.of(context).textTheme.labelSmall,
                             ),
                             selected: metric == i,
                             showCheckmark: false,

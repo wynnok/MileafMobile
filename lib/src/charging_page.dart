@@ -1080,8 +1080,7 @@ class _ChargingPageState extends State<ChargingPage>
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                         selected:
-                            widget.filter.first == null &&
-                            recentDays == days,
+                            widget.filter.first == null && recentDays == days,
                         showCheckmark: false,
                         visualDensity: VisualDensity.compact,
                         onSelected: (_) {

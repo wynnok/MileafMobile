@@ -33,10 +33,7 @@ void main() {
         briefing: true,
         ownerCapabilities: true,
       );
-      await tester.scrollUntilVisible(
-        find.text('数据说明与更多').hitTestable(),
-        150,
-      );
+      await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
       await tester.tap(find.text('数据说明与更多'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('配对净电耗与覆盖'), 150);

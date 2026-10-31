@@ -679,8 +679,7 @@ class _OverviewPageState extends State<OverviewPage>
       _ => '续航（未知口径）',
     };
     final ago = _minutesAgo(d.state?.since);
-    final statusLine =
-        '最近状态 · $status${ago == null ? '' : ' · $ago 分钟前'}';
+    final statusLine = '最近状态 · $status${ago == null ? '' : ' · $ago 分钟前'}';
     final values = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -776,19 +775,13 @@ class _OverviewPageState extends State<OverviewPage>
             const Divider(height: 12, color: Color(0x2266DDAA)),
             Row(
               children: [
-                stat(
-                  d.period.today.distanceKm.toStringAsFixed(0),
-                  '今日 km',
-                ),
+                stat(d.period.today.distanceKm.toStringAsFixed(0), '今日 km'),
                 stat('${d.period.today.drives}', '次行程'),
                 stat(
                   d.period.today.energyKwh?.toStringAsFixed(2) ?? '—',
                   '估算 kWh',
                 ),
-                stat(
-                  d.chargingPowerKw?.toStringAsFixed(1) ?? '—',
-                  'kW 充电',
-                ),
+                stat(d.chargingPowerKw?.toStringAsFixed(1) ?? '—', 'kW 充电'),
               ],
             ),
           ],
@@ -859,11 +852,7 @@ class _OverviewPageState extends State<OverviewPage>
     final displayed = ranges[isCharging ? 'charging' : 'driving']?.current;
     if ((isCharging ? charging : driving) == null) return const SizedBox();
     final (title, label, unit) = switch (metric) {
-      _Metric.distance => (
-        '每日里程',
-        '里程',
-        'km',
-      ),
+      _Metric.distance => ('每日里程', '里程', 'km'),
       _Metric.net => ('净电耗趋势 · 估算', '净电耗', 'Wh/km'),
       _Metric.energy => ('驾驶消耗趋势 · 估算', '驾驶消耗', 'kWh'),
       _Metric.charge => ('充入电量趋势', '充入电量', 'kWh'),
@@ -1194,10 +1183,8 @@ class _OverviewPageState extends State<OverviewPage>
     ),
   );
 
-  Widget _monthBento() => CollageBento(
-    lead: _monthTile(),
-    evidence: [_netTile(), _costTile()],
-  );
+  Widget _monthBento() =>
+      CollageBento(lead: _monthTile(), evidence: [_netTile(), _costTile()]);
 
   Widget _monthTile() {
     final theme = Theme.of(context);
@@ -1233,10 +1220,7 @@ class _OverviewPageState extends State<OverviewPage>
                 TextSpan(
                   text: parts,
                   children: [
-                    TextSpan(
-                      text: ' km',
-                      style: theme.textTheme.titleMedium,
-                    ),
+                    TextSpan(text: ' km', style: theme.textTheme.titleMedium),
                   ],
                 ),
                 style: theme.textTheme.displayLarge?.copyWith(
@@ -1247,10 +1231,7 @@ class _OverviewPageState extends State<OverviewPage>
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                mileageComparison,
-                style: theme.textTheme.labelSmall,
-              ),
+              Text(mileageComparison, style: theme.textTheme.labelSmall),
               const SizedBox(height: 8),
               _Sparkline(
                 height: 26,
@@ -1294,10 +1275,7 @@ class _OverviewPageState extends State<OverviewPage>
                 TextSpan(
                   text: value?.toStringAsFixed(0) ?? '—',
                   children: [
-                    TextSpan(
-                      text: ' Wh/km',
-                      style: theme.textTheme.labelSmall,
-                    ),
+                    TextSpan(text: ' Wh/km', style: theme.textTheme.labelSmall),
                   ],
                 ),
                 style: theme.textTheme.headlineSmall?.copyWith(
@@ -1323,8 +1301,7 @@ class _OverviewPageState extends State<OverviewPage>
       container: true,
       button: true,
       selected: metric == _Metric.cost,
-      label:
-          '已知充电费用 ${widget.currency.amount(charging?.totals.cost)}，仅含费用已知记录',
+      label: '已知充电费用 ${widget.currency.amount(charging?.totals.cost)}，仅含费用已知记录',
       excludeSemantics: true,
       onTap: () => setState(() => metric = _Metric.cost),
       child: CollageTile(
@@ -1385,11 +1362,7 @@ class _OverviewPageState extends State<OverviewPage>
     padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _metricTabs(),
-        const SizedBox(height: 4),
-        mainChart(),
-      ],
+      children: [_metricTabs(), const SizedBox(height: 4), mainChart()],
     ),
   );
 
@@ -1397,9 +1370,8 @@ class _OverviewPageState extends State<OverviewPage>
     padding: const EdgeInsets.only(bottom: 8),
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withValues(
-          alpha: 0.5,
-        ),
+        color: Theme.of(context).colorScheme.primaryContainer
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
@@ -1421,7 +1393,9 @@ class _OverviewPageState extends State<OverviewPage>
   );
 
   Widget _chapterGrid() {
-    if (widget.onInsight == null || range == null) return const SizedBox.shrink();
+    if (widget.onInsight == null || range == null) {
+      return const SizedBox.shrink();
+    }
     final items = [
       ('usage', Icons.calendar_month_outlined, '节奏', '驾驶时间与单程'),
       ('energy', Icons.insights_outlined, '能耗', '温度与距离'),
@@ -1467,10 +1441,7 @@ class _OverviewPageState extends State<OverviewPage>
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 4, bottom: 6),
-          child: Text(
-            '四个问题',
-            style: Theme.of(context).textTheme.labelMedium,
-          ),
+          child: Text('四个问题', style: Theme.of(context).textTheme.labelMedium),
         ),
         for (var i = 0; i < items.length; i += 2)
           Padding(
@@ -1500,10 +1471,7 @@ class _OverviewPageState extends State<OverviewPage>
           Text(
             '有效入电均价 ${widget.currency.amount(s.totals.unitCostAdded.value)}/kWh',
           ),
-          const Text(
-            '已知支出不等于全部用车成本',
-            style: TextStyle(fontSize: 12),
-          ),
+          const Text('已知支出不等于全部用车成本', style: TextStyle(fontSize: 12)),
         ] else
           const Text('费用覆盖字段缺失或不兼容，未按完整费用显示'),
       ],

@@ -20,8 +20,14 @@ import 'widget_test.dart' show MemoryTrustStore;
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 
-http.Response _ok(Object body) => http.Response(jsonEncode(body), 200,
-    headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'max-age=30'});
+http.Response _ok(Object body) => http.Response(
+  jsonEncode(body),
+  200,
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'max-age=30',
+  },
+);
 
 class _Cny implements CurrencyPreferenceStore {
   @override
@@ -36,7 +42,11 @@ MockClient cClient() => MockClient((request) async {
   if (url.path.endsWith('/summary')) return _ok(cSummary());
   if (url.path.endsWith('/meta')) return _ok(cMeta());
   if (url.path.endsWith('/stats')) {
-    return _ok(url.queryParameters['kind'] == 'charging' ? cCharging(url) : cDriving(url));
+    return _ok(
+      url.queryParameters['kind'] == 'charging'
+          ? cCharging(url)
+          : cDriving(url),
+    );
   }
   return http.Response('{}', 404);
 });
@@ -48,8 +58,9 @@ void main() {
     for (final family in ['Roboto', 'Arial', 'sans-serif']) {
       await (FontLoader(family)..addFont(Future.value(bytes))).load();
     }
-    await (FontLoader('MaterialIcons')
-      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
   testWidgets('统计 C 设计正式渲染', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -69,20 +80,26 @@ void main() {
         tester.platformDispatcher.platformBrightnessTestValue = brightness;
         tester.platformDispatcher.textScaleFactorTestValue = scale;
         final store = MemorySessionStore()
-          ..value = jsonEncode({'site': cSite, 'token': 'test', 'expires_at': '2099-01-01T00:00:00Z'});
-        await tester.pumpWidget(RepaintBoundary(
-          key: boundary,
-          child: MileafApp(
-            key: ValueKey(suffix),
-            client: cClient(),
-            sessionStore: store,
-            trustStore: MemoryTrustStore(),
-            vehiclePreferences: MemoryVehiclePreferences(),
-            currencyPreferences: _Cny(),
-            now: () => cNow,
-            calendar: () async => CalendarContext('Asia/Shanghai'),
+          ..value = jsonEncode({
+            'site': cSite,
+            'token': 'test',
+            'expires_at': '2099-01-01T00:00:00Z',
+          });
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundary,
+            child: MileafApp(
+              key: ValueKey(suffix),
+              client: cClient(),
+              sessionStore: store,
+              trustStore: MemoryTrustStore(),
+              vehiclePreferences: MemoryVehiclePreferences(),
+              currencyPreferences: _Cny(),
+              now: () => cNow,
+              calendar: () async => CalendarContext('Asia/Shanghai'),
+            ),
           ),
-        ));
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.text('统计').last);
         await tester.pumpAndSettle();

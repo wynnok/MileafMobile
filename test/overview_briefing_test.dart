@@ -25,20 +25,17 @@ void main() {
         ),
         briefing: true,
       );
-      final label = find.bySemanticsLabel(
-        '已知充电费用 72（币种未知），仅含费用已知记录',
+      final label = find.bySemanticsLabel('已知充电费用 72（币种未知），仅含费用已知记录');
+      expect(
+        tester
+            .getSemantics(label)
+            .getSemanticsData()
+            .hasAction(SemanticsAction.tap),
+        isTrue,
       );
-      expect(tester.getSemantics(label).getSemanticsData().hasAction(
-        SemanticsAction.tap,
-      ), isTrue);
-      tester.semantics.tap(find.semantics.byLabel(
-        '已知充电费用 72（币种未知），仅含费用已知记录',
-      ));
+      tester.semantics.tap(find.semantics.byLabel('已知充电费用 72（币种未知），仅含费用已知记录'));
       await tester.pump();
-      await tester.scrollUntilVisible(
-        find.bySemanticsLabel('已知费用趋势图表'),
-        120,
-      );
+      await tester.scrollUntilVisible(find.bySemanticsLabel('已知费用趋势图表'), 120);
       expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
     } finally {
       semantics.dispose();
@@ -100,14 +97,8 @@ void main() {
         briefing: true,
         currencyPreferences: currency,
       );
-      expect(
-        find.bySemanticsLabel('已知充电费用 0 CNY，仅含费用已知记录'),
-        findsOneWidget,
-      );
-      await tester.scrollUntilVisible(
-        find.text('数据说明与更多').hitTestable(),
-        150,
-      );
+      expect(find.bySemanticsLabel('已知充电费用 0 CNY，仅含费用已知记录'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
       await tester.tap(find.text('数据说明与更多'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('AC'), 150);

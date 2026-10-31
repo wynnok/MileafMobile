@@ -78,8 +78,7 @@ void main() {
 
     for (final brightness in Brightness.values) {
       for (final scale in [1.0, 2.0]) {
-        final suffix =
-            '${brightness.name}-${scale == 1 ? '100' : '200'}';
+        final suffix = '${brightness.name}-${scale == 1 ? '100' : '200'}';
         tester.platformDispatcher.platformBrightnessTestValue = brightness;
         tester.platformDispatcher.textScaleFactorTestValue = scale;
         final store = MemorySessionStore()

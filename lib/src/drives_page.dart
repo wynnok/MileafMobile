@@ -520,15 +520,12 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                           ),
                         ],
                       ),
-                      style: Theme.of(context).textTheme.displayLarge
-                          ?.copyWith(
-                            fontSize: 48,
-                            height: 1,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
-                          ),
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontSize: 48,
+                        height: 1,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(

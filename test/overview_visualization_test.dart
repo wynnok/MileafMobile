@@ -151,9 +151,7 @@ void main() {
       }
       expect(find.textContaining('服务暂不可用'), findsOneWidget);
       failing = false;
-      final retry = find.text(
-        failedResource == 'stats' ? '重试里程趋势' : '重试概览',
-      );
+      final retry = find.text(failedResource == 'stats' ? '重试里程趋势' : '重试概览');
       await tester.ensureVisible(retry);
       await tester.tap(retry);
       await tester.pumpAndSettle();
@@ -202,10 +200,7 @@ void main() {
     await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(requests, hasLength(4));
-    await tester.scrollUntilVisible(
-      find.textContaining('保留上次趋势快照'),
-      -150,
-    );
+    await tester.scrollUntilVisible(find.textContaining('保留上次趋势快照'), -150);
     expect(find.textContaining('保留上次趋势快照'), findsOneWidget);
     expect(find.textContaining('960'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('68 %'), -150);
@@ -254,9 +249,7 @@ void main() {
       ),
     );
     expect(
-      tester
-          .getSize(find.bySemanticsLabel('本月驾驶里程 960.0 km，49 趟'))
-          .width,
+      tester.getSize(find.bySemanticsLabel('本月驾驶里程 960.0 km，49 趟')).width,
       greaterThan(150),
     );
     final graph = tester.getRect(find.bySemanticsLabel('每日里程图表'));
