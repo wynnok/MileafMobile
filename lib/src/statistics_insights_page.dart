@@ -818,7 +818,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               '${value == null ? '—' : grouped(value, decimals: 1)} km'
               '${reference == null ? '' : ' / 参照 ${grouped(reference, decimals: 1)}'}';
         },
-        trailing: Text('点按图形读值', style: Theme.of(context).textTheme.labelSmall),
+        trailing: Text(
+          '点按图形读值',
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: const Color(0xFFB8D6C3)),
+        ),
         plotKey: const ValueKey('statistics-insights-chart'),
         selectedIndex: selected,
         onSelected: (index) => setState(() {
