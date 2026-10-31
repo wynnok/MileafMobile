@@ -1,4 +1,4 @@
-> 历史文档（2026-10-31）：当前实现已改为 Android AMap + iOS MapKit 过渡，见 `docs/implementation/amap-map.md` 与 `docs/adr/0002-map-provider.md`。以下 `flutter_map`/XYZ 候选描述仅保留历史，不代表当前代码。
+> 历史文档（2026-10-31）：当前实现已改为 Android AMap + iOS AMap，见 `docs/implementation/amap-map.md` 与 `docs/adr/0002-map-provider.md`。以下 `flutter_map`/XYZ 候选描述仅保留历史，不代表当前代码。
 
 # T03 / Ticket #4 地图候选（未通过前置验收）
 

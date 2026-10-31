@@ -1,5 +1,4 @@
 import Flutter
-import MapKit
 import UIKit
 
 @main
@@ -13,24 +12,22 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MapKitPlugin") {
-      MapKitPlugin.register(with: registrar)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "AmapIosPlugin") {
+      AmapIosPlugin.register(with: registrar)
     }
   }
 }
 
-
-
-/// Interim iOS map surface. It uses MapKit (Apple Maps) until an AMap iOS key
-/// is configured; the Dart scene contract is identical to the Android surface.
-public final class MapKitPlugin: NSObject, FlutterPlugin {
+/// AMap iOS surface. The Flutter side owns consent and failure policy; this
+/// view only maps a GCJ-02 scene onto MAMapKit overlays and camera.
+public final class AmapIosPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let factory = MapKitViewFactory(messenger: registrar.messenger())
-    registrar.register(factory, withId: "app.mileaf/mapkit")
+    let factory = AmapIosViewFactory(messenger: registrar.messenger())
+    registrar.register(factory, withId: "app.mileaf/amap_ios")
   }
 }
 
-final class MapKitViewFactory: NSObject, FlutterPlatformViewFactory {
+final class AmapIosViewFactory: NSObject, FlutterPlatformViewFactory {
   private let messenger: FlutterBinaryMessenger
   init(messenger: FlutterBinaryMessenger) {
     self.messenger = messenger
@@ -46,7 +43,7 @@ final class MapKitViewFactory: NSObject, FlutterPlatformViewFactory {
     viewIdentifier viewId: Int64,
     arguments args: Any?
   ) -> FlutterPlatformView {
-    MapKitPlatformView(
+    AmapIosPlatformView(
       frame: frame,
       viewId: viewId,
       messenger: messenger,
@@ -55,13 +52,14 @@ final class MapKitViewFactory: NSObject, FlutterPlatformViewFactory {
   }
 }
 
-final class MapKitPlatformView: NSObject, FlutterPlatformView, MKMapViewDelegate {
-  private let mapView: MKMapView
+final class AmapIosPlatformView: NSObject, FlutterPlatformView, MAMapViewDelegate {
   private let channel: FlutterMethodChannel
+  private var mapView: MAMapView?
+  private var placeholder: UIView?
   private var loaded = false
   private var failed = false
   private var points: [CLLocationCoordinate2D] = []
-  private var selected: MKPointAnnotation?
+  private var selectedAnnotation: MAPointAnnotation?
   private var edgePadding: CGFloat = 36
 
   init(
@@ -70,59 +68,100 @@ final class MapKitPlatformView: NSObject, FlutterPlatformView, MKMapViewDelegate
     messenger: FlutterBinaryMessenger,
     args: [String: Any]
   ) {
-    mapView = MKMapView(frame: frame)
     channel = FlutterMethodChannel(
-      name: "mileaf/mapkit_\(viewId)",
+      name: "mileaf/amap_ios_\(viewId)",
       binaryMessenger: messenger
     )
     super.init()
-    mapView.delegate = self
-    mapView.showsCompass = false
-    mapView.showsScale = false
-    mapView.showsUserLocation = false
-    mapView.isRotateEnabled = false
-    mapView.isPitchEnabled = false
-    mapView.pointOfInterestFilter = .excludingAll
+
+    let placeholder = UIView(frame: frame)
+    placeholder.backgroundColor = .clear
+    placeholder.isUserInteractionEnabled = false
+    self.placeholder = placeholder
+
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call, result: result)
     }
+
+    guard args["consent"] as? Bool == true else {
+      fail(code: "consent_required")
+      return
+    }
+    guard let apiKey = MileafAMapConfiguration.apiKey else {
+      fail(code: "api_key_missing")
+      return
+    }
+
+    let services = AMapServices.shared()
+    guard let services else {
+      fail(code: "amap_services_unavailable")
+      return
+    }
+    services.enableHTTPS = true
+    services.apiKey = apiKey
+    MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
+    MAMapView.updatePrivacyAgree(.didAgree)
+
+    let map = MAMapView(frame: frame)
+    map.delegate = self
+    map.mapType = .standard
+    map.showsCompass = false
+    map.showsScale = false
+    map.showsUserLocation = false
+    map.isRotateEnabled = false
+    map.isScrollEnabled = false
+    map.isZoomEnabled = false
+    self.mapView = map
     if let scene = args["scene"] as? [String: Any] {
       apply(scene)
     }
   }
 
-  func view() -> UIView { mapView }
+  deinit {
+    channel.setMethodCallHandler(nil)
+    mapView?.delegate = nil
+    mapView?.removeFromSuperview()
+  }
+
+  func view() -> UIView {
+    mapView ?? placeholder ?? UIView()
+  }
+
+  private enum MileafAMapConfiguration {
+    static var apiKey: String? {
+      let raw = Bundle.main.object(forInfoDictionaryKey: "MileafAMapIosKey") as? String
+      let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      guard !value.isEmpty, !value.hasPrefix("$(") else { return nil }
+      return value
+    }
+  }
+
+  private func fail(code: String) {
+    failed = true
+    channel.invokeMethod("onMapFailed", arguments: ["code": code])
+  }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "getStatus":
       result([
         "status": loaded ? "loaded" : (failed ? "failed" : "loading"),
+        "approvalNumber": approvalNumber(),
       ])
     case "setScene":
       if let scene = call.arguments as? [String: Any] { apply(scene) }
       result(nil)
     case "setSelected":
-      setSelected(call.arguments as? [Double])
-      result(nil)
-    case "setNight":
-      if let night = call.arguments as? Bool {
-        mapView.overrideUserInterfaceStyle = night ? .dark : .light
-      }
-      result(nil)
-    case "setInteractive":
-      let enabled = (call.arguments as? Bool) ?? false
-      mapView.isScrollEnabled = enabled
-      mapView.isZoomEnabled = enabled
+      setSelected(call.arguments)
       result(nil)
     case "fitBounds":
       fit()
       result(nil)
     case "zoomIn":
-      zoom(by: 0.5)
+      zoom(by: 1)
       result(nil)
     case "zoomOut":
-      zoom(by: 2.0)
+      zoom(by: -1)
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
@@ -130,96 +169,114 @@ final class MapKitPlatformView: NSObject, FlutterPlatformView, MKMapViewDelegate
   }
 
   private func apply(_ scene: [String: Any]) {
-    mapView.removeOverlays(mapView.overlays)
-    mapView.removeAnnotations(mapView.annotations)
-    selected = nil
+    guard let map = mapView else { return }
+    map.removeOverlays(map.overlays)
+    map.removeAnnotations(map.annotations)
+    selectedAnnotation = nil
     points = []
 
     let colors = scene["colors"] as? [String: Any] ?? [:]
-    let lineColor = uiColor(colors["line"], fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 1))
+    let lineColor = uiColor(
+      colors["line"],
+      fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 1)
+    )
     let startColor = uiColor(colors["start"], fallback: lineColor)
-    let endColor = uiColor(colors["end"], fallback: UIColor(red: 0.078, green: 0.125, blue: 0.098, alpha: 1))
-    let selectedColor = uiColor(colors["selected"], fallback: UIColor(red: 0.725, green: 0.506, blue: 0.239, alpha: 1))
+    let endColor = uiColor(
+      colors["end"],
+      fallback: UIColor(red: 0.078, green: 0.125, blue: 0.098, alpha: 1)
+    )
+    let selectedColor = uiColor(
+      colors["selected"],
+      fallback: UIColor(red: 0.725, green: 0.506, blue: 0.239, alpha: 1)
+    )
 
-    if let segments = scene["segments"] as? [[[Double]]] {
+    if let segments = scene["segments"] as? [Any] {
       for segment in segments {
-        let coords = segment.compactMap { pair -> CLLocationCoordinate2D? in
-          guard pair.count >= 2 else { return nil }
-          return valid(pair[0], pair[1])
-        }
+        guard let rawPoints = segment as? [Any] else { continue }
+        var coords = rawPoints.compactMap { valid(pair: $0) }
         if coords.count > 1 {
-          let line = MKPolyline(coordinates: coords, count: coords.count)
-          line.title = encode(color: lineColor)
-          mapView.addOverlay(line)
+          coords.withUnsafeMutableBufferPointer { buffer in
+            guard let base = buffer.baseAddress,
+              let line = MAPolyline(
+                coordinates: base,
+                count: UInt(buffer.count)
+              )
+            else { return }
+            line.title = encode(color: lineColor)
+            map.add(line)
+          }
         }
         points.append(contentsOf: coords)
       }
     }
-    if let pair = scene["start"] as? [Double], pair.count >= 2, let coord = valid(pair[0], pair[1]) {
+    if let coord = valid(pair: scene["start"]) {
       add(point: coord, color: startColor, title: "起点")
       points.append(coord)
     }
-    if let pair = scene["end"] as? [Double], pair.count >= 2, let coord = valid(pair[0], pair[1]) {
+    if let coord = valid(pair: scene["end"]) {
       add(point: coord, color: endColor, title: "终点")
       points.append(coord)
     }
-    if let pair = scene["selected"] as? [Double], pair.count >= 2, let coord = valid(pair[0], pair[1]) {
-      let annotation = MKPointAnnotation()
+    if let coord = valid(pair: scene["selected"]) {
+      let annotation = MAPointAnnotation()
       annotation.coordinate = coord
       annotation.title = "选中"
       annotation.subtitle = encode(color: selectedColor)
-      mapView.addAnnotation(annotation)
-      selected = annotation
+      map.addAnnotation(annotation)
+      selectedAnnotation = annotation
     }
     if let padding = scene["padding"] as? NSNumber {
       edgePadding = CGFloat(padding.doubleValue)
     }
-    if let night = scene["night"] as? Bool {
-      mapView.overrideUserInterfaceStyle = night ? .dark : .light
-    }
-    if let interactive = scene["interactive"] as? Bool {
-      mapView.isScrollEnabled = interactive
-      mapView.isZoomEnabled = interactive
-    }
+    map.mapType = (scene["night"] as? Bool) == true ? .standardNight : .standard
+    let interactive = (scene["interactive"] as? Bool) == true
+    map.isScrollEnabled = interactive
+    map.isZoomEnabled = interactive
     fit()
   }
 
   private func add(point: CLLocationCoordinate2D, color: UIColor, title: String) {
-    let annotation = MKPointAnnotation()
+    let annotation = MAPointAnnotation()
     annotation.coordinate = point
     annotation.title = title
     annotation.subtitle = encode(color: color)
-    mapView.addAnnotation(annotation)
+    mapView?.addAnnotation(annotation)
   }
 
-  private func setSelected(_ pair: [Double]?) {
-    if let selected { mapView.removeAnnotation(selected) }
-    selected = nil
-    guard let pair, pair.count >= 2, let coord = valid(pair[0], pair[1]) else { return }
-    let annotation = MKPointAnnotation()
+  private func setSelected(_ raw: Any?) {
+    guard let map = mapView else { return }
+    if let selectedAnnotation {
+      map.removeAnnotation(selectedAnnotation)
+    }
+    selectedAnnotation = nil
+    guard let coord = valid(pair: raw) else { return }
+    let annotation = MAPointAnnotation()
     annotation.coordinate = coord
     annotation.title = "选中"
-    annotation.subtitle = encode(color: UIColor(red: 0.725, green: 0.506, blue: 0.239, alpha: 1))
-    mapView.addAnnotation(annotation)
-    selected = annotation
-    mapView.setCenter(coord, animated: true)
+    annotation.subtitle = encode(
+      color: UIColor(red: 0.725, green: 0.506, blue: 0.239, alpha: 1)
+    )
+    map.addAnnotation(annotation)
+    selectedAnnotation = annotation
+    map.setCenter(coord, animated: true)
   }
 
   private func fit() {
-    guard !points.isEmpty else { return }
+    guard let map = mapView, !points.isEmpty else { return }
     if points.count == 1 {
-      mapView.setRegion(
-        MKCoordinateRegion(center: points[0], latitudinalMeters: 1800, longitudinalMeters: 1800),
-        animated: false
-      )
+      map.setCenter(points[0], animated: false)
+      map.setZoomLevel(15, animated: false)
       return
     }
-    var rect = MKMapRect.null
+    var rect = MAMapRectNull
     for point in points {
-      let mapPoint = MKMapPoint(point)
-      rect = rect.union(MKMapRect(x: mapPoint.x, y: mapPoint.y, width: 0, height: 0))
+      let mapPoint = MAMapPointForCoordinate(point)
+      rect = MAMapRectUnion(
+        rect,
+        MAMapRectMake(mapPoint.x, mapPoint.y, 0, 0)
+      )
     }
-    mapView.setVisibleMapRect(
+    map.setVisibleMapRect(
       rect,
       edgePadding: UIEdgeInsets(
         top: edgePadding,
@@ -231,18 +288,28 @@ final class MapKitPlatformView: NSObject, FlutterPlatformView, MKMapViewDelegate
     )
   }
 
-  private func zoom(by factor: Double) {
-    var region = mapView.region
-    region.span.latitudeDelta *= factor
-    region.span.longitudeDelta *= factor
-    mapView.setRegion(region, animated: true)
+  private func zoom(by delta: CGFloat) {
+    guard let map = mapView else { return }
+    let next = min(max(map.zoomLevel + delta, map.minZoomLevel), map.maxZoomLevel)
+    map.setZoomLevel(next, animated: true)
   }
 
-  private func valid(_ lat: Double, _ lon: Double) -> CLLocationCoordinate2D? {
+  private func valid(pair: Any?) -> CLLocationCoordinate2D? {
+    guard let pair = pair as? [Any], pair.count >= 2,
+      let lat = (pair[0] as? NSNumber)?.doubleValue,
+      let lon = (pair[1] as? NSNumber)?.doubleValue
+    else { return nil }
     guard lat.isFinite, lon.isFinite, lat >= -90, lat <= 90, lon >= -180, lon <= 180 else {
       return nil
     }
     return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+  }
+
+  private func approvalNumber() -> String? {
+    guard let map = mapView else { return nil }
+    let value = map.mapContentApprovalNumber()
+    guard let value, !value.isEmpty else { return nil }
+    return value
   }
 
   private func encode(color: UIColor) -> String {
@@ -274,41 +341,61 @@ final class MapKitPlatformView: NSObject, FlutterPlatformView, MKMapViewDelegate
     )
   }
 
-  func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-    guard let line = overlay as? MKPolyline else { return MKOverlayRenderer(overlay: overlay) }
-    let renderer = MKPolylineRenderer(polyline: line)
-    renderer.strokeColor = color(from: line.title, fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 0.8))
+  private func dot(_ color: UIColor, radius: CGFloat) -> UIImage {
+    let size = CGSize(width: radius * 2, height: radius * 2)
+    return UIGraphicsImageRenderer(size: size).image { context in
+      color.setFill()
+      context.cgContext.fillEllipse(
+        in: CGRect(origin: .zero, size: size)
+      )
+    }
+  }
+
+  func mapView(_ mapView: MAMapView!, viewFor annotation: MAAnnotation!) -> MAAnnotationView! {
+    guard !(annotation is MAUserLocation) else { return nil }
+    let identifier = "mileaf-amap-dot"
+    guard let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+      ?? MAAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+    else { return nil }
+    view.annotation = annotation
+    view.image = dot(
+      color(
+        from: annotation.subtitle,
+        fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 1)
+      ),
+      radius: 7
+    )
+    view.centerOffset = .zero
+    view.canShowCallout = false
+    view.isEnabled = false
+    return view
+  }
+
+  func mapView(_ mapView: MAMapView!, rendererFor overlay: MAOverlay!) -> MAOverlayRenderer! {
+    guard let line = overlay as? MAPolyline else {
+      return MAOverlayRenderer(overlay: overlay)
+    }
+    guard let renderer = MAPolylineRenderer(polyline: line) else {
+      return MAOverlayRenderer(overlay: overlay)
+    }
+    renderer.strokeColor = color(
+      from: line.title,
+      fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 0.8)
+    )
     renderer.lineWidth = 4
     return renderer
   }
 
-  func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-    guard !(annotation is MKUserLocation) else { return nil }
-    let identifier = "mileaf-pin"
-    let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView)
-      ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
-    view.annotation = annotation
-    view.canShowCallout = false
-    view.markerTintColor = color(
-      from: (annotation as? MKPointAnnotation)?.subtitle,
-      fallback: UIColor(red: 0.184, green: 0.490, blue: 0.345, alpha: 1)
-    )
-    return view
-  }
-
-  func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
+  func mapViewDidFinishLoadingMap(_ mapView: MAMapView!) {
     loaded = true
-    channel.invokeMethod("onMapLoaded", arguments: nil)
+    channel.invokeMethod(
+      "onMapLoaded",
+      arguments: ["approvalNumber": approvalNumber()]
+    )
   }
 
-  func mapViewDidFinishRenderingMap(_ mapView: MKMapView, fullyRendered: Bool) {
-    if fullyRendered {
-      loaded = true
-      channel.invokeMethod("onMapLoaded", arguments: nil)
-    }
-  }
-
-  func mapViewDidFailLoadingMap(_ mapView: MKMapView, withError error: Error) {
+  @objc(mapViewDidFailLoadingMap:withError:)
+  func mapViewDidFailLoadingMap(_ mapView: MAMapView!, withError error: Error!) {
     failed = true
     channel.invokeMethod("onMapFailed", arguments: ["code": "init_failed"])
   }

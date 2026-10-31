@@ -15,7 +15,7 @@ class MapCallbacks {
   final ValueChanged<String?> onApprovalNumber;
 }
 
-/// Small platform boundary; pages never import AMap/MapKit types.
+/// Small platform boundary; pages never import native map SDK types.
 abstract interface class MapPlatform {
   String get providerName;
   bool get supported;

@@ -38,4 +38,4 @@ See `docs/agents/triage-labels.md`.
 Single-context: root `GLOSSARY.md` plus `docs/adr/`.
 See `docs/agents/domain.md`.
 
-- 2026-10-31 地图双端接入：共享 Dart `MapPanel`；Android 高德 11.3.100 `TextureMapView`；iOS 暂用 MapKit 过渡（需单独 iOS key 后才能接高德）；WGS84→GCJ-02 只在地图边界；真实 key/真机/iOS 高德仍待验，#4/#11 保持 OPEN。实现与证据见 `docs/implementation/amap-map.md`，决定见 `docs/adr/0002-map-provider.md`。
+- 2026-10-31 地图双端接入：共享 Dart `MapPanel`；Android 高德 11.3.100 `TextureMapView`；iOS 使用高德 11.2.100 `MAMapView`（`AMap3DMap-NO-IDFA`，key 绑定 Bundle ID `app.mileaf.mileaf`，经非公开 xcconfig 注入）；MapKit 过渡已移除；WGS84→GCJ-02 只在地图边界；真实底图/真机/CRS/大陆网络仍待验，#4/#11 保持 OPEN。实现与证据见 `docs/implementation/amap-map.md`，决定见 `docs/adr/0002-map-provider.md`。

@@ -3,11 +3,13 @@
 > 2026-10-31 技术提案，**等待确认**。本文只做技术方案，不修改 Spec、tickets、代码，不提交。
 > 产品/视觉冲突与 ticket 影响见[高德地图接入方案](map-integration-proposal.md)；本文只回答“Flutter 技术栈下具体怎么写”。
 >
-> **2026-10-31 实施结果**：Android 高德 `TextureMapView` 已落地；iOS 因尚无 iOS key，先落 MapKit 过渡（`MapKitPlatform`），`AmapIosPlatform` 待 key。共享 Dart 外壳/页面/测试已双端共用。
+> **2026-10-31 实施结果**：Android 高德 `TextureMapView` 已落地；iOS 当时因尚无 iOS key 先落 MapKit 过渡（`MapKitPlatform`），`AmapIosPlatform` 待 key。共享 Dart 外壳/页面/测试已双端共用。
 
 **基线**：Flutter 3.47.7 / Dart 3.13.5；Android AGP 9.1、Gradle 9.3.1、Kotlin 2.4、compileSdk 36、minSdk 24；高德 Android SDK 11.3.100；iOS 15+、高德 iOS SDK（AMap3DMap）。
 
 > **2026-10-31 双端修正**：上一版把 iOS 放在 S5，是验证顺序，不是最终范围。这是双端应用，最终方案必须是 **Android + iOS 共享同一套 Dart 外壳，各用一个薄原生适配器**。iOS 高德需要单独的 **iOS key（绑定 Bundle ID `app.mileaf.mileaf`）**；Android key 不能用于 iOS。没有 iOS key 时，iOS 只能用 MapKit 过渡或路线速写，不能算“高德双端完成”。
+>
+> **2026-10-31 iOS AMap 落地（取代 MapKit 过渡）**：iOS 生产路径改为 `AmapIosPlatform` + `MAMapView` + `AMap3DMap-NO-IDFA` 11.2.100；`MapKitPlatform` 移除。iOS key 用 `ios/Flutter/AMap.local.xcconfig` 注入，仓库不保存真实值；`AMapFoundation-NO-IDFA` 排除 arm64 simulator，运行证据以 arm64 真机为准。
 
 ## 1. 结论
 
@@ -424,7 +426,7 @@ mapView.delegate = self
 ```
 
 - iOS key 绑定的是 **Bundle ID**，不是 SHA1。当前 App 的 Runner Bundle ID 是 `app.mileaf.mileaf`；在同一个高德应用下新增 iOS Key，填这个 Bundle ID。
-- iOS key 通过 `--dart-define=MILEAF_AMAP_IOS_KEY=...` 传给 `AmapIosPlatform`，再由 creation params 交给原生；不写仓库。
+- iOS key 实施为 `ios/Flutter/AMap.local.xcconfig` → `Info.plist` → 原生 `AMapServices.apiKey`；不写仓库。
 - 没有 iOS key 时不要创建 `MAMapView`，直接走 `MapKitPlatform` 或速写。
 
 **加载与审图号**：

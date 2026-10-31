@@ -1,47 +1,53 @@
-# 地图双端接入实现（Android AMap / iOS MapKit 过渡）
+# 地图双端接入实现（Android AMap + iOS AMap）
 
-日期：2026-10-31。状态：本地实现与自动化/构建验证完成；真实 key、真机和 iOS AMap key 仍待外部验证。
+日期：2026-10-31。状态：本地实现与自动化/构建验证完成；双端真实底图、真机与坐标校准仍待外部验证。
 本文件记录代码事实，不替代 #4/#11 的外部验收。
 
 ## 已实现
 
 - 共享 `MapPanel`：同意、加载/失败、15 秒超时、路线速写、署名/审图号、首屏静态 + 全屏入口。
+- 共享 `AmapSceneWire`：两个 Dart 适配器共用同一份 GCJ-02 场景编码、选中签名与 creation params，避免双端 wire 漂移。
 - `MapScene`：WGS84 分段、起终点、选中点；缺失点断开；`gcj02Segments` 只在地图边界转换。
 - Android：`AndroidView` + Kotlin `TextureMapView`；高德 11.3.100；`OnMapLoadedListener`、`getStatus` 握手、审图号、生命周期、x86 缺失 `.so` 失败兜底。
-- iOS：`UiKitView` + `MKMapView`；MapKit 过渡，不冒充高德；`providerName` 明确显示“Apple 地图”。
-- 行程详情：满幅 300px hero，点按进入 `DriveMapPage` 全屏缩放；路线 caption 在底图上。
-- 充电详情：地图移到功率曲线之后，180px 次级；无坐标显示“没有有效轨迹坐标”。
-- 同意：`SharedPreferences` 持久化且按供应商隔离；`MapConsentController` 可撤销；设置与服务页新增“地图与隐私”，可查看供应商/链接并关闭底图。
-- 删除 `map_candidate.dart`、`flutter_map`、`latlong2`。
+- iOS：`UiKitView` + Swift `MAMapView`（`AMap3DMap-NO-IDFA` 11.2.100 + `AMapFoundation-NO-IDFA` 1.9.1）；MapKit 过渡已移除。同意后才创建 `MAMapView`；创建前 `AMapServices.enableHTTPS = true`、`apiKey` 注入、`MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)` 与 `updatePrivacyAgree(.didAgree)`。缺 key / 未同意立即 `initFailed`，回路线速写，不崩溃。
+- iOS key 绑定 Bundle ID `app.mileaf.mileaf`；`ios/Flutter/AMap.local.xcconfig`（gitignored）→ `MILEAF_AMAP_IOS_KEY` → `Info.plist` 的 `MileafAMapIosKey` → `AMapServices.apiKey`。仓库只保留 example；无 key 时构建可编译，运行时地图走速写。
+- 两端 `providerName` 同为「高德地图」；同意按供应商隔离（原 Apple 地图授权不会沿用，也不会复用路线示意授权）。
+- 行程详情：满幅 300px hero，点按进入 `DriveMapPage` 全屏缩放；充电详情地图在功率曲线之后 180px 次级。
+- 同意：`SharedPreferences` 持久化；设置与服务 → 「地图与隐私」可撤销；撤销后不再创建新原生视图，已加载 SDK 内存状态可能持续到进程结束。
+- 删除 `map_candidate.dart`、`flutter_map`、`latlong2`、`mapkit_platform.dart`。
 
 ## 验证
 
-- `tool/flutterw analyze`：0 issues。
-- `tool/flutterw test`：268 passed，19 skipped（opt-in render）。
-- `test/map_platform_test.dart`：GCJ-02、分段、同意前不建图、加载、失败重试、15s 超时、空场景。
-- Android `:app:compileDebugKotlin` 通过；`:app:assembleDebug`、`:app:assembleRelease` 通过。
-- APK 内含 `lib/arm64-v8a/libAMapSDK_MAP_v11_3_100.so`、`lib/armeabi-v7a/...`；`zipalign -c -P 16` 通过；release 124MB（universal，含两套 ABI），R8 保留 AMap 反射类。
-- iOS `xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -sdk iphoneos -derivedDataPath build/ios-derived CODE_SIGNING_ALLOWED=NO` 通过。
-- 未运行真机地图、未用真实 key 出图、未跑 iOS MapKit 运行时截图；这些属于外部 gate。
+- `tool/flutterw analyze`：0 issues；`dart format --set-exit-if-changed`：0 changed。
+- `tool/flutterw test`：271 passed，19 skipped（opt-in render；新增 AMap wire 与路线示意隐私测试）。
+- `pod install`（项目本地 `CP_HOME_DIR=.cache/cocoapods`）：安装并固定 `AMap3DMap-NO-IDFA 11.2.100`、`AMapFoundation-NO-IDFA 1.9.1`；Podfile.lock 已更新。
+- iOS `xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -sdk iphoneos -derivedDataPath build/ios-derived CODE_SIGNING_ALLOWED=NO build` 通过；产物约 74MB；`Runner` 二进制含 `MAMapView`/`AMapServices` 符号，App 内含 `AMap.bundle`。
+- iOS Profile 配置 `ios/Flutter/Profile.xcconfig` 也已通过无签名 `xcodebuild -configuration Profile`，避免 profile 构建缺少 AMap 链接。
+- 无 key 构建 `Info.plist` 的 `MileafAMapIosKey` 为空字符串；原生侧判定缺 key，地图走路线速写。
+- Android `:app:assembleRelease` 通过；APK 124MB，`aapt2` 确认 manifest 含 `com.amap.api.v2.apikey` 占位（本轮为空），`zipalign -c -P 16` 通过。
+- 未运行真机底图、审图号读取、CRS 固定点校准、大陆网络与手势/读屏验证；这些属于外部 gate。
 
 ## 构建命令与 key
 
 ```sh
 # 不要把 key 写进仓库或命令输出
 cp config/amap.local.env.example config/amap.local.env
-# 编辑 config/amap.local.env，填入 MILEAF_AMAP_ANDROID_KEY
+cp ios/Flutter/AMap.local.xcconfig.example ios/Flutter/AMap.local.xcconfig
+# 分别填入 MILEAF_AMAP_ANDROID_KEY / MILEAF_AMAP_IOS_KEY，不要提交
 set -a; . config/amap.local.env; set +a
-MILEAF_HOST_ANDROID_SDK=/path/to/host/sdk tool/flutterw android assembleRelease
+tool/flutterw android assembleRelease
+xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -sdk iphoneos -derivedDataPath build/ios-derived CODE_SIGNING_ALLOWED=NO build
 ```
 
-- Android key 绑定 Package `app.mileaf.mileaf` + `.cache/android/debug.keystore` SHA1；不要清理该 keystore。
-- 当前未配置 key 时构建仍成功；地图加载超时后走路线速写。
-- 本次环境 `sandbox-exec` 不可用，Android 验证使用项目内 Gradle 直接编译；没有修改全局 SDK。正式隔离构建仍需在可用沙箱环境复跑。
+- Android key 绑定 Package `app.mileaf.mileaf` + `.cache/android/debug.keystore` SHA1；iOS key 绑定 Bundle ID `app.mileaf.mileaf`；不要清理该 keystore。
+- key 会进入 APK/IPA，这是移动端 key 的固有形态；安全边界是控制台 Package+SHA1 / Bundle ID 绑定，不是“藏 key”。
+- `AMapFoundation-NO-IDFA` 排除 arm64 simulator（podspec 自带 `EXCLUDED_ARCHS`）；iOS 地图运行证据必须来自 arm64 真机，模拟器不算有效地图环境。
+- 本次环境 `sandbox-exec` 不可用，Android/iOS 验证使用项目内 Gradle / xcodebuild 直接编译；没有修改全局 SDK。正式隔离构建仍需在可用沙箱环境复跑。
 
 ## 剩余外部 gate
 
-- Android 真实 key 绑定 + 真机真实行程底图/缩放/断网/无定位/审图号。
-- iOS 高德 iOS key（Bundle ID `app.mileaf.mileaf`）+ `AmapIosPlatform` 适配；当前 iOS 为 MapKit 过渡，不能算高德双端完成。
-- iOS MapKit 真机/模拟器坐标固定点校准与运行时截图。
-- 高德配额/许可/隐私政策链接、App Store IDFA/隐私清单。
-- iOS 高德适配器尚未实现；当前只有 MapKit 过渡。
+- 双端真实 key 底图 + 真机真实行程：缩放、起终点、轨迹、断网降级、审图号。
+- WGS84→GCJ-02 固定点校准（3 个真实起终点 + 1 段真实轨迹），并核对 AMap 迁移后的视觉对齐。
+- 大陆双端验收网络、手势/返回/读屏真机证据。
+- 高德控制台隐私政策链接上传、配额/费用确认；App Store 隐私清单与 IDFA 不使用声明。
+- #4/#11 保持 OPEN；本文件不把构建成功当作地图验收通过。

@@ -870,3 +870,38 @@ C 的行程/充电详情已经把地图放到首屏或次级视觉，但正式�
 - #4/#11：Android AMap 实现与构建证据已具备，真实 key/真机/坐标校准/iOS AMap key 仍待；保持 OPEN。
 - #10：首屏地图改为 MapPanel + 全屏页；#13：充电地图移到功率曲线之后；#16：`mapFirstTileDecoded` 语义为 `onMapLoaded`；#17：增加双端地图/MapKit 过渡证据要求。
 - 0 新票。
+
+## 2026-10-31 iOS AMap 增量
+
+> 本节取代上一节中“iOS 用 MapKit 过渡”的临时方案；Android 决策不变。用户已提供 iOS 平台 key（只进入非公开构建配置，不写入仓库/文档/日志）。
+
+### Problem Statement
+
+iOS 的 MapKit 只是无 key 时的过渡，不是同一供应商；Android key 不能复用到 iOS。要满足“双端同一地图规则和同一壳”，需要为 iOS 增加 `AmapIosPlatform`，并把 MapKit 从生产路径移除。
+
+### Solution
+
+- iOS：`UiKitView` + Swift `MAMapView` + `AMap3DMap-NO-IDFA` 11.2.100 / `AMapFoundation-NO-IDFA` 1.9.1（两者都在 Podfile 固定）。
+- iOS key 绑定 Bundle ID `app.mileaf.mileaf`；通过 `MILEAF_AMAP_IOS_KEY` 进 `ios/Flutter/AMap.local.xcconfig`，再进 `Info.plist`。仓库保留 example；无 key 构建可编译，运行时地图失败后走路线速写。
+- 同意后才创建 `MAMapView`；创建前设置 `AMapServices.apiKey` / `enableHTTPS`，调用 `MAMapView.updatePrivacyShow` 与 `updatePrivacyAgree`。缺失 key 立即 `initFailed`，不崩溃。
+- 两端共享 `MapScene.gcj02*` 与 `AmapSceneWire`；删除 `MapKitPlatform`，不再显示“Apple 地图”或 Apple 隐私链接，也不增加供应商切换。
+- `AMapFoundation-NO-IDFA` 排除 arm64 simulator；iOS 地图运行验证以 arm64 真机为准，模拟器不算有效地图运行环境。
+
+### Testing Decisions
+
+- Dart 壳、GCJ 分段、同意、15 秒失败、空场景继续用 `MapPlatform` / `FakeMapPlatform`。
+- iOS AMap 真实底图、审图号、手势和坐标校准只能由 arm64 真机证明；本地无签名 release 构建只证明可编译。
+- 路线速写、透明测试瓦片和空 key 构建不能冒充真实底图。
+
+### Out of Scope
+
+- 不实现 App Store 隐私清单最终提交口径、公开隐私政策链接上传、配额/费用确认。
+- 不新增供应商切换 UI、导航、GPS、离线地图、概览/统计/列表地图。
+- 不因为 iOS AMap 代码落地关闭 #4/#11；大陆真机/真实网络仍是外部 gate。
+
+### Ticket impact
+
+- #4：新增“iOS key 与 NO-IDFA pod 技术选择”，仍需双端真机证据；保持 OPEN。
+- #11：新增“iOS AMap 平台视图与共享场景接入”，仍需双端真实底图/CRS/断网降级证据；保持 OPEN。
+- #17：上架侧仍增加“NO-IDFA 版本、隐私清单、IDFA 不使用声明”待验。
+- 0 新票。

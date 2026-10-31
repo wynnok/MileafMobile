@@ -235,18 +235,6 @@ class AmapPlatformView(
                 setSelected(call.arguments)
                 result.success(null)
             }
-            "setNight" -> {
-                amap?.setMapType(
-                    if (call.arguments == true) AMap.MAP_TYPE_NIGHT else AMap.MAP_TYPE_NORMAL,
-                )
-                result.success(null)
-            }
-            "setInteractive" -> {
-                val enabled = call.arguments == true
-                amap?.uiSettings?.setScrollGesturesEnabled(enabled)
-                amap?.uiSettings?.setZoomGesturesEnabled(enabled)
-                result.success(null)
-            }
             "fitBounds" -> {
                 fit()
                 result.success(null)

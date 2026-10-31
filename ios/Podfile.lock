@@ -1,4 +1,7 @@
 PODS:
+  - AMap3DMap-NO-IDFA (11.2.100):
+    - AMapFoundation-NO-IDFA (>= 1.9.0)
+  - AMapFoundation-NO-IDFA (1.9.1)
   - Flutter (1.0.0)
   - flutter_secure_storage_darwin (10.0.0):
     - Flutter
@@ -10,10 +13,17 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - AMap3DMap-NO-IDFA (= 11.2.100)
+  - AMapFoundation-NO-IDFA (= 1.9.1)
   - Flutter (from `Flutter`)
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - flutter_timezone (from `.symlinks/plugins/flutter_timezone/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+
+SPEC REPOS:
+  trunk:
+    - AMap3DMap-NO-IDFA
+    - AMapFoundation-NO-IDFA
 
 EXTERNAL SOURCES:
   Flutter:
@@ -26,11 +36,13 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
 
 SPEC CHECKSUMS:
+  AMap3DMap-NO-IDFA: 439e67a50a683ea71b72a949882dcdf55f1cf2cd
+  AMapFoundation-NO-IDFA: b59e0f5bd904e747b34171f1f690e22e0003acaa
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_secure_storage_darwin: 46e401699982ee74142909676535e0f6a7321e58
   flutter_timezone: 7c838e17ffd4645d261e87037e5bebf6d38fe544
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
 
-PODFILE CHECKSUM: 53a6aebc29ccee84c41f92f409fc20cd4ca011f1
+PODFILE CHECKSUM: e1cad207990d54ec4efebb3bd799ca0967377881
 
 COCOAPODS: 1.17.0

@@ -5,16 +5,16 @@ import 'package:flutter/material.dart';
 
 import '../performance_trace.dart';
 import 'amap_android_platform.dart';
+import 'amap_ios_platform.dart';
 import 'map_consent.dart';
 import 'map_consent_sheet.dart';
 import 'map_platform.dart';
 import 'map_scene.dart';
-import 'mapkit_platform.dart';
 import 'sketch_platform.dart';
 
 MapPlatform defaultMapPlatform() {
   if (Platform.isAndroid) return const AmapAndroidPlatform();
-  if (Platform.isIOS) return const MapKitPlatform();
+  if (Platform.isIOS) return const AmapIosPlatform();
   return const SketchPlatform();
 }
 

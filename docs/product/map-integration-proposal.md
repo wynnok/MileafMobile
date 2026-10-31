@@ -3,9 +3,11 @@
 > 2026-10-30 提案，**等待确认**。本文只做方案，不修改 Spec、tickets、代码，不提交。
 > 用户提供的 Android 平台 key 不在本文回显；只在实现时进入本地构建环境。
 >
-> **2026-10-31 实施结果**：Android 高德 `TextureMapView` 已落地；iOS 因尚无 iOS key，先落 MapKit 过渡；`AmapIosPlatform` 待 key。共享 Dart 外壳/页面/测试已双端共用。
+> **2026-10-31 实施结果**：Android 高德 `TextureMapView` 已落地；iOS 当时因尚无 iOS key 先落 MapKit 过渡，`AmapIosPlatform` 待 key。共享 Dart 外壳/页面/测试已双端共用。
 >
 > **2026-10-31 双端修正**：这是双端应用，“Android 先行”只是验证顺序，不是最终范围。最终方案是 **共享 Dart 外壳 + Android/iOS 两个薄原生适配器**；iOS 高德需要单独的 **iOS key（绑定 Bundle ID `app.mileaf.mileaf`）**。没有 iOS key 时 iOS 用 MapKit 过渡或路线速写，不能算高德双端完成。
+>
+> **2026-10-31 iOS AMap 落地（取代本文的 MapKit 过渡）**：iOS 已改为 `UiKitView` + Swift `MAMapView` + `AMap3DMap-NO-IDFA` 11.2.100；MapKit 不再进入生产路径。iOS key 通过非公开 `ios/Flutter/AMap.local.xcconfig` 注入，仓库不保存真实值。双端仍共用 `MapScene.gcj02*`；真机底图/CRS/大陆网络仍是外部 gate。
 
 ## 先说结论
 
@@ -186,7 +188,7 @@ SOC 电池弧（hero）
 - 标记用各自原生 Canvas 生成小圆点位图（起点湖绿、终点深墨、选中琥珀），不引入图片资源。
 - 地图背景设成纸面色，避免加载前黑屏。
 
-**iOS key**：同一个高德应用下新增 iOS Key，Bundle ID `app.mileaf.mileaf`；通过 `--dart-define=MILEAF_AMAP_IOS_KEY=...` 传入，不写仓库。没有 key 时 `defaultMapPlatform()` 选 `MapKitPlatform()` 或 `SketchPlatform()`，不创建 `MAMapView`。
+**iOS key**：同一个高德应用下新增 iOS Key，Bundle ID `app.mileaf.mileaf`；实施时改为 `ios/Flutter/AMap.local.xcconfig`（gitignored）注入 `Info.plist`，不写仓库。当前实现 `defaultMapPlatform()` 在 iOS 固定返回 `AmapIosPlatform()`；原生在缺 key 时立即 `initFailed` 回路线速写，不创建可用的 `MAMapView`。
 - 已知问题：`amap_map` README 提到 targetSdk >= 30 地图页返回闪退，可用 `allowNativeHeapPointerTagging=false` 规避；本轮不预置这个削弱安全缓解的开关，Gate 0 真机复现后再评估。
 
 ### 6.2 key 配置
@@ -200,10 +202,10 @@ SOC 电池弧（hero）
     android:value="${amapApiKey}" />
 ```
 
-- iOS：在同一个高德应用下新增 **iOS 平台 Key**，Bundle ID 填 `app.mileaf.mileaf`；通过 `--dart-define=MILEAF_AMAP_IOS_KEY=...` 传给 `AmapIosPlatform`，再由 creation params 交给原生 `AMapServices.shared().apiKey`。**Android key 不能用于 iOS。**
+- iOS：在同一个高德应用下新增 **iOS 平台 Key**，Bundle ID 填 `app.mileaf.mileaf`；实施时通过 `ios/Flutter/AMap.local.xcconfig` 进入 `Info.plist`，原生侧再设置 `AMapServices.shared().apiKey`。**Android key 不能用于 iOS。**
 - 不能用 `android/local.properties`：`tool/flutterw` 每次构建都会重写该文件，只保留 sdk/flutter 版本字段。
 - 缺省为空时构建仍应成功；地图加载超时后走路线速写，不崩溃。
-- 本地把 `MILEAF_AMAP_ANDROID_KEY=...` / `MILEAF_AMAP_IOS_KEY=...` 放在未跟踪的 `config/amap.local.env`（chmod 600），构建前 `source`，不 `echo`；`.gitignore` 增加该路径。key 不进文档、仓库、提交或命令输出。
+- 本地把 `MILEAF_AMAP_ANDROID_KEY` 放在未跟踪的 `config/amap.local.env`，把 `MILEAF_AMAP_IOS_KEY` 放在未跟踪的 `ios/Flutter/AMap.local.xcconfig`（chmod 600），构建前配好；不 `echo`；`.gitignore` 增加两处路径。key 不进文档、仓库、提交或命令输出。
 - 客户端 key 会进入 APK/IPA，这是高德移动端 key 的固有形态；安全边界是控制台的 Package + SHA1（Android）/ Bundle ID（iOS）绑定，不是“把 key 藏起来”。不要使用服务端 key。
 - `.cache/android/debug.keystore` 是当前 debug/release 的签名来源；不要清理它。若必须更换签名，先在控制台补登新的 SHA1，否则地图会失效。
 

@@ -24,6 +24,8 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>MileafAMapIosKey</key>
+	<string>$(MILEAF_AMAP_IOS_KEY)</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>行笺需要连接你指定的局域网 Mileaf Server，以读取车辆、行程和充电记录。不会扫描设备或获取手机位置。</string>
 	<key>LSRequiresIPhoneOS</key>

@@ -30,6 +30,11 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
 
+  # No-IDFA map SDK: this app has no ads or cross-app tracking. The SDK's
+  # AMapFoundation-NO-IDFA dependency does not include arm64 simulator slices.
+  pod 'AMap3DMap-NO-IDFA', '11.2.100'
+  pod 'AMapFoundation-NO-IDFA', '1.9.1'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths

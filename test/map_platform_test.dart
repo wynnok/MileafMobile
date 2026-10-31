@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/map/amap_ios_platform.dart';
+import 'package:mileaf/src/map/amap_scene_wire.dart';
 import 'package:mileaf/src/map/geo.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_panel.dart';
@@ -64,14 +66,35 @@ void main() {
     expect(gcj.first.first.lat, isNot(31.230));
   });
 
-  test('同意按供应商隔离，不会把 Apple 地图授权沿用给高德', () async {
+  test('同意按供应商隔离，不会把路线示意授权沿用给高德', () async {
     final consent = MapConsentController();
-    await consent.grant('Apple 地图');
-    expect(consent.isGrantedFor('Apple 地图'), isTrue);
+    await consent.grant('路线示意');
+    expect(consent.isGrantedFor('路线示意'), isTrue);
     expect(consent.isGrantedFor('高德地图'), isFalse);
     await consent.grant('高德地图');
     expect(consent.isGrantedFor('高德地图'), isTrue);
-    expect(consent.isGrantedFor('Apple 地图'), isFalse);
+    expect(consent.isGrantedFor('路线示意'), isFalse);
+  });
+
+  test('iOS AMap 适配器使用同一高德供应商名', () {
+    expect(const AmapIosPlatform().providerName, '高德地图');
+  });
+
+  test('AMap 创建参数只含 GCJ-02 场景且不带站点凭据', () {
+    final scene = _scene();
+    final params = AmapSceneWire.creationParams(
+      scene,
+      ColorScheme.fromSeed(seedColor: Colors.green),
+    );
+    expect(params['consent'], isTrue);
+    expect(params['interactive'], isFalse);
+    final wire = params['scene'] as Map<String, dynamic>;
+    final segments = wire['segments'] as List;
+    final firstPoint = (segments.first as List).first as List;
+    expect(firstPoint[0], isNot(scene.segments.first.first.lat));
+    expect(wire['padding'], AmapSceneWire.padding);
+    expect(wire.containsKey('token'), isFalse);
+    expect(wire.toString(), isNot(contains('Bearer')));
   });
 
   testWidgets('未同意时不创建地图，同意后创建并显示加载状态', (tester) async {
@@ -219,6 +242,19 @@ void main() {
     expect(consent.granted, isFalse);
     expect(find.text('当前未允许加载底图'), findsOneWidget);
     expect(find.text('重新启用地图'), findsOneWidget);
+  });
+
+  testWidgets('路线示意不冒充 Apple 地图隐私', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '路线示意',
+        ),
+      ),
+    );
+    expect(find.textContaining('Apple'), findsNothing);
+    expect(find.text('高德隐私政策'), findsNothing);
   });
 
   testWidgets('空场景不创建地图', (tester) async {

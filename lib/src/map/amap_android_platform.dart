@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'geo.dart';
+import 'amap_scene_wire.dart';
 import 'map_platform.dart';
 import 'map_scene.dart';
 
@@ -45,64 +45,25 @@ class _AmapAndroidViewState extends State<_AmapAndroidView> {
   String? _sentSceneSignature;
   String? _sentSelected;
 
-  Map<String, dynamic> _sceneMap(ColorScheme colors) => {
-    'segments': [
-      for (final part in widget.scene.gcj02Segments)
-        [
-          for (final point in part) [point.lat, point.lon],
-        ],
-    ],
-    'start': _pair(widget.scene.gcj02Start),
-    'end': _pair(widget.scene.gcj02End),
-    'selected': _pair(widget.scene.gcj02Selected),
-    'night': widget.scene.brightness == Brightness.dark,
-    'interactive': widget.scene.interactive,
-    'padding': 36,
-    'colors': {
-      'line': colors.primary.toARGB32(),
-      'start': colors.primary.toARGB32(),
-      'end': colors.onSurface.toARGB32(),
-      'selected': colors.tertiary.toARGB32(),
-    },
-  };
-
-  List<double>? _pair(Gcj02Point? point) =>
-      point == null ? null : [point.lat, point.lon];
-
-  String _sceneSignature(MapScene scene) => [
-    for (final part in scene.segments)
-      [for (final point in part) '${point.lat},${point.lon}'].join(';'),
-    scene.start?.lat,
-    scene.start?.lon,
-    scene.end?.lat,
-    scene.end?.lon,
-    scene.brightness,
-    scene.interactive,
-  ].join('|');
-
-  String? _selectedSignature(MapScene scene) => scene.selected == null
-      ? null
-      : '${scene.selected!.lat},${scene.selected!.lon}';
-
   @override
   void didUpdateWidget(covariant _AmapAndroidView oldWidget) {
     super.didUpdateWidget(oldWidget);
     final channel = _channel;
     if (channel == null) return;
-    final nextScene = _sceneSignature(widget.scene);
-    final nextSelected = _selectedSignature(widget.scene);
+    final nextScene = AmapSceneWire.signature(widget.scene);
+    final nextSelected = AmapSceneWire.selectedSignature(widget.scene);
     if (nextScene != _sentSceneSignature) {
       _sentSceneSignature = nextScene;
       _sentSelected = nextSelected;
       channel.invokeMethod<void>(
         'setScene',
-        _sceneMap(Theme.of(context).colorScheme),
+        AmapSceneWire.encode(widget.scene, Theme.of(context).colorScheme),
       );
     } else if (nextSelected != _sentSelected) {
       _sentSelected = nextSelected;
       channel.invokeMethod<void>(
         'setSelected',
-        _pair(widget.scene.gcj02Selected),
+        AmapSceneWire.pair(widget.scene.gcj02Selected),
       );
     }
   }
@@ -157,16 +118,12 @@ class _AmapAndroidViewState extends State<_AmapAndroidView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final creation = _sceneMap(colors);
-    _sentSceneSignature = _sceneSignature(widget.scene);
-    _sentSelected = _selectedSignature(widget.scene);
+    final creation = AmapSceneWire.creationParams(widget.scene, colors);
+    _sentSceneSignature = AmapSceneWire.signature(widget.scene);
+    _sentSelected = AmapSceneWire.selectedSignature(widget.scene);
     return AndroidView(
       viewType: 'app.mileaf/amap',
-      creationParams: {
-        'consent': true,
-        'interactive': widget.scene.interactive,
-        'scene': creation,
-      },
+      creationParams: creation,
       creationParamsCodec: const StandardMessageCodec(),
       onPlatformViewCreated: _onPlatformViewCreated,
     );
