@@ -419,12 +419,31 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Text(
-              '${number(d.distanceKm, 'km', decimals: 1)} · '
-              '${number(d.durationMin, '分钟')} · '
-              '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+            if (lead)
+              Text(
+                number(d.distanceKm, 'km', decimals: 1),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            if (lead)
+              Text(
+                '${number(d.durationMin, '分钟')} · '
+                '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+                style: Theme.of(context).textTheme.labelSmall,
+              )
+            else ...[
+              Text(
+                '${number(d.distanceKm, 'km', decimals: 1)} · '
+                '${number(d.durationMin, '分钟')}',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+              Text(
+                '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
             if (d.endedAt == null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),

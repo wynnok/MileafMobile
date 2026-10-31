@@ -1125,7 +1125,7 @@ class _OverviewPageState extends State<OverviewPage>
     const SizedBox(height: 8),
     LayoutBuilder(
       builder: (context, constraints) {
-        final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+        final single = largeText(context);
         final width = single
             ? constraints.maxWidth
             : (constraints.maxWidth - 8) / 2;
@@ -1176,16 +1176,35 @@ class _OverviewPageState extends State<OverviewPage>
               onTap: d.lastDrive == null
                   ? null
                   : () => widget.onRecord?.call('drive', d.lastDrive!.id),
-              body: Text(
-                d.lastDrive == null
-                    ? '无记录'
-                    : '${timestamp(d.lastDrive!.startedAt)}\n${number(d.lastDrive!.distanceKm, 'km', decimals: 1)} · 净电耗 ${number(d.lastDrive!.consumptionWhKm, 'Wh/km')}',
-                style: Theme.of(context).textTheme.labelSmall,
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.lastDrive == null
+                        ? '—'
+                        : number(d.lastDrive!.distanceKm, 'km', decimals: 1),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  if (d.lastDrive != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '净电耗 ${number(d.lastDrive!.consumptionWhKm, 'Wh/km')}',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    Text(
+                      timestamp(d.lastDrive!.startedAt),
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ],
               ),
             ),
             recent(
               title: '最近充电',
-              surface: CollageSurface.paper,
+              surface: CollageSurface.hero,
               onTap: d.lastCharge == null
                   ? null
                   : () => widget.onRecord?.call('charging', d.lastCharge!.id),
@@ -1194,19 +1213,33 @@ class _OverviewPageState extends State<OverviewPage>
                 children: [
                   Text(
                     d.lastCharge == null
-                        ? '无记录'
-                        : '${timestamp(d.lastCharge!.startedAt)}\n充入 ${number(d.lastCharge!.energyKwh, 'kWh', decimals: 2)} · 结束电量 ${number(d.lastCharge!.endSoc, '%')}',
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                  if (d.lastCharge?.endSoc case final soc?)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: LinearProgressIndicator(
-                        value: (soc / 100).clamp(0, 1),
-                        semanticsLabel: '最近充电结束电量',
-                        semanticsValue: '$soc %',
-                      ),
+                        ? '—'
+                        : number(d.lastCharge!.endSoc, '%'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
+                  ),
+                  if (d.lastCharge != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '充入 ${number(d.lastCharge!.energyKwh, 'kWh', decimals: 2)} · 结束电量',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    if (d.lastCharge!.endSoc case final soc?)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: LinearProgressIndicator(
+                          value: (soc / 100).clamp(0, 1),
+                          semanticsLabel: '最近充电结束电量',
+                          semanticsValue: '$soc %',
+                        ),
+                      ),
+                    Text(
+                      timestamp(d.lastCharge!.startedAt),
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
                 ],
               ),
             ),
