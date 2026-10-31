@@ -95,7 +95,7 @@ void main() {
       now: () => now,
       statsHandler: (_) async => jsonResponse(jsonEncode(body)),
     );
-    await tester.tap(find.text('最近7日'));
+    await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
     final period = Map<String, String>.of(requests.last);
     now = DateTime.utc(2026, 3, 30, 17);
@@ -131,7 +131,7 @@ void main() {
       now: () => now,
       statsHandler: (_) async => jsonResponse(jsonEncode(body)),
     );
-    await tester.tap(find.text('最近7日'));
+    await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 140);
     await tester.tap(find.text('看当天'));
@@ -162,7 +162,7 @@ void main() {
       },
     );
     final before = statsCount;
-    await tester.tap(find.text('筛选日期'));
+    await tester.tap(find.text('日期'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '2020/01/01');
     await tester.enterText(find.byType(TextField).at(1), '2026/03/30');
@@ -197,10 +197,10 @@ void main() {
     await tester.ensureVisible(find.text('Y · 尾号 0002'));
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.text('期间行程 3 次'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
     slow.complete(jsonResponse(original));
     await tester.pumpAndSettle();
-    expect(find.text('期间行程 3 次'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
     expect(find.text('期间行程 49 次'), findsNothing);
   });
   testWidgets('近7日统计与列表同区间，选中一天只筛列表', (tester) async {
@@ -227,7 +227,7 @@ void main() {
         return jsonResponse(jsonEncode(body));
       },
     );
-    await tester.tap(find.text('最近7日'));
+    await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
     expect(listQueries.last['from'], '2026-03-23T16:00:00.000Z');
     expect(statsQueries.last['from'], listQueries.last['from']);
@@ -237,7 +237,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(listQueries.last['from'], '2026-03-28T16:00:00.000Z');
     expect(listQueries.last['to'], '2026-03-29T16:00:00.000Z');
-    expect(find.text('期间行程 49 次'), findsOneWidget);
+    expect(find.text('49 趟'), findsOneWidget);
   });
 
   testWidgets('刷新统计失败时保留已加载列表及原统计快照', (tester) async {
@@ -256,7 +256,7 @@ void main() {
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次统计快照'), findsOneWidget);
-    expect(find.text('期间行程 49 次'), findsOneWidget);
+    expect(find.text('49 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
       180,
@@ -302,9 +302,9 @@ void main() {
       (_) async =>
           jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
     );
-    expect(find.text('期间里程 960.0 km'), findsOneWidget);
-    expect(find.text('期间行程 49 次'), findsOneWidget);
-    expect(find.text('期间估算净电耗 188 Wh/km'), findsOneWidget);
+    expect(find.textContaining('960.0'), findsWidgets);
+    expect(find.text('49 趟'), findsOneWidget);
+    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
   });
   testWidgets('行程按本地日期分组，同日记录共享标题且保留独立详情入口', (tester) async {
     await openDrives(
@@ -381,7 +381,7 @@ void main() {
         );
       }, now: () => now);
       if (range != 'default') {
-        await tester.tap(find.text('筛选日期'));
+        await tester.tap(find.text('日期'));
         await tester.pumpAndSettle();
         final inputs = find.byType(TextField);
         await tester.enterText(inputs.at(0), '2026/03/29');
@@ -521,7 +521,7 @@ void main() {
       calendar: () async => CalendarContext(zone),
     );
     expect(find.text('所选日期没有行程'), findsOneWidget);
-    await tester.tap(find.text('筛选日期'));
+    await tester.tap(find.text('日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2024/03/09');
@@ -537,7 +537,7 @@ void main() {
     expect(find.text('2024-03-09 至 2024-03-10（含首尾）'), findsOneWidget);
     expect(queries.last['from'], '2024-03-08T16:00:00.000Z');
     expect(queries.last['to'], '2024-03-10T16:00:00.000Z');
-    await tester.tap(find.text('最近30日'));
+    await tester.tap(find.text('近30天'));
     await tester.pumpAndSettle();
     now = DateTime.utc(2026, 3, 30, 17);
     background(tester);

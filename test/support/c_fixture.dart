@@ -151,10 +151,15 @@ final List<({double distance, int drives})> _daily = () {
   return list;
 }();
 
-Map<String, dynamic> _metrics(double distance, int drives) {
-  final net = distance > 0 ? cMonth.netWhKm.toDouble() : null;
+Map<String, dynamic> _metrics(
+  double distance,
+  int drives, {
+  num? netWhKm,
+}) {
+  final unit = netWhKm ?? cMonth.netWhKm;
+  final net = distance > 0 ? unit.toDouble() : null;
   final energy = distance > 0
-      ? double.parse((distance * cMonth.netWhKm / 1000).toStringAsFixed(2))
+      ? double.parse((distance * unit / 1000).toStringAsFixed(2))
       : 0.0;
   Map<String, dynamic> coverage(int count, double km) => {
     'candidate_count': count,
@@ -260,6 +265,32 @@ Map<String, dynamic> cDriving(Uri uri) {
   };
 }
 
+/// 30-day drives window totals from the C drives prototype
+/// (1,280.6 km · 52 trips · 197.4 kWh · 154.2 Wh/km) with the same shape.
+Map<String, dynamic> cDrivesStats(Uri uri) {
+  final body = cDriving(uri);
+  final scale = cDrivesTotals.distanceKm / cMonth.distanceKm;
+  body['totals'] = _metrics(
+    cDrivesTotals.distanceKm,
+    cDrivesTotals.drives,
+    netWhKm: cDrivesTotals.netWhKm,
+  );
+  body['buckets'] = [
+    for (final bucket in (body['buckets'] as List).cast<Map<String, dynamic>>())
+      {
+        'bucket_start': bucket['bucket_start'],
+        ..._metrics(
+          double.parse(
+            ((bucket['distance_km'] as num) * scale).toStringAsFixed(1),
+          ),
+          bucket['drives'] as int,
+          netWhKm: cDrivesTotals.netWhKm,
+        ),
+      },
+  ];
+  return body;
+}
+
 /// 26 daily charging buckets summing to the C month charging totals.
 Map<String, dynamic> cCharging(Uri uri) {
   final from = uri.queryParameters['from'] ?? '2026-10-01T00:00:00Z';
@@ -321,6 +352,20 @@ Map<String, dynamic> cDrives() {
     ..['duration_min'] = 46
     ..['started_at'] = '2026-10-26T08:05:00Z'
     ..['ended_at'] = '2026-10-26T08:51:00Z'
-    ..['consumption_wh_km'] = 154;
+    ..['consumption_wh_km'] = 154
+    ..['start'] = {
+      'display_name': '松岚小区',
+      'geofence': '家',
+      'address': '松岚小区',
+      'lat': 31.2304,
+      'lon': 121.4737,
+    }
+    ..['end'] = {
+      'display_name': '云栖中心',
+      'geofence': '公司',
+      'address': '云栖中心',
+      'lat': 31.2450,
+      'lon': 121.5010,
+    };
   return body;
 }

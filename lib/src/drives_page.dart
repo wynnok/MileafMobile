@@ -360,6 +360,17 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
     return '${calendar.local(DateTime.parse(range['from']!)).toString().split('.').first} 至 ${calendar.local(DateTime.parse(range['to']!)).toString().split('.').first}';
   }
 
+  String compactRange(Map<String, String> range) {
+    if (range.isEmpty) return '';
+    final calendar = workspace.calendar!;
+    String md(DateTime t) {
+      final d = calendar.local(t);
+      return '${d.month}月${d.day}日';
+    }
+
+    return '${md(DateTime.parse(range['from']!))}—${md(DateTime.parse(range['to']!))}';
+  }
+
   String place(String? value) =>
       value == null || value.trim().isEmpty ? '未知地点' : value;
   String recordDay(DateTime value) {
@@ -392,9 +403,20 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  '行程记录',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '行程',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    Text(
+                      custom == null
+                          ? '近$recentDays天 · ${compactRange(statsSnapshot)}'
+                          : '${date(custom!.start)} 至 ${date(custom!.end)}（含首尾）',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ),
               IconButton(
@@ -410,35 +432,41 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
               ),
             ],
           ),
-          Wrap(
-            spacing: 8,
-            children: [
-              Text(
-                custom == null
-                    ? '最近$recentDays个本地日历日'
-                    : '${date(custom!.start)} 至 ${date(custom!.end)}（含首尾）',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
           if (workspace.calendar!.fallback)
             const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
-          Wrap(
-            spacing: 8,
+          Row(
             children: [
-              TextButton(onPressed: chooseDates, child: const Text('筛选日期')),
               for (final days in [30, 7])
-                TextButton(
-                  onPressed: () {
-                    custom = null;
-                    selectedDay = null;
-                    recentDays = days;
-                    resetQuery();
-                    load(clear: true);
-                    loadStats(clear: true);
-                  },
-                  child: Text('最近$days日'),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(
+                      days == 30 ? '近30天' : '近7天',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    selected: custom == null && recentDays == days,
+                    showCheckmark: false,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (_) {
+                      custom = null;
+                      selectedDay = null;
+                      recentDays = days;
+                      resetQuery();
+                      load(clear: true);
+                      loadStats(clear: true);
+                    },
+                  ),
                 ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: chooseDates,
+                icon: const Icon(Icons.calendar_today_outlined, size: 14),
+                label: const Text('日期'),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+              ),
             ],
           ),
           if (loading) const LinearProgressIndicator(),
@@ -465,37 +493,47 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                 builder: (context) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('已完成行程'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            custom == null
+                                ? '期间里程 · 近$recentDays天'
+                                : '期间里程 · 自定义区间',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        ),
+                        Text(
+                          '${s.totals.drives} 趟',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     Text.rich(
                       TextSpan(
+                        text: s.totals.distanceKm.toStringAsFixed(1),
                         children: [
                           TextSpan(
-                            text: '期间里程 ',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          TextSpan(
-                            text: number(
-                              s.totals.distanceKm,
-                              'km',
-                              decimals: 1,
-                            ),
+                            text: ' km',
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ],
                       ),
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.displayLarge
+                          ?.copyWith(
+                            fontSize: 48,
+                            height: 1,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
                     ),
-                    Wrap(
-                      spacing: 10,
-                      children: [
-                        Text('期间行程 ${s.totals.drives} 次'),
-                        Text(
-                          '期间估算净能量 ${number(s.totals.energyKwh, 'kWh', decimals: 2)}',
-                        ),
-                        Text(
-                          '期间估算净电耗 ${number(s.totals.consumptionWhKmNet, 'Wh/km')}',
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '估算 ${number(s.totals.energyKwh, 'kWh', decimals: 2)} · 净电耗 ${number(s.totals.consumptionWhKmNet, 'Wh/km')}',
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],
                 ),
