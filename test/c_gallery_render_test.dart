@@ -36,12 +36,17 @@ class _Cny implements CurrencyPreferenceStore {
   Future<void> write(String site, String? code) async {}
 }
 
-MockClient cClient() => MockClient((request) async {
+MockClient cGalleryClient() => MockClient((request) async {
   final url = request.url;
   if (url.path.endsWith('/vehicles')) return _ok(cVehicles());
   if (url.path.endsWith('/summary')) return _ok(cSummary());
   if (url.path.endsWith('/meta')) return _ok(cMeta());
   if (url.path.endsWith('/drives')) return _ok(cDrives());
+  if (url.path.endsWith('/driving-analysis')) {
+    return _ok(
+      url.queryParameters['view'] == 'calendar' ? cCalendar(url) : cUsage(),
+    );
+  }
   if (url.path.endsWith('/stats')) {
     return _ok(
       url.queryParameters['kind'] == 'charging'
@@ -52,6 +57,7 @@ MockClient cClient() => MockClient((request) async {
   return http.Response('{}', 404);
 });
 
+/// Every C page in one gallery, driven exclusively by test/support/c_fixture.dart.
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
@@ -63,7 +69,8 @@ void main() {
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
-  testWidgets('行程 C 设计正式渲染', (tester) async {
+
+  testWidgets('C 图册：概览/统计/行程/节奏共用同一 fixture', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -75,33 +82,51 @@ void main() {
     final boundary = GlobalKey();
     Future<void> save(String name) =>
         saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
+
+    Future<void> pumpApp(String key) async {
+      final store = MemorySessionStore()
+        ..value = jsonEncode({
+          'site': cSite,
+          'token': 'test',
+          'expires_at': '2099-01-01T00:00:00Z',
+        });
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundary,
+          child: MileafApp(
+            key: ValueKey(key),
+            client: cGalleryClient(),
+            sessionStore: store,
+            trustStore: MemoryTrustStore(),
+            vehiclePreferences: MemoryVehiclePreferences(),
+            currencyPreferences: _Cny(),
+            now: () => cNow,
+            calendar: () async => CalendarContext('Asia/Shanghai'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
     for (final brightness in Brightness.values) {
       for (final scale in [1.0, 2.0]) {
         final suffix = '${brightness.name}-${scale == 1 ? '100' : '200'}';
         tester.platformDispatcher.platformBrightnessTestValue = brightness;
         tester.platformDispatcher.textScaleFactorTestValue = scale;
-        final store = MemorySessionStore()
-          ..value = jsonEncode({
-            'site': cSite,
-            'token': 'test',
-            'expires_at': '2099-01-01T00:00:00Z',
-          });
-        await tester.pumpWidget(
-          RepaintBoundary(
-            key: boundary,
-            child: MileafApp(
-              key: ValueKey(suffix),
-              client: cClient(),
-              sessionStore: store,
-              trustStore: MemoryTrustStore(),
-              vehiclePreferences: MemoryVehiclePreferences(),
-              currencyPreferences: _Cny(),
-              now: () => cNow,
-              calendar: () async => CalendarContext('Asia/Shanghai'),
-            ),
-          ),
-        );
+
+        await pumpApp('overview-$suffix');
+        await save('overview-$suffix');
+
+        await tester.tap(find.text('统计').last);
         await tester.pumpAndSettle();
+        await save('statistics-$suffix');
+
+        await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
+        await tester.tap(find.text('节奏').hitTestable());
+        await tester.pumpAndSettle();
+        await save('rhythm-$suffix');
+
+        await pumpApp('drives-$suffix');
         await tester.tap(find.text('行程').last);
         await tester.pumpAndSettle();
         await save('drives-$suffix');
