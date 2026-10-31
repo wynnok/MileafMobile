@@ -789,7 +789,7 @@ class _ChargingPageState extends State<ChargingPage>
         : '${decimal(total.energyAddedKwh)} kWh';
     final minutes = total.sessions > 0 && total.durationKnownSessions == 0
         ? '—（缺失）'
-        : '${decimal(total.durationMinTotal)} 分钟';
+        : _formatDuration(total.durationMinTotal);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -799,14 +799,23 @@ class _ChargingPageState extends State<ChargingPage>
             builder: (context) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('已知充电费用'),
-                Text(
-                  total.cost == null ? '—' : decimal(total.cost!),
-                  style: Theme.of(context).textTheme.displaySmall
-                      ?.copyWith(fontSize: 44),
+                Row(
+                  children: [
+                    const Expanded(child: Text('已知充电费用')),
+                    Text(
+                      widget.currency.code == null
+                          ? widget.currency.symbol
+                          : widget.currency.code!,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
                 ),
                 Text(
-                  '${total.cost == null ? '缺失 · ' : ''}${widget.currency.symbol}',
+                  total.cost == null
+                      ? '—（缺失）'
+                      : '${widget.currency.symbol}${decimal(total.cost!)}',
+                  style: Theme.of(context).textTheme.displaySmall
+                      ?.copyWith(fontSize: 44),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -1434,4 +1443,15 @@ class _ChargingPageState extends State<ChargingPage>
       ),
     ),
   );
+}
+
+/// Compact C duration: 34 分钟, 2h05, 5h10.
+String _formatDuration(num minutes) {
+  final total = minutes.round();
+  if (total < 60) return '$total 分钟';
+  final hours = total ~/ 60;
+  final rest = total % 60;
+  return rest == 0
+      ? '${hours}h'
+      : '${hours}h${rest.toString().padLeft(2, '0')}';
 }
