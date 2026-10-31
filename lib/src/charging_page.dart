@@ -913,6 +913,29 @@ class _ChargingPageState extends State<ChargingPage>
       timestamp: (time) =>
           workspace.calendar!.local(time).toString().split('.').first,
       selectedIndex: chartDay,
+      showSteppers: false,
+      tickLabel: (t) {
+        final d = workspace.calendar!.local(t);
+        return '${d.month}/${d.day}';
+      },
+      readout: (index) {
+        if (index >= stats.buckets.length) return '—';
+        final bucket = stats.buckets[index];
+        final local = workspace.calendar!.local(bucket.bucketStart);
+        final value = switch (chartMetric) {
+          0 =>
+            bucket.sessions > 0 && bucket.energyKnownSessions == 0
+                ? '—'
+                : '${decimal(bucket.energyAddedKwh)} kWh',
+          1 => widget.currency.amount(bucket.cost),
+          2 => switch (bucket.unitCostAdded.value) {
+            final value? => '${decimal(value)} /kWh',
+            null => '—',
+          },
+          _ => '${bucket.sessions} 次',
+        };
+        return '${local.month}/${local.day} $value';
+      },
       onSelected: (index) => setState(() => chartDay = index),
       onActivateSelected: stats.buckets.isEmpty
           ? null

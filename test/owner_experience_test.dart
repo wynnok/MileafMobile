@@ -68,7 +68,11 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
-    expect(find.text('里程较参照差 0.0 km'), findsOneWidget);
+    expect(
+      find.text('与参照同期持平'),
+      findsOneWidget,
+      reason: 'C pill states the same-progress delta',
+    );
     expect(find.text('净电耗 · 估算'), findsOneWidget);
     expect(find.text('188 Wh/km'), findsOneWidget);
     // C net tile states the paired delta against the reference.
@@ -164,14 +168,20 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.text('记录驾驶时长'),
+      find.text('数据说明与更多').hitTestable(),
       120,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.tap(find.text('数据说明与更多').hitTestable());
+    await tester.pumpAndSettle();
     expect(find.text('记录驾驶时长'), findsOneWidget);
     expect(find.text('60 分钟'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(TextButton, '节奏'));
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.scrollUntilVisible(
+      find.text('节奏').hitTestable(),
+      -240,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     expect(find.text('短途、中途与长途'), findsOneWidget);
     expect(tester.takeException(), isNull);

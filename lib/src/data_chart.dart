@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'data_cards.dart';
 
-enum ChartPresentation { line, bars, groupedBars }
+enum ChartPresentation { line, bars, groupedBars, barsWithLine }
 
 class ChartSeries {
   const ChartSeries({required this.label, required this.values});
@@ -40,6 +40,10 @@ class TimeChart extends StatefulWidget {
     this.showSteppers = true,
     this.onActivateSelected,
     this.activationLabel = '查看这一天的行程',
+    this.card = true,
+    this.showLegend = true,
+    this.readout,
+    this.trailing,
   });
   final String title, unit;
   final List<DateTime> times;
@@ -60,6 +64,16 @@ class TimeChart extends StatefulWidget {
   final bool showSteppers;
   final VoidCallback? onActivateSelected;
   final String activationLabel;
+
+  /// C chart tiles sit on their own surface, so the inner card is optional.
+  final bool card;
+  final bool showLegend;
+
+  /// Replaces the default `tick · value` readout (C prints one C line).
+  final String Function(int index)? readout;
+
+  /// Right side of the compact readout row (C prints 点按图形读值).
+  final Widget? trailing;
   @override
   State<TimeChart> createState() => _TimeChartState();
 }
@@ -112,176 +126,173 @@ class _TimeChartState extends State<TimeChart> {
     final scheme = Theme.of(context).colorScheme;
     final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
     final colors = [scheme.primary, scheme.tertiary, scheme.outline];
-    return DataCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            runSpacing: 5,
-            children: [
-              Text(
-                widget.title,
-                style: Theme.of(context).textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              Text(widget.unit, style: Theme.of(context).textTheme.labelSmall),
-              if (widget.compact && widget.controls != null) widget.controls!,
-            ],
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 5,
+          children: [
+            Text(
+              widget.title,
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            Text(widget.unit, style: Theme.of(context).textTheme.labelSmall),
+            if (widget.compact && widget.controls != null) widget.controls!,
+          ],
+        ),
+        if (widget.subtitle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              widget.subtitle!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
-          if (widget.subtitle != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                widget.subtitle!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          if (!widget.compact && widget.controls != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: widget.controls!,
-            ),
-          SizedBox(height: widget.compact ? 2 : 12),
-          if (widget.times.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 35),
-              child: Text('没有采样点', textAlign: TextAlign.center),
-            )
-          else ...[
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final left = 38.0 * math.min(scale, 1.6);
-                final plotWidth = constraints.maxWidth - left - 18;
-                final inset = _barInset(
-                  plotWidth,
-                  widget.times.length,
-                  widget.series.length,
-                  widget.presentation,
-                );
-                void at(Offset position) {
-                  final fraction =
-                      ((position.dx - left - inset) / (plotWidth - 2 * inset))
-                          .clamp(0.0, 1.0);
-                  final first = widget.times.first.microsecondsSinceEpoch;
-                  final last = widget.times.last.microsecondsSinceEpoch;
-                  final target = first + (last - first) * fraction;
-                  var nearest = 0;
-                  for (var i = 1; i < widget.times.length; i++) {
-                    if ((widget.times[i].microsecondsSinceEpoch - target)
-                            .abs() <
-                        (widget.times[nearest].microsecondsSinceEpoch - target)
-                            .abs()) {
-                      nearest = i;
-                    }
+        if (!widget.compact && widget.controls != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: widget.controls!,
+          ),
+        SizedBox(height: widget.compact ? 2 : 12),
+        if (widget.times.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 35),
+            child: Text('没有采样点', textAlign: TextAlign.center),
+          )
+        else ...[
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final left = 38.0 * math.min(scale, 1.6);
+              final plotWidth = constraints.maxWidth - left - 18;
+              final inset = _barInset(
+                plotWidth,
+                widget.times.length,
+                widget.series.length,
+                widget.presentation,
+              );
+              void at(Offset position) {
+                final fraction =
+                    ((position.dx - left - inset) / (plotWidth - 2 * inset))
+                        .clamp(0.0, 1.0);
+                final first = widget.times.first.microsecondsSinceEpoch;
+                final last = widget.times.last.microsecondsSinceEpoch;
+                final target = first + (last - first) * fraction;
+                var nearest = 0;
+                for (var i = 1; i < widget.times.length; i++) {
+                  if ((widget.times[i].microsecondsSinceEpoch - target).abs() <
+                      (widget.times[nearest].microsecondsSinceEpoch - target)
+                          .abs()) {
+                    nearest = i;
                   }
-                  select(nearest);
                 }
+                select(nearest);
+              }
 
-                return Focus(
-                  focusNode: focus,
-                  onKeyEvent: (_, event) {
-                    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                      select(selected - 1);
-                      return KeyEventResult.handled;
-                    }
-                    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                      select(selected + 1);
-                      return KeyEventResult.handled;
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  child: Semantics(
-                    container: true,
-                    label: '${widget.title}图表',
-                    value: reading(selected),
-                    increasedValue: selected < widget.times.length - 1
-                        ? reading(selected + 1)
-                        : null,
-                    decreasedValue: selected > 0 ? reading(selected - 1) : null,
-                    onIncrease: selected < widget.times.length - 1
-                        ? () => select(selected + 1)
-                        : null,
-                    onDecrease: selected > 0
-                        ? () => select(selected - 1)
-                        : null,
-                    child: GestureDetector(
-                      onTapUp: (d) {
-                        focus.requestFocus();
-                        at(d.localPosition);
-                      },
-                      onHorizontalDragStart: (d) {
-                        focus.requestFocus();
-                        at(d.localPosition);
-                      },
-                      onHorizontalDragUpdate: (d) => at(d.localPosition),
-                      child: SizedBox(
-                        key: widget.plotKey,
-                        child: CustomPaint(
-                          key: widget.plotObserverKey,
-                          size: Size(
-                            constraints.maxWidth,
-                            widget.height * math.min(scale, 1.4),
-                          ),
-                          painter: _TimePainter(
-                            times: widget.times,
-                            series: widget.series,
-                            selected: selected,
-                            presentation: widget.presentation,
-                            colors: colors,
-                            grid: scheme.outlineVariant,
-                            text: scheme.onSurfaceVariant,
-                            fontFamily: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.fontFamily,
-                            scale: scale,
-                            left: left,
-                            minimum: widget.minimum,
-                            maximum: widget.maximum,
-                            unit: widget.unit,
-                            tick: tick,
-                          ),
+              return Focus(
+                focusNode: focus,
+                onKeyEvent: (_, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                    select(selected - 1);
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                    select(selected + 1);
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: Semantics(
+                  container: true,
+                  label: '${widget.title}图表',
+                  value: reading(selected),
+                  increasedValue: selected < widget.times.length - 1
+                      ? reading(selected + 1)
+                      : null,
+                  decreasedValue: selected > 0 ? reading(selected - 1) : null,
+                  onIncrease: selected < widget.times.length - 1
+                      ? () => select(selected + 1)
+                      : null,
+                  onDecrease: selected > 0 ? () => select(selected - 1) : null,
+                  child: GestureDetector(
+                    onTapUp: (d) {
+                      focus.requestFocus();
+                      at(d.localPosition);
+                    },
+                    onHorizontalDragStart: (d) {
+                      focus.requestFocus();
+                      at(d.localPosition);
+                    },
+                    onHorizontalDragUpdate: (d) => at(d.localPosition),
+                    child: SizedBox(
+                      key: widget.plotKey,
+                      child: CustomPaint(
+                        key: widget.plotObserverKey,
+                        size: Size(
+                          constraints.maxWidth,
+                          widget.height * math.min(scale, 1.4),
+                        ),
+                        painter: _TimePainter(
+                          times: widget.times,
+                          series: widget.series,
+                          selected: selected,
+                          presentation: widget.presentation,
+                          colors: colors,
+                          grid: scheme.outlineVariant,
+                          text: scheme.onSurfaceVariant,
+                          fontFamily: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.fontFamily,
+                          scale: scale,
+                          left: left,
+                          minimum: widget.minimum,
+                          maximum: widget.maximum,
+                          unit: widget.unit,
+                          tick: tick,
                         ),
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              );
+            },
+          ),
+          if (widget.showLegend && widget.series.length > 1)
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
+              children: [
+                for (var i = 0; i < widget.series.length; i++)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        switch (i % 3) {
+                          0 => Icons.circle,
+                          1 => Icons.crop_square,
+                          _ => Icons.change_history,
+                        },
+                        size: 10,
+                        color: colors[i % colors.length],
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        widget.series[i].label,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+              ],
             ),
-            if (widget.series.length > 1)
-              Wrap(
-                spacing: 16,
-                runSpacing: 4,
-                children: [
-                  for (var i = 0; i < widget.series.length; i++)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          switch (i % 3) {
-                            0 => Icons.circle,
-                            1 => Icons.crop_square,
-                            _ => Icons.change_history,
-                          },
-                          size: 10,
-                          color: colors[i % colors.length],
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          widget.series[i].label,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            if (widget.compact)
-              Row(
-                children: [
+          if (widget.compact)
+            Row(
+              children: [
+                if (widget.showSteppers)
                   IconButton(
                     tooltip: '前一天',
                     constraints: const BoxConstraints(
@@ -294,17 +305,19 @@ class _TimeChartState extends State<TimeChart> {
                         : () => select(selected - 1),
                     icon: const Icon(Icons.chevron_left),
                   ),
-                  Expanded(
-                    child: Semantics(
-                      liveRegion: true,
-                      label: reading(selected),
-                      excludeSemantics: true,
-                      child: Text(
-                        '${tick(widget.times[selected])} · ${value(widget.series.first.values[selected])}',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
+                Expanded(
+                  child: Semantics(
+                    liveRegion: true,
+                    label: reading(selected),
+                    excludeSemantics: true,
+                    child: Text(
+                      widget.readout?.call(selected) ??
+                          '${tick(widget.times[selected])} · ${value(widget.series.first.values[selected])}',
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ),
+                ),
+                if (widget.showSteppers)
                   IconButton(
                     tooltip: '后一天',
                     constraints: const BoxConstraints(
@@ -317,61 +330,59 @@ class _TimeChartState extends State<TimeChart> {
                         : () => select(selected + 1),
                     icon: const Icon(Icons.chevron_right),
                   ),
-                  if (widget.onActivateSelected != null)
-                    TextButton(
-                      onPressed: widget.onActivateSelected,
-                      child: Text(
-                        '看当天',
-                        semanticsLabel: widget.activationLabel,
-                      ),
-                    ),
-                ],
-              )
-            else ...[
-              const SizedBox(height: 8),
-              Semantics(
-                liveRegion: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final s in widget.series)
-                      Text(
-                        '${s.label}读数 ${value(s.values[selected])}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                ?widget.trailing,
+                if (widget.onActivateSelected != null)
+                  TextButton(
+                    onPressed: widget.onActivateSelected,
+                    child: Text('看当天', semanticsLabel: widget.activationLabel),
+                  ),
+              ],
+            )
+          else ...[
+            const SizedBox(height: 8),
+            Semantics(
+              liveRegion: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final s in widget.series)
                     Text(
-                      widget.timestamp(widget.times[selected]),
-                      style: Theme.of(context).textTheme.labelSmall,
+                      '${s.label}读数 ${value(s.values[selected])}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ],
-                ),
+                  Text(
+                    widget.timestamp(widget.times[selected]),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
               ),
-              if (widget.showSteppers)
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 8,
-                  children: [
-                    TextButton(
-                      onPressed: selected == 0
-                          ? null
-                          : () => select(selected - 1),
-                      child: const Text('前一个采样'),
-                    ),
-                    TextButton(
-                      onPressed: selected == widget.times.length - 1
-                          ? null
-                          : () => select(selected + 1),
-                      child: const Text('后一个采样'),
-                    ),
-                  ],
-                ),
-            ],
+            ),
+            if (widget.showSteppers)
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: selected == 0
+                        ? null
+                        : () => select(selected - 1),
+                    child: const Text('前一个采样'),
+                  ),
+                  TextButton(
+                    onPressed: selected == widget.times.length - 1
+                        ? null
+                        : () => select(selected + 1),
+                    child: const Text('后一个采样'),
+                  ),
+                ],
+              ),
           ],
-          if (widget.note != null)
-            Text(widget.note!, style: Theme.of(context).textTheme.labelSmall),
         ],
-      ),
+        if (widget.note != null)
+          Text(widget.note!, style: Theme.of(context).textTheme.labelSmall),
+      ],
     );
+    return widget.card ? DataCard(child: content) : content;
   }
 }
 
@@ -394,11 +405,12 @@ double _barInset(
   int points,
   int series,
   ChartPresentation presentation,
-) => presentation == ChartPresentation.line
-    ? 0
-    : (_barWidth(width, points, series) * series +
-              math.max(0, series - 1) * 2) /
-          2;
+) {
+  if (presentation == ChartPresentation.line) return 0;
+  final bars = presentation == ChartPresentation.barsWithLine ? 1 : series;
+  return (_barWidth(width, points, bars) * bars + math.max(0, bars - 1) * 2) /
+      2;
+}
 
 class _TimePainter extends CustomPainter {
   _TimePainter({
@@ -565,7 +577,13 @@ class _TimePainter extends CustomPainter {
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
       Offset? previous;
-      final width = _barWidth(chart.width, times.length, series.length);
+      final barSeries = presentation == ChartPresentation.barsWithLine
+          ? 1
+          : series.length;
+      final width = _barWidth(chart.width, times.length, barSeries);
+      final asLine =
+          presentation == ChartPresentation.line ||
+          (presentation == ChartPresentation.barsWithLine && s > 0);
       for (var i = 0; i < values.length; i++) {
         final v = values[i];
         if (v == null) {
@@ -573,7 +591,7 @@ class _TimePainter extends CustomPainter {
           continue;
         }
         final point = Offset(x(i), y(v));
-        if (presentation == ChartPresentation.line) {
+        if (asLine) {
           if (previous != null) {
             if (s.isEven) {
               canvas.drawLine(previous, point, paint);
@@ -606,7 +624,12 @@ class _TimePainter extends CustomPainter {
           }
           previous = point;
         } else {
-          final center = x(i) + (s - (series.length - 1) / 2) * (width + 2);
+          final center =
+              x(i) +
+              (presentation == ChartPresentation.barsWithLine
+                      ? 0
+                      : (s - (series.length - 1) / 2)) *
+                  (width + 2);
           final rect = Rect.fromLTRB(
             center - width / 2,
             math.min(y(0), point.dy),

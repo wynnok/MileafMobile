@@ -35,7 +35,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );
@@ -72,7 +72,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );
@@ -116,7 +116,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );
@@ -156,7 +156,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );
@@ -184,7 +184,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );
@@ -226,7 +226,7 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '补能').hitTestable(),
+      find.text('补能').hitTestable(),
       180,
       scrollable: find.byType(Scrollable).first,
     );

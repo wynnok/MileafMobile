@@ -62,8 +62,27 @@ http.Response fixture(String name) => http.Response(
   200,
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
+
+/// Opens the C 日期 sheet and picks a preset period (本周/本月/近7天/本年).
+Future<void> pickPeriod(WidgetTester tester, String label) async {
+  await tester.tap(find.byType(ActionChip).first);
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(ActionChip, label),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> openDateSheet(WidgetTester tester) async {
+  await tester.tap(find.byType(ActionChip).first);
+  await tester.pumpAndSettle();
+}
+
 Future<void> custom(WidgetTester tester, String start, String end) async {
-  await tester.tap(find.text('自定义'));
+  await openDateSheet(tester);
   await tester.pumpAndSettle();
   await tester.enterText(find.widgetWithText(TextField, '开始日期'), start);
   await tester.enterText(find.widgetWithText(TextField, '结束日期（含）'), end);
@@ -114,8 +133,7 @@ void main() {
           () => DateTime.utc(2026, 10, 26, 12),
           () => 'Asia/Shanghai',
         );
-        await tester.tap(find.text('自定义'));
-        await tester.pumpAndSettle();
+        await openDateSheet(tester);
         final description = find.text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。');
         final start = find.widgetWithText(TextField, '开始日期');
         final end = find.widgetWithText(TextField, '结束日期（含）');
@@ -200,7 +218,7 @@ void main() {
     });
     await openStats(tester, client, () => now, () => 'UTC');
     fail = true;
-    await tester.tap(find.text('本周'));
+    await pickPeriod(tester, '本周');
     await tester.pumpAndSettle();
     expect(find.textContaining('服务暂不可用'), findsOneWidget);
     fail = false;
@@ -282,7 +300,7 @@ void main() {
       () => DateTime.utc(2026, 3, 15, 12),
       () => 'UTC',
     );
-    await tester.tap(find.text('本年'));
+    await pickPeriod(tester, '本年');
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
@@ -350,12 +368,12 @@ void main() {
       () => DateTime.utc(2026, 9, 15, 12),
       () => 'Asia/Shanghai',
     );
-    await tester.tap(find.text('本周'));
+    await pickPeriod(tester, '本周');
     await tester.pumpAndSettle();
     expect(queries.last['from'], '2026-09-13T16:00:00.000Z');
     expect(queries.last['to'], '2026-09-15T12:00:00.000Z');
     expect(queries.last['bucket'], 'day');
-    await tester.tap(find.text('本年'));
+    await pickPeriod(tester, '本年');
     await tester.pumpAndSettle();
     expect(queries.last['from'], '2025-12-31T16:00:00.000Z');
     expect(queries.last['bucket'], 'month');

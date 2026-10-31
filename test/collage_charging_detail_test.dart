@@ -84,8 +84,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.textContaining('服务端采样'), findsNothing);
     expect(find.textContaining('采样峰值不等同原始峰值'), findsNothing);
@@ -129,8 +129,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('最近充电'), 300);
-      await tester.tap(find.text('最近充电'));
+      await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+      await tester.tap(find.text('最近充电').hitTestable());
       await tester.pumpAndSettle();
       if (state == 'missing') {
         expect(find.text('没有有效轨迹坐标'), findsOneWidget);

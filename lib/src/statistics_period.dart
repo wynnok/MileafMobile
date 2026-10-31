@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'period_chips.dart';
 import 'workspace.dart';
 
-enum StatisticsPeriod { week, month, year, custom }
+enum StatisticsPeriod { week, recent, month, year, custom }
 
 /// Inclusive calendar dates are kept separately from their UTC query boundaries.
 class StatisticsSelection {
@@ -21,6 +22,7 @@ class StatisticsSelection {
       StatisticsPeriod.week => today.subtract(
         Duration(days: today.weekday - 1),
       ),
+      StatisticsPeriod.recent => today.subtract(const Duration(days: 6)),
       StatisticsPeriod.month => DateTime.utc(local.year, local.month),
       StatisticsPeriod.year => DateTime.utc(local.year),
       StatisticsPeriod.custom => start!,
@@ -39,7 +41,9 @@ class StatisticsSelection {
     }
     final days = last.difference(first).inDays + 1;
     final bucket = switch (period) {
-      StatisticsPeriod.week || StatisticsPeriod.month => 'day',
+      StatisticsPeriod.week ||
+      StatisticsPeriod.recent ||
+      StatisticsPeriod.month => 'day',
       StatisticsPeriod.year => 'month',
       StatisticsPeriod.custom =>
         days <= 31
@@ -99,7 +103,28 @@ class StatisticsPeriodControls extends StatelessWidget {
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final preset in const {
+                      StatisticsPeriod.week: '本周',
+                      StatisticsPeriod.recent: '近7天',
+                      StatisticsPeriod.month: '本月',
+                      StatisticsPeriod.year: '本年',
+                    }.entries)
+                      ActionChip(
+                        label: Text(preset.value),
+                        onPressed: () => Navigator.pop(
+                          context,
+                          StatisticsSelection(period: preset.key),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 const Text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。'),
                 const SizedBox(height: 24),
                 TextField(
@@ -167,29 +192,31 @@ class StatisticsPeriodControls extends StatelessWidget {
     end.dispose();
   }
 
+  /// C keeps two quick ranges on the left and the 日期 sheet action on the
+  /// right; custom/week/year stay reachable from the sheet.
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 4,
-    children: [
-      for (final item in const {
-        StatisticsPeriod.week: '本周',
-        StatisticsPeriod.month: '本月',
-        StatisticsPeriod.year: '本年',
-      }.entries)
-        ChoiceChip(
-          label: Text(item.value),
-          selected: selection.period == item.key,
-          onSelected: (_) => onChanged(StatisticsSelection(period: item.key)),
-        ),
-      ActionChip(
-        label: Text(
-          selection.period == StatisticsPeriod.custom
-              ? '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}'
-              : '自定义',
-        ),
-        onPressed: () => custom(context),
+  Widget build(BuildContext context) => PeriodChips(
+    labels: const ['本月', '近7天'],
+    selected: switch (selection.period) {
+      StatisticsPeriod.month => 0,
+      StatisticsPeriod.recent => 1,
+      _ => -1,
+    },
+    onSelected: (index) => onChanged(
+      StatisticsSelection(
+        period: index == 0 ? StatisticsPeriod.month : StatisticsPeriod.recent,
       ),
-    ],
+    ),
+    trailing: ActionChip(
+      avatar: const Icon(Icons.calendar_today_outlined, size: 16),
+      label: Text(switch (selection.period) {
+        StatisticsPeriod.week => '本周',
+        StatisticsPeriod.year => '本年',
+        StatisticsPeriod.custom =>
+          '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
+        _ => '日期',
+      }),
+      onPressed: () => custom(context),
+    ),
   );
 }

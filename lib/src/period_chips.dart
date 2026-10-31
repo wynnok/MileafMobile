@@ -18,8 +18,8 @@ class PeriodChips extends StatelessWidget {
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
+  Widget build(BuildContext context) {
+    final chips = [
       for (var i = 0; i < labels.length; i++)
         Padding(
           padding: const EdgeInsets.only(right: 6),
@@ -31,11 +31,22 @@ class PeriodChips extends StatelessWidget {
             selected: selected == i,
             showCheckmark: false,
             visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             onSelected: (_) => onSelected(i),
           ),
         ),
-      const Spacer(),
-      ?trailing,
-    ],
-  );
+    ];
+    // Large text wraps instead of overflowing the 360 dp header.
+    if (MediaQuery.textScalerOf(context).scale(14) >= 21) {
+      return Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [...chips, ?trailing],
+      );
+    }
+    return Row(children: [...chips, const Spacer(), ?trailing]);
+  }
 }

@@ -301,10 +301,9 @@ void main() {
       120,
     );
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
-    expect(find.text('起点围栏：住宅围栏'), findsOneWidget);
-    expect(find.text('起点地址：样例路1号'), findsOneWidget);
-    expect(find.text('终点围栏：办公地点'), findsNothing);
-    expect(find.text('终点地址：办公地点'), findsNothing);
+    // C 列表卡只放路线与主要指标，围栏/地址留在详情的「更多行程指标」。
+    expect(find.text('起点围栏：住宅围栏'), findsNothing);
+    expect(find.text('起点地址：样例路1号'), findsNothing);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-1')).hitTestable(),
       140,
@@ -437,8 +436,8 @@ void main() {
     });
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近行程'), 300);
-    await tester.tap(find.text('最近行程'));
+    await tester.scrollUntilVisible(find.text('最近行程').hitTestable(), 300);
+    await tester.tap(find.text('最近行程').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('行程 #17'), findsOneWidget);
     expect(find.textContaining('记录已不可用'), findsOneWidget);

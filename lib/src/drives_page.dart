@@ -1,4 +1,5 @@
 import 'collage.dart';
+import 'number_format.dart';
 import 'period_chips.dart';
 import 'api.dart';
 
@@ -24,7 +25,8 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   int sequence = 0, revision = 0;
   DateTimeRange? custom;
   DateTime? selectedDay;
-  int recentDays = 30, statsSequence = 0, chartDay = 0, chartMetric = 0;
+  int recentDays = 30, statsSequence = 0, chartDay = 0;
+  bool chartDayTouched = false;
   stats.DrivingStats? driving;
   String? statsError;
   bool statsLoading = false;
@@ -108,6 +110,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   }
 
   void resetQuery() {
+    chartDayTouched = false;
     final clock = workspace.calendar!;
     final now = workspace.session.now();
     windowDay = clock.day(now);
@@ -372,6 +375,137 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
     return '${md(DateTime.parse(range['from']!))}—${md(DateTime.parse(range['to']!))}';
   }
 
+  String _clock(DateTime value) {
+    final local = workspace.calendar!.local(value);
+    return '${local.month}/${local.day} · '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// C 最近的路 tile: one line of context, the route and its headline facts.
+  Widget _routeTile(dto.Drive d, {required bool lead}) => CollageTile(
+    surface: CollageSurface.paper,
+    padding: EdgeInsets.zero,
+    child: InkWell(
+      key: ValueKey('drive-${d.id}'),
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => widget.onRecord?.call(d.id),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    lead ? _clock(d.startedAt) : _clock(d.startedAt),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+                if (lead) ...[
+                  Text('单次回顾', style: Theme.of(context).textTheme.labelSmall),
+                  const Icon(Icons.north_east, size: 12),
+                ] else
+                  const Icon(Icons.chevron_right, size: 16),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${number(d.distanceKm, 'km', decimals: 1)} · '
+              '${number(d.durationMin, '分钟')} · '
+              '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            if (d.endedAt == null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '进行中',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _pairedRoutes(List<dto.Drive> routes) {
+    if (routes.isEmpty) return const SizedBox.shrink();
+    final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    if (single) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [for (final d in routes) _routeTile(d, lead: false)],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (index, d) in routes.indexed) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(child: _routeTile(d, lead: false)),
+        ],
+      ],
+    );
+  }
+
+  /// C 更早的记录: compact rows inside one cream tile, no date group headers.
+  Widget _earlierRoutes(List<dto.Drive> routes) => CollageTile(
+    surface: CollageSurface.paper,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '更早的记录',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            Text('按日期', style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
+        for (final d in routes)
+          InkWell(
+            key: ValueKey('drive-${d.id}'),
+            onTap: () => widget.onRecord?.call(d.id),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_clock(d.startedAt)} · '
+                      '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    number(d.distanceKm, 'km', decimals: 1),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
   String place(String? value) =>
       value == null || value.trim().isEmpty ? '未知地点' : value;
   String recordDay(DateTime value) {
@@ -499,7 +633,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                     const SizedBox(height: 6),
                     Text.rich(
                       TextSpan(
-                        text: s.totals.distanceKm.toStringAsFixed(1),
+                        text: grouped(s.totals.distanceKm, decimals: 1),
                         children: [
                           TextSpan(
                             text: ' km',
@@ -525,29 +659,44 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
             ),
             TimeChart(
               title: '出行节奏',
-              unit: chartMetric == 0 ? 'km' : 'Wh/km',
+              unit: 'km',
+              subtitle: statsSnapshot.isEmpty
+                  ? '每日里程 · 点按图形读值'
+                  : '${compactRange(statsSnapshot)} · 每日里程',
               times: s.buckets.map((b) => b.bucketStart).toList(),
               series: [
                 ChartSeries(
-                  label: chartMetric == 0 ? '每日里程' : '每日估算净电耗',
-                  values: s.buckets
-                      .map(
-                        (b) => chartMetric == 0
-                            ? b.distanceKm
-                            : b.consumptionWhKmNet,
-                      )
-                      .toList(),
+                  label: '每日里程',
+                  values: s.buckets.map((b) => b.distanceKm).toList(),
                 ),
               ],
               timestamp: (t) =>
                   workspace.calendar!.local(t).toString().split('.').first,
-              presentation: chartMetric == 0
-                  ? ChartPresentation.bars
-                  : ChartPresentation.line,
-              selectedIndex: chartDay,
-              height: 60,
+              presentation: ChartPresentation.bars,
+              selectedIndex: chartDayTouched
+                  ? chartDay
+                  : (s.buckets.lastIndexWhere((b) => b.distanceKm > 0) < 0
+                        ? 0
+                        : s.buckets.lastIndexWhere((b) => b.distanceKm > 0)),
+              height: 92,
               compact: true,
-              onSelected: (i) => setState(() => chartDay = i),
+              showSteppers: false,
+              onSelected: (i) => setState(() {
+                chartDay = i;
+                chartDayTouched = true;
+              }),
+              tickLabel: (t) {
+                final d = workspace.calendar!.local(t);
+                return '${d.month}/${d.day}';
+              },
+              readout: (index) {
+                if (index >= s.buckets.length) return '—';
+                final local = workspace.calendar!.local(
+                  s.buckets[index].bucketStart,
+                );
+                return '${local.month}/${local.day} '
+                    '${number(s.buckets[index].distanceKm, 'km', decimals: 1)}';
+              },
               onActivateSelected: s.buckets.isEmpty
                   ? null
                   : () {
@@ -556,28 +705,6 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                       );
                       filterDay(DateTime(local.year, local.month, local.day));
                     },
-              controls: Wrap(
-                spacing: 2,
-                children: [
-                  for (final entry in [(0, '里程', '每日里程'), (1, '电耗', '每日电耗')])
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                      ),
-                      onPressed: () => setState(() => chartMetric = entry.$1),
-                      child: Text(
-                        entry.$2,
-                        semanticsLabel: entry.$3,
-                        style: TextStyle(
-                          fontWeight: chartMetric == entry.$1
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
             ),
           ],
           if (selectedDay != null)
@@ -587,83 +714,17 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
               },
               child: const Text('返回完整区间'),
             ),
-          if (items.isNotEmpty) const Text('最近的路'),
-          for (final (index, d) in items.indexed) ...[
-            if (index == 0 ||
-                recordDay(items[index - 1].startedAt) != recordDay(d.startedAt))
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 6),
-                child: Text(
-                  recordDay(d.startedAt),
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            CollageTile(
-              surface: index == 0 ? CollageSurface.mint : CollageSurface.paper,
-              padding: EdgeInsets.zero,
-              child: InkWell(
-                key: ValueKey('drive-${d.id}'),
-                onTap: () => widget.onRecord?.call(d.id),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        workspace.calendar!
-                            .local(d.startedAt)
-                            .toString()
-                            .split('.')
-                            .first,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                      ),
-                      Text(
-                        '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '距离 ${number(d.distanceKm, 'km', decimals: 1)} · 时长 ${number(d.durationMin, '分钟')}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '估算净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          Text(
-                            '估算净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      for (final endpoint in [
-                        ('起点', d.start),
-                        ('终点', d.end),
-                      ]) ...[
-                        if (endpoint.$2.geofence?.trim().isNotEmpty == true &&
-                            endpoint.$2.geofence != endpoint.$2.displayName)
-                          Text('${endpoint.$1}围栏：${endpoint.$2.geofence}'),
-                        if (endpoint.$2.address?.trim().isNotEmpty == true &&
-                            endpoint.$2.address != endpoint.$2.displayName &&
-                            endpoint.$2.address != endpoint.$2.geofence)
-                          Text('${endpoint.$1}地址：${endpoint.$2.address}'),
-                      ],
-
-                      if (d.endedAt == null) const Text('进行中'),
-                    ],
-                  ),
-                ),
+          if (items.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 6),
+              child: Text(
+                '最近的路',
+                style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
+            _routeTile(items.first, lead: true),
+            if (items.length > 1) _pairedRoutes(items.skip(1).take(2).toList()),
+            if (items.length > 3) _earlierRoutes(items.skip(3).toList()),
           ],
           if (pageError != null)
             Semantics(liveRegion: true, child: Text(pageError!)),

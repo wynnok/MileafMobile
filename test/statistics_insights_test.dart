@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'support/statistics_insights_fixture.dart';
-import 'statistics_test.dart' show openStats, fixture;
+import 'statistics_test.dart' show openStats, pickPeriod, fixture;
 
 void main() {
   testWidgets('统计洞察使用能力声明展示总览与配对净电耗', (tester) async {
@@ -56,14 +56,9 @@ void main() {
           .dy,
       lessThanOrEqualTo(736),
     );
-    await tester.scrollUntilVisible(
-      find.textContaining('参照读数 20.0 km'),
-      80,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.textContaining('参照读数 20.0 km'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(TextButton, '节奏'));
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    expect(find.textContaining('参照 20.0'), findsOneWidget);
+    await tester.ensureVisible(find.text('节奏').first);
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.textContaining('Asia/Shanghai'), findsNothing);
@@ -137,19 +132,34 @@ void main() {
         () => 'Asia/Shanghai',
         statisticsInsights: true,
       );
-      if (scenario == 'normal') {
-        expect(find.textContaining('净电耗差 -12.5 Wh/km'), findsOneWidget);
-      } else if (scenario == 'zero') {
-        expect(find.textContaining('基期为0'), findsOneWidget);
-      } else {
-        expect(find.textContaining('里程较参照'), findsNothing);
-      }
       await tester.scrollUntilVisible(
-        find.text('参照原值与质量').hitTestable(),
+        find.text('四个问题').hitTestable(),
         100,
         scrollable: find.byType(Scrollable).last,
       );
-      await tester.tap(find.text('参照原值与质量').hitTestable());
+      if (scenario == 'normal') {
+        expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
+      } else if (scenario == 'zero') {
+        expect(find.textContaining('参照为0'), findsOneWidget);
+      } else {
+        expect(find.textContaining('较参照'), findsNothing);
+      }
+      await tester.scrollUntilVisible(
+        find.text('数据说明与更多').hitTestable(),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('数据说明与更多').hitTestable());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('参照原值与质量'),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -160));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('参照原值与质量'));
+      await tester.pumpAndSettle();
       await tester.pumpAndSettle();
       expect(
         find.textContaining(
@@ -206,14 +216,9 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.tap(find.text('本周'));
+    await pickPeriod(tester, '本周');
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('全部指标与口径').hitTestable(),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('全部指标与口径').hitTestable());
+    await tester.tap(find.widgetWithText(TextButton, '全部指标'));
     await tester.pumpAndSettle();
     // C03: every metric entry is a topic, never a second equal-weight tab bar.
     expect(find.text('驾驶统计'), findsNothing);
@@ -242,10 +247,7 @@ void main() {
         () => c.$3,
         statisticsInsights: true,
       );
-      if (c.$4 != '本月') {
-        await tester.tap(find.text(c.$4));
-        await tester.pumpAndSettle();
-      }
+      if (c.$4 != '本月') await pickPeriod(tester, c.$4);
       expect(find.textContaining('日历进度无法对齐'), findsOneWidget);
       expect(find.textContaining('里程较参照'), findsNothing);
     });
@@ -282,7 +284,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(currentRequests, before);
     expect(find.textContaining('参照读取失败'), findsNothing);
-    expect(find.textContaining('里程较参照'), findsOneWidget);
+    expect(find.text('与参照同期持平'), findsOneWidget);
   });
   testWidgets('360宽200%深色可切换配对净电耗且原值完整可读', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -303,19 +305,13 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.widgetWithText(ChoiceChip, '净电耗').hitTestable(),
+      find.text('四个问题').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.widgetWithText(ChoiceChip, '净电耗'));
-    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.scrollUntilVisible(
-      find.textContaining('参照读数 200.0 Wh/km'),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.textContaining('本期读数 187.5 Wh/km'), findsOneWidget);
+    expect(find.textContaining('187.5 Wh/km'), findsWidgets);
+    expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
   });
 
   testWidgets('驾驶汇总失败不遮挡其他专题与区间恢复操作', (tester) async {
@@ -345,7 +341,8 @@ void main() {
       statisticsInsights: true,
     );
     expect(find.text('长期'), findsOneWidget);
-    expect(find.text('本周'), findsOneWidget);
+    // The C 区间控件 stays usable while a metric read fails.
+    expect(find.text('近7天'), findsOneWidget);
     expect(find.textContaining('统计读取失败'), findsOneWidget);
   });
 }

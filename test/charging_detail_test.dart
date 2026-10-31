@@ -75,8 +75,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     final graph = tester.getRect(find.byKey(const Key('charging-time-chart')));
     expect(graph.bottom, lessThanOrEqualTo(800));
@@ -98,8 +98,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情 #1'), findsOneWidget);
     expect(find.text('充入电池 20 kWh'), findsOneWidget);
@@ -203,8 +203,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     final chart = find.byKey(const Key('charging-time-chart'));
     await tester.scrollUntilVisible(chart.hitTestable(), 200);
@@ -252,8 +252,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('该充电记录已不可用，可返回上一页'), findsOneWidget);
     expect(find.text('充入电池 20 kWh'), findsNothing);
@@ -263,7 +263,7 @@ void main() {
     await tester.tap(find.text('返回上一页'));
     await tester.pumpAndSettle();
     mismatch = true;
-    await tester.tap(find.text('最近充电'));
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('服务返回格式不兼容，请核对版本'), findsOneWidget);
     expect(find.textContaining('9876'), findsNothing);
@@ -282,8 +282,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('站点访问口令'), findsOneWidget);
     expect(find.text('充电详情 #1'), findsNothing);

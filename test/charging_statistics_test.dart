@@ -220,7 +220,14 @@ void main() {
         () => DateTime.utc(2026, 3, 15, 12),
         () => 'UTC',
       );
-      await tester.tap(find.text('本年'));
+      await tester.tap(find.byType(ActionChip).first);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(ActionChip, '本年'),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
@@ -244,10 +251,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('行程数 49 次'), findsOneWidget);
       expect(find.textContaining('保留上次快照'), findsNothing);
-      final weekOrYear = tester.widget<ChoiceChip>(
-        find.widgetWithText(ChoiceChip, '本年'),
+      expect(
+        find.widgetWithText(ActionChip, '本年'),
+        findsOneWidget,
+        reason: '驾驶统计沿用同一年区间，控件显示当前为 本年',
       );
-      expect(weekOrYear.selected, isTrue);
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(

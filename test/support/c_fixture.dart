@@ -203,14 +203,18 @@ Map<String, dynamic> _metrics(double distance, int drives, {num? netWhKm}) {
   final energy = distance > 0
       ? double.parse((distance * unit / 1000).toStringAsFixed(2))
       : 0.0;
+  // Driving minutes stay consistent with the C rhythm summary (13h18 total).
+  final minutes = distance > 0
+      ? (cRhythm.drivingMinutes * distance / cMonth.distanceKm).round()
+      : 0;
   Map<String, dynamic> coverage(int count, double km) => {
     'candidate_count': count,
     'valid_count': count,
     'excluded_count': 0,
     'candidate_distance_km': km,
     'valid_distance_km': km,
-    'candidate_duration_min': count * 20,
-    'valid_duration_min': count * 20,
+    'candidate_duration_min': count == 0 ? 0 : minutes,
+    'valid_duration_min': count == 0 ? 0 : minutes,
     'unknown_distance_count': 0,
     'unknown_duration_count': 0,
     'excluded_by_reason': <String, int>{},
@@ -231,7 +235,7 @@ Map<String, dynamic> _metrics(double distance, int drives, {num? netWhKm}) {
       'net_energy_known_drives': drives,
       'net_energy_known_distance_km': distance,
       'duration_known_drives': drives,
-      'duration_known_min': drives * 20,
+      'duration_known_min': minutes,
       'distance': coverage(drives, distance),
       'net_energy': coverage(drives, distance),
       'duration': coverage(drives, distance),
@@ -683,27 +687,93 @@ Map<String, dynamic> cCharging(Uri uri) {
 Map<String, dynamic> cDrives() {
   final body = _copy(_json('drives'));
   final items = (body['items'] as List).cast<Map<String, dynamic>>();
-  final first = items.first;
-  body['next_cursor'] = 'page-2';
-  first
-    ..['distance_km'] = 32.9
-    ..['duration_min'] = 46
-    ..['started_at'] = '2026-10-26T08:05:00Z'
-    ..['ended_at'] = '2026-10-26T08:51:00Z'
-    ..['consumption_wh_km'] = 154
-    ..['start'] = {
-      'display_name': '松岚小区',
-      'geofence': '家',
-      'address': '松岚小区',
-      'lat': 31.2304,
-      'lon': 121.4737,
-    }
-    ..['end'] = {
-      'display_name': '云栖中心',
-      'geofence': '公司',
-      'address': '云栖中心',
-      'lat': 31.2450,
-      'lon': 121.5010,
-    };
+  body['next_cursor'] = null;
+  // C 最近的路: three recent tiles plus 更早的记录 rows, all inside the
+  // displayed 9/27—10/26 window so the gallery never mixes months.
+  final template = _copy(items.first);
+  Map<String, dynamic> place(String name) => {
+    'display_name': name,
+    'geofence': null,
+    'address': null,
+    'lat': 31.2304,
+    'lon': 121.4737,
+  };
+  final samples = [
+    (
+      id: 17,
+      start: '2026-10-26T08:05:00Z'.toString(),
+      end: '2026-10-26T08:51:00Z',
+      from: '松岚小区',
+      to: '云栖中心',
+      km: 32.9,
+      min: 46,
+      wh: 154,
+    ),
+    (
+      id: 16,
+      start: '2026-10-26T00:30:00Z',
+      end: '2026-10-26T01:02:00Z',
+      from: '家',
+      to: '公司',
+      km: 18.4,
+      min: 32,
+      wh: 162,
+    ),
+    (
+      id: 15,
+      start: '2026-10-25T10:10:00Z',
+      end: '2026-10-25T10:34:00Z',
+      from: '公司',
+      to: '湖畔超充',
+      km: 12.6,
+      min: 24,
+      wh: 138,
+    ),
+    (
+      id: 14,
+      start: '2026-10-24T01:00:00Z',
+      end: '2026-10-24T01:18:00Z',
+      from: '家',
+      to: '松岚公园',
+      km: 7.8,
+      min: 18,
+      wh: 149,
+    ),
+    (
+      id: 13,
+      start: '2026-10-23T10:40:00Z',
+      end: '2026-10-23T11:12:00Z',
+      from: '公司',
+      to: '家',
+      km: 18.7,
+      min: 32,
+      wh: 160,
+    ),
+    (
+      id: 12,
+      start: '2026-10-22T02:20:00Z',
+      end: '2026-10-22T03:00:00Z',
+      from: '家',
+      to: '云栖中心',
+      km: 27.6,
+      min: 40,
+      wh: 157,
+    ),
+  ];
+  body['items'] = [
+    for (final sample in samples)
+      _copy(template)
+        ..['id'] = sample.id
+        ..['started_at'] = sample.start
+        ..['ended_at'] = sample.end
+        ..['distance_km'] = sample.km
+        ..['duration_min'] = sample.min
+        ..['consumption_wh_km'] = sample.wh
+        ..['energy_kwh'] = double.parse(
+          (sample.km * sample.wh / 1000).toStringAsFixed(2),
+        )
+        ..['start'] = place(sample.from)
+        ..['end'] = place(sample.to),
+  ];
   return body;
 }

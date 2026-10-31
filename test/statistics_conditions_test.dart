@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'statistics_test.dart' show openStats, fixture;
+import 'statistics_test.dart' show openStats, pickPeriod, fixture;
 import 'statistics_usage_test.dart' show usageClient, usageFixture, setCoverage;
 
 Map<String, dynamic> conditionsFixture() => {
@@ -54,11 +54,8 @@ Map<String, dynamic> conditionsFixture() => {
   ],
 };
 Future<void> openConditions(WidgetTester tester) async {
-  await tester.scrollUntilVisible(
-    find.widgetWithText(TextButton, '能耗').hitTestable(),
-    200,
-  );
-  await tester.tap(find.widgetWithText(TextButton, '能耗').hitTestable());
+  await tester.scrollUntilVisible(find.text('能耗').hitTestable(), 200);
+  await tester.tap(find.text('能耗').first);
   await tester.pumpAndSettle();
 }
 
@@ -215,8 +212,7 @@ void main() {
     expect(month['from'], '2026-09-30T16:00:00.000Z');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, '本周'));
-    await tester.pumpAndSettle();
+    await pickPeriod(tester, '本周');
     await openConditions(tester);
     final week = seen.last.queryParameters;
     expect(week['from'], '2026-10-25T16:00:00.000Z');

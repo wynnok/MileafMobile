@@ -291,7 +291,7 @@ void main() {
       final record = find.byKey(ValueKey('drive-$id'));
       await tester.scrollUntilVisible(record, 140);
       expect(
-        find.descendant(of: record, matching: find.text('估算净能量 3.75 kWh')),
+        find.descendant(of: record, matching: find.textContaining('净电耗')),
         findsOneWidget,
       );
     }
@@ -306,14 +306,14 @@ void main() {
     expect(find.text('49 趟'), findsOneWidget);
     expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
   });
-  testWidgets('行程按本地日期分组，同日记录共享标题且保留独立详情入口', (tester) async {
+  testWidgets('C 最近的路保留每条记录的时间与独立详情入口', (tester) async {
     await openDrives(
       tester,
       (request) async =>
           jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
     );
-    await tester.scrollUntilVisible(find.text('2026年3月30日'), 140);
-    expect(find.text('2026年3月30日'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('最近的路'), 140);
+    expect(find.textContaining('3/30'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
       140,
@@ -495,7 +495,7 @@ void main() {
     );
     expect(find.text('进行中'), findsOneWidget);
     expect(find.textContaining('净电耗 0 Wh/km'), findsOneWidget);
-    expect(find.textContaining('距离 —（缺失）'), findsOneWidget);
+    expect(find.textContaining('—（缺失）'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     refresh = true;
     await tester.scrollUntilVisible(find.byTooltip('刷新行程'), -300);

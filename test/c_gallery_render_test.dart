@@ -189,6 +189,8 @@ void main() {
           await save('overview-$suffix');
           if (scenario == 'normal' && scale == 1.0) {
             expectPage('每日里程', absent: '前一个采样');
+            expectPage('本月 · 驾驶里程');
+            expectPage('较参照');
           }
 
           if (scenario == 'normal') {
@@ -197,7 +199,7 @@ void main() {
               200,
               scrollable: find.byType(Scrollable).last,
             );
-            await tester.tap(find.text('最近充电'));
+            await tester.tap(find.text('最近充电').hitTestable());
             await tester.pumpAndSettle();
             await save('charge-detail-$suffix');
             if (scale == 1.0) {
@@ -209,7 +211,7 @@ void main() {
               200,
               scrollable: find.byType(Scrollable).last,
             );
-            await tester.tap(find.text('最近行程'));
+            await tester.tap(find.text('最近行程').hitTestable());
             await tester.pumpAndSettle();
             await save('drive-detail-$suffix');
             expectPage('路线示意 · 非导航');
@@ -223,6 +225,7 @@ void main() {
             if (scenario == 'normal' && scale == 1.0) {
               expectPage('已知充电费用');
               expectPage('每日补能');
+              expectPage('费用有记录 8 / 9 次');
             }
             if (scenario == 'empty' && scale == 1.0) {
               // C07: empty must not draw a fake all-zero trend.
@@ -234,7 +237,11 @@ void main() {
           await tester.pumpAndSettle();
           await save('statistics-$suffix');
           if (scenario == 'normal' && scale == 1.0) {
+            // C stats reads as conclusion → dark chart → 四个问题.
             expectPage('里程走势', absent: '趋势指标');
+            expectPage('本期 vs 参照 · 同进度');
+            expectPage('四个问题');
+            expectPage('较参照低 8 Wh/km');
           }
 
           await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
@@ -251,6 +258,8 @@ void main() {
           await save('drives-$suffix');
           if (scenario == 'normal' && scale == 1.0) {
             expectPage('出行节奏', absent: '筛选日期');
+            expectPage('最近的路');
+            expectPage('单次回顾');
           }
         }
       }

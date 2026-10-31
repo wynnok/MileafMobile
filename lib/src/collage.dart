@@ -80,3 +80,52 @@ class CollageBento extends StatelessWidget {
           ],
         );
 }
+
+/// Quiet bar sparkline used by C preview tiles (`1,198.6` tile, 四个问题).
+class Sparkline extends StatelessWidget {
+  const Sparkline({super.key, required this.values, this.height = 34});
+  final List<double> values;
+  final double height;
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) return SizedBox(height: height);
+    final max = values.fold<double>(0, (a, b) => b > a ? b : a);
+    final color = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      height: height,
+      child: CustomPaint(
+        painter: _SparklinePainter(values, max, color),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  _SparklinePainter(this.values, this.max, this.color);
+  final List<double> values;
+  final double max;
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty || max <= 0) return;
+    const gap = 2.0;
+    final barWidth = (size.width - gap * (values.length - 1)) / values.length;
+    for (var i = 0; i < values.length; i++) {
+      final h = (values[i] / max) * size.height;
+      final left = i * (barWidth + gap);
+      final isLast = i == values.length - 1;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, size.height - h, barWidth, h),
+          const Radius.circular(2),
+        ),
+        Paint()..color = color.withValues(alpha: isLast ? 1 : 0.5),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklinePainter old) =>
+      old.values != values || old.max != max || old.color != color;
+}

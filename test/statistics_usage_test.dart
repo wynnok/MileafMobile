@@ -137,12 +137,9 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '节奏').hitTestable(),
-      150,
-    );
+    await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
     expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('活跃 12 天'), 200);
     expect(find.text('活跃 12 天'), findsOneWidget);
@@ -159,7 +156,7 @@ void main() {
     expect(usage.queryParameters['tz'], 'Asia/Shanghai');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(TextButton, '节奏'), findsOneWidget);
+    expect(find.text('节奏').hitTestable(), findsWidgets);
     expect(find.text('这段时间的用车节奏'), findsNothing);
   });
   testWidgets('无已完成行程与未知指标明确区分', (tester) async {
@@ -170,11 +167,8 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '节奏').hitTestable(),
-      150,
-    );
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     expect(find.text('区间内无已完成行程'), findsOneWidget);
   });
@@ -207,11 +201,8 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '节奏').hitTestable(),
-      200,
-    );
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 200);
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('0–10 km').hitTestable(), 200);
     await tester.tap(find.text('0–10 km'));
@@ -247,11 +238,8 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(
-      find.widgetWithText(TextButton, '节奏').hitTestable(),
-      200,
-    );
-    await tester.tap(find.widgetWithText(TextButton, '节奏'));
+    await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 200);
+    await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('一周的用车节奏').hitTestable(), 200);
     expect(tester.takeException(), isNull);

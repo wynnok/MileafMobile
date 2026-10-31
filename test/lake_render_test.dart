@@ -351,7 +351,7 @@ void main() {
         await save('driving-$suffix');
         await tester.tap(find.text('充电统计'));
         await save('charging-$suffix');
-        await tester.tap(find.text('自定义'));
+        await tester.tap(find.byType(ActionChip).first);
         await save('statistics-custom-$suffix');
         await tester.tap(find.text('取消'));
         await tester.pumpAndSettle();

@@ -28,6 +28,15 @@ void main() {
       expect(double.parse(sum.toStringAsFixed(1)), 1198.6);
       // 22 active days (drives > 0).
       expect(buckets.where((b) => (b['drives'] as int) > 0).length, 22);
+      // Driving minutes agree with the C rhythm summary (13h18 = 798 min).
+      final coverage = totals['driving_coverage'] as Map;
+      expect(coverage['duration_known_min'], 798);
+      final minutes = buckets.fold<int>(
+        0,
+        (a, b) =>
+            a + ((b['driving_coverage'] as Map)['duration_known_min'] as int),
+      );
+      expect((minutes - 798).abs() <= 2, isTrue, reason: '按里程分摊后合计 798±2');
     });
 
     test('September reference distance yields 91.3 km gap', () {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'currency.dart';
 import 'collage.dart';
+import 'number_format.dart';
 import 'data_cards.dart';
 import 'data_chart.dart';
 import 'driving_statistics_contract.g.dart' as stats;
@@ -717,7 +718,7 @@ class _OverviewPageState extends State<OverviewPage>
             ],
           ),
           style: theme.textTheme.displayLarge?.copyWith(
-            fontSize: 46,
+            fontSize: scale > 1.4 ? 40 : 46,
             height: 1.0,
             color: const Color(0xFFEEF7EF),
             fontFeatures: const [FontFeature.tabularFigures()],
@@ -733,7 +734,7 @@ class _OverviewPageState extends State<OverviewPage>
     );
     final battery = BatteryLevelIndicator(
       level: d.battery?.level,
-      size: 66 * scale,
+      size: scale > 1.4 ? 52 : 66 * scale,
     );
     Widget stat(String value, String label) => Expanded(
       child: Column(
@@ -774,32 +775,65 @@ class _OverviewPageState extends State<OverviewPage>
                     color: const Color(0xFF8AD6AF).withValues(alpha: 0.10),
                   ),
                 ),
-                if (scale > 1.4) ...[
-                  values,
-                  Align(alignment: Alignment.centerRight, child: battery),
-                ] else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(child: values),
-                      const SizedBox(width: 8),
-                      battery,
-                    ],
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (scale > 1.4) ...[
+                      values,
+                      Align(alignment: Alignment.centerRight, child: battery),
+                    ] else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(child: values),
+                          const SizedBox(width: 8),
+                          battery,
+                        ],
+                      ),
+                  ],
+                ),
               ],
             ),
             const Divider(height: 12, color: Color(0x2266DDAA)),
-            Row(
-              children: [
-                stat(d.period.today.distanceKm.toStringAsFixed(0), '今日 km'),
-                stat('${d.period.today.drives}', '次行程'),
-                stat(
-                  d.period.today.energyKwh?.toStringAsFixed(2) ?? '—',
-                  '估算 kWh',
-                ),
-                stat(d.chargingPowerKw?.toStringAsFixed(1) ?? '—', 'kW 充电'),
-              ],
-            ),
+            if (scale > 1.4)
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      stat(
+                        d.period.today.distanceKm.toStringAsFixed(0),
+                        '今日 km',
+                      ),
+                      stat('${d.period.today.drives}', '次行程'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      stat(
+                        d.period.today.energyKwh?.toStringAsFixed(2) ?? '—',
+                        '估算 kWh',
+                      ),
+                      stat(
+                        d.chargingPowerKw?.toStringAsFixed(1) ?? '—',
+                        'kW 充电',
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  stat(d.period.today.distanceKm.toStringAsFixed(0), '今日 km'),
+                  stat('${d.period.today.drives}', '次行程'),
+                  stat(
+                    d.period.today.energyKwh?.toStringAsFixed(2) ?? '—',
+                    '估算 kWh',
+                  ),
+                  stat(d.chargingPowerKw?.toStringAsFixed(1) ?? '—', 'kW 充电'),
+                ],
+              ),
           ],
         ),
       ),
@@ -812,7 +846,8 @@ class _OverviewPageState extends State<OverviewPage>
     return diff < 0 ? null : diff;
   }
 
-  String get mileageComparison {
+  /// Null when the same-progress reference is valid, else the C wording.
+  String? get _mileageGuard {
     final current = results['driving'];
     final prior = comparisonResult;
     if (!pairedAvailable ||
@@ -832,11 +867,43 @@ class _OverviewPageState extends State<OverviewPage>
         )) {
       return '同期参照不足';
     }
-    final previous = comparison?.totals.distanceKm;
-    final distance = driving?.totals.distanceKm;
-    if (previous == null || distance == null) return '同期里程缺失';
-    return '里程较参照差 ${(distance - previous).toStringAsFixed(1)} km';
+    if (driving == null || comparison == null) return '同期里程缺失';
+    return null;
   }
+
+  String get mileageComparison {
+    final guard = _mileageGuard;
+    if (guard != null) return guard;
+    final delta = driving!.totals.distanceKm - comparison!.totals.distanceKm;
+    return '里程较参照差 ${delta.toStringAsFixed(1)} km';
+  }
+
+  /// C mint tile pill: percentage delta, never a bare sign on a zero base.
+  String get _mileageDeltaPill {
+    final guard = _mileageGuard;
+    if (guard != null) return guard;
+    final previous = comparison!.totals.distanceKm;
+    final current = driving!.totals.distanceKm;
+    if (previous == 0) return '—（基期为0）';
+    final percent = (current - previous) / previous * 100;
+    if (percent.abs() < .05) return '与参照同期持平';
+    return '${percent > 0 ? '↑' : '↓'} ${percent.abs().toStringAsFixed(1)}% 较参照';
+  }
+
+  Widget deltaPill(String text) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: .62),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    ),
+  );
 
   Widget pairs(List<Widget> children) =>
       MediaQuery.textScalerOf(context).scale(14) / 14 > 1.4
@@ -862,6 +929,24 @@ class _OverviewPageState extends State<OverviewPage>
           for (final b in driving?.buckets ?? <stats.DrivingBucket>[])
             b.bucketStart,
         ];
+  String chartSubtitle(StatisticsWindow? window) {
+    final from = window?.from, to = window?.to;
+    final calendar = workspace.calendar;
+    if (from == null || to == null || calendar == null) return '点按图形读值';
+    final first = calendar.local(from);
+    final last = calendar.local(to.subtract(const Duration(microseconds: 1)));
+    final span = first.month == last.month
+        ? '${first.month}月${first.day}日—${last.day}日'
+        : '${first.month}月${first.day}日—${last.month}月${last.day}日';
+    return '$span · 点按图形读值';
+  }
+
+  String tickLabelAt(List<DateTime> times, int index) {
+    if (index < 0 || index >= times.length) return '—';
+    final local = workspace.calendar!.local(times[index]);
+    return '${local.month}/${local.day}';
+  }
+
   Widget mainChart() {
     final paired = enhancedDriving(results['driving']);
     final isCharging = metric == _Metric.charge || metric == _Metric.cost;
@@ -912,12 +997,25 @@ class _OverviewPageState extends State<OverviewPage>
         return '${d.month}/${d.day}';
       },
       height: 84,
+      compact: true,
       showSteppers: false,
-
+      controls: _metricTabs(),
+      readout: (index) {
+        final value = index < values.length ? values[index] : null;
+        final text = switch (metric) {
+          _Metric.cost => widget.currency.amount(value),
+          _Metric.net =>
+            value == null ? '—' : '${value.toStringAsFixed(0)} $unit',
+          _ => value == null ? '—' : '${value.toStringAsFixed(1)} $unit',
+        };
+        return '${tickLabelAt(chartTimes, index)} $text';
+      },
+      trailing: const Icon(Icons.arrow_forward, size: 16),
+      maximum: metric == _Metric.distance ? 120 : null,
       presentation: metric == _Metric.net
           ? ChartPresentation.line
           : ChartPresentation.bars,
-      subtitle: '${shortStamp(displayed?.from)}—${shortStamp(displayed?.to)}',
+      subtitle: chartSubtitle(displayed),
       valueLabel: metric == _Metric.cost ? widget.currency.amount : null,
       note: metric == _Metric.cost ? '仅含费用已知记录；缺失不表示免费。' : null,
     );
@@ -1182,8 +1280,8 @@ class _OverviewPageState extends State<OverviewPage>
                 child: const Text('重试概览'),
               ),
             ],
-            if (data != null) summary(context, data!),
             _periodBar(),
+            if (data != null) summary(context, data!),
             resourceStatus('driving', '重试里程趋势'),
             resourceStatus('charging', '重试补能'),
             _monthBento(),
@@ -1222,13 +1320,23 @@ class _OverviewPageState extends State<OverviewPage>
         chartSelection = null;
         changePeriod(index == 0 ? OverviewPeriod.month : OverviewPeriod.recent);
       },
-      trailing: IconButton(
-        onPressed: loading ? null : () => loadSummary(force: true),
-        icon: const Icon(Icons.refresh, size: 18),
-        tooltip: '刷新概览',
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            workspace.calendar?.identifier ?? 'UTC',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          const SizedBox(width: 2),
+          IconButton(
+            onPressed: loading ? null : () => loadSummary(force: true),
+            icon: const Icon(Icons.refresh, size: 18),
+            tooltip: '刷新概览',
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
     ),
   );
@@ -1239,7 +1347,7 @@ class _OverviewPageState extends State<OverviewPage>
   Widget _monthTile() {
     final theme = Theme.of(context);
     final value = driving?.totals.distanceKm;
-    final parts = value == null ? '—' : value.toStringAsFixed(1);
+    final parts = value == null ? '—' : grouped(value, decimals: 1);
     return Semantics(
       container: true,
       label:
@@ -1278,16 +1386,16 @@ class _OverviewPageState extends State<OverviewPage>
                   ],
                 ),
                 style: theme.textTheme.displayLarge?.copyWith(
-                  fontSize: 46,
+                  fontSize: 34,
                   height: 1.0,
                   fontWeight: FontWeight.w600,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               const SizedBox(height: 6),
-              Text(mileageComparison, style: theme.textTheme.labelSmall),
+              deltaPill(_mileageDeltaPill),
               const SizedBox(height: 8),
-              _Sparkline(
+              Sparkline(
                 height: 26,
                 values: [
                   for (final b in driving?.buckets ?? <stats.DrivingBucket>[])
@@ -1407,6 +1515,9 @@ class _OverviewPageState extends State<OverviewPage>
           selected: metric == m,
           showCheckmark: false,
           visualDensity: VisualDensity.compact,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           onSelected: (_) => setState(() => metric = m),
         ),
     ],
@@ -1414,10 +1525,7 @@ class _OverviewPageState extends State<OverviewPage>
 
   Widget _dailyChartCard() => CollageTile(
     padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_metricTabs(), const SizedBox(height: 4), mainChart()],
-    ),
+    child: mainChart(),
   );
 
   Widget _insightStrip() => Padding(
@@ -1462,9 +1570,16 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   String _insightText() {
-    final comparison = mileageComparison;
-    final lead = comparison.startsWith('里程') ? comparison : '里程$comparison';
-    return '$lead；数据非实时，费用为已知记录。';
+    final current = driving?.totals.consumptionWhKmNet;
+    final prior = comparison?.totals.consumptionWhKmNet;
+    if (_mileageGuard == null && current != null && prior != null) {
+      final delta = (current - prior).abs();
+      if (delta >= .5) {
+        final window = period == OverviewPeriod.month ? '上月同期' : '前一区间';
+        return '净电耗比$window${current < prior ? '低' : '高'} ${delta.toStringAsFixed(0)} Wh/km。同车、同归期时区。';
+      }
+    }
+    return '净电耗样本不足，本期暂不做区间比较。同车、同归期时区。';
   }
 
   Widget _chapterGrid() {
@@ -1552,56 +1667,6 @@ class _OverviewPageState extends State<OverviewPage>
       ],
     ),
   );
-}
-
-/// Minimal bar sparkline for the C 本月 tile (renders buckets as light bars).
-class _Sparkline extends StatelessWidget {
-  const _Sparkline({required this.values, this.height = 34});
-  final List<double> values;
-  final double height;
-  @override
-  Widget build(BuildContext context) {
-    if (values.isEmpty) return SizedBox(height: height);
-    final max = values.fold<double>(0, (a, b) => b > a ? b : a);
-    final color = Theme.of(context).colorScheme.primary;
-    return SizedBox(
-      height: height,
-      child: CustomPaint(
-        painter: _SparklinePainter(values, max, color),
-        size: Size.infinite,
-      ),
-    );
-  }
-}
-
-class _SparklinePainter extends CustomPainter {
-  _SparklinePainter(this.values, this.max, this.color);
-  final List<double> values;
-  final double max;
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty || max <= 0) return;
-    final gap = 2.0;
-    final barWidth = (size.width - gap * (values.length - 1)) / values.length;
-    final paint = Paint()..color = color;
-    for (var i = 0; i < values.length; i++) {
-      final h = (values[i] / max) * size.height;
-      final left = i * (barWidth + gap);
-      final isLast = i == values.length - 1;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, size.height - h, barWidth, h),
-          const Radius.circular(2),
-        ),
-        paint..color = color.withValues(alpha: isLast ? 1 : 0.5),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SparklinePainter old) =>
-      old.values != values || old.max != max || old.color != color;
 }
 
 class MetaPage extends StatefulWidget {

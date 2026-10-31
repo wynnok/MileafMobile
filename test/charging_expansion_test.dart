@@ -400,8 +400,8 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('最近充电'), 300);
-    await tester.tap(find.text('最近充电'));
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('过程数据说明').hitTestable(), 200);
     await tester.tap(find.text('过程数据说明').hitTestable());
