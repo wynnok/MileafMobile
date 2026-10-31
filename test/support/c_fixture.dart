@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../statistics_usage_test.dart' show usageFixture;
+import '../charging_expansion_test.dart' show chargingStatsV2;
 
 /// Canonical C「数据拼贴」visual fixture.
 ///
@@ -388,6 +389,38 @@ Map<String, dynamic> cDrivesStats(Uri uri) {
         ),
       },
   ];
+  return body;
+}
+
+/// Charging-experience v1 statistics tuned to the C charging list
+/// (234.7 kWh · 9 sessions · ¥186.4 · AC 118 / DC 96 / unknown 20.7).
+Map<String, dynamic> cChargingStatsV2() {
+  final body = chargingStatsV2();
+  final totals = Map<String, dynamic>.from(body['totals'] as Map);
+  totals.addAll({
+    'sessions': cChargingTotals.sessions,
+    'energy_added_kwh': cChargingTotals.energyKwh,
+    'cost': cChargingTotals.knownCost,
+    'cost_known_sessions': 8,
+    'cost_known_energy_kwh': 214.0,
+    'energy_known_sessions': 9,
+    'duration_min_total': 310.0,
+    'duration_known_sessions': 9,
+    'classification_known_sessions': 9,
+    'unknown_energy_kwh': cChargingTotals.unknownKwh,
+    'ac_energy_kwh': cChargingTotals.acKwh,
+    'dc_energy_kwh': cChargingTotals.dcKwh,
+    'ac_duration_min': 180.0,
+    'dc_duration_min': 130.0,
+    'unit_cost_added': {
+      'value': 0.79,
+      'numerator_cost': cChargingTotals.knownCost,
+      'denominator_kwh': cChargingTotals.energyKwh,
+      'eligible_sessions': 8,
+      'excluded_cost_sessions': 0,
+    },
+  });
+  body['totals'] = totals;
   return body;
 }
 

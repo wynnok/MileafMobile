@@ -806,11 +806,11 @@ class _ChargingPageState extends State<ChargingPage>
                       ?.copyWith(fontSize: 44),
                 ),
                 Text(
-                  '${total.cost == null ? '缺失 · ' : ''}${widget.currency.code ?? '（币种未知）'}',
+                  '${total.cost == null ? '缺失 · ' : ''}${widget.currency.symbol}',
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '有效入电均价 ${total.unitCostAdded.value == null ? '—（缺失）' : decimal(total.unitCostAdded.value!)} ${widget.currency.code ?? '币种未知'}/kWh',
+                  '有效入电均价 ${total.unitCostAdded.value == null ? '—（缺失）' : decimal(total.unitCostAdded.value!)} ${widget.currency.symbol}/kWh',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const Text('费用覆盖'),
@@ -863,8 +863,8 @@ class _ChargingPageState extends State<ChargingPage>
   Widget trend(expanded.ChargingStats stats) {
     final entries = [
       ('电量', 'kWh'),
-      ('费用', widget.currency.code ?? '币种未知'),
-      ('均价', '${widget.currency.code ?? '币种未知'}/kWh'),
+      ('费用', widget.currency.symbol),
+      ('均价', '${widget.currency.symbol}/kWh'),
       ('次数', '次'),
     ];
     final metric = entries[chartMetric];

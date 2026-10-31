@@ -13,6 +13,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/currency.dart';
 
 import 'support/c_fixture.dart';
+import 'charging_expansion_test.dart' show expansionResponse;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
@@ -50,6 +51,13 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
       if (url.path.endsWith('/charging-sessions/9/series')) {
         return _ok(cChargeSeries());
       }
+      if (url.path.contains('/charging-sessions') ||
+          url.path.contains('/charging-locations') ||
+          (url.path.endsWith('/stats') &&
+              url.queryParameters['kind'] == 'charging')) {
+        if (url.path.endsWith('/stats')) return _ok(cChargingStatsV2());
+        return expansionResponse(request);
+      }
       if (url.path.endsWith('/charging-sessions/9')) {
         return _ok(cChargeDetailBody());
       }
@@ -68,7 +76,7 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
         if (scenario == 'missing' && !charging) {
           return _ok(cMissingDriving(url));
         }
-        return _ok(charging ? cCharging(url) : cDrivesStats(url));
+        return _ok(charging ? cChargingStatsV2() : cDrivesStats(url));
       }
       return http.Response('{}', 404);
     });
@@ -145,6 +153,12 @@ void main() {
             await tester.pumpAndSettle();
             await save('charge-detail-$suffix');
             await pumpApp('overview-return-$suffix', scenario: scenario);
+          }
+          if (scenario == 'normal') {
+            await pumpApp('charging-$suffix', scenario: scenario);
+            await tester.tap(find.text('充电').last);
+            await tester.pumpAndSettle();
+            await save('charging-list-$suffix');
           }
 
           await tester.tap(find.text('统计').last);

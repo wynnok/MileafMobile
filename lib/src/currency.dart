@@ -48,6 +48,9 @@ class CurrencySettings extends ChangeNotifier {
   /// stay as ISO suffixes so nothing is invented for unknown currencies.
   static const _symbols = {'CNY': '¥'};
 
+  /// Display unit for labels that put the currency after a value.
+  String get symbol => _symbols[code] ?? code ?? '币种未知';
+
   String amount(num? value) => value == null
       ? '—（缺失）'
       : switch (code) {
