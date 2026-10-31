@@ -88,11 +88,20 @@ class CandidateMap extends StatefulWidget {
     this.tileClient,
     this.selected,
     this.selectedLabel,
+    this.heroHeight,
+    this.overlay,
   });
   final List<MapCoordinate?> coordinates;
   final MapCoordinate? start, end;
   final MapCoordinate? selected;
   final String? selectedLabel;
+
+  /// Optional fixed map height; with [overlay] this lets a caller draw a C
+  /// route caption over the map while keeping attribution/controls below.
+  final double? heroHeight;
+
+  /// Caption drawn at the bottom edge of the map area.
+  final Widget? overlay;
   final String? sourceCrs;
   final CandidateMapProvider? provider;
 
@@ -296,83 +305,96 @@ class _CandidateMapState extends State<CandidateMap>
     return Column(
       children: [
         SizedBox(
-          height: 280,
-          child: FlutterMap(
-            key: ValueKey(_geometry),
-            mapController: _controller,
-            options: MapOptions(
-              onMapReady: () {
-                _mapReady = true;
-                _revealSelected();
-              },
-              initialCenter: location,
-              initialZoom: 14,
-              minZoom: 1,
-              maxZoom: 18,
-              initialCameraFit: visible.length > 1 ? fit : null,
-            ),
+          height: widget.heroHeight ?? 280,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              TileLayer(
-                key: ValueKey(generation),
-                urlTemplate: provider.urlTemplate,
-                errorTileCallback: (_, error, stack) => _failedTile(generation),
-                tileProvider: _SafeTileProvider(
-                  _client,
-                  () => _failedTile(generation),
-                  () => _decodedTile(generation),
+              FlutterMap(
+                key: ValueKey(_geometry),
+                mapController: _controller,
+                options: MapOptions(
+                  onMapReady: () {
+                    _mapReady = true;
+                    _revealSelected();
+                  },
+                  initialCenter: location,
+                  initialZoom: 14,
+                  minZoom: 1,
+                  maxZoom: 18,
+                  initialCameraFit: visible.length > 1 ? fit : null,
                 ),
-              ),
-              PolylineLayer(
-                polylines: [
-                  for (final part in segments)
-                    if (part.length > 1)
-                      Polyline(
-                        points: part,
-                        color: Theme.of(context).colorScheme.primary
-                            .withValues(alpha: 0.6),
-                        strokeWidth: 3,
-                      ),
-                ],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: start ?? visible.first,
-                    width: 48,
-                    height: 48,
-                    child: Icon(
-                      Icons.location_on,
-                      semanticLabel: start != null
-                          ? '行程起点'
-                          : points.length == 1
-                          ? '单个采样点'
-                          : '首个采样点',
+                children: [
+                  TileLayer(
+                    key: ValueKey(generation),
+                    urlTemplate: provider.urlTemplate,
+                    errorTileCallback: (_, error, stack) =>
+                        _failedTile(generation),
+                    tileProvider: _SafeTileProvider(
+                      _client,
+                      () => _failedTile(generation),
+                      () => _decodedTile(generation),
                     ),
                   ),
-                  if (end != null || points.length > 1)
-                    Marker(
-                      point: end ?? visible.last,
-                      width: 48,
-                      height: 48,
-                      child: Icon(
-                        Icons.flag,
-                        semanticLabel: end != null ? '行程终点' : '末个采样点',
+                  PolylineLayer(
+                    polylines: [
+                      for (final part in segments)
+                        if (part.length > 1)
+                          Polyline(
+                            points: part,
+                            color: Theme.of(context).colorScheme.primary
+                                .withValues(alpha: 0.6),
+                            strokeWidth: 3,
+                          ),
+                    ],
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: start ?? visible.first,
+                        width: 48,
+                        height: 48,
+                        child: Icon(
+                          Icons.location_on,
+                          semanticLabel: start != null
+                              ? '行程起点'
+                              : points.length == 1
+                              ? '单个采样点'
+                              : '首个采样点',
+                        ),
                       ),
-                    ),
-                  if (selected != null)
-                    Marker(
-                      point: selected,
-                      width: 32,
-                      height: 32,
-                      child: Icon(
-                        Icons.my_location,
-                        key: const ValueKey('selected-drive-sample'),
-                        color: Theme.of(context).colorScheme.tertiary,
-                        semanticLabel: widget.selectedLabel ?? '选中采样位置',
-                      ),
-                    ),
+                      if (end != null || points.length > 1)
+                        Marker(
+                          point: end ?? visible.last,
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.flag,
+                            semanticLabel: end != null ? '行程终点' : '末个采样点',
+                          ),
+                        ),
+                      if (selected != null)
+                        Marker(
+                          point: selected,
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            Icons.my_location,
+                            key: const ValueKey('selected-drive-sample'),
+                            color: Theme.of(context).colorScheme.tertiary,
+                            semanticLabel: widget.selectedLabel ?? '选中采样位置',
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
+              if (widget.overlay != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: widget.overlay!,
+                ),
             ],
           ),
         ),

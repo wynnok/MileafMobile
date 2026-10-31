@@ -177,6 +177,9 @@ void main() {
           .join(' | '),
     );
     expect(find.bySemanticsLabel(RegExp('行程终点')), findsOneWidget);
+    // C hero: with a basemap configured the route caption overlays the map.
+    expect(find.text('路线示意 · 非导航'), findsOneWidget);
+    expect(find.textContaining(' → '), findsWidgets);
     await tester.ensureVisible(find.text('重试底图'));
     await tester.pumpAndSettle();
     failing = false;

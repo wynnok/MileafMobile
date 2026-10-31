@@ -319,6 +319,33 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
+  Widget _routeLines(dto.DriveDetail d) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        '${shortDay(d.startedAt)} · 最近行程',
+        style: const TextStyle(color: Colors.white70, fontSize: 11),
+      ),
+      Text(
+        '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      Text(
+        '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
+        style: const TextStyle(color: Colors.white70, fontSize: 11),
+      ),
+      const Text(
+        '路线示意 · 非导航',
+        style: TextStyle(color: Colors.white60, fontSize: 11),
+      ),
+    ],
+  );
+
   String shortDay(DateTime t) {
     final d = workspace.calendar!.local(t);
     return '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
@@ -386,10 +413,39 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   for (final point in series?.series ?? <dto.DrivePoint>[])
                     MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
                 ],
+                heroHeight:
+                    detail == null || widget.mapConfiguration?.provider == null
+                    ? null
+                    : 300,
+                overlay:
+                    detail == null || widget.mapConfiguration?.provider == null
+                    ? null
+                    : DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.62),
+                            ],
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
+                          child: _routeLines(detail!),
+                        ),
+                      ),
               ),
             ),
             ...<Widget>[
               Text('行程地图', style: Theme.of(context).textTheme.labelSmall),
+              if (widget.mapConfiguration?.provider == null && detail != null)
+                CollageTile(
+                  surface: CollageSurface.hero,
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: _routeLines(detail!),
+                ),
               if (detailLoading) const LinearProgressIndicator(),
               if (detailError != null) ...[
                 Semantics(liveRegion: true, child: Text(detailError!)),
@@ -402,47 +458,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   child: const Text('返回行程列表'),
                 ),
               ],
-              if (detail case final d?)
-                CollageTile(
-                  surface: CollageSurface.hero,
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${shortDay(d.startedAt)} · 最近行程',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '路线示意 · 非导航',
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               const SizedBox(height: 12),
 
               if (seriesLoading && series == null) const Text('正在读取轨迹采样'),
