@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'collage.dart';
+
 class DataCard extends StatelessWidget {
   const DataCard({
     super.key,
@@ -115,7 +117,7 @@ class MetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final stacked = MediaQuery.textScalerOf(context).scale(14) > 20;
+      final stacked = largeText(context);
       return Wrap(
         spacing: 16,
         runSpacing: 16,
@@ -134,9 +136,17 @@ class MetricGrid extends StatelessWidget {
 }
 
 class BatteryLevelIndicator extends StatelessWidget {
-  const BatteryLevelIndicator({super.key, required this.level, this.size = 96});
+  const BatteryLevelIndicator({
+    super.key,
+    required this.level,
+    this.size = 96,
+    this.showLabel = true,
+  });
   final num? level;
   final double size;
+
+  /// 小尺寸（如 200% 文本下的 hero）只留电量，避免标签撑破圆环。
+  final bool showLabel;
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
@@ -167,12 +177,14 @@ class BatteryLevelIndicator extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '电池电量',
-                    style: Theme.of(context).textTheme.labelSmall,
-                    textAlign: TextAlign.center,
-                  ),
+                  if (showLabel) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '电池电量',
+                      style: Theme.of(context).textTheme.labelSmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ],
               ),
             ),

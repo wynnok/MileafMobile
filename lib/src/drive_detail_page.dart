@@ -362,7 +362,9 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   /// 单行口径提示：本次电耗与个人 30 日整体参照并排说明，替代旧的对比卡。
   Widget _consumptionFootnote(BuildContext context, dto.DriveDetail d) {
     final style = Theme.of(context).textTheme.bodySmall;
-    final ref = _referenceUsable(d) ? reference!.totals.consumptionWhKmNet : null;
+    final ref = _referenceUsable(d)
+        ? reference!.totals.consumptionWhKmNet
+        : null;
     final buffer = StringBuffer('本次 ${number(d.consumptionWhKm, 'Wh/km')}');
     if (ref != null) {
       buffer.write(
@@ -406,9 +408,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                       Text(
                         '参考区间：${time(referenceFrom!)} 至 ${time(referenceTo!)}（不含结束时刻）；归期时区：$referenceZone',
                       ),
-                    const Text(
-                      '样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。',
-                    ),
+                    const Text('样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。'),
                   ],
                 ),
               ),
@@ -431,9 +431,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         if (referenceError != null)
           Row(
             children: [
-              Expanded(
-                child: Text('个人历史参照：$referenceError', style: style),
-              ),
+              Expanded(child: Text('个人历史参照：$referenceError', style: style)),
               TextButton(
                 onPressed: () => loadReference(d, force: true),
                 child: const Text('重试历史参照'),
@@ -587,8 +585,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               if (detail case final d?)
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final large =
-                        MediaQuery.textScalerOf(context).scale(12) > 18;
+                    final large = largeText(context);
                     return Wrap(
                       spacing: 8,
                       runSpacing: 8,

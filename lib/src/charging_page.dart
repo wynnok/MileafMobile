@@ -890,8 +890,14 @@ class _ChargingPageState extends State<ChargingPage>
       ('次数', '次'),
     ];
     final metric = entries[chartMetric];
+    final zone = workspace.calendar!;
+    String day(DateTime instant) =>
+        zone.local(instant).toString().split(' ').first;
     return TimeChart(
       title: '每日补能',
+      subtitle:
+          '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · '
+          '${day(from)} 至 ${day(to.subtract(const Duration(microseconds: 1)))} · 按结束时间归期',
       unit: metric.$2,
       times: stats.buckets.map((bucket) => bucket.bucketStart).toList(),
       series: [
@@ -969,7 +975,7 @@ class _ChargingPageState extends State<ChargingPage>
             ),
         ],
       ),
-      note: '按结束时间归期；费用与均价仅包含有效记录。',
+      note: '费用与均价仅包含有效记录；缺失不补零。',
     );
   }
 
@@ -1072,27 +1078,25 @@ class _ChargingPageState extends State<ChargingPage>
           padding: const EdgeInsets.all(12),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recordsOnly
-                            ? '充电记录'
-                            : expandedAvailable
-                            ? '充电'
-                            : '充电历史',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      Text(
-                        '近$recentDays天 · 按${expandedAvailable ? '结束' : '开始'}时间归期',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+            () {
+              final title = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recordsOnly
+                        ? '充电记录'
+                        : expandedAvailable
+                        ? '充电'
+                        : '充电历史',
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                ),
+                  Text(
+                    '近$recentDays天 · 按${expandedAvailable ? '结束' : '开始'}时间归期',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              );
+              final actions = [
                 if (expandedAvailable)
                   TextButton(
                     onPressed: () {
@@ -1108,12 +1112,29 @@ class _ChargingPageState extends State<ChargingPage>
                   icon: const Icon(Icons.refresh),
                   tooltip: '刷新充电',
                 ),
-              ],
-            ),
-            Text(
-              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+              ];
+              // 200% 文本下标题会换行，动作另起一行靠右，避免与标题挤在一行。
+              return largeText(context)
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        title,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: actions,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: title),
+                        ...actions,
+                      ],
+                    );
+            }(),
             if (expandedAvailable)
               PeriodChips(
                 labels: const ['近30天', '近7天'],
@@ -1408,10 +1429,8 @@ class _ChargingPageState extends State<ChargingPage>
                           ),
                           Text(
                             v.isDc == null
-                                ? '分类未知'
-                                : v.isDc!
-                                ? 'DC'
-                                : 'AC',
+                                ? '充电类型未知'
+                                : '充电类型 ${v.isDc! ? 'DC' : 'AC'}',
                           ),
                           Text(
                             '电量 ${number(v.startSoc, '%')} → ${number(v.endSoc, '%')}',

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// C surfaces share lake colours. Data and chart semantics stay with callers.
@@ -84,20 +86,21 @@ class CollageBento extends StatelessWidget {
         );
 }
 
-/// Quiet bar sparkline used by C preview tiles (`1,198.6` tile, 四个问题).
+/// Quiet line sparkline used by C preview tiles (`1,198.6` tile, 四个问题).
+///
+/// C 原型用「面积 + 折线」而非柱：缺失值（null）断线，不补零也不位移。
 class Sparkline extends StatelessWidget {
   const Sparkline({super.key, required this.values, this.height = 34});
-  final List<double> values;
+  final List<double?> values;
   final double height;
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return SizedBox(height: height);
-    final max = values.fold<double>(0, (a, b) => b > a ? b : a);
     final color = Theme.of(context).colorScheme.primary;
     return SizedBox(
       height: height,
       child: CustomPaint(
-        painter: _SparklinePainter(values, max, color),
+        painter: _SparklinePainter(values, color),
         size: Size.infinite,
       ),
     );
@@ -105,30 +108,64 @@ class Sparkline extends StatelessWidget {
 }
 
 class _SparklinePainter extends CustomPainter {
-  _SparklinePainter(this.values, this.max, this.color);
-  final List<double> values;
-  final double max;
+  _SparklinePainter(this.values, this.color);
+  final List<double?> values;
   final Color color;
   @override
   void paint(Canvas canvas, Size size) {
-    if (values.isEmpty || max <= 0) return;
-    const gap = 2.0;
-    final barWidth = (size.width - gap * (values.length - 1)) / values.length;
+    final known = values.whereType<double>();
+    if (known.isEmpty) return;
+    final lo = known.reduce(math.min), hi = known.reduce(math.max);
+    final span = hi - lo;
+    double x(int i) =>
+        values.length == 1 ? size.width : i * size.width / (values.length - 1);
+    double y(double v) =>
+        size.height -
+        1 -
+        ((v - lo) / (span == 0 ? 1 : span)) * (size.height - 3);
+    final line = Path();
+    final area = Path();
+    var started = false;
     for (var i = 0; i < values.length; i++) {
-      final h = (values[i] / max) * size.height;
-      final left = i * (barWidth + gap);
-      final isLast = i == values.length - 1;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, size.height - h, barWidth, h),
-          const Radius.circular(2),
-        ),
-        Paint()..color = color.withValues(alpha: isLast ? 1 : 0.5),
+      final v = values[i];
+      if (v == null) {
+        started = false;
+        continue;
+      }
+      final px = x(i), py = y(v);
+      if (!started) {
+        line.moveTo(px, py);
+        area.moveTo(px, size.height);
+        area.lineTo(px, py);
+        started = true;
+      } else {
+        line.lineTo(px, py);
+        area.lineTo(px, py);
+      }
+    }
+    if (started) {
+      area.lineTo(x(values.length - 1), size.height);
+      area.close();
+      canvas.drawPath(area, Paint()..color = color.withValues(alpha: .16));
+      canvas.drawPath(
+        line,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round,
       );
+      // C 也在每个已知点画小圆点，缺失日断线后仍能看出单点是数据。
+      final dot = Paint()..color = color.withValues(alpha: .55);
+      for (var i = 0; i < values.length; i++) {
+        final v = values[i];
+        if (v != null) canvas.drawCircle(Offset(x(i), y(v)), 1.3, dot);
+      }
     }
   }
 
   @override
   bool shouldRepaint(covariant _SparklinePainter old) =>
-      old.values != values || old.max != max || old.color != color;
+      old.values != values || old.color != color;
 }

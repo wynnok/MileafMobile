@@ -156,8 +156,8 @@ void main() {
     await tester.tap(find.text('更多充电信息'));
     await tester.pumpAndSettle();
     expect(find.text('结束 —（缺失）'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('分类未知'), -200);
-    expect(find.text('分类未知'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充电类型未知'), -200);
+    expect(find.text('充电类型未知'), findsOneWidget);
     expect(find.text('费用 0 USD'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('重试充电曲线').hitTestable(), 200);
     failSeries = false;

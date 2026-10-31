@@ -4,7 +4,7 @@
 通过独立部署的 Mileaf Server API，以图表、地图和关键数字尽可能展示车况记录、行程、充电和统计。
 Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
-**当前状态：2026-10-26 已按用户选定的 A「湖畔」方案完成正式 Flutter 图表与页面实现；代码、自动化和构建已验证，外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见[实施记录](docs/implementation/lake-visualization.md)与[实际 Flutter 图册](docs/implementation/lake-renders/index.html)。
+**当前状态：版面与视觉已按用户 2026-10-30 确认的 C「数据拼贴」方向完成重构，并于 2026-10-31 通过 C10 用户视觉验收；湖畔配色保留，代码、自动化与双端隔离构建已验证，真机/真实站点/地图/性能等外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [C 逐页对照与 C10 评审材料](docs/implementation/collage-audit/c-fidelity-report.md)、[视觉方向 ADR](docs/adr/0001-visual-direction-c.md) 与 [原始设计原型](docs/prototypes/visual-refresh/renders/index.html)；A「湖畔」版面渲染仅作历史证据（[实施记录](docs/implementation/lake-visualization.md)）。
 
 本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
@@ -25,7 +25,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 | [API 能力与差异](docs/product/api-capabilities.md) | 当前后端实际能支撑什么，哪些不能假设 |
 | [需求澄清与实施交接](docs/product/to-spec-readiness.md) | 本轮纠偏如何进入既有 Spec/工单，下一阶段应交付什么 |
 
-以上为与正式 Spec 配套的产品与体验基线；A原型已获用户选定，正式页面已保存浅深色/大字体实际渲染，最终双端体验仍需相应外部证据。
+以上为与正式 Spec 配套的产品与体验基线；C「数据拼贴」原型已获用户确认并已按页还原，正式页面的浅深色/大字体实际渲染由 `test/c_gallery_render_test.dart` 生成，最终双端体验仍需相应外部证据。
 正式需求与依赖关系以 [GitHub Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其子任务为准。
 
 ## 工作约定

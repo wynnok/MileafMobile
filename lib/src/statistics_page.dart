@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'collage.dart';
 import 'number_format.dart';
 
 import 'statistics_period.dart';
@@ -357,7 +358,7 @@ class _StatisticsViewState extends State<_StatisticsView>
 
   Widget _metrics(BuildContext context, List<Widget> values) => LayoutBuilder(
     builder: (context, constraints) {
-      final stacked = MediaQuery.textScalerOf(context).scale(14) > 20;
+      final stacked = largeText(context);
       final width = stacked
           ? constraints.maxWidth
           : (constraints.maxWidth - 16) / 2;

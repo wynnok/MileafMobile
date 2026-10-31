@@ -972,10 +972,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         _netDeltaNote(net, prior, comparable),
         Sparkline(
           height: 24,
-          // Keep bucket positions so a missing day leaves a gap, not a shift.
+          // 保留桶位：缺失日传 null，折线在该处断开而不是补零。
           values: [
-            for (final b in enhanced.buckets)
-              b.consumptionWhKmNet?.toDouble() ?? 0,
+            for (final b in enhanced.buckets) b.consumptionWhKmNet?.toDouble(),
           ],
         ),
         () => selectTopic('energy'),

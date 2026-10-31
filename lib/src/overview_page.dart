@@ -41,6 +41,40 @@ class OverviewPage extends StatefulWidget {
   State<OverviewPage> createState() => _OverviewPageState();
 }
 
+/// C hero 的淡车轮廓：侧视描边，不再用 Material 车图标（顶视方块感）。
+class _CarSilhouette extends CustomPainter {
+  const _CarSilhouette();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final stroke = Paint()
+      ..color = const Color(0xFF8AD6AF).withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final body = Path()
+      ..moveTo(w * .04, h * .72)
+      ..lineTo(w * .04, h * .62)
+      ..quadraticBezierTo(w * .05, h * .55, w * .14, h * .54)
+      ..lineTo(w * .26, h * .53)
+      ..quadraticBezierTo(w * .34, h * .40, w * .46, h * .37)
+      ..lineTo(w * .62, h * .37)
+      ..quadraticBezierTo(w * .74, h * .39, w * .80, h * .53)
+      ..lineTo(w * .92, h * .55)
+      ..quadraticBezierTo(w * .97, h * .56, w * .97, h * .63)
+      ..lineTo(w * .97, h * .72)
+      ..lineTo(w * .04, h * .72)
+      ..close();
+    canvas.drawPath(body, stroke);
+    canvas.drawCircle(Offset(w * .27, h * .74), h * .12, stroke);
+    canvas.drawCircle(Offset(w * .75, h * .74), h * .12, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _OverviewPageState extends State<OverviewPage>
     with WidgetsBindingObserver {
   dto.Summary? data;
@@ -728,7 +762,8 @@ class _OverviewPageState extends State<OverviewPage>
     );
     final battery = BatteryLevelIndicator(
       level: d.battery?.level,
-      size: scale > 1.4 ? 52 : 66 * scale,
+      size: scale > 1.4 ? 60 : 66 * scale,
+      showLabel: scale <= 1.4,
     );
     Widget stat(String value, String label) => Expanded(
       child: Column(
@@ -760,15 +795,16 @@ class _OverviewPageState extends State<OverviewPage>
             Stack(
               children: [
                 // C hero keeps a faint car silhouette behind the numbers.
-                Positioned(
-                  right: -12,
-                  bottom: -6,
-                  child: Icon(
-                    Icons.directions_car_filled,
-                    size: 96 * scale.clamp(1.0, 1.4),
-                    color: const Color(0xFF8AD6AF).withValues(alpha: 0.10),
+                if (scale <= 1.4)
+                  Positioned(
+                    right: -18,
+                    bottom: -14,
+                    child: SizedBox(
+                      width: 168 * scale.clamp(1.0, 1.3),
+                      height: 78 * scale.clamp(1.0, 1.3),
+                      child: CustomPaint(painter: const _CarSilhouette()),
+                    ),
                   ),
-                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -897,8 +933,7 @@ class _OverviewPageState extends State<OverviewPage>
     ),
   );
 
-  Widget pairs(List<Widget> children) =>
-      MediaQuery.textScalerOf(context).scale(14) / 14 > 1.4
+  Widget pairs(List<Widget> children) => largeText(context)
       ? Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: children,

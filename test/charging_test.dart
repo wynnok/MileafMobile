@@ -370,7 +370,7 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     expect(find.text('费用 0（币种未知）'), findsOneWidget);
-    expect(find.text('分类未知'), findsOneWidget);
+    expect(find.text('充电类型未知'), findsOneWidget);
     expect(find.text('未知地点'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('费用 —（缺失）'), 200);
     expect(find.text('费用 —（缺失）'), findsOneWidget);

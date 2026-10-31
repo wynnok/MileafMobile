@@ -217,7 +217,7 @@ void main() {
             expectPage('路线示意 · 非导航');
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
-          if (scenario != 'normal' || scale == 1.0) {
+          {
             await pumpApp('charging-$suffix', scenario: scenario);
             await tester.tap(find.text('充电').last);
             await tester.pumpAndSettle();
