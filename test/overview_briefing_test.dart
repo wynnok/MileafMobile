@@ -99,7 +99,7 @@ void main() {
         briefing: true,
         currencyPreferences: currency,
       );
-      expect(find.bySemanticsLabel('已知充电费用 0 CNY，仅含费用已知记录'), findsOneWidget);
+      expect(find.bySemanticsLabel('已知充电费用 ¥0，仅含费用已知记录'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
       await tester.tap(find.text('数据说明与更多'));
       await tester.pumpAndSettle();

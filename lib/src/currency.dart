@@ -44,9 +44,18 @@ class CurrencySettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Symbol used by the C prototypes for the common currencies; other codes
+  /// stay as ISO suffixes so nothing is invented for unknown currencies.
+  static const _symbols = {'CNY': '¥'};
+
   String amount(num? value) => value == null
       ? '—（缺失）'
-      : '${decimal(value)}${code == null ? '（币种未知）' : ' $code'}';
+      : switch (code) {
+          final c? when _symbols[c] != null =>
+            '${_symbols[c]}${decimal(value)}',
+          final c? => '${decimal(value)} $c',
+          null => '${decimal(value)}（币种未知）',
+        };
   @override
   void dispose() {
     _disposed = true;

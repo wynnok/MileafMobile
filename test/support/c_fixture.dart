@@ -391,6 +391,52 @@ Map<String, dynamic> cDrivesStats(Uri uri) {
   return body;
 }
 
+/// C charge-detail: 46.8 kWh · 18→82 % · 34 min · ¥71.28 · DC.
+Map<String, dynamic> cChargeDetailBody() {
+  final body = _json('charging-detail');
+  body['id'] = 9;
+  body['started_at'] = '2026-10-26T05:12:00Z';
+  body['ended_at'] = '2026-10-26T05:46:00Z';
+  body['duration_min'] = cChargeDetail.durationMin;
+  body['energy_added_kwh'] = cChargeDetail.energyKwh;
+  body['energy_used_kwh'] = 49.5;
+  body['start_soc'] = cChargeDetail.startSoc;
+  body['end_soc'] = cChargeDetail.endSoc;
+  body['cost'] = cChargeDetail.cost;
+  body['is_dc'] = true;
+  body['location'] = {
+    'display_name': '湖畔超级充电站',
+    'geofence': null,
+    'address': '湖畔路 1 号',
+    'lat': 31.2304,
+    'lon': 121.4737,
+  };
+  body['outside_temp_c_avg'] = 16.0;
+  return body;
+}
+
+/// Sampling curve for [cChargeDetailBody] (34 minutes, DC taper).
+Map<String, dynamic> cChargeSeries() {
+  final body = _json('charging-series');
+  final base = DateTime.utc(2026, 10, 26, 5, 12);
+  final points = (body['series'] as List).cast<Map<String, dynamic>>();
+  final step = cChargeDetail.durationMin / (points.length - 1);
+  for (final (index, point) in points.indexed) {
+    point['t'] = base
+        .add(Duration(seconds: (index * step * 60).round()))
+        .toIso8601String();
+    point['power'] = index < 4 ? 11.0 : (index < 8 ? 150.0 : 120.0);
+    point['soc'] =
+        cChargeDetail.startSoc +
+        ((cChargeDetail.endSoc - cChargeDetail.startSoc) *
+                index /
+                (points.length - 1))
+            .round();
+  }
+  body['session_id'] = 9;
+  return body;
+}
+
 /// C drive-detail: the 32.9 km / 46 min / 154 Wh/km representative trip.
 Map<String, dynamic> cDriveDetail() {
   final body = _json('drive-detail');

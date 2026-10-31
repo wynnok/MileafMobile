@@ -36,35 +36,42 @@ class _Cny implements CurrencyPreferenceStore {
   Future<void> write(String site, String? code) async {}
 }
 
-MockClient cGalleryClient({String scenario = 'normal'}) => MockClient((
-  request,
-) async {
-  final url = request.url;
-  if (url.path.endsWith('/vehicles')) return _ok(cVehicles());
-  if (url.path.endsWith('/summary')) {
-    return _ok(scenario == 'empty' ? cEmptySummary() : cSummary());
-  }
-  if (url.path.endsWith('/meta')) return _ok(cMeta());
-  if (url.path.endsWith('/drives')) return _ok(cDrives());
-  if (url.path.endsWith('/drives/17/series')) return _ok(cDriveSeries());
-  if (url.path.endsWith('/drives/17')) return _ok(cDriveDetail());
-  if (url.path.endsWith('/driving-analysis')) {
-    return _ok(
-      url.queryParameters['view'] == 'calendar'
-          ? cCalendar(url)
-          : (scenario == 'empty' ? cEmptyUsage() : cUsage()),
-    );
-  }
-  if (url.path.endsWith('/stats')) {
-    final charging = url.queryParameters['kind'] == 'charging';
-    if (scenario == 'empty') {
-      return _ok(charging ? cEmptyCharging(url) : cEmptyDriving(url));
-    }
-    if (scenario == 'missing' && !charging) return _ok(cMissingDriving(url));
-    return _ok(charging ? cCharging(url) : cDrivesStats(url));
-  }
-  return http.Response('{}', 404);
-});
+MockClient cGalleryClient({String scenario = 'normal'}) =>
+    MockClient((request) async {
+      final url = request.url;
+      if (url.path.endsWith('/vehicles')) return _ok(cVehicles());
+      if (url.path.endsWith('/summary')) {
+        return _ok(scenario == 'empty' ? cEmptySummary() : cSummary());
+      }
+      if (url.path.endsWith('/meta')) return _ok(cMeta());
+      if (url.path.endsWith('/drives')) return _ok(cDrives());
+      if (url.path.endsWith('/drives/17/series')) return _ok(cDriveSeries());
+      if (url.path.endsWith('/drives/17')) return _ok(cDriveDetail());
+      if (url.path.endsWith('/charging-sessions/9/series')) {
+        return _ok(cChargeSeries());
+      }
+      if (url.path.endsWith('/charging-sessions/9')) {
+        return _ok(cChargeDetailBody());
+      }
+      if (url.path.endsWith('/driving-analysis')) {
+        return _ok(
+          url.queryParameters['view'] == 'calendar'
+              ? cCalendar(url)
+              : (scenario == 'empty' ? cEmptyUsage() : cUsage()),
+        );
+      }
+      if (url.path.endsWith('/stats')) {
+        final charging = url.queryParameters['kind'] == 'charging';
+        if (scenario == 'empty') {
+          return _ok(charging ? cEmptyCharging(url) : cEmptyDriving(url));
+        }
+        if (scenario == 'missing' && !charging) {
+          return _ok(cMissingDriving(url));
+        }
+        return _ok(charging ? cCharging(url) : cDrivesStats(url));
+      }
+      return http.Response('{}', 404);
+    });
 
 /// Every C page in one gallery, driven exclusively by test/support/c_fixture.dart.
 void main() {
@@ -127,6 +134,18 @@ void main() {
 
           await pumpApp('overview-$suffix', scenario: scenario);
           await save('overview-$suffix');
+
+          if (scenario == 'normal') {
+            await tester.scrollUntilVisible(
+              find.text('最近充电').hitTestable(),
+              200,
+              scrollable: find.byType(Scrollable).last,
+            );
+            await tester.tap(find.text('最近充电'));
+            await tester.pumpAndSettle();
+            await save('charge-detail-$suffix');
+            await pumpApp('overview-return-$suffix', scenario: scenario);
+          }
 
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
