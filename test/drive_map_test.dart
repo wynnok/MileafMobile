@@ -208,6 +208,9 @@ void main() {
     await tester.scrollUntilVisible(find.textContaining('坐标参考系尚未核准'), 250);
     expect(tiles, 0);
     expect(find.text('允许加载底图'), findsNothing);
+    // C05: even when the map cannot render, the route text must survive.
+    expect(find.text('路线示意 · 非导航'), findsOneWidget);
+    expect(find.textContaining(' → '), findsWidgets);
   });
   testWidgets('退出重开记录重新告知，旧地图授权不跨详情沿用', (tester) async {
     var calls = 0;

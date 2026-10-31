@@ -319,6 +319,26 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
+
+  /// True only when CandidateMap can actually draw tiles: a usable provider,
+  /// an approved CRS and at least one coordinate. Otherwise the route caption
+  /// is rendered as a fallback band so it never disappears (C05).
+  bool get _mapRenderable {
+    final config = widget.mapConfiguration;
+    final provider = config?.provider;
+    if (config == null ||
+        provider == null ||
+        !provider.isUsable ||
+        config.sourceCrs != 'EPSG:4326' ||
+        provider.coordinateSystem != config.sourceCrs) {
+      return false;
+    }
+    final d = detail;
+    final hasEndpoint = d != null && d.start.lat != null && d.start.lon != null;
+    final hasSample = series?.series.any((p) => p.lat != null) ?? false;
+    return hasEndpoint || hasSample;
+  }
+
   Widget _routeLines(dto.DriveDetail d) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
@@ -413,12 +433,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   for (final point in series?.series ?? <dto.DrivePoint>[])
                     MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
                 ],
-                heroHeight:
-                    detail == null || widget.mapConfiguration?.provider == null
-                    ? null
-                    : 300,
-                overlay:
-                    detail == null || widget.mapConfiguration?.provider == null
+                heroHeight: detail == null || !_mapRenderable ? null : 300,
+                overlay: detail == null || !_mapRenderable
                     ? null
                     : DecoratedBox(
                         decoration: BoxDecoration(
@@ -440,7 +456,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
             ),
             ...<Widget>[
               Text('行程地图', style: Theme.of(context).textTheme.labelSmall),
-              if (widget.mapConfiguration?.provider == null && detail != null)
+              if (!_mapRenderable && detail != null)
                 CollageTile(
                   surface: CollageSurface.hero,
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
