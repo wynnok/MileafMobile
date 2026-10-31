@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'data_cards.dart';
 import 'collage.dart';
+import 'period_chips.dart';
 import 'data_chart.dart';
 
 import 'charging_contract.g.dart' as dto;
@@ -1069,40 +1070,27 @@ class _ChargingPageState extends State<ChargingPage>
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (expandedAvailable)
-              Row(
-                children: [
-                  for (final days in [30, 7])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
-                        label: Text(
-                          days == 30 ? '近30天' : '近7天',
-                          style: Theme.of(context).textTheme.labelMedium,
-                        ),
-                        selected:
-                            widget.filter.first == null && recentDays == days,
-                        showCheckmark: false,
-                        visualDensity: VisualDensity.compact,
-                        onSelected: (_) {
-                          recentDays = days;
-                          widget.filter.first = null;
-                          widget.filter.last = null;
-                          interval();
-                          applyFilters();
-                        },
-                      ),
-                    ),
-                  const Spacer(),
-                  OutlinedButton.icon(
-                    onPressed: filterDates,
-                    icon: const Icon(Icons.calendar_today_outlined, size: 14),
-                    label: const Text('日期'),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
+              PeriodChips(
+                labels: const ['近30天', '近7天'],
+                selected: widget.filter.first == null
+                    ? (recentDays == 30 ? 0 : 1)
+                    : -1,
+                onSelected: (index) {
+                  recentDays = index == 0 ? 30 : 7;
+                  widget.filter.first = null;
+                  widget.filter.last = null;
+                  interval();
+                  applyFilters();
+                },
+                trailing: OutlinedButton.icon(
+                  onPressed: filterDates,
+                  icon: const Icon(Icons.calendar_today_outlined, size: 14),
+                  label: const Text('日期'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
-                ],
+                ),
               )
             else
               TextButton(onPressed: filterDates, child: const Text('日期')),

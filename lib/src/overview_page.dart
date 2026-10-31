@@ -16,6 +16,7 @@ import 'overview_contract.g.dart' as dto;
 import 'performance_trace.dart';
 import 'statistics_period.dart';
 import 'overview_period.dart';
+import 'period_chips.dart';
 import 'workspace.dart';
 import 'session.dart' show SiteSession;
 
@@ -1193,32 +1194,20 @@ class _OverviewPageState extends State<OverviewPage>
 
   Widget _periodBar() => Padding(
     padding: const EdgeInsets.only(top: 8, bottom: 4),
-    child: Row(
-      children: [
-        for (final item in OverviewPeriod.values)
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              label: Text(
-                item == OverviewPeriod.month ? '本月' : '近7天',
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              selected: period == item,
-              showCheckmark: false,
-              visualDensity: VisualDensity.compact,
-              onSelected: (_) => changePeriod(item),
-            ),
-          ),
-        const Spacer(),
-        IconButton(
-          onPressed: loading ? null : () => loadSummary(force: true),
-          icon: const Icon(Icons.refresh, size: 18),
-          tooltip: '刷新概览',
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-      ],
+    child: PeriodChips(
+      labels: const ['本月', '近7天'],
+      selected: period == OverviewPeriod.month ? 0 : 1,
+      onSelected: (index) => changePeriod(
+        index == 0 ? OverviewPeriod.month : OverviewPeriod.recent,
+      ),
+      trailing: IconButton(
+        onPressed: loading ? null : () => loadSummary(force: true),
+        icon: const Icon(Icons.refresh, size: 18),
+        tooltip: '刷新概览',
+        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ),
     ),
   );
 

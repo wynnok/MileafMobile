@@ -1,4 +1,5 @@
 import 'collage.dart';
+import 'period_chips.dart';
 import 'api.dart';
 
 import 'package:flutter/material.dart';
@@ -434,40 +435,26 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
           ),
           if (workspace.calendar!.fallback)
             const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
-          Row(
-            children: [
-              for (final days in [30, 7])
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text(
-                      days == 30 ? '近30天' : '近7天',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                    selected: custom == null && recentDays == days,
-                    showCheckmark: false,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (_) {
-                      custom = null;
-                      selectedDay = null;
-                      recentDays = days;
-                      resetQuery();
-                      load(clear: true);
-                      loadStats(clear: true);
-                    },
-                  ),
-                ),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: chooseDates,
-                icon: const Icon(Icons.calendar_today_outlined, size: 14),
-                label: const Text('日期'),
-                style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                ),
+          PeriodChips(
+            labels: const ['近30天', '近7天'],
+            selected: custom == null ? (recentDays == 30 ? 0 : 1) : -1,
+            onSelected: (index) {
+              custom = null;
+              selectedDay = null;
+              recentDays = index == 0 ? 30 : 7;
+              resetQuery();
+              load(clear: true);
+              loadStats(clear: true);
+            },
+            trailing: OutlinedButton.icon(
+              onPressed: chooseDates,
+              icon: const Icon(Icons.calendar_today_outlined, size: 14),
+              label: const Text('日期'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
-            ],
+            ),
           ),
           if (loading) const LinearProgressIndicator(),
           if (error != null) ...[
