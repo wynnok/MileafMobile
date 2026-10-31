@@ -120,6 +120,17 @@ void main() {
     Future<void> save(String name) =>
         saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
 
+    void expectPage(String text, {String? absent}) {
+      expect(find.textContaining(text), findsWidgets, reason: 'C 图册应包含 $text');
+      if (absent != null) {
+        expect(
+          find.textContaining(absent),
+          findsNothing,
+          reason: 'C 图册不应包含 $absent',
+        );
+      }
+    }
+
     Future<void> pumpApp(String key, {String scenario = 'normal'}) async {
       final store = MemorySessionStore()
         ..value = jsonEncode({
@@ -155,6 +166,9 @@ void main() {
 
           await pumpApp('overview-$suffix', scenario: scenario);
           await save('overview-$suffix');
+          if (scenario == 'normal' && scale == 1.0) {
+            expectPage('每日里程', absent: '前一个采样');
+          }
 
           if (scenario == 'normal') {
             await tester.scrollUntilVisible(
@@ -177,16 +191,25 @@ void main() {
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
           await save('statistics-$suffix');
+          if (scenario == 'normal' && scale == 1.0) {
+            expectPage('里程走势', absent: '趋势指标');
+          }
 
           await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
           await tester.tap(find.text('节奏').hitTestable());
           await tester.pumpAndSettle();
           await save('rhythm-$suffix');
+          if (scenario == 'normal' && scale == 1.0) {
+            expectPage('活跃 22 天');
+          }
 
           await pumpApp('drives-$suffix', scenario: scenario);
           await tester.tap(find.text('行程').last);
           await tester.pumpAndSettle();
           await save('drives-$suffix');
+          if (scenario == 'normal' && scale == 1.0) {
+            expectPage('出行节奏', absent: '筛选日期');
+          }
 
           if (scenario == 'normal' && scale == 1.0) {
             await tester.scrollUntilVisible(
