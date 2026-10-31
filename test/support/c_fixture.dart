@@ -301,6 +301,70 @@ Map<String, dynamic> cDriving(Uri uri) {
   };
 }
 
+/// C07 empty scenario: real zero data (not a missing placeholder).
+Map<String, dynamic> cEmptyDriving(Uri uri) {
+  final body = cDriving(uri);
+  body['totals'] = _metrics(0, 0);
+  body['buckets'] = [
+    for (final bucket in (body['buckets'] as List).cast<Map<String, dynamic>>())
+      {..._metrics(0, 0), 'bucket_start': bucket['bucket_start']},
+  ];
+  return body;
+}
+
+/// C07 missing scenario: fields absent/unknown rather than zero.
+Map<String, dynamic> cMissingDriving(Uri uri) {
+  final body = cDriving(uri);
+  final totals = body['totals'] as Map<String, dynamic>;
+  totals['energy_kwh'] = null;
+  totals['consumption_wh_km_net'] = null;
+  (totals['net_consumption_paired'] as Map<String, dynamic>)['value_wh_km'] =
+      null;
+  (totals['net_consumption_paired'] as Map<String, dynamic>)['status'] =
+      'no_records';
+  return body;
+}
+
+Map<String, dynamic> cEmptyCharging(Uri uri) {
+  final body = cCharging(uri);
+  body['totals'] = {
+    'sessions': 0,
+    'energy_added_kwh': 0,
+    'cost': 0,
+    'cost_per_kwh': null,
+    'ac_energy_kwh': 0,
+    'dc_energy_kwh': 0,
+    'dc_energy_share': null,
+    'cost_known_sessions': 0,
+    'cost_known_energy_kwh': 0,
+  };
+  body['buckets'] = <Object>[];
+  return body;
+}
+
+Map<String, dynamic> cEmptySummary() {
+  final body = _json('summary');
+  body['state'] = {'value': 'asleep', 'since': '2026-10-26T09:00:00Z'};
+  body['period'] = {
+    'today': {'drives': 0, 'distance_km': 0, 'energy_kwh': 0},
+    'month': {'drives': 0, 'distance_km': 0, 'energy_kwh': 0},
+  };
+  body['last_drive'] = null;
+  body['last_charge'] = null;
+  return body;
+}
+
+Map<String, dynamic> cEmptyUsage() => {
+  ...cUsage(),
+  'status': 'no_records',
+  'active_days': 0,
+  'driving_duration_min': null,
+  'distance_per_active_day_km': null,
+  'distance_p50_km': null,
+  'distance_p90_km': null,
+  'distance_bins': <Object>[],
+};
+
 /// 30-day drives window totals from the C drives prototype
 /// (1,280.6 km · 52 trips · 197.4 kWh · 154.2 Wh/km) with the same shape.
 Map<String, dynamic> cDrivesStats(Uri uri) {
