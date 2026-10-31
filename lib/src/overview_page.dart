@@ -1010,49 +1010,96 @@ class _OverviewPageState extends State<OverviewPage>
   List<Widget> records(dto.Summary d) => [
     Text('最近记录', style: Theme.of(context).textTheme.titleSmall),
     const SizedBox(height: 8),
-    DataCard(
-      padding: EdgeInsets.zero,
-      child: ListTile(
-        title: const Text('最近行程'),
-        subtitle: Text(
-          d.lastDrive == null
-              ? '无记录'
-              : '${timestamp(d.lastDrive!.startedAt)}\n${number(d.lastDrive!.distanceKm, 'km', decimals: 1)} · 净电耗 ${number(d.lastDrive!.consumptionWhKm, 'Wh/km')}',
-        ),
-        trailing: d.lastDrive == null ? null : const Icon(Icons.chevron_right),
-        onTap: d.lastDrive == null
-            ? null
-            : () => widget.onRecord?.call('drive', d.lastDrive!.id),
-      ),
-    ),
-    DataCard(
-      padding: EdgeInsets.zero,
-      child: ListTile(
-        title: const Text('最近充电'),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              d.lastCharge == null
-                  ? '无记录'
-                  : '${timestamp(d.lastCharge!.startedAt)}\n充入 ${number(d.lastCharge!.energyKwh, 'kWh', decimals: 2)} · 结束电量 ${number(d.lastCharge!.endSoc, '%')}',
-            ),
-            if (d.lastCharge?.endSoc case final soc?)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: LinearProgressIndicator(
-                  value: (soc / 100).clamp(0, 1),
-                  semanticsLabel: '最近充电结束电量',
-                  semanticsValue: '$soc %',
+    LayoutBuilder(
+      builder: (context, constraints) {
+        final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+        final width = single
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 8) / 2;
+        Widget recent({
+          required String title,
+          required VoidCallback? onTap,
+          required CollageSurface surface,
+          required Widget body,
+        }) => SizedBox(
+          width: width,
+          child: CollageTile(
+            surface: surface,
+            padding: EdgeInsets.zero,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        if (onTap != null)
+                          const Icon(Icons.chevron_right, size: 18),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    body,
+                  ],
                 ),
               ),
+            ),
+          ),
+        );
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            recent(
+              title: '最近行程',
+              surface: CollageSurface.mint,
+              onTap: d.lastDrive == null
+                  ? null
+                  : () => widget.onRecord?.call('drive', d.lastDrive!.id),
+              body: Text(
+                d.lastDrive == null
+                    ? '无记录'
+                    : '${timestamp(d.lastDrive!.startedAt)}\n${number(d.lastDrive!.distanceKm, 'km', decimals: 1)} · 净电耗 ${number(d.lastDrive!.consumptionWhKm, 'Wh/km')}',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ),
+            recent(
+              title: '最近充电',
+              surface: CollageSurface.paper,
+              onTap: d.lastCharge == null
+                  ? null
+                  : () => widget.onRecord?.call('charging', d.lastCharge!.id),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    d.lastCharge == null
+                        ? '无记录'
+                        : '${timestamp(d.lastCharge!.startedAt)}\n充入 ${number(d.lastCharge!.energyKwh, 'kWh', decimals: 2)} · 结束电量 ${number(d.lastCharge!.endSoc, '%')}',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  if (d.lastCharge?.endSoc case final soc?)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: LinearProgressIndicator(
+                        value: (soc / 100).clamp(0, 1),
+                        semanticsLabel: '最近充电结束电量',
+                        semanticsValue: '$soc %',
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
-        ),
-        trailing: d.lastCharge == null ? null : const Icon(Icons.chevron_right),
-        onTap: d.lastCharge == null
-            ? null
-            : () => widget.onRecord?.call('charging', d.lastCharge!.id),
-      ),
+        );
+      },
     ),
     DataCard(
       padding: EdgeInsets.zero,
