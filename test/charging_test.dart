@@ -443,10 +443,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(queries.last.path, '/prefix/v1/vehicles/2/charging-sessions');
     expect(queries.last.queryParameters['from'], '2026-03-01T16:00:00.000Z');
-    await tester.scrollUntilVisible(
-      find.textContaining('时区：Asia/Shanghai'),
-      -300,
-    );
+    await tester.scrollUntilVisible(find.text('数据说明').hitTestable(), 300);
+    await tester.tap(find.text('数据说明'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('时区：Asia/Shanghai'), findsOneWidget);
   });
   testWidgets('360宽200%字深色下日期错误不发请求，空列表与详情目标可恢复导航', (tester) async {

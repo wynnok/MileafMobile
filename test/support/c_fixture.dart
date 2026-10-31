@@ -92,7 +92,12 @@ Map<String, dynamic> cUsage() => {
   ...usageFixture(),
   'active_days': cRhythm.activeDays,
   'driving_duration_min': cRhythm.drivingMinutes,
+  'driving_distance_km': cMonth.distanceKm,
+  'distance_per_active_day_km': double.parse(
+    (cMonth.distanceKm / cRhythm.activeDays).toStringAsFixed(1),
+  ),
   'distance_p50_km': cRhythm.medianKm,
+  'distance_p90_km': 76,
   'partial_today': false,
   'query': {
     ...(usageFixture()['query'] as Map<String, dynamic>),
@@ -146,7 +151,7 @@ Map<String, dynamic> cSummary() {
     'month': {
       'drives': cMonth.drives,
       'distance_km': cMonth.distanceKm,
-      'energy_kwh': cChargingTotals.energyKwh,
+      'energy_kwh': 189.3,
     },
   };
   body['last_drive'] = {
@@ -260,7 +265,8 @@ Map<String, dynamic> _metrics(double distance, int drives, {num? netWhKm}) {
 /// totals when the requested window ends in September.
 Map<String, dynamic> cDriving(Uri uri) {
   final to = DateTime.tryParse(uri.queryParameters['to'] ?? '') ?? cNow;
-  final reference = to.month == 9;
+  // Any window ending before October is the C reference period.
+  final reference = to.isBefore(DateTime.utc(2026, 10));
   final from = uri.queryParameters['from'] ?? '2026-10-01T00:00:00Z';
   // Same 26 bucket starts for both periods so canCompare() accepts the
   // reference; the reference scale reproduces the C ↓/↑ 较参照 gap.
@@ -306,10 +312,8 @@ Map<String, dynamic> cDriving(Uri uri) {
 Map<String, dynamic> cEmptyDriving(Uri uri) {
   final body = cDriving(uri);
   body['totals'] = _metrics(0, 0);
-  body['buckets'] = [
-    for (final bucket in (body['buckets'] as List).cast<Map<String, dynamic>>())
-      {..._metrics(0, 0), 'bucket_start': bucket['bucket_start']},
-  ];
+  // Empty means no recorded buckets at all; a real zero keeps its buckets.
+  body['buckets'] = <Object>[];
   return body;
 }
 
@@ -376,15 +380,19 @@ Map<String, dynamic> cDrivesStats(Uri uri) {
     cDrivesTotals.drives,
     netWhKm: cDrivesTotals.netWhKm,
   );
+  final source = (body['buckets'] as List).cast<Map<String, dynamic>>();
+  final extra =
+      cDrivesTotals.drives -
+      source.fold<int>(0, (sum, b) => sum + (b['drives'] as int));
   body['buckets'] = [
-    for (final bucket in (body['buckets'] as List).cast<Map<String, dynamic>>())
+    for (final (index, bucket) in source.indexed)
       {
         'bucket_start': bucket['bucket_start'],
         ..._metrics(
           double.parse(
             ((bucket['distance_km'] as num) * scale).toStringAsFixed(1),
           ),
-          bucket['drives'] as int,
+          (bucket['drives'] as int) + (index < extra ? 1 : 0),
           netWhKm: cDrivesTotals.netWhKm,
         ),
       },
@@ -413,9 +421,9 @@ Map<String, dynamic> cChargingStatsV2() {
     'ac_duration_min': 180.0,
     'dc_duration_min': 130.0,
     'unit_cost_added': {
-      'value': 0.79,
+      'value': 0.87,
       'numerator_cost': cChargingTotals.knownCost,
-      'denominator_kwh': cChargingTotals.energyKwh,
+      'denominator_kwh': 214.0,
       'eligible_sessions': 8,
       'excluded_cost_sessions': 0,
     },
@@ -440,7 +448,9 @@ Map<String, dynamic> cChargingStatsV2() {
           'energy_added_kwh': energy,
           'energy_known_sessions': active ? 1 : 0,
           'cost': knownCost ? double.parse(perCost.toStringAsFixed(2)) : null,
-          'cost_per_kwh': knownCost ? 0.79 : null,
+          'cost_per_kwh': knownCost && energy > 0
+              ? double.parse((perCost / energy).toStringAsFixed(2))
+              : null,
           'cost_known_sessions': knownCost ? 1 : 0,
           'cost_known_energy_kwh': knownCost ? energy : 0.0,
           'duration_min_total': active ? 34.0 : 0.0,
@@ -463,7 +473,9 @@ Map<String, dynamic> cChargingStatsV2() {
             'excluded_cost_sessions': 0,
           },
           'unit_cost_added': {
-            'value': knownCost ? 0.79 : null,
+            'value': knownCost && energy > 0
+                ? double.parse((perCost / energy).toStringAsFixed(2))
+                : null,
             'numerator_cost': knownCost ? perCost : 0.0,
             'denominator_kwh': knownCost ? energy : 0.0,
             'eligible_sessions': knownCost ? 1 : 0,
@@ -479,8 +491,8 @@ Map<String, dynamic> cChargingStatsV2() {
 Map<String, dynamic> cChargeDetailBody() {
   final body = _json('charging-detail');
   body['id'] = 9;
-  body['started_at'] = '2026-10-26T05:12:00Z';
-  body['ended_at'] = '2026-10-26T05:46:00Z';
+  body['started_at'] = '2026-10-25T22:10:00Z';
+  body['ended_at'] = '2026-10-25T22:44:00Z';
   body['duration_min'] = cChargeDetail.durationMin;
   body['energy_added_kwh'] = cChargeDetail.energyKwh;
   body['energy_used_kwh'] = 49.5;
@@ -502,7 +514,7 @@ Map<String, dynamic> cChargeDetailBody() {
 /// Sampling curve for [cChargeDetailBody] (34 minutes, DC taper).
 Map<String, dynamic> cChargeSeries() {
   final body = _json('charging-series');
-  final base = DateTime.utc(2026, 10, 26, 5, 12);
+  final base = DateTime.utc(2026, 10, 25, 22, 10);
   final points = (body['series'] as List).cast<Map<String, dynamic>>();
   final step = cChargeDetail.durationMin / (points.length - 1);
   for (final (index, point) in points.indexed) {
@@ -525,8 +537,8 @@ Map<String, dynamic> cChargeSeries() {
 Map<String, dynamic> cDriveDetail() {
   final body = _json('drive-detail');
   body['id'] = 17;
-  body['started_at'] = '2026-10-26T09:52:00Z';
-  body['ended_at'] = '2026-10-26T10:38:00Z';
+  body['started_at'] = '2026-10-26T08:05:00Z';
+  body['ended_at'] = '2026-10-26T08:51:00Z';
   body['distance_km'] = 32.9;
   body['duration_min'] = 46;
   body['consumption_wh_km'] = 154;
@@ -556,7 +568,7 @@ Map<String, dynamic> cDriveDetail() {
 /// Sampling curve for [cDriveDetail], shifted onto the same 2026-10-26 trip.
 Map<String, dynamic> cDriveSeries() {
   final body = _json('drive-series');
-  final base = DateTime.utc(2026, 10, 26, 9, 52);
+  final base = DateTime.utc(2026, 10, 26, 8, 5);
   for (final (index, point) in (body['series'] as List).indexed) {
     (point as Map<String, dynamic>)['t'] = base
         .add(Duration(minutes: (index * 46 / 23).round()))
@@ -570,18 +582,27 @@ Map<String, dynamic> cDriveSeries() {
 Map<String, dynamic> cCharging(Uri uri) {
   final from = uri.queryParameters['from'] ?? '2026-10-01T00:00:00Z';
   final to = DateTime.tryParse(uri.queryParameters['to'] ?? '') ?? cNow;
-  const dailyEnergy = 234.7 / 26;
+  const sessionDays = {2, 5, 8, 11, 14, 17, 20, 23, 25};
+  final dailyEnergy = cChargingTotals.energyKwh / sessionDays.length;
   final buckets = <Map<String, dynamic>>[
     for (var i = 0; i < cBucketCount; i++)
       {
         'bucket_start': DateTime.utc(2026, 10, 1 + i).toIso8601String(),
-        'sessions': i == 25 ? 1 : (i % 9 == 0 ? 1 : 0),
-        'energy_added_kwh': double.parse(dailyEnergy.toStringAsFixed(2)),
-        'cost': double.parse((dailyEnergy * 0.79).toStringAsFixed(2)),
-        'cost_per_kwh': 0.79,
-        'ac_energy_kwh': double.parse((dailyEnergy * 0.5).toStringAsFixed(2)),
-        'dc_energy_kwh': double.parse((dailyEnergy * 0.41).toStringAsFixed(2)),
-        'dc_energy_share': 0.41,
+        'sessions': sessionDays.contains(i) ? 1 : 0,
+        'energy_added_kwh': sessionDays.contains(i)
+            ? double.parse(dailyEnergy.toStringAsFixed(2))
+            : 0.0,
+        'cost': sessionDays.contains(i)
+            ? double.parse((dailyEnergy * 0.87).toStringAsFixed(2))
+            : 0.0,
+        'cost_per_kwh': sessionDays.contains(i) ? 0.87 : null,
+        'ac_energy_kwh': sessionDays.contains(i)
+            ? double.parse((dailyEnergy * 0.5).toStringAsFixed(2))
+            : 0.0,
+        'dc_energy_kwh': sessionDays.contains(i)
+            ? double.parse((dailyEnergy * 0.41).toStringAsFixed(2))
+            : 0.0,
+        'dc_energy_share': sessionDays.contains(i) ? 0.41 : null,
       },
   ];
   return {
@@ -622,6 +643,7 @@ Map<String, dynamic> cDrives() {
   final body = _copy(_json('drives'));
   final items = (body['items'] as List).cast<Map<String, dynamic>>();
   final first = items.first;
+  body['next_cursor'] = 'page-2';
   first
     ..['distance_km'] = 32.9
     ..['duration_min'] = 46

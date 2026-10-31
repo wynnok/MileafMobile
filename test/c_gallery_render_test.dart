@@ -62,10 +62,21 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
         final expanded = expansionResponse(request);
         if (url.path.endsWith('/charging-sessions')) {
           final body = jsonDecode(expanded.body) as Map<String, dynamic>;
-          body['items'] = [
+          final items = [
             for (final item in (body['items'] as List).cast<Map>())
-              if (item['is_active'] != true) item,
+              if (item['is_active'] != true) Map<String, dynamic>.from(item),
           ];
+          if (items.isNotEmpty) {
+            items.first.addAll({
+              'energy_added_kwh': cChargeDetail.energyKwh,
+              'start_soc': cChargeDetail.startSoc,
+              'end_soc': cChargeDetail.endSoc,
+              'cost': cChargeDetail.cost,
+              'duration_min': cChargeDetail.durationMin,
+              'is_dc': true,
+            });
+          }
+          body['items'] = items;
           return http.Response(
             jsonEncode(body),
             200,
@@ -89,7 +100,11 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
         if (scenario == 'missing' && !charging) {
           return _ok(cMissingDriving(url));
         }
-        return _ok(charging ? cChargingStatsV2() : cDrivesStats(url));
+        if (charging) return _ok(cChargingStatsV2());
+        final from = url.queryParameters['from'] ?? '';
+        return _ok(
+          from.startsWith('2026-09-2') ? cDrivesStats(url) : cDriving(url),
+        );
       }
       return http.Response('{}', 404);
     });

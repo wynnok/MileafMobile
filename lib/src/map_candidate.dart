@@ -230,7 +230,9 @@ class _CandidateMapState extends State<CandidateMap>
   Widget build(BuildContext context) {
     super.build(context);
     final provider = widget.provider;
-    if (provider == null) return const Text('地图暂不可用：此版本尚未配置底图服务，其他记录仍可阅读');
+    if (provider == null) {
+      return const Text('地图暂不可用：此版本尚未配置底图服务，其他记录仍可阅读');
+    }
     if (!provider.isUsable) {
       return const Text('地图暂不可用：底图服务配置无效，其他记录仍可阅读');
     }

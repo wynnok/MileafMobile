@@ -491,7 +491,22 @@ class _ChargingPageState extends State<ChargingPage>
         legacyStats = value is legacy.ChargingStats ? value : null;
         statsKey = key;
         statsCheckedAt = result.checkedAt;
-        chartDay = 0;
+        final int activeIndex;
+        if (value is expanded.ChargingStats) {
+          final last = value.buckets.lastIndexWhere((b) => b.sessions > 0);
+          activeIndex = value.buckets.isEmpty
+              ? 0
+              : (last < 0 ? value.buckets.length - 1 : last);
+        } else {
+          final legacyValue = value as legacy.ChargingStats;
+          final last = legacyValue.buckets.lastIndexWhere(
+            (b) => b.sessions > 0,
+          );
+          activeIndex = legacyValue.buckets.isEmpty
+              ? 0
+              : (last < 0 ? legacyValue.buckets.length - 1 : last);
+        }
+        chartDay = activeIndex;
       });
     } catch (_) {
       if (mounted &&
@@ -803,9 +818,7 @@ class _ChargingPageState extends State<ChargingPage>
                   children: [
                     const Expanded(child: Text('已知充电费用')),
                     Text(
-                      widget.currency.code == null
-                          ? widget.currency.symbol
-                          : widget.currency.code!,
+                      widget.currency.code ?? '币种未知',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],
@@ -813,7 +826,7 @@ class _ChargingPageState extends State<ChargingPage>
                 Text(
                   total.cost == null
                       ? '—（缺失）'
-                      : '${widget.currency.symbol}${decimal(total.cost!)}',
+                      : '${widget.currency.code == null ? '' : widget.currency.symbol}${decimal(total.cost!)}',
                   style: Theme.of(context).textTheme.displaySmall
                       ?.copyWith(fontSize: 44),
                 ),
@@ -1075,7 +1088,7 @@ class _ChargingPageState extends State<ChargingPage>
               ],
             ),
             Text(
-              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}${expandedAvailable ? '' : ' · 时区：${workspace.calendar!.identifier}'}',
+              '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · ${workspace.calendar!.local(from).toString().split(' ').first} 至 ${workspace.calendar!.local(to.subtract(const Duration(microseconds: 1))).toString().split(' ').first}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (expandedAvailable)
@@ -1319,16 +1332,15 @@ class _ChargingPageState extends State<ChargingPage>
                   child: const Text('加载更多地点'),
                 ),
             ],
-            if (expandedAvailable)
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('数据说明'),
-                children: [
-                  Text(
-                    '按结束时间归期 · 时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
-                  ),
-                ],
-              ),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('数据说明'),
+              children: [
+                Text(
+                  '按${expandedAvailable ? '结束' : '开始'}时间归期 · 时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
+                ),
+              ],
+            ),
             if (loading) const LinearProgressIndicator(),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),

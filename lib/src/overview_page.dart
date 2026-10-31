@@ -69,6 +69,7 @@ class _OverviewPageState extends State<OverviewPage>
   int comparisonSequence = 0;
   String? windowDay, windowZone;
   _Metric metric = _Metric.distance;
+  int? chartSelection;
   final plotKey = GlobalKey();
   final chartKey = GlobalKey();
   final viewportKey = GlobalKey();
@@ -885,6 +886,12 @@ class _OverviewPageState extends State<OverviewPage>
       unit: unit,
       times: chartTimes,
       series: [ChartSeries(label: label, values: values)],
+      selectedIndex:
+          chartSelection ??
+          (values.lastIndexWhere((v) => v != null && v > 0) < 0
+              ? 0
+              : values.lastIndexWhere((v) => v != null && v > 0)),
+      onSelected: (index) => setState(() => chartSelection = index),
       timestamp: timestamp,
       tickLabel: (t) {
         final d = workspace.calendar!.local(t);
@@ -1197,9 +1204,10 @@ class _OverviewPageState extends State<OverviewPage>
     child: PeriodChips(
       labels: const ['本月', '近7天'],
       selected: period == OverviewPeriod.month ? 0 : 1,
-      onSelected: (index) => changePeriod(
-        index == 0 ? OverviewPeriod.month : OverviewPeriod.recent,
-      ),
+      onSelected: (index) {
+        chartSelection = null;
+        changePeriod(index == 0 ? OverviewPeriod.month : OverviewPeriod.recent);
+      },
       trailing: IconButton(
         onPressed: loading ? null : () => loadSummary(force: true),
         icon: const Icon(Icons.refresh, size: 18),
