@@ -47,7 +47,7 @@ void main() {
         150,
       );
       await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('速度图表'), findsOneWidget);
+      expect(find.bySemanticsLabel('速度过程图表'), findsOneWidget);
       expect(find.text('km/h'), findsWidgets);
       expect(find.textContaining('速度读数 10 km/h'), findsOneWidget);
       await tester.drag(

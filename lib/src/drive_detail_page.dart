@@ -630,6 +630,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                       ),
                   ],
                   label: ['速度', '电量', '海拔'][metric],
+                  title: ['速度过程', '电量过程', '海拔过程'][metric],
+                  subtitle: '点按图形读值',
                   unit: ['km/h', '%', 'm'][metric],
                   timestamp: time,
                   selectedIndex: selectedSample,

@@ -15,6 +15,8 @@ class SampleChart extends StatelessWidget {
     this.onSelected,
     this.plotKey = const ValueKey('sample-chart'),
     this.plotObserverKey,
+    this.title,
+    this.subtitle,
   });
   final List<(DateTime, num?)> points;
   final String label, unit;
@@ -23,6 +25,12 @@ class SampleChart extends StatelessWidget {
   final ValueChanged<int>? onSelected;
   final Key plotKey;
   final Key? plotObserverKey;
+
+  /// C 图卡标题（如「速度过程」）；缺省沿用指标名。
+  final String? title;
+
+  /// C 图卡副标题（如「点按图形读值」）。
+  final String? subtitle;
   @override
   Widget build(BuildContext context) {
     final values = points.map((p) => p.$2).whereType<num>().toList();
@@ -32,7 +40,8 @@ class SampleChart extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TimeChart(
-          title: label,
+          title: title ?? label,
+          subtitle: subtitle,
           unit: unit,
           times: points.map((p) => p.$1).toList(),
           series: [
