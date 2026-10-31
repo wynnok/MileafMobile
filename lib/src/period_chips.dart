@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'collage.dart';
+
 /// Shared C period selector: a row of quiet chips plus an optional trailing
 /// control (refresh or date action). Keeps the three list headers consistent.
 class PeriodChips extends StatelessWidget {
@@ -39,7 +41,7 @@ class PeriodChips extends StatelessWidget {
         ),
     ];
     // Large text wraps instead of overflowing the 360 dp header.
-    if (MediaQuery.textScalerOf(context).scale(14) >= 21) {
+    if (largeText(context)) {
       return Wrap(
         spacing: 6,
         runSpacing: 6,

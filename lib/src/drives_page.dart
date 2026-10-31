@@ -355,7 +355,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>
-      value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
+      value == null ? '—（缺失）' : '${grouped(value, decimals: decimals)} $unit';
   String date(DateTime value) =>
       '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
   String timeRange(Map<String, String> range) {
@@ -399,7 +399,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
               children: [
                 Expanded(
                   child: Text(
-                    lead ? _clock(d.startedAt) : _clock(d.startedAt),
+                    _clock(d.startedAt),
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),
@@ -441,7 +441,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
 
   Widget _pairedRoutes(List<dto.Drive> routes) {
     if (routes.isEmpty) return const SizedBox.shrink();
-    final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final single = largeText(context);
     if (single) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -508,10 +508,6 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
 
   String place(String? value) =>
       value == null || value.trim().isEmpty ? '未知地点' : value;
-  String recordDay(DateTime value) {
-    final local = workspace.calendar!.local(value);
-    return '${local.year}年${local.month}月${local.day}日';
-  }
 
   @override
   Widget build(BuildContext context) => RefreshIndicator(
@@ -631,21 +627,28 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text.rich(
-                      TextSpan(
-                        text: grouped(s.totals.distanceKm, decimals: 1),
-                        children: [
-                          TextSpan(
-                            text: ' km',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
-                      ),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 48,
-                        height: 1,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text.rich(
+                        TextSpan(
+                          text: grouped(s.totals.distanceKm, decimals: 1),
+                          children: [
+                            TextSpan(
+                              text: ' km',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                        ),
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              fontSize: 48,
+                              height: 1,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                       ),
                     ),
                     const SizedBox(height: 4),

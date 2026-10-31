@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'number_format.dart';
+
 import 'api.dart';
 import 'data_cards.dart';
 import 'collage.dart';
@@ -316,7 +318,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>
-      value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
+      value == null ? '—（缺失）' : '${grouped(value, decimals: decimals)} $unit';
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
 

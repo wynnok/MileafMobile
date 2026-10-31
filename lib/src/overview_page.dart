@@ -655,17 +655,11 @@ class _OverviewPageState extends State<OverviewPage>
       ? '未知'
       : workspace.calendar!.local(time).toString().split('.').first;
   String number(num? value, String unit, {int decimals = 0}) =>
-      value == null ? '—（缺失）' : '${value.toStringAsFixed(decimals)} $unit';
+      value == null ? '—（缺失）' : '${grouped(value, decimals: decimals)} $unit';
   Widget line(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Text('$label  $value'),
   );
-  String shortStamp(DateTime? t) {
-    if (t == null) return '未知';
-    final d = workspace.calendar!.local(t);
-    return '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  }
-
   Widget summary(BuildContext context, dto.Summary d) {
     final theme = Theme.of(context),
         scale = MediaQuery.textScalerOf(context).scale(14) / 14;
@@ -847,7 +841,12 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   /// Null when the same-progress reference is valid, else the C wording.
-  String? get _mileageGuard {
+  num? _pairedNet(CachedResult? result) {
+    final enhanced = enhancedDriving(result);
+    return enhanced?.totals.netConsumptionPaired.valueWhKm;
+  }
+
+  String? get _comparisonGuard {
     final current = results['driving'];
     final prior = comparisonResult;
     if (!pairedAvailable ||
@@ -871,16 +870,9 @@ class _OverviewPageState extends State<OverviewPage>
     return null;
   }
 
-  String get mileageComparison {
-    final guard = _mileageGuard;
-    if (guard != null) return guard;
-    final delta = driving!.totals.distanceKm - comparison!.totals.distanceKm;
-    return '里程较参照差 ${delta.toStringAsFixed(1)} km';
-  }
-
   /// C mint tile pill: percentage delta, never a bare sign on a zero base.
   String get _mileageDeltaPill {
-    final guard = _mileageGuard;
+    final guard = _comparisonGuard;
     if (guard != null) return guard;
     final previous = comparison!.totals.distanceKm;
     final current = driving!.totals.distanceKm;
@@ -1011,7 +1003,8 @@ class _OverviewPageState extends State<OverviewPage>
         return '${tickLabelAt(chartTimes, index)} $text';
       },
       trailing: const Icon(Icons.arrow_forward, size: 16),
-      maximum: metric == _Metric.distance ? 120 : null,
+      // Let the axis follow real buckets; C's fixed 120 was synthetic-sample only.
+      maximum: null,
       presentation: metric == _Metric.net
           ? ChartPresentation.line
           : ChartPresentation.bars,
@@ -1323,11 +1316,6 @@ class _OverviewPageState extends State<OverviewPage>
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            workspace.calendar?.identifier ?? 'UTC',
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-          const SizedBox(width: 2),
           IconButton(
             onPressed: loading ? null : () => loadSummary(force: true),
             icon: const Icon(Icons.refresh, size: 18),
@@ -1570,9 +1558,9 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   String _insightText() {
-    final current = driving?.totals.consumptionWhKmNet;
-    final prior = comparison?.totals.consumptionWhKmNet;
-    if (_mileageGuard == null && current != null && prior != null) {
+    final current = _pairedNet(results['driving']);
+    final prior = _pairedNet(comparisonResult);
+    if (_comparisonGuard == null && current != null && prior != null) {
       final delta = (current - prior).abs();
       if (delta >= .5) {
         final window = period == OverviewPeriod.month ? '上月同期' : '前一区间';
@@ -1592,37 +1580,35 @@ class _OverviewPageState extends State<OverviewPage>
       ('charging', Icons.bolt_outlined, '补能', '费用与结构'),
       ('long', Icons.battery_std_outlined, '长期', '续航与停放'),
     ];
-    Widget card((String, IconData, String, String) item) => Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => item.$1 == 'charging'
-            ? widget.onStatistics?.call('charging', range!.selection)
-            : widget.onInsight!(item.$1, range!.selection),
-        child: CollageTile(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.$3,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+    Widget card((String, IconData, String, String) item) => InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => item.$1 == 'charging'
+          ? widget.onStatistics?.call('charging', range!.selection)
+          : widget.onInsight!(item.$1, range!.selection),
+      child: CollageTile(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.$3,
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  Icon(item.$2, size: 16),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(item.$4, style: Theme.of(context).textTheme.labelSmall),
-              const SizedBox(height: 6),
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Text('读下去 →', style: TextStyle(fontSize: 11)),
-              ),
-            ],
-          ),
+                ),
+                Icon(item.$2, size: 16),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(item.$4, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(height: 6),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text('读下去 →', style: TextStyle(fontSize: 11)),
+            ),
+          ],
         ),
       ),
     );
@@ -1636,14 +1622,16 @@ class _OverviewPageState extends State<OverviewPage>
         for (var i = 0; i < items.length; i += 2)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                card(items[i]),
-                const SizedBox(width: 8),
-                card(items[i + 1]),
-              ],
-            ),
+            child: largeText(context) || i + 1 >= items.length
+                ? card(items[i])
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: card(items[i])),
+                      const SizedBox(width: 8),
+                      Expanded(child: card(items[i + 1])),
+                    ],
+                  ),
           ),
       ],
     );

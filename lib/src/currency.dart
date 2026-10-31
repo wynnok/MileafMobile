@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'number_format.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract interface class CurrencyPreferenceStore {
@@ -67,7 +70,7 @@ class CurrencySettings extends ChangeNotifier {
 }
 
 String decimal(num value) =>
-    value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+    groupedText(value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
 
 class CurrencyPage extends StatefulWidget {
   const CurrencyPage({super.key, required this.settings});

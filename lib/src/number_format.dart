@@ -2,7 +2,11 @@
 /// Small values keep the plain form so chips and notes stay stable.
 String grouped(num value, {int decimals = 0}) {
   if (!value.isFinite) return '—';
-  final text = value.toStringAsFixed(decimals);
+  return groupedText(value.toStringAsFixed(decimals));
+}
+
+/// Same grouping for values that are already formatted (see `decimal`).
+String groupedText(String text) {
   final dot = text.indexOf('.');
   final whole = dot < 0 ? text : text.substring(0, dot);
   final fraction = dot < 0 ? '' : text.substring(dot);

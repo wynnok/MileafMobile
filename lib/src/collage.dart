@@ -53,14 +53,17 @@ class CollageTile extends StatelessWidget {
   }
 }
 
+/// C stacks to one column once body text reaches roughly 150% (200% setting).
+bool largeText(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(14) >= 21;
+
 /// A dominant result beside quieter evidence; large text always stacks.
 class CollageBento extends StatelessWidget {
   const CollageBento({super.key, required this.lead, required this.evidence});
   final Widget lead;
   final List<Widget> evidence;
   @override
-  Widget build(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(14) >= 21
+  Widget build(BuildContext context) => largeText(context)
       ? Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [lead, ...evidence],

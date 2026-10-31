@@ -233,7 +233,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       ),
       LayoutBuilder(
         builder: (context, constraints) {
-          final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+          final single = largeText(context);
           return Wrap(
             spacing: 8,
             runSpacing: 0,
@@ -820,9 +820,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         },
         trailing: Text(
           '点按图形读值',
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: const Color(0xFFB8D6C3)),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: const Color(0xFFB8D6C3)),
         ),
         plotKey: const ValueKey('statistics-insights-chart'),
         selectedIndex: selected,
@@ -973,10 +972,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         _netDeltaNote(net, prior, comparable),
         Sparkline(
           height: 24,
+          // Keep bucket positions so a missing day leaves a gap, not a shift.
           values: [
             for (final b in enhanced.buckets)
-              if (b.consumptionWhKmNet != null)
-                b.consumptionWhKmNet!.toDouble(),
+              b.consumptionWhKmNet?.toDouble() ?? 0,
           ],
         ),
         () => selectTopic('energy'),
@@ -996,7 +995,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       (
         '长期',
         Icons.battery_std_outlined,
-        CollageSurface.hero,
+        CollageSurface.paper,
         '—',
         'km',
         '6 个月额定续航 P50 · 在专题内读取',
@@ -1013,7 +1012,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final single = MediaQuery.textScalerOf(context).scale(14) >= 21;
+            final single = largeText(context);
             return Wrap(
               spacing: 8,
               children: [

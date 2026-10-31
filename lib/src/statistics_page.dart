@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'number_format.dart';
+
 import 'statistics_period.dart';
 import 'statistics_usage_page.dart';
 import 'statistics_conditions_page.dart';
@@ -286,7 +288,7 @@ class _StatisticsViewState extends State<_StatisticsView>
 
   String number(dynamic value, String unit, {int decimals = 0}) => value == null
       ? '—（缺失）'
-      : '${(value as num).toStringAsFixed(decimals)} $unit';
+      : '${grouped(value as num, decimals: decimals)} $unit';
   Widget line(String label, dynamic value, String unit, {int decimals = 0}) =>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
