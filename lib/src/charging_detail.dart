@@ -314,7 +314,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   builder: (context) => Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('电量变化'),
+                      const Text('电量区间'),
                       SizedBox(
                         height: 36,
                         child: CustomPaint(
@@ -336,26 +336,41 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ),
                 ),
               ),
-              CollageTile(
-                surface: CollageSurface.mint,
-                child: Wrap(
-                  spacing: 18,
-                  runSpacing: 6,
-                  children: [
-                    Text(
-                      '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text('费用 ${widget.currency.amount(d.cost)}'),
-                    Text('时长 ${number(d.durationMin, '分钟')}'),
-                    Text(
-                      d.isDc == null
-                          ? '分类未知'
-                          : d.isDc!
-                          ? 'DC'
-                          : 'AC',
-                    ),
-                  ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final large =
+                      MediaQuery.textScalerOf(context).scale(12) > 18;
+                  final width = large
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - 16) / 3;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final item in [
+                        Text(
+                          '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text('费用 ${widget.currency.amount(d.cost)}'),
+                        Text('时长 ${number(d.durationMin, '分钟')}'),
+                      ])
+                        SizedBox(
+                          width: width,
+                          child: CollageTile(
+                            padding: const EdgeInsets.all(10),
+                            child: item,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 6),
+                child: Text(
+                  d.isDc == null ? '分类未知' : d.isDc! ? 'DC' : 'AC',
+                  style: Theme.of(context).textTheme.labelSmall,
                 ),
               ),
             ],

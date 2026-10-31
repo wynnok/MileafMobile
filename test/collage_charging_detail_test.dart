@@ -90,9 +90,9 @@ void main() {
     expect(find.textContaining('服务端采样'), findsNothing);
     expect(find.textContaining('采样峰值不等同原始峰值'), findsNothing);
     expect(find.textContaining('地图暂不可用'), findsOneWidget);
-    expect(find.text('电量变化'), findsOneWidget);
+    expect(find.text('电量区间'), findsOneWidget);
     expect(
-      tester.getTopLeft(find.text('电量变化')).dy,
+      tester.getTopLeft(find.text('电量区间')).dy,
       lessThan(tester.getTopLeft(find.text('充入电池 20 kWh')).dy),
     );
     final graph = tester.getRect(find.byKey(const Key('charging-time-chart')));
@@ -140,7 +140,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(FlutterMap), findsOneWidget);
       }
-      await tester.scrollUntilVisible(find.text('电量变化'), 200);
+      await tester.scrollUntilVisible(find.text('电量区间'), 200);
       expect(find.text('40% → 70%'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('功率 kW'), 200);
       expect(find.text('功率 kW'), findsOneWidget);
