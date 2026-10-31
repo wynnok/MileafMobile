@@ -71,6 +71,8 @@ void main() {
     expect(find.text('里程较参照差 0.0 km'), findsOneWidget);
     expect(find.text('净电耗 · 估算'), findsOneWidget);
     expect(find.text('188 Wh/km'), findsOneWidget);
+    // C net tile states the paired delta against the reference.
+    expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();

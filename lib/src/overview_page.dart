@@ -1325,10 +1325,7 @@ class _OverviewPageState extends State<OverviewPage>
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                pairedAvailable ? '同批有效能量与里程' : '点按查看电耗变化',
-                style: theme.textTheme.labelSmall,
-              ),
+              Text(_netNote(value), style: theme.textTheme.labelSmall),
             ],
           ),
         ),
@@ -1434,6 +1431,21 @@ class _OverviewPageState extends State<OverviewPage>
       ),
     ),
   );
+
+  /// C net tile: show the paired delta against the reference when it is valid.
+  String _netNote(num? value) {
+    final prior = enhancedDriving(comparisonResult)
+        ?.totals
+        .netConsumptionPaired
+        .valueWhKm;
+    if (!pairedAvailable) return '点按查看电耗变化';
+    if (value == null || prior == null || comparisonError != null) {
+      return '同批有效能量与里程';
+    }
+    final delta = value - prior;
+    if (delta.abs() < 0.5) return '与参照基本持平';
+    return '较参照${delta < 0 ? '低' : '高'} ${delta.abs().toStringAsFixed(0)} Wh/km';
+  }
 
   String _insightText() {
     final comparison = mileageComparison;

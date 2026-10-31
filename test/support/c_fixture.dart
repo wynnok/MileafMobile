@@ -285,11 +285,12 @@ Map<String, dynamic> cDriving(Uri uri) {
               ? double.parse((_daily[i].distance * scale).toStringAsFixed(1))
               : _daily[i].distance,
           _daily[i].drives,
+          netWhKm: reference ? 166 : cMonth.netWhKm,
         ),
       },
   ];
   final totals = reference
-      ? _metrics(cReferenceDistanceKm, 45)
+      ? _metrics(cReferenceDistanceKm, 45, netWhKm: 166)
       : _metrics(cMonth.distanceKm, cMonth.drives);
   return {
     'totals': totals,
