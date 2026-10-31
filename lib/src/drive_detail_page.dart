@@ -419,40 +419,34 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               if (seriesError != null && series == null)
                 const Text('轨迹采样暂不可用，可在行程采样区域重试'),
               if (detail case final d?)
-                CollageTile(
-                  surface: CollageSurface.mint,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final large =
-                          MediaQuery.textScalerOf(context).scale(12) > 18;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              for (final entry in [
-                                ('距离', number(d.distanceKm, 'km', decimals: 1)),
-                                ('时长', number(d.durationMin, '分钟')),
-                                ('估算净电耗', number(d.consumptionWhKm, 'Wh/km')),
-                              ])
-                                SizedBox(
-                                  width: large
-                                      ? constraints.maxWidth
-                                      : (constraints.maxWidth - 24) / 3,
-                                  child: MetricTile(
-                                    label: entry.$1,
-                                    value: entry.$2,
-                                  ),
-                                ),
-                            ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final large =
+                        MediaQuery.textScalerOf(context).scale(12) > 18;
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final entry in [
+                          ('距离', number(d.distanceKm, 'km', decimals: 1)),
+                          ('时长', number(d.durationMin, '分钟')),
+                          ('净电耗', number(d.consumptionWhKm, 'Wh/km')),
+                        ])
+                          SizedBox(
+                            width: large
+                                ? constraints.maxWidth
+                                : (constraints.maxWidth - 16) / 3,
+                            child: CollageTile(
+                              padding: const EdgeInsets.all(10),
+                              child: MetricTile(
+                                label: entry.$1,
+                                value: entry.$2,
+                              ),
+                            ),
                           ),
-                        ],
-                      );
-                    },
-                  ),
+                      ],
+                    );
+                  },
                 ),
               if (detail case final d?) ...[
                 CollageTile(
