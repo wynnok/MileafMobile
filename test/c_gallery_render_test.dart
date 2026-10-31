@@ -51,6 +51,9 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
       if (url.path.endsWith('/charging-sessions/9/series')) {
         return _ok(cChargeSeries());
       }
+      if (url.path.endsWith('/charging-sessions/9')) {
+        return _ok(cChargeDetailBody());
+      }
       if (url.path.contains('/charging-sessions') ||
           url.path.contains('/charging-locations') ||
           (url.path.endsWith('/stats') &&
@@ -70,9 +73,6 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
           );
         }
         return expanded;
-      }
-      if (url.path.endsWith('/charging-sessions/9')) {
-        return _ok(cChargeDetailBody());
       }
       if (url.path.endsWith('/driving-analysis')) {
         return _ok(
@@ -179,6 +179,9 @@ void main() {
             await tester.tap(find.text('最近充电'));
             await tester.pumpAndSettle();
             await save('charge-detail-$suffix');
+            if (scale == 1.0) {
+              expectPage('电量区间');
+            }
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
           if (scenario == 'normal') {
@@ -186,6 +189,10 @@ void main() {
             await tester.tap(find.text('充电').last);
             await tester.pumpAndSettle();
             await save('charging-list-$suffix');
+            if (scale == 1.0) {
+              expectPage('已知充电费用');
+              expectPage('每日补能');
+            }
           }
 
           await tester.tap(find.text('统计').last);
@@ -220,6 +227,7 @@ void main() {
             await tester.tap(find.byKey(const ValueKey('drive-17')).first);
             await tester.pumpAndSettle();
             await save('drive-detail-$suffix');
+            expectPage('路线示意 · 非导航');
           }
         }
       }
