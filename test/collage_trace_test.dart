@@ -7,8 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'drive_detail_test.dart' show openDetail, fixture;
-import 'drive_map_test.dart' show scrollPageTo;
 import 'drives_test.dart' show jsonResponse;
+
+Future<void> scrollPageTo(
+  WidgetTester tester,
+  Finder target,
+  double delta,
+) async {
+  for (var i = 0; i < 30 && target.hitTestable().evaluate().isEmpty; i++) {
+    final viewport = tester.getRect(find.byType(RefreshIndicator));
+    await tester.dragFrom(
+      Offset(viewport.right - 4, viewport.center.dy),
+      Offset(0, -delta),
+    );
+    await tester.pumpAndSettle();
+  }
+  expect(target.hitTestable(), findsOneWidget);
+}
 
 void main() {
   testWidgets('C地图开场不虚报默认速度曲线ready，滚到绘图区后才发候选', (tester) async {

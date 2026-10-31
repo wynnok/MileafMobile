@@ -10,12 +10,14 @@
 - 已确认首版范围：单站点、多车辆；车辆切换、概览、行程列表与详情、充电列表与详情、统计，以及连接与登录。
 - 2026-10-25 用户重申核心展示目标：以移动端体验为中心，美观、直观地尽可能展示 TeslaMate 数据；参考 Grafana 指标，不要求逐项相同或迁移桌面布局。图表/地图/关键数字是概览、详情和统计的主要内容，不以字段清单或逐桶文字替代。实施前先交付代表页面可视方案，按 `docs/product/visualization-requirements.md` V01–V08、A01–A06 及修订 Spec T17–T18 验收；当前数据闭环、测试及构建通过不代表新展示要求通过。
 - 不实现车辆控制、Tesla 凭据接入、多车对比或秒级刷新。业务数据只读，站点认证除外。
-- 2026-10-26 用户已选择 A「湖畔」并要求完成实施；当前正式 Flutter 页面、图表及验证见 `docs/implementation/lake-visualization.md`，视觉决定见 `docs/product/lake-visual-design.md`。不要再次按“尚待选择原型”停止；外部待验和未推送边界继续有效。
+- 2026-10-26 用户已选择 A「湖畔」并要求完成实施；当前正式 Flutter 页面、图表及验证见 `docs/implementation/lake-visualization.md`，视觉决定见 `docs/product/lake-visual-design.md`。A 的版面/视觉验收已于 2026-10-30 由 C「数据拼贴」取代，湖畔配色保留。不要再次按“尚待选择原型”停止；外部待验和未推送边界继续有效。
 - 2026-10-27 用户已确认概览扩展 A「用车简报」，仅实施现有 API 支持范围；增量同步 Spec #1/#8，不重复建票。方案见 `docs/product/overview-expansion-proposal.md`，正式实施和验证见 `docs/implementation/overview-briefing.md`；电量历史/停放变化/费用覆盖/长期续航及动态排序仍为后续候选，不修改后端。授权按 implement 完成测试、审查和当前分支本地提交，不推送或提前关闭外部待验。
 - 2026-10-27 用户已确认行程扩展 A「出行回顾」及方案顺序1，并批准紧凑节奏区/真实滚动调整；正式实现与本地测试、图册、双端隔离构建及审查见 `docs/implementation/drives-expansion.md`。Spec #1/#9/#10/#11 已增量同步；顺序2–4及新后端能力保持候选，不重复建票、不推送或提前关闭外部待验。授权当前 `codex/mileaf-v1` 本地提交，不再停在等待选择原型。
 - 2026-10-28 用户已确认充电扩展 A「补能账本」，实施已完成的 CH01–CH05；正式实现和验证见 `docs/implementation/charging-briefing.md`。Spec #1/#12/#13/#15 增量同步；CH06、地图空间聚合和跨会话性能比较后置，不重复建票、不推送或提前关闭外部待验。授权当前 `codex/mileaf-v1` 本地提交。
 - `MileafServer/` 与 `teslamate/` 是外部仓库的符号链接，只读参考，不在本任务中修改。
 - 2026-10-29 用户授权按 implement-spec 实施统计扩展 A「用车洞察」，范围为 Spec #1 统计增量、#14/#15/#18–#21及#17集成复验。以冻结0.3.0实际契约和能力声明接入，按代码合入依赖推进；复用 codex/mileaf-v1，允许本地提交/合入，不推送/部署、不提前关闭外部待验票。测试边界为已确认App＋可控HTTP，另做正式Flutter渲染、隔离双端构建与双轴审查。
+- 2026-10-30 用户已确认 C「数据拼贴」作为主视觉方向：沿用湖畔配色，只替换版面/层级；统计以结论+主图+2×2章节卡→专题页替代五个等权 tab；详情以地图/电池弧/功率曲线为首要视觉；技术口径进数据说明层。Spec #1 已追加增量，见 `docs/specs/mobile-v1.md` 的 2026-10-30 章节；决定见 `docs/adr/0001-visual-direction-c.md`。旧 A 渲染仅历史证据；tickets 验收已映射（0 新票），不重复建票。
+- 2026-10-31 用户作出 **C10 视觉验收通过** 结论，并裁定行程详情顺序以 C 渲染为准（Spec #1 第363条措辞已按渲染更正）。证据见 `docs/implementation/collage-audit/c-fidelity-report.md`；真机、真实站点/地图、性能与双端隔离构建仍为独立外部 gate，不因 C10 通过而关闭。
 - 依赖、缓存与构建产物保持项目内；不修改全局工具或系统设置。不擅自提交、推送、部署或删除既有文件。
 - 修改前阅读相关文件；保持最小改动，验证后报告。区分代码事实、已确认决定和未确认建议。
 
@@ -35,3 +37,5 @@ See `docs/agents/triage-labels.md`.
 
 Single-context: root `GLOSSARY.md` plus `docs/adr/`.
 See `docs/agents/domain.md`.
+
+- 2026-10-31 地图双端接入：共享 Dart `MapPanel`；Android 高德 11.3.100 `TextureMapView`；iOS 暂用 MapKit 过渡（需单独 iOS key 后才能接高德）；WGS84→GCJ-02 只在地图边界；真实 key/真机/iOS 高德仍待验，#4/#11 保持 OPEN。实现与证据见 `docs/implementation/amap-map.md`，决定见 `docs/adr/0002-map-provider.md`。

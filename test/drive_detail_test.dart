@@ -5,7 +5,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:mileaf/src/map_candidate.dart';
+import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/map_panel.dart';
+import 'package:mileaf/src/map/map_platform.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'drives_test.dart' show openDrives, jsonResponse;
@@ -16,7 +18,8 @@ Map<String, dynamic> fixture(String name) =>
 Future<void> openDetail(
   WidgetTester tester,
   Future<http.Response> Function(http.Request) handler, {
-  MapConfiguration? mapConfiguration,
+  MapConsentController? mapConsent,
+  MapPlatform? mapPlatform,
   Future<http.Response> Function(http.Request)? statsHandler,
   Future<CalendarContext> Function()? calendar,
 }) async {
@@ -33,7 +36,8 @@ Future<void> openDetail(
       }
       return handler(r);
     },
-    mapConfiguration: mapConfiguration,
+    mapConsent: mapConsent,
+    mapPlatform: mapPlatform,
     statsHandler: statsHandler,
     calendar: calendar,
   );
@@ -59,7 +63,7 @@ void main() {
         ),
       ),
     );
-    final map = tester.getRect(find.byType(CandidateMap));
+    final map = tester.getRect(find.byType(MapPanel));
     final route = tester.getRect(find.textContaining(' → ').first);
     expect(map.top, lessThan(route.top));
     expect(map.left, 0);
@@ -269,7 +273,7 @@ void main() {
       ),
     );
     for (final text in [
-      '地图暂不可用',
+      '底图未启用',
       '距离 20.0 km',
       '时长 120 分钟',
       '净电耗 188 Wh/km',
@@ -345,10 +349,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('未知地点 → 办公地点').hitTestable(),
-      120,
-    );
+    await tester.scrollUntilVisible(find.text('未知地点 → 办公地点'), 120);
     expect(find.text('未知地点 → 办公地点'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('更多行程指标'), 200);
     await tester.pumpAndSettle();
@@ -378,7 +379,10 @@ void main() {
       ),
     );
     expect(find.bySemanticsLabel('距离 20.0 km').hitTestable(), findsOneWidget);
-    expect(find.bySemanticsLabel('净电耗 188 Wh/km').hitTestable(), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('净电耗 188 Wh/km').hitTestable(),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('sample-chart')).hitTestable(),
       140,
@@ -583,7 +587,7 @@ void main() {
     expect(find.text('行程 #1'), findsNothing);
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
   });
-  testWidgets('未配置地图时详情和采样可读，不向第三方联网且没有研发占位文案', (tester) async {
+  testWidgets('默认未启用底图时详情和采样可读，显示路线示意且没有研发占位文案', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -594,8 +598,8 @@ void main() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.textContaining('地图暂不可用'), 250);
-    expect(find.textContaining('地图暂不可用'), findsOneWidget);
+    expect(find.textContaining('底图未启用'), findsOneWidget);
+    expect(find.text('启用地图'), findsOneWidget);
     expect(find.textContaining('后续地图切片'), findsNothing);
     expect(find.text('允许加载底图'), findsNothing);
   });

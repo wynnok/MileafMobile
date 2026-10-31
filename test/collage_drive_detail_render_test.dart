@@ -7,10 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:http/testing.dart';
-import 'package:mileaf/src/map_candidate.dart';
-
-import 'drive_map_test.dart' show provider, tile;
+import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/sketch_platform.dart';
 
 import 'drives_test.dart' show jsonResponse;
 import 'drive_detail_test.dart' show openDetail, fixture;
@@ -49,6 +47,8 @@ void main() {
           final name = '$scenario-${brightness.name}-${scale == 1 ? 100 : 200}';
           tester.platformDispatcher.platformBrightnessTestValue = brightness;
           tester.platformDispatcher.textScaleFactorTestValue = scale;
+          final consent = MapConsentController();
+          await consent.grant('路线示意');
           await openDetail(
             tester,
             (r) async {
@@ -84,24 +84,10 @@ void main() {
               }
               return jsonResponse(jsonEncode(body));
             },
-            mapConfiguration: scenario == 'normal'
-                ? MapConfiguration(
-                    provider: provider,
-                    sourceCrs: 'EPSG:4326',
-                    tileClient: MockClient((_) async => tile()),
-                  )
-                : null,
+            mapConsent: consent,
+            mapPlatform: const SketchPlatform(),
           );
-          if (scenario == 'normal') {
-            await tester.tap(find.text('允许加载底图'));
-            await tester.pumpAndSettle();
-          }
           await save('$name-map');
-          await tester.scrollUntilVisible(
-            find.text('行程电量区间').hitTestable(),
-            140,
-          );
-          await save('$name-result');
           await tester.scrollUntilVisible(
             (scenario == 'empty'
                     ? find.text('无采样数据')
@@ -110,6 +96,11 @@ void main() {
             140,
           );
           await save('$name-chart');
+          await tester.scrollUntilVisible(
+            find.text('行程电量区间').hitTestable(),
+            140,
+          );
+          await save('$name-result');
           await tester.scrollUntilVisible(
             find.text('驾驶与环境').hitTestable(),
             140,

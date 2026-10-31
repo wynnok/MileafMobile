@@ -8,7 +8,8 @@ import 'session_pages.dart';
 import 'overview_page.dart';
 import 'connection_management.dart';
 import 'workspace.dart';
-import 'map_candidate.dart';
+import 'map/map_consent.dart';
+import 'map/map_platform.dart';
 import 'drives_page.dart';
 import 'drive_detail_page.dart';
 import 'performance_trace.dart';
@@ -20,12 +21,14 @@ class WorkspacePage extends StatefulWidget {
     super.key,
     required this.session,
     this.preferences,
-    this.mapConfiguration,
+    this.mapConsent,
+    this.mapPlatform,
     this.calendar,
     this.currencyPreferences,
   });
   final SessionController session;
-  final MapConfiguration? mapConfiguration;
+  final MapConsentController? mapConsent;
+  final MapPlatform? mapPlatform;
   final CurrencyPreferenceStore? currencyPreferences;
   final VehiclePreferenceStore? preferences;
   final Future<CalendarContext> Function()? calendar;
@@ -90,7 +93,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
           onServiceInformation: () => Navigator.push(
             context,
             MaterialPageRoute<void>(
-              builder: (_) => MetaPage(workspace: workspace),
+              builder: (_) =>
+                  MetaPage(workspace: workspace, mapConsent: widget.mapConsent),
             ),
           ),
         ),
@@ -111,7 +115,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
             workspace: workspace,
             performanceTrial: performanceTrial,
             id: id,
-            mapConfiguration: widget.mapConfiguration,
+            mapConsent: widget.mapConsent,
+            mapPlatform: widget.mapPlatform,
             onReturnToList: () => setState(() => tab = 1),
           ),
         ),
@@ -123,7 +128,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
       workspace,
       currency,
       id,
-      mapConfiguration: widget.mapConfiguration,
+      mapConsent: widget.mapConsent,
+      mapPlatform: widget.mapPlatform,
     );
   }
 

@@ -47,7 +47,7 @@ UV_CACHE_DIR="$PWD/.cache/uv" PYTHONDONTWRITEBYTECODE=1 \
 | T11 日历与时区 | overview/drives/charging/statistics | 双端设备换时区、时区数据库升级复验 |
 | T12 条件响应和错误恢复 | overview/business_recovery/各页面 | 实际反向代理与弱网恢复 |
 | T13 平台接入 | widget/session/connection_management | HTTPS、无效证书、可信 HTTP、局域网权限、安全存储真机证据 |
-| T14 地图 | map_candidate/行程地图 App 测试 | 正式供应商/许可/CRS校准/大陆双端网络/首图 |
+| T14 地图 | MapPanel/行程地图 App 测试；Android AMap 构建 | 真实 key 出图/许可/CRS校准/大陆双端网络/首图；iOS 高德 key 待 |
 | T15 导航与可访问性 | 各页面 360宽/200%浅深色测试 | Android/iOS返回及TalkBack/VoiceOver |
 | T16 契约与指标 | 冻结OpenAPI、真实响应、full_flow | 本次真实后端复验、Grafana对账 |
 | T17 可视化覆盖与交互 | A方案V01–V08已实现；overview_visualization/data_visualization_app及各业务App测试、短区间分组图修复与实际渲染见本轮记录 | 真实站点数据/双端交互复验；G01–G08能力缺口继续保留 |

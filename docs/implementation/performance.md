@@ -27,7 +27,7 @@ post-frame 回调位于 framework 帧尾，不是 GPU/OS 呈现完成。正式�
 
 以下为旧 A 布局历史验证，不能沿用为当前 C 首屏曲线结论。旧 A 行程详情将主要指标与默认曲线放在次要字段和地图之前。App/HTTP 回归确认 360×800、正常字体下主要指标与完整默认图形位于初始视口，200% 字体下全字段与图表可纵向阅读。该几何检查不是设备呈现或性能证据；数据已可供构建不保证目标设备的曲线已在当前视口绘制，仍必须以录屏/帧证据核查主要指标和默认曲线的实际可读状态。若固定验收视口无法在初始交互帧呈现目标，就记录该限制及真实可达路径，不能将本候选标记包装成满足预算。测量过程需要额外用户滚动或修复操作时不能混入“点击到默认可读”成功样本。
 
-地图 hook 单独配对：地图实例接受展示后 start(mapRequest)，每加载代次首次真正 HTTP 成功并 decode 完成时 mark(mapFirstTileDecoded, trial: ...)，失败 mark(mapFailed, trial: ...)；透明降级图片绝不发成功事件。现已接入 CandidateMap 的加载代次和成功 decode 专用回调，每代仅首个成功瓦片发一次事件；实际首图仍取对应瓦片在正确视口呈现的证据。地图未获同意、瓦片错误、网络失败均不算成功首图。底图失败时指标/默认曲线继续可读，恢复行为另验。
+地图 hook 单独配对：`MapPanel` 进入 loading 时 start(mapRequest)；Android `OnMapLoadedListener` / iOS `mapViewDidFinishLoadingMap` 时 mark(mapFirstTileDecoded, trial: ...)；超时或原生 init 失败 mark(mapFailed, trial: ...)。`mapFirstTileDecoded` 语义是“地图可见”，不再声称单张瓦片 decode；路线速写不记成功首图。底图失败时指标/默认曲线继续可读，恢复行为另验。
 
 ## 固定实验清单
 

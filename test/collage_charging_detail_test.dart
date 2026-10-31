@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
-import 'package:mileaf/src/map_candidate.dart';
-import 'package:flutter_map/flutter_map.dart' show FlutterMap;
+import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/map_platform.dart';
 
-import 'drive_map_test.dart' show provider, tile;
+import 'support/fake_map_platform.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
@@ -30,10 +30,12 @@ http.Response response(Object body, {Map<String, String> headers = const {}}) =>
 Widget app(
   http.Client client, {
   MemoryCurrency? currency,
-  MapConfiguration? mapConfiguration,
+  MapConsentController? mapConsent,
+  MapPlatform? mapPlatform,
 }) => MileafApp(
   client: client,
-  mapConfiguration: mapConfiguration,
+  mapConsent: mapConsent,
+  mapPlatform: mapPlatform,
   trustStore: MemoryTrustStore(),
   sessionStore: MemorySessionStore()
     ..value = jsonEncode({
@@ -89,7 +91,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('服务端采样'), findsNothing);
     expect(find.textContaining('采样峰值不等同原始峰值'), findsNothing);
-    expect(find.textContaining('地图暂不可用'), findsOneWidget);
     expect(find.text('电量区间'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('电量区间')).dy,
@@ -115,35 +116,34 @@ void main() {
         }
         return initial(request);
       });
+      final fake = FakeMapPlatform();
+      final consent = MapConsentController();
+      await consent.grant('高德地图');
       await tester.pumpWidget(
-        app(
-          client,
-          mapConfiguration: MapConfiguration(
-            provider: provider,
-            sourceCrs: 'EPSG:4326',
-            tileClient: MockClient((request) async {
-              expect(request.headers.containsKey('authorization'), isFalse);
-              return state == 'tile-failure' ? http.Response('', 500) : tile();
-            }),
-          ),
-        ),
+        app(client, mapConsent: consent, mapPlatform: fake),
       );
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
       await tester.tap(find.text('最近充电').hitTestable());
       await tester.pumpAndSettle();
-      if (state == 'missing') {
-        expect(find.text('没有有效轨迹坐标'), findsOneWidget);
-        expect(find.text('允许加载底图'), findsNothing);
-      } else {
-        await tester.tap(find.text('允许加载底图'));
-        await tester.pumpAndSettle();
-        expect(find.byType(FlutterMap), findsOneWidget);
-      }
       await tester.scrollUntilVisible(find.text('电量区间'), 200);
       expect(find.text('40% → 70%'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('功率 kW'), 200);
       expect(find.text('功率 kW'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('充电地点').hitTestable(), 240);
+      if (state == 'missing') {
+        expect(find.text('没有有效轨迹坐标'), findsOneWidget);
+        expect(fake.builds, 0);
+      } else if (state == 'tile-failure') {
+        fake.fail();
+        await tester.pumpAndSettle();
+        expect(find.textContaining('底图暂不可用'), findsOneWidget);
+      } else {
+        fake.completeLoad('GS(test)');
+        await tester.pumpAndSettle();
+        expect(fake.scene, isNotNull);
+        expect(find.textContaining('GS(test)'), findsOneWidget);
+      }
       expect(tester.takeException(), isNull);
     });
   }

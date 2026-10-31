@@ -8,7 +8,9 @@ import 'package:http/io_client.dart';
 import 'src/api.dart';
 import 'src/visual_theme.dart';
 import 'src/performance_trace.dart';
-import 'src/map_candidate.dart';
+import 'src/map/map_consent.dart';
+import 'src/map/map_panel.dart';
+import 'src/map/map_platform.dart';
 import 'src/connection_page.dart';
 export 'src/connection_page.dart';
 import 'src/session.dart';
@@ -17,16 +19,20 @@ import 'src/workspace.dart';
 import 'src/currency.dart';
 import 'src/workspace_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   PerformanceTrace.mark(PerformancePoint.dartEntry);
-  runApp(const MileafApp());
+  final mapConsent = MapConsentController.persistent();
+  await mapConsent.load();
+  runApp(MileafApp(mapConsent: mapConsent));
 }
 
 class MileafApp extends StatefulWidget {
   const MileafApp({
     super.key,
     this.client,
-    this.mapConfiguration,
+    this.mapConsent,
+    this.mapPlatform,
     this.trustStore,
     this.sessionStore,
     this.now,
@@ -35,7 +41,8 @@ class MileafApp extends StatefulWidget {
     this.currencyPreferences,
   });
   final http.Client? client;
-  final MapConfiguration? mapConfiguration;
+  final MapConsentController? mapConsent;
+  final MapPlatform? mapPlatform;
   final HttpTrustStore? trustStore;
   final SessionStore? sessionStore;
   final DateTime Function()? now;
@@ -50,8 +57,8 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
   late final http.Client _client =
       widget.client ??
       IOClient(HttpClient()..connectionTimeout = const Duration(seconds: 5));
-  late final mapConfiguration =
-      widget.mapConfiguration ?? MapConfiguration.fromEnvironment();
+  late final mapConsent = widget.mapConsent ?? MapConsentController();
+  late final mapPlatform = widget.mapPlatform ?? defaultMapPlatform();
   late final _api = MileafApi(_client, trustStore: widget.trustStore);
   late final session = SessionController(
     _api,
@@ -103,7 +110,8 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
           return WorkspacePage(
             key: ObjectKey(session.current),
             session: session,
-            mapConfiguration: mapConfiguration,
+            mapConsent: mapConsent,
+            mapPlatform: mapPlatform,
             preferences: widget.vehiclePreferences,
             calendar: widget.calendar,
             currencyPreferences: widget.currencyPreferences,

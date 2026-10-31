@@ -1,8 +1,7 @@
 import 'collage_charging_detail_test.dart' as map_fixture;
-import 'drive_map_test.dart' show provider, tile;
 
-import 'package:mileaf/src/map_candidate.dart';
-import 'package:http/http.dart' as http;
+import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/sketch_platform.dart';
 
 import 'support/render_png.dart';
 
@@ -53,6 +52,8 @@ void main() {
               '$state-${brightness.name}-${scale == 1 ? '100' : '200'}';
           tester.platformDispatcher.platformBrightnessTestValue = brightness;
           tester.platformDispatcher.textScaleFactorTestValue = scale;
+          final consent = MapConsentController();
+          await consent.grant('路线示意');
           final client = MockClient((request) async {
             if (request.url.path.endsWith('/summary')) {
               final body =
@@ -159,6 +160,8 @@ void main() {
         for (final scale in [1.0, 2.0]) {
           tester.platformDispatcher.platformBrightnessTestValue = brightness;
           tester.platformDispatcher.textScaleFactorTestValue = scale;
+          final consent = MapConsentController();
+          await consent.grant('路线示意');
           final client = MockClient((request) async {
             if (request.url.path.endsWith('/charging-sessions/1')) {
               final body = map_fixture.fixture('charging-detail');
@@ -180,15 +183,8 @@ void main() {
               key: boundary,
               child: map_fixture.app(
                 client,
-                mapConfiguration: MapConfiguration(
-                  provider: provider,
-                  sourceCrs: 'EPSG:4326',
-                  tileClient: MockClient(
-                    (_) async => state == 'tile-failure'
-                        ? http.Response('', 500)
-                        : tile(),
-                  ),
-                ),
+                mapConsent: consent,
+                mapPlatform: const SketchPlatform(),
               ),
             ),
           );
@@ -196,9 +192,7 @@ void main() {
           await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 180);
           await tester.tap(find.text('最近充电').hitTestable());
           await tester.pumpAndSettle();
-          if (state != 'missing') {
-            await tester.tap(find.text('允许加载底图').hitTestable());
-          }
+          await tester.scrollUntilVisible(find.text('充电地点').hitTestable(), 240);
           await saveRenderPng(
             tester,
             find.byKey(boundary),

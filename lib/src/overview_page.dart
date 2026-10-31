@@ -18,6 +18,10 @@ import 'performance_trace.dart';
 import 'statistics_period.dart';
 import 'overview_period.dart';
 import 'period_chips.dart';
+import 'map/map_consent.dart';
+import 'map/map_panel.dart';
+import 'map/map_privacy_page.dart';
+import 'map/map_platform.dart';
 import 'workspace.dart';
 import 'session.dart' show SiteSession;
 
@@ -1737,8 +1741,15 @@ class _OverviewPageState extends State<OverviewPage>
 }
 
 class MetaPage extends StatefulWidget {
-  const MetaPage({super.key, required this.workspace});
+  const MetaPage({
+    super.key,
+    required this.workspace,
+    this.mapConsent,
+    this.mapPlatform,
+  });
   final VehicleWorkspace workspace;
+  final MapConsentController? mapConsent;
+  final MapPlatform? mapPlatform;
   @override
   State<MetaPage> createState() => _MetaPageState();
 }
@@ -1821,6 +1832,23 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
           Text(d.schemaOk ? 'schema 检查正常' : 'schema 检查未通过'),
           const Text('数值使用公制；源单位不进行二次换算'),
         ],
+        if (widget.mapConsent != null)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('地图与隐私'),
+            subtitle: const Text('底图供应商、同意与撤销'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => MapPrivacyPage(
+                  consent: widget.mapConsent!,
+                  providerName:
+                      (widget.mapPlatform ?? defaultMapPlatform()).providerName,
+                ),
+              ),
+            ),
+          ),
       ],
     ),
   );

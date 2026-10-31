@@ -1,0 +1,241 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/map/geo.dart';
+import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/map_panel.dart';
+import 'package:mileaf/src/map/map_privacy_page.dart';
+import 'package:mileaf/src/map/map_scene.dart';
+
+import 'support/fake_map_platform.dart';
+
+const _beijing = Wgs84Point(39.9087, 116.3975);
+
+MapScene _scene({bool empty = false}) => driveScene(
+  coordinates: empty
+      ? const []
+      : const [
+          MapCoordinate(31.230, 121.470),
+          MapCoordinate(31.231, 121.471),
+          MapCoordinate(null, null),
+          MapCoordinate(31.233, 121.473),
+        ],
+  start: empty ? null : const MapCoordinate(31.230, 121.470),
+  end: empty ? null : const MapCoordinate(31.233, 121.473),
+  selected: empty ? null : const MapCoordinate(31.231, 121.471),
+  selectedLabel: '选中',
+  brightness: Brightness.light,
+  interactive: false,
+);
+
+Widget _app(MapPanel panel) => MaterialApp(
+  home: Scaffold(body: SingleChildScrollView(child: panel)),
+);
+
+void main() {
+  test('WGS84 -> GCJ-02 固定点偏移且境外不偏移', () {
+    final gcj = gcj02FromWgs84(_beijing);
+    expect(gcj.lat, isNot(_beijing.lat));
+    expect(gcj.lon, isNot(_beijing.lon));
+    expect((gcj.lat - _beijing.lat).abs(), lessThan(0.01));
+    expect((gcj.lon - _beijing.lon).abs(), lessThan(0.01));
+
+    const tokyo = Wgs84Point(35.6762, 139.6503);
+    final unchanged = gcj02FromWgs84(tokyo);
+    expect(unchanged.lat, tokyo.lat);
+    expect(unchanged.lon, tokyo.lon);
+
+    for (final point in [
+      const Wgs84Point(1.3521, 103.8198), // Singapore
+      const Wgs84Point(25.0330, 121.5654), // Taipei
+    ]) {
+      final kept = gcj02FromWgs84(point);
+      expect(kept.lat, point.lat);
+      expect(kept.lon, point.lon);
+    }
+  });
+
+  test('缺失坐标断开轨迹段，源 scene 仍为 WGS84', () {
+    final scene = _scene();
+    expect(scene.segments.length, 2);
+    expect(scene.segments.first.length, 2);
+    expect(scene.segments.last.length, 1);
+    expect(scene.start!.lat, 31.230);
+    final gcj = scene.gcj02Segments;
+    expect(gcj.first.first.lat, isNot(31.230));
+  });
+
+  test('同意按供应商隔离，不会把 Apple 地图授权沿用给高德', () async {
+    final consent = MapConsentController();
+    await consent.grant('Apple 地图');
+    expect(consent.isGrantedFor('Apple 地图'), isTrue);
+    expect(consent.isGrantedFor('高德地图'), isFalse);
+    await consent.grant('高德地图');
+    expect(consent.isGrantedFor('高德地图'), isTrue);
+    expect(consent.isGrantedFor('Apple 地图'), isFalse);
+  });
+
+  testWidgets('未同意时不创建地图，同意后创建并显示加载状态', (tester) async {
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: _scene(),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    expect(find.text('启用地图'), findsOneWidget);
+    expect(fake.builds, 0);
+
+    await tester.tap(find.text('启用地图'));
+    await tester.pumpAndSettle();
+    expect(find.text('允许加载'), findsOneWidget);
+    await tester.tap(find.text('允许加载'));
+    await tester.pumpAndSettle();
+
+    expect(consent.granted, isTrue);
+    expect(fake.builds, 1);
+    expect(find.text('正在加载底图'), findsOneWidget);
+
+    fake.completeLoad('GS(test)');
+    await tester.pumpAndSettle();
+    expect(find.text('正在加载底图'), findsNothing);
+    expect(find.textContaining('GS(test)'), findsOneWidget);
+    expect(fake.scene!.segments.length, 2);
+  });
+
+  testWidgets('200% 字号同意面板不溢出', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: _scene(),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('启用地图'), findsOneWidget);
+  });
+
+  testWidgets('选中采样变化传给地图场景', (tester) async {
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await consent.grant('高德地图');
+    MapScene selected(double lat) => driveScene(
+      coordinates: const [MapCoordinate(31.230, 121.470)],
+      start: const MapCoordinate(31.230, 121.470),
+      end: null,
+      selected: MapCoordinate(lat, 121.470),
+      selectedLabel: '选中',
+      brightness: Brightness.light,
+      interactive: false,
+    );
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: selected(31.231),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    expect(fake.scene!.selected!.lat, 31.231);
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: selected(31.232),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    expect(fake.scene!.selected!.lat, 31.232);
+  });
+
+  testWidgets('地图失败保留路线速写并可重试', (tester) async {
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await consent.grant('高德地图');
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: _scene(),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    fake.fail();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('底图暂不可用'), findsOneWidget);
+    expect(find.text('重试底图'), findsOneWidget);
+    await tester.tap(find.text('重试底图'));
+    await tester.pumpAndSettle();
+    expect(fake.builds, 2);
+  });
+
+  testWidgets('15 秒无加载回调走失败兜底', (tester) async {
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await consent.grant('高德地图');
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: _scene(),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('底图暂不可用'), findsOneWidget);
+  });
+
+  testWidgets('地图与隐私页可撤销同意', (tester) async {
+    final consent = MapConsentController();
+    await consent.grant('高德地图');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MapPrivacyPage(consent: consent, providerName: '高德地图'),
+      ),
+    );
+    expect(find.text('当前已允许加载底图'), findsOneWidget);
+    await tester.tap(find.text('关闭底图'));
+    await tester.pumpAndSettle();
+    expect(consent.granted, isFalse);
+    expect(find.text('当前未允许加载底图'), findsOneWidget);
+    expect(find.text('重新启用地图'), findsOneWidget);
+  });
+
+  testWidgets('空场景不创建地图', (tester) async {
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await consent.grant('高德地图');
+    await tester.pumpWidget(
+      _app(
+        MapPanel(
+          scene: _scene(empty: true),
+          consent: consent,
+          platform: fake,
+          height: 300,
+        ),
+      ),
+    );
+    expect(find.text('没有有效轨迹坐标'), findsOneWidget);
+    expect(fake.builds, 0);
+  });
+}

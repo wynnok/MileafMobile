@@ -10,14 +10,18 @@ import 'charging_experience_contract.g.dart' as expanded;
 import 'currency.dart';
 import 'collage.dart';
 import 'workspace.dart';
-import 'map_candidate.dart';
+import 'map/map_consent.dart';
+import 'map/map_panel.dart';
+import 'map/map_platform.dart';
+import 'map/map_scene.dart';
 
 Future<void> openChargingDetail(
   BuildContext context,
   VehicleWorkspace workspace,
   CurrencySettings currency,
   int id, {
-  MapConfiguration? mapConfiguration,
+  MapConsentController? mapConsent,
+  MapPlatform? mapPlatform,
 }) => Navigator.push<void>(
   context,
   MaterialPageRoute(
@@ -25,7 +29,8 @@ Future<void> openChargingDetail(
       workspace: workspace,
       currency: currency,
       id: id,
-      mapConfiguration: mapConfiguration,
+      mapConsent: mapConsent,
+      mapPlatform: mapPlatform,
     ),
   ),
 );
@@ -36,12 +41,14 @@ class ChargingDetailPage extends StatefulWidget {
     required this.workspace,
     required this.currency,
     required this.id,
-    this.mapConfiguration,
+    this.mapConsent,
+    this.mapPlatform,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final int id;
-  final MapConfiguration? mapConfiguration;
+  final MapConsentController? mapConsent;
+  final MapPlatform? mapPlatform;
   @override
   State<ChargingDetailPage> createState() => _ChargingDetailPageState();
 }
@@ -51,8 +58,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   VehicleWorkspace get workspace => widget.workspace;
   late final owner = workspace.session.current!;
   late final vehicle = workspace.selectedId!;
-  late final mapConfiguration =
-      widget.mapConfiguration ?? MapConfiguration.fromEnvironment();
+  late final _mapConsent = widget.mapConsent ?? MapConsentController();
+  late final _mapPlatform = widget.mapPlatform ?? defaultMapPlatform();
   dto.ChargingSessionDetail? detail;
   dto.ChargingSessionSeries? series;
   expanded.ChargingSessionDetail? expandedDetail;
@@ -290,24 +297,6 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              CandidateMap(
-                key: ValueKey(
-                  'charging-map:${owner.generation}:$vehicle:${widget.id}',
-                ),
-                coordinates: [
-                  MapCoordinate(
-                    d.location.lat?.toDouble(),
-                    d.location.lon?.toDouble(),
-                  ),
-                ],
-                start: MapCoordinate(
-                  d.location.lat?.toDouble(),
-                  d.location.lon?.toDouble(),
-                ),
-                provider: mapConfiguration.provider,
-                sourceCrs: mapConfiguration.sourceCrs,
-                tileClient: mapConfiguration.tileClient,
-              ),
               CollageTile(
                 surface: CollageSurface.hero,
                 child: Builder(
@@ -395,6 +384,31 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 series: series!,
                 calendar: workspace.calendar!,
               ),
+            if (detail case final d?) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 6),
+                child: Text(
+                  '充电地点',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+              MapPanel(
+                key: ValueKey(
+                  'charging-map:${owner.generation}:$vehicle:${widget.id}',
+                ),
+                scene: placeScene(
+                  location: MapCoordinate(
+                    d.location.lat?.toDouble(),
+                    d.location.lon?.toDouble(),
+                  ),
+                  brightness: Theme.of(context).brightness,
+                  interactive: false,
+                ),
+                consent: _mapConsent,
+                platform: _mapPlatform,
+                height: 180,
+              ),
+            ],
             if (detail case final d?) ...[
               DataCard(
                 child: Column(

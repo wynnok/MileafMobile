@@ -8,7 +8,11 @@ import 'api.dart';
 import 'data_cards.dart';
 import 'collage.dart';
 import 'performance_trace.dart';
-import 'map_candidate.dart';
+import 'map/drive_map_page.dart';
+import 'map/map_consent.dart';
+import 'map/map_panel.dart';
+import 'map/map_platform.dart';
+import 'map/map_scene.dart';
 import 'drive_detail_contract.g.dart' as dto;
 import 'driving_statistics_contract.g.dart' as stats;
 import 'sample_chart.dart';
@@ -22,10 +26,12 @@ class DriveDetailPage extends StatefulWidget {
     required this.id,
     this.onReturnToList,
     this.performanceTrial,
-    this.mapConfiguration,
+    this.mapConsent,
+    this.mapPlatform,
   });
   final VehicleWorkspace workspace;
-  final MapConfiguration? mapConfiguration;
+  final MapConsentController? mapConsent;
+  final MapPlatform? mapPlatform;
   final int id;
   final int? performanceTrial;
   final VoidCallback? onReturnToList;
@@ -44,6 +50,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     with WidgetsBindingObserver {
   late final SiteSession owner;
   late final int vehicle;
+  late final _mapConsent = widget.mapConsent ?? MapConsentController();
+  late final _mapPlatform = widget.mapPlatform ?? defaultMapPlatform();
   dto.DriveDetail? detail;
   dto.DriveSeries? series;
   String? detailError, seriesError;
@@ -329,25 +337,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
 
-  /// True only when CandidateMap can actually draw tiles: a usable provider,
-  /// an approved CRS and at least one coordinate. Otherwise the route caption
-  /// is rendered as a fallback band so it never disappears (C05).
-  bool get _mapRenderable {
-    final config = widget.mapConfiguration;
-    final provider = config?.provider;
-    if (config == null ||
-        provider == null ||
-        !provider.isUsable ||
-        config.sourceCrs != 'EPSG:4326' ||
-        provider.coordinateSystem != config.sourceCrs) {
-      return false;
-    }
-    final d = detail;
-    final hasEndpoint = d != null && d.start.lat != null && d.start.lon != null;
-    final hasSample = series?.series.any((p) => p.lat != null) ?? false;
-    return hasEndpoint || hasSample;
-  }
-
   bool _referenceUsable(dto.DriveDetail d) {
     final r = reference;
     return d.endedAt != null &&
@@ -442,32 +431,41 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     );
   }
 
-  Widget _routeLines(dto.DriveDetail d) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text(
-        '${shortDay(d.startedAt)} · 最近行程',
-        style: const TextStyle(color: Colors.white70, fontSize: 11),
-      ),
-      Text(
-        '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+  Widget _routeLines(dto.DriveDetail d) {
+    final large = largeText(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!large)
+          Text(
+            '${shortDay(d.startedAt)} · 最近行程',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        Text(
+          '${place(d.start.displayName)} → ${place(d.end.displayName)}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      Text(
-        '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
-        style: const TextStyle(color: Colors.white70, fontSize: 11),
-      ),
-      const Text(
-        '路线示意 · 非导航',
-        style: TextStyle(color: Colors.white60, fontSize: 11),
-      ),
-    ],
-  );
+        Text(
+          '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+        if (!large)
+          const Text(
+            '路线 · 非导航',
+            style: TextStyle(color: Colors.white60, fontSize: 11),
+          ),
+      ],
+    );
+  }
 
   String shortDay(DateTime t) {
     final d = workspace.calendar!.local(t);
@@ -475,6 +473,53 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   }
 
   String place(String? p) => p == null || p.trim().isEmpty ? '未知地点' : p;
+  MapScene _mapScene({required bool interactive}) {
+    final points = series?.series ?? const <dto.DrivePoint>[];
+    final selected = points.isEmpty
+        ? null
+        : MapCoordinate(
+            points[selectedSample].lat?.toDouble(),
+            points[selectedSample].lon?.toDouble(),
+          );
+    return driveScene(
+      coordinates: [
+        for (final point in points)
+          MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
+      ],
+      start: detail == null
+          ? null
+          : MapCoordinate(
+              detail!.start.lat?.toDouble(),
+              detail!.start.lon?.toDouble(),
+            ),
+      end: detail == null
+          ? null
+          : MapCoordinate(
+              detail!.end.lat?.toDouble(),
+              detail!.end.lon?.toDouble(),
+            ),
+      selected: selected,
+      selectedLabel: points.isEmpty
+          ? null
+          : '选中采样位置 ${time(points[selectedSample].t)}',
+      brightness: Theme.of(context).brightness,
+      interactive: interactive,
+    );
+  }
+
+  void _openFullMap(BuildContext context) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DriveMapPage(
+          scene: _mapScene(interactive: true),
+          consent: _mapConsent,
+          platform: _mapPlatform,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -504,67 +549,34 @@ class _DriveDetailPageState extends State<DriveDetailPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: CandidateMap(
-                key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
-                provider: widget.mapConfiguration?.provider,
-                sourceCrs: widget.mapConfiguration?.sourceCrs,
-                tileClient: widget.mapConfiguration?.tileClient,
-                selected: series == null || series!.series.isEmpty
-                    ? null
-                    : MapCoordinate(
-                        series!.series[selectedSample].lat?.toDouble(),
-                        series!.series[selectedSample].lon?.toDouble(),
-                      ),
-                selectedLabel: series == null || series!.series.isEmpty
-                    ? null
-                    : '选中采样位置 ${time(series!.series[selectedSample].t)}',
-                start: detail == null
-                    ? null
-                    : MapCoordinate(
-                        detail!.start.lat?.toDouble(),
-                        detail!.start.lon?.toDouble(),
-                      ),
-                end: detail == null
-                    ? null
-                    : MapCoordinate(
-                        detail!.end.lat?.toDouble(),
-                        detail!.end.lon?.toDouble(),
-                      ),
-                coordinates: [
-                  for (final point in series?.series ?? <dto.DrivePoint>[])
-                    MapCoordinate(point.lat?.toDouble(), point.lon?.toDouble()),
-                ],
-                heroHeight: detail == null || !_mapRenderable ? null : 300,
-                overlay: detail == null || !_mapRenderable
-                    ? null
-                    : DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.62),
-                            ],
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
-                          child: _routeLines(detail!),
+            MapPanel(
+              key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
+              scene: _mapScene(interactive: false),
+              consent: _mapConsent,
+              platform: _mapPlatform,
+              height: 300,
+              overlay: detail == null
+                  ? null
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.62),
+                          ],
                         ),
                       ),
-              ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
+                        child: _routeLines(detail!),
+                      ),
+                    ),
+              onExpand: () => _openFullMap(context),
             ),
             ...<Widget>[
               Text('行程地图', style: Theme.of(context).textTheme.labelSmall),
-              if (!_mapRenderable && detail != null)
-                CollageTile(
-                  surface: CollageSurface.hero,
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  child: _routeLines(detail!),
-                ),
               if (detailLoading) const LinearProgressIndicator(),
               if (detailError != null) ...[
                 Semantics(liveRegion: true, child: Text(detailError!)),

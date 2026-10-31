@@ -123,6 +123,7 @@ app.*.symbols
 /.cache/
 /.worktrees/
 /.DS_Store
+**/.DS_Store
 /MileafServer
 /teslamate
 !pubspec.lock
@@ -138,3 +139,6 @@ app.*.symbols
 
 # Reproducible project-local iOS dependency resolution
 !ios/Podfile.lock
+
+# Local map credentials
+/config/*.local.env
