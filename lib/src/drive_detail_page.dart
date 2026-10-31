@@ -341,6 +341,83 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     return hasEndpoint || hasSample;
   }
 
+  bool _referenceUsable(dto.DriveDetail d) {
+    final r = reference;
+    return d.endedAt != null &&
+        d.consumptionWhKm != null &&
+        referenceZone == workspace.calendar?.identifier &&
+        r != null &&
+        r.totals.drives > 0 &&
+        r.totals.distanceKm > 0 &&
+        r.totals.consumptionWhKmNet != null;
+  }
+
+  /// 单行口径提示：本次电耗与个人 30 日整体参照并排说明，替代旧的对比卡。
+  Widget _consumptionFootnote(BuildContext context, dto.DriveDetail d) {
+    final style = Theme.of(context).textTheme.bodySmall;
+    final ref = _referenceUsable(d) ? reference!.totals.consumptionWhKmNet : null;
+    final buffer = StringBuffer('本次 ${number(d.consumptionWhKm, 'Wh/km')}');
+    if (ref != null) {
+      buffer.write(
+        '，参考净电耗 ${number(ref, 'Wh/km')}'
+        '（此前30个完整本地日 · 全部路线；服务端估算，样本覆盖未知）',
+      );
+    } else {
+      buffer.write('，个人历史参照不可用');
+    }
+    buffer.write('；缺失不补点。');
+    final text = Text(buffer.toString(), style: style);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: ref == null
+              ? text
+              : Semantics(
+                  container: true,
+                  label: '参考净电耗 ${number(ref, 'Wh/km')}',
+                  child: ExcludeSemantics(child: text),
+                ),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: '电耗参照说明',
+          icon: const Icon(Icons.info_outline, size: 18),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('电耗参照说明'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '本次净电耗与历史参考均为服务端估算。历史参考为行程开始日前30个完整本地日、同车全部路线的整体净电耗，不含本次。',
+                    ),
+                    if (referenceFrom != null && referenceTo != null)
+                      Text(
+                        '参考区间：${time(referenceFrom!)} 至 ${time(referenceTo!)}（不含结束时刻）；归期时区：$referenceZone',
+                      ),
+                    const Text(
+                      '样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。',
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('知道了'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _routeLines(dto.DriveDetail d) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
@@ -511,124 +588,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                     );
                   },
                 ),
-              if (detail case final d?) ...[
-                CollageTile(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        '行程电量区间',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      SocInterval(
-                        start: d.start.batteryLevel,
-                        end: d.end.batteryLevel,
-                      ),
-                      if (d.endedAt != null &&
-                          d.start.batteryLevel != null &&
-                          d.end.batteryLevel != null)
-                        Text(
-                          '电量${d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加'} ${(d.start.batteryLevel! - d.end.batteryLevel!).abs()} 个百分点',
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-              if (detail case final d?)
-                CollageTile(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '这趟的电耗',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '电耗参照说明',
-                            icon: const Icon(Icons.info_outline),
-                            onPressed: () => showDialog<void>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('电耗参照说明'),
-                                content: SingleChildScrollView(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        '本次净电耗与历史参考均为服务端估算。历史参考为行程开始日前30个完整本地日、同车全部路线的整体净电耗，不含本次。',
-                                      ),
-                                      if (referenceFrom != null &&
-                                          referenceTo != null)
-                                        Text(
-                                          '参考区间：${time(referenceFrom!)} 至 ${time(referenceTo!)}（不含结束时刻）；归期时区：$referenceZone',
-                                        ),
-                                      const Text(
-                                        '样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('知道了'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      MetricTile(
-                        label: '本次估算净电耗',
-                        value: number(d.consumptionWhKm, 'Wh/km'),
-                        emphasize: true,
-                      ),
-                      if (referenceLoading) const LinearProgressIndicator(),
-                      if (referenceError != null) ...[
-                        Text('个人历史参照：$referenceError'),
-                        TextButton(
-                          onPressed: () => loadReference(d, force: true),
-                          child: const Text('重试历史参照'),
-                        ),
-                      ],
-                      if (reference case final r?)
-                        if (d.endedAt != null &&
-                            d.consumptionWhKm != null &&
-                            referenceZone == workspace.calendar?.identifier &&
-                            r.totals.drives > 0 &&
-                            r.totals.distanceKm > 0 &&
-                            r.totals.consumptionWhKmNet != null) ...[
-                          Semantics(
-                            container: true,
-                            label: '电耗对照，尺度Wh/km，0为基线',
-                            child: EnergyComparison(
-                              values: [
-                                ('本次', d.consumptionWhKm),
-                                ('参考净电耗', r.totals.consumptionWhKmNet),
-                              ],
-                              unit: 'Wh/km',
-                              decimals: 0,
-                            ),
-                          ),
-                          Text(
-                            '此前30个完整本地日 · 全部路线',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          Text(
-                            '估算参考 · 样本覆盖未知',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                    ],
-                  ),
-                ),
               if (seriesLoading) const LinearProgressIndicator(),
               if (seriesError != null) ...[
                 Semantics(liveRegion: true, child: Text(seriesError!)),
@@ -695,6 +654,29 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               if (detail case final d?) ...[
                 CollageTile(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '行程电量区间',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      SocInterval(
+                        start: d.start.batteryLevel,
+                        end: d.end.batteryLevel,
+                      ),
+                      if (d.endedAt != null &&
+                          d.start.batteryLevel != null &&
+                          d.end.batteryLevel != null)
+                        Text(
+                          '电量${d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加'} ${(d.start.batteryLevel! - d.end.batteryLevel!).abs()} 个百分点',
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              if (detail case final d?) ...[
+                CollageTile(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -753,6 +735,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                     ],
                   ),
                 ),
+                _consumptionFootnote(context, d),
               ],
             ].map(
               (child) => Padding(
