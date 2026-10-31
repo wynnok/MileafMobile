@@ -100,7 +100,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField), 'synthetic-password');
     await tester.tap(find.text('登录'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsOneWidget);
+    expect(find.textContaining('68 %'), findsWidgets);
     await tester.tap(find.text('行程').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(

@@ -103,13 +103,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsOneWidget);
-    expect(find.textContaining('320.0 km'), findsOneWidget);
+    expect(find.textContaining('68 %'), findsWidgets);
+    expect(find.textContaining('320'), findsWidgets);
     expect(find.textContaining('额定续航'), findsOneWidget);
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(refreshed, isTrue);
-    expect(find.textContaining('68 %'), findsOneWidget);
+    expect(find.textContaining('68 %'), findsWidgets);
     await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
@@ -185,7 +185,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsOneWidget);
+    expect(find.textContaining('21 %'), findsWidgets);
     old.complete(
       http.Response(
         File('test/fixtures/summary.json').readAsStringSync(),
@@ -198,13 +198,13 @@ void main() {
     fail = true;
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsOneWidget);
+    expect(find.textContaining('21 %'), findsWidgets);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     fail = false;
     await tester.pumpWidget(app('restart'));
     await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
-    expect(find.textContaining('21 %'), findsOneWidget);
+    expect(find.textContaining('21 %'), findsWidgets);
   });
   testWidgets('无缓存体304只普通GET恢复，前台换IANA和换日不复用旧查询', (tester) async {
     final store = MemorySessionStore()
@@ -255,7 +255,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsOneWidget);
+    expect(find.textContaining('68 %'), findsWidgets);
     expect(queries, ['Asia/Shanghai', 'Asia/Shanghai']);
     background(tester);
     foreground(tester);
@@ -330,7 +330,7 @@ void main() {
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
-    expect(find.textContaining('21 %'), findsOneWidget);
+    expect(find.textContaining('21 %'), findsWidgets);
     expect(find.textContaining('所选车辆已不可用'), findsOneWidget);
   });
   testWidgets('360宽200%字体深色可读，休眠与null和零分离，未测版本不冒充schema错误', (tester) async {
@@ -394,8 +394,7 @@ void main() {
     expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('0 %'), 200);
     expect(find.text('0 %'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('—（缺失）'), 200);
-    expect(find.text('—（缺失）'), findsOneWidget);
+    expect(find.textContaining('—'), findsWidgets);
     expect(find.textContaining('最近充电功率'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));

@@ -69,8 +69,11 @@ void main() {
       ownerCapabilities: true,
     );
     expect(find.text('里程较参照差 0.0 km'), findsOneWidget);
-    expect(find.text('驾驶净电耗 · 配对估算'), findsOneWidget);
+    expect(find.text('净电耗 · 估算'), findsOneWidget);
     expect(find.text('188 Wh/km'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.tap(find.text('数据说明与更多'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('费用有记录 2 / 8 次'), 120);
     expect(find.textContaining('有效入电均价 0.4'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -101,7 +104,10 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
-    expect(find.text('驾驶净电耗 · 配对估算'), findsOneWidget);
+    expect(find.text('净电耗 · 估算'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.tap(find.text('数据说明与更多'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('未用旧净电耗替代配对值'), 150);
     expect(find.textContaining('未用旧净电耗替代配对值'), findsOneWidget);
     expect(find.textContaining('配对净电耗较参照差'), findsNothing);
@@ -129,8 +135,8 @@ void main() {
       ownerCapabilities: true,
     );
     expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
-    await tester.scrollUntilVisible(find.text('我的用车节奏').hitTestable(), 160);
-    await tester.tap(find.text('我的用车节奏'));
+    await tester.scrollUntilVisible(find.text('四个问题'), 160);
+    await tester.tap(find.text('节奏').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('活跃 12 天'), findsOneWidget);
     final query = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));

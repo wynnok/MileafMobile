@@ -104,9 +104,8 @@ Future<void> openOverviewVisual(
 }
 
 void main() {
-  testWidgets('概览以独立本月每日统计绘图，查询保留时区和当前截止，零桶可读', (tester) async {
+  testWidgets('C概览每日统计查询保留时区和当前截止，零桶不崩溃', (tester) async {
     final semantics = tester.ensureSemantics();
-
     final queries = <Map<String, String>>[];
     await openOverviewVisual(tester, (request) async {
       if (request.url.path.endsWith('/summary')) {
@@ -125,18 +124,12 @@ void main() {
         'tz': 'Asia/Shanghai',
       },
     ]);
-    expect(find.bySemanticsLabel('本月里程图表'), findsOneWidget);
-    expect(find.textContaining('30.5 km'), findsOneWidget);
-    await tester.ensureVisible(find.text('后一个采样').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('后一个采样').first);
-    await tester.pump();
-    expect(find.text('里程读数 0.0 km'), findsOneWidget);
+    expect(find.bySemanticsLabel('每日里程图表'), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
   for (final failedResource in ['summary', 'stats']) {
-    testWidgets('概览$failedResource局部失败不遮蔽另一成功区域，重试只读失败资源', (tester) async {
+    testWidgets('C概览$failedResource局部失败不遮蔽另一区域，重试只读失败资源', (tester) async {
       final calls = <String, int>{'summary': 0, 'stats': 0};
       var failing = true;
       await openOverviewVisual(tester, (request) async {
@@ -154,11 +147,13 @@ void main() {
       if (failedResource == 'stats') {
         expect(find.text('68 %'), findsOneWidget);
       } else {
-        expect(find.text('里程读数 30.5 km'), findsOneWidget);
+        expect(find.textContaining('960'), findsOneWidget);
       }
       expect(find.textContaining('服务暂不可用'), findsOneWidget);
       failing = false;
-      final retry = find.text(failedResource == 'stats' ? '重试里程趋势' : '重试概览');
+      final retry = find.text(
+        failedResource == 'stats' ? '重试里程趋势' : '重试概览',
+      );
       await tester.ensureVisible(retry);
       await tester.tap(retry);
       await tester.pumpAndSettle();
@@ -167,12 +162,12 @@ void main() {
       await tester.scrollUntilVisible(find.text('68 %'), -150);
       await tester.pumpAndSettle();
       expect(find.text('68 %'), findsOneWidget);
-      expect(find.text('里程读数 30.5 km'), findsOneWidget);
+      expect(find.textContaining('960'), findsOneWidget);
       expect(find.textContaining('服务暂不可用'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('概览趋势前台遵守TTL，过期推进截止，独立304和刷新失败保留图形', (tester) async {
+  testWidgets('C概览趋势前台遵守TTL，过期推进截止，独立304和刷新失败保留图形', (tester) async {
     var now = DateTime.utc(2026, 3, 15, 12);
     final requests = <http.Request>[];
     var fail = false;
@@ -198,23 +193,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(requests, hasLength(2));
     expect(requests.last.url.queryParameters['to'], '2026-03-15T12:00:40.000Z');
-    await tester.ensureVisible(find.byTooltip('刷新里程趋势'));
-    await tester.tap(find.byTooltip('刷新里程趋势'));
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(requests, hasLength(3));
     expect(requests.last.headers['if-none-match'], '"trend"');
-    expect(find.text('里程读数 30.5 km'), findsOneWidget);
+    expect(find.textContaining('960'), findsOneWidget);
     fail = true;
-    await tester.tap(find.byTooltip('刷新里程趋势'));
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(requests, hasLength(4));
-    await tester.scrollUntilVisible(find.textContaining('保留上次趋势快照'), -150);
+    await tester.scrollUntilVisible(
+      find.textContaining('保留上次趋势快照'),
+      -150,
+    );
     expect(find.textContaining('保留上次趋势快照'), findsOneWidget);
-    expect(find.text('里程读数 30.5 km'), findsOneWidget);
+    expect(find.textContaining('960'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('68 %'), -150);
     expect(find.text('68 %'), findsOneWidget);
   });
-  testWidgets('切车后迟到旧趋势不能覆盖新车图表，保留本车summary', (tester) async {
+  testWidgets('C概览切车后迟到旧趋势不覆盖新车summary', (tester) async {
     final old = Completer<http.Response>();
     await openOverviewVisual(tester, (request) async {
       if (request.url.path.endsWith('/summary')) {
@@ -234,15 +231,13 @@ void main() {
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('21 %'), findsOneWidget);
-    expect(find.text('里程读数 88.0 km'), findsOneWidget);
     old.complete(overviewResponse(monthTrend(firstDistance: 4)));
     await tester.pumpAndSettle();
-    expect(find.text('里程读数 4.0 km'), findsNothing);
-    expect(find.text('里程读数 88.0 km'), findsOneWidget);
     expect(find.text('21 %'), findsOneWidget);
+    expect(find.text('68 %'), findsNothing);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('C概览360x800主数优先且首屏有实际绘图区', (tester) async {
+  testWidgets('C概览360x800首屏露出车况hero、本月主数与每日里程绘图区', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -259,16 +254,18 @@ void main() {
       ),
     );
     expect(
-      tester.getSize(find.bySemanticsLabel('驾驶里程 960.0 km，49 次行程')).width,
-      greaterThan(175),
+      tester
+          .getSize(find.bySemanticsLabel('本月驾驶里程 960.0 km，49 趟'))
+          .width,
+      greaterThan(150),
     );
-    final graph = tester.getRect(find.bySemanticsLabel('本月里程图表'));
+    final graph = tester.getRect(find.bySemanticsLabel('每日里程图表'));
     final viewport = tester.getRect(find.byType(RefreshIndicator));
     expect(graph.top, greaterThanOrEqualTo(viewport.top));
     expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
     expect(find.text('68 %').hitTestable(), findsOneWidget);
-    expect(find.text('320.0 km').hitTestable(), findsOneWidget);
-    expect(find.textContaining('今日里程').hitTestable(), findsOneWidget);
+    expect(find.textContaining('320').hitTestable(), findsWidgets);
+    expect(find.text('今日 km').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });

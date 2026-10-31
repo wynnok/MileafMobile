@@ -678,48 +678,82 @@ class _OverviewPageState extends State<OverviewPage>
       'ideal' => '理想续航（ideal）',
       _ => '续航（未知口径）',
     };
+    final ago = _minutesAgo(d.state?.since);
+    final statusLine =
+        '最近状态 · $status${ago == null ? '' : ' · $ago 分钟前'}';
     final values = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
+            const Icon(Icons.circle, size: 8, color: Color(0xFF8AD6AF)),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
-                '最近记录 · $status',
+                statusLine,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: const Color(0xFF8AD6AF),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            IconButton(
-              onPressed: loading ? null : () => loadSummary(force: true),
-              icon: const Icon(Icons.refresh, size: 16),
-              tooltip: '刷新概览',
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          number(d.battery?.rangeKm, 'km', decimals: 1),
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontSize: 44,
+        const SizedBox(height: 6),
+        Text.rich(
+          TextSpan(
+            text: d.battery?.rangeKm == null
+                ? '—'
+                : d.battery!.rangeKm!.toStringAsFixed(0),
+            children: [
+              TextSpan(
+                text: ' km',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFFEEF7EF),
+                ),
+              ),
+            ],
+          ),
+          style: theme.textTheme.displayLarge?.copyWith(
+            fontSize: 46,
+            height: 1.0,
             color: const Color(0xFFEEF7EF),
             fontFeatures: const [FontFeature.tabularFigures()],
             fontWeight: FontWeight.w600,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
-          '$rangeLabel · 非实时',
-          style: const TextStyle(fontSize: 10, color: Color(0xFFB8D6C3)),
+          '$rangeLabel · 电量 ${number(d.battery?.level, '%')} · 非实时',
+          style: const TextStyle(fontSize: 11, color: Color(0xFFB8D6C3)),
         ),
       ],
     );
     final battery = BatteryLevelIndicator(
       level: d.battery?.level,
-      size: 80 * scale,
+      size: 66 * scale,
+    );
+    Widget stat(String value, String label) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFEEF7EF),
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 9, color: Color(0xFFB8D6C3)),
+          ),
+        ],
+      ),
     );
     return CollageTile(
       surface: CollageSurface.hero,
@@ -732,26 +766,41 @@ class _OverviewPageState extends State<OverviewPage>
               Align(alignment: Alignment.centerRight, child: battery),
             ] else
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(child: values),
+                  const SizedBox(width: 8),
                   battery,
                 ],
               ),
-            const SizedBox(height: 6),
-            if (d.state?.value == 'charging' && d.chargingPowerKw != null)
-              Text(
-                '最近充电功率 ${number(d.chargingPowerKw, 'kW', decimals: 2)}',
-                style: const TextStyle(fontSize: 10, color: Color(0xFFB8D6C3)),
-              ),
-            const Divider(height: 8),
-            Text(
-              '今日里程 ${number(d.period.today.distanceKm, 'km', decimals: 1)} · ${d.period.today.drives} 次行程 · 估算消耗 ${number(d.period.today.energyKwh, 'kWh', decimals: 2)}',
-              style: const TextStyle(fontSize: 10, color: Color(0xFFB8D6C3)),
+            const Divider(height: 12, color: Color(0x2266DDAA)),
+            Row(
+              children: [
+                stat(
+                  d.period.today.distanceKm.toStringAsFixed(0),
+                  '今日 km',
+                ),
+                stat('${d.period.today.drives}', '次行程'),
+                stat(
+                  d.period.today.energyKwh?.toStringAsFixed(2) ?? '—',
+                  '估算 kWh',
+                ),
+                stat(
+                  d.chargingPowerKw?.toStringAsFixed(1) ?? '—',
+                  'kW 充电',
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  int? _minutesAgo(DateTime? since) {
+    if (since == null) return null;
+    final diff = workspace.session.now().difference(since).inMinutes;
+    return diff < 0 ? null : diff;
   }
 
   String get mileageComparison {
@@ -778,77 +827,6 @@ class _OverviewPageState extends State<OverviewPage>
     final distance = driving?.totals.distanceKm;
     if (previous == null || distance == null) return '同期里程缺失';
     return '里程较参照差 ${(distance - previous).toStringAsFixed(1)} km';
-  }
-
-  Widget metricCard(String label, String value, String note, _Metric target) {
-    final theme = Theme.of(context);
-    final parts = RegExp(r'^(-?[0-9][0-9.,]*)(.*)$').firstMatch(value);
-    return Semantics(
-      container: true,
-      button: true,
-      selected: metric == target,
-      label: '$label $value，$note',
-      excludeSemantics: true,
-      onTap: () => setState(() => metric = target),
-      child: CollageTile(
-        padding: EdgeInsets.zero,
-        surface: target == _Metric.distance
-            ? CollageSurface.mint
-            : target == _Metric.net
-            ? CollageSurface.sand
-            : CollageSurface.paper,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => setState(() => metric = target),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight:
-                  target == _Metric.distance &&
-                      MediaQuery.textScalerOf(context).scale(14) < 21
-                  ? 170
-                  : 0,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: theme.textTheme.labelSmall),
-                  const SizedBox(height: 4),
-                  Text.rich(
-                    TextSpan(
-                      text: parts?.group(1) ?? value,
-                      children: [
-                        if (parts != null)
-                          TextSpan(
-                            text: parts.group(2),
-                            style: theme.textTheme.labelSmall,
-                          ),
-                      ],
-                    ),
-                    style:
-                        (target == _Metric.distance
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.titleLarge)
-                            ?.copyWith(
-                              fontSize: target == _Metric.distance ? 44 : null,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                              fontWeight: FontWeight.w600,
-                            ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(note, style: theme.textTheme.labelSmall),
-                  if (target == _Metric.distance)
-                    Text(mileageComparison, style: theme.textTheme.labelSmall),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget pairs(List<Widget> children) =>
@@ -882,7 +860,7 @@ class _OverviewPageState extends State<OverviewPage>
     if ((isCharging ? charging : driving) == null) return const SizedBox();
     final (title, label, unit) = switch (metric) {
       _Metric.distance => (
-        period == OverviewPeriod.month ? '本月里程' : '近7天里程',
+        '每日里程',
         '里程',
         'km',
       ),
@@ -922,7 +900,7 @@ class _OverviewPageState extends State<OverviewPage>
         final d = workspace.calendar!.local(t);
         return '${d.month}/${d.day}';
       },
-      height: 100,
+      height: 84,
 
       presentation: metric == _Metric.net
           ? ChartPresentation.line
@@ -1138,18 +1116,6 @@ class _OverviewPageState extends State<OverviewPage>
             if (workspace.calendar?.fallback ?? false)
               const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
             if (loading) const LinearProgressIndicator(),
-            if (data == null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    onPressed: loading ? null : () => loadSummary(force: true),
-                    icon: const Icon(Icons.refresh, size: 19),
-                    tooltip: '刷新概览',
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),
               TextButton(
@@ -1158,152 +1124,26 @@ class _OverviewPageState extends State<OverviewPage>
               ),
             ],
             if (data != null) summary(context, data!),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '用车简报',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                for (final item in OverviewPeriod.values)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: ChoiceChip(
-                      label: Text(
-                        item == OverviewPeriod.month ? '本月' : '近7天',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                      selected: period == item,
-                      showCheckmark: false,
-                      visualDensity: VisualDensity.compact,
-                      onSelected: (_) => changePeriod(item),
-                    ),
-                  ),
-                IconButton(
-                  onPressed: pending.contains('driving')
-                      ? null
-                      : () => loadStats('driving', force: true),
-                  icon: const Icon(Icons.refresh, size: 18),
-                  tooltip: '刷新里程趋势',
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ],
-            ),
+            _periodBar(),
             resourceStatus('driving', '重试里程趋势'),
             resourceStatus('charging', '重试补能'),
-            CollageBento(
-              lead: metricCard(
-                '驾驶里程',
-                number(driving?.totals.distanceKm, 'km', decimals: 1),
-                driving == null ? '等待读取' : '${driving!.totals.drives} 次行程',
-                _Metric.distance,
-              ),
-              evidence: [
-                metricCard(
-                  pairedAvailable ? '驾驶净电耗 · 配对估算' : '驾驶净电耗 · 估算',
-                  number(
-                    pairedAvailable
-                        ? enhancedDriving(results['driving'])
-                              ?.totals
-                              .netConsumptionPaired
-                              .valueWhKm
-                        : driving?.totals.consumptionWhKmNet,
-                    'Wh/km',
-                  ),
-                  pairedAvailable ? '同批有效能量与里程' : '点按查看电耗变化',
-                  _Metric.net,
-                ),
-                metricCard(
-                  '已知充电费用',
-                  widget.currency.amount(charging?.totals.cost),
-                  '仅含费用已知记录',
-                  _Metric.cost,
-                ),
-              ],
-            ),
-            mainChart(),
-            metricCard(
-              '充入电池',
-              number(charging?.totals.energyAddedKwh, 'kWh', decimals: 1),
-              charging == null ? '等待读取' : '${charging!.totals.sessions} 次充电',
-              _Metric.charge,
-            ),
-            if (capabilityError != null) ...[
-              Text(capabilityError!),
-              TextButton(
-                onPressed: () => loadCapabilities(force: true),
-                child: const Text('重试扩展能力'),
-              ),
-            ],
-            if (coverageAvailable && charging != null)
-              DataCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      '已知费用的覆盖',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    if (enhancedCharging case final s?) ...[
-                      Text(
-                        '费用有记录 ${s.totals.costKnownSessions} / ${s.totals.sessions} 次 · 对应入电 ${number(s.totals.costKnownEnergyKwh, 'kWh', decimals: 1)}',
-                      ),
-                      Text(
-                        '有效入电均价 ${widget.currency.amount(s.totals.unitCostAdded.value)}/kWh',
-                      ),
-                      const Text(
-                        '已知支出不等于全部用车成本',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ] else
-                      const Text('费用覆盖字段缺失或不兼容，未按完整费用显示'),
-                  ],
-                ),
-              ),
-            if (driving != null) comparisonCard(),
+            _monthBento(),
+            _dailyChartCard(),
+            _insightStrip(),
             if (data != null) ...records(data!),
-            if (widget.onInsight != null && range != null) ...[
-              const SizedBox(height: 12),
-              Text('读懂这辆车', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              for (final item in [
-                (
-                  'usage',
-                  Icons.calendar_month_outlined,
-                  '我的用车节奏',
-                  '驾驶时间、常见单程与每周分布',
-                ),
-                (
-                  'energy',
-                  Icons.insights_outlined,
-                  '什么影响了电耗',
-                  '按温度与距离看记录，了解样本差异',
-                ),
-                ('charging', Icons.bolt_outlined, '补能账本', '费用与补能结构'),
-                (
-                  'long',
-                  Icons.battery_std_outlined,
-                  '续航与停放观察',
-                  '额定续航长期记录、停放电量变化',
-                ),
-              ])
-                InsightLink(
-                  icon: item.$2,
-                  title: item.$3,
-                  subtitle: item.$4,
-                  onTap: () => item.$1 == 'charging'
-                      ? widget.onStatistics?.call('charging', range!.selection)
-                      : widget.onInsight!(item.$1, range!.selection),
-                ),
-            ],
+            _chapterGrid(),
             ExpansionTile(
               title: const Text('数据说明与更多'),
               children: [
+                if (capabilityError != null) ...[
+                  Text(capabilityError!),
+                  TextButton(
+                    onPressed: () => loadCapabilities(force: true),
+                    child: const Text('重试扩展能力'),
+                  ),
+                ],
+                if (coverageAvailable && charging != null) _coveragePanel(),
+                if (driving != null) comparisonCard(),
                 if (driving != null) drivingCard(),
                 if (charging != null) chargingCard(),
               ],
@@ -1313,6 +1153,412 @@ class _OverviewPageState extends State<OverviewPage>
       );
     },
   );
+
+  Widget _periodBar() => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 4),
+    child: Row(
+      children: [
+        for (final item in OverviewPeriod.values)
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(
+              label: Text(
+                item == OverviewPeriod.month ? '本月' : '近7天',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              selected: period == item,
+              showCheckmark: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => changePeriod(item),
+            ),
+          ),
+        const Spacer(),
+        IconButton(
+          onPressed: loading ? null : () => loadSummary(force: true),
+          icon: const Icon(Icons.refresh, size: 18),
+          tooltip: '刷新概览',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+        ),
+        OutlinedButton.icon(
+          onPressed: () => setState(() {}),
+          icon: const Icon(Icons.calendar_today_outlined, size: 14),
+          label: const Text('日期'),
+          style: OutlinedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _monthBento() => CollageBento(
+    lead: _monthTile(),
+    evidence: [_netTile(), _costTile()],
+  );
+
+  Widget _monthTile() {
+    final theme = Theme.of(context);
+    final value = driving?.totals.distanceKm;
+    final parts = value == null ? '—' : value.toStringAsFixed(1);
+    return Semantics(
+      container: true,
+      label: '本月驾驶里程 $parts km，${driving?.totals.drives ?? 0} 趟',
+      child: CollageTile(
+        surface: CollageSurface.mint,
+        padding: const EdgeInsets.all(14),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 128),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '本月 · 驾驶里程',
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  Text(
+                    '${driving?.totals.drives ?? 0} 趟',
+                    style: theme.textTheme.labelSmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text.rich(
+                TextSpan(
+                  text: parts,
+                  children: [
+                    TextSpan(
+                      text: ' km',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                style: theme.textTheme.displayLarge?.copyWith(
+                  fontSize: 46,
+                  height: 1.0,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                mileageComparison,
+                style: theme.textTheme.labelSmall,
+              ),
+              const SizedBox(height: 8),
+              _Sparkline(
+                height: 26,
+                values: [
+                  for (final b in driving?.buckets ?? <stats.DrivingBucket>[])
+                    b.distanceKm.toDouble(),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _netTile() {
+    final theme = Theme.of(context);
+    final value = pairedAvailable
+        ? enhancedDriving(results['driving'])
+              ?.totals
+              .netConsumptionPaired
+              .valueWhKm
+        : driving?.totals.consumptionWhKmNet;
+    return Semantics(
+      container: true,
+      button: true,
+      selected: metric == _Metric.net,
+      label: '净电耗 估算 ${value?.toStringAsFixed(0) ?? '缺失'} Wh/km',
+      excludeSemantics: true,
+      child: CollageTile(
+        surface: CollageSurface.sand,
+        padding: const EdgeInsets.all(12),
+        child: InkWell(
+          onTap: () => setState(() => metric = _Metric.net),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('净电耗 · 估算', style: theme.textTheme.labelSmall),
+              const SizedBox(height: 4),
+              Text.rich(
+                TextSpan(
+                  text: value?.toStringAsFixed(0) ?? '—',
+                  children: [
+                    TextSpan(
+                      text: ' Wh/km',
+                      style: theme.textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                pairedAvailable ? '同批有效能量与里程' : '点按查看电耗变化',
+                style: theme.textTheme.labelSmall,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _costTile() {
+    final theme = Theme.of(context);
+    return Semantics(
+      container: true,
+      button: true,
+      selected: metric == _Metric.cost,
+      label:
+          '已知充电费用 ${widget.currency.amount(charging?.totals.cost)}，仅含费用已知记录',
+      excludeSemantics: true,
+      onTap: () => setState(() => metric = _Metric.cost),
+      child: CollageTile(
+        padding: const EdgeInsets.all(12),
+        child: InkWell(
+          onTap: () => setState(() => metric = _Metric.cost),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('已知充电费用', style: theme.textTheme.labelSmall),
+                  ),
+                  const Icon(Icons.credit_card_outlined, size: 14),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.currency.amount(charging?.totals.cost),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${charging?.totals.sessions ?? 0} 次有记录',
+                style: theme.textTheme.labelSmall,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricTabs() => Wrap(
+    spacing: 6,
+    children: [
+      for (final (m, label) in [
+        (_Metric.distance, '里程'),
+        (_Metric.net, '电耗'),
+        (_Metric.charge, '补能'),
+        (_Metric.cost, '费用'),
+      ])
+        ChoiceChip(
+          label: Text(label, style: Theme.of(context).textTheme.labelSmall),
+          selected: metric == m,
+          showCheckmark: false,
+          visualDensity: VisualDensity.compact,
+          onSelected: (_) => setState(() => metric = m),
+        ),
+    ],
+  );
+
+  Widget _dailyChartCard() => CollageTile(
+    padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _metricTabs(),
+        const SizedBox(height: 4),
+        mainChart(),
+      ],
+    ),
+  );
+
+  Widget _insightStrip() => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(
+          alpha: 0.5,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            const Icon(Icons.auto_awesome, size: 15),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '按同车、同期归期时区统计；数据非实时，费用为已知记录。',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _chapterGrid() {
+    if (widget.onInsight == null || range == null) return const SizedBox.shrink();
+    final items = [
+      ('usage', Icons.calendar_month_outlined, '节奏', '驾驶时间与单程'),
+      ('energy', Icons.insights_outlined, '能耗', '温度与距离'),
+      ('charging', Icons.bolt_outlined, '补能', '费用与结构'),
+      ('long', Icons.battery_std_outlined, '长期', '续航与停放'),
+    ];
+    Widget card((String, IconData, String, String) item) => Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => item.$1 == 'charging'
+            ? widget.onStatistics?.call('charging', range!.selection)
+            : widget.onInsight!(item.$1, range!.selection),
+        child: CollageTile(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.$3,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  Icon(item.$2, size: 16),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(item.$4, style: Theme.of(context).textTheme.labelSmall),
+              const SizedBox(height: 6),
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Text('读下去 →', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 6),
+          child: Text(
+            '四个问题',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ),
+        for (var i = 0; i < items.length; i += 2)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                card(items[i]),
+                const SizedBox(width: 8),
+                card(items[i + 1]),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _coveragePanel() => DataCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('已知费用的覆盖', style: Theme.of(context).textTheme.titleSmall),
+        if (enhancedCharging case final s?) ...[
+          Text(
+            '费用有记录 ${s.totals.costKnownSessions} / ${s.totals.sessions} 次 · 对应入电 ${number(s.totals.costKnownEnergyKwh, 'kWh', decimals: 1)}',
+          ),
+          Text(
+            '有效入电均价 ${widget.currency.amount(s.totals.unitCostAdded.value)}/kWh',
+          ),
+          const Text(
+            '已知支出不等于全部用车成本',
+            style: TextStyle(fontSize: 12),
+          ),
+        ] else
+          const Text('费用覆盖字段缺失或不兼容，未按完整费用显示'),
+      ],
+    ),
+  );
+}
+
+/// Minimal bar sparkline for the C 本月 tile (renders buckets as light bars).
+class _Sparkline extends StatelessWidget {
+  const _Sparkline({required this.values, this.height = 34});
+  final List<double> values;
+  final double height;
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) return SizedBox(height: height);
+    final max = values.fold<double>(0, (a, b) => b > a ? b : a);
+    final color = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      height: height,
+      child: CustomPaint(
+        painter: _SparklinePainter(values, max, color),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  _SparklinePainter(this.values, this.max, this.color);
+  final List<double> values;
+  final double max;
+  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty || max <= 0) return;
+    final gap = 2.0;
+    final barWidth = (size.width - gap * (values.length - 1)) / values.length;
+    final paint = Paint()..color = color;
+    for (var i = 0; i < values.length; i++) {
+      final h = (values[i] / max) * size.height;
+      final left = i * (barWidth + gap);
+      final isLast = i == values.length - 1;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, size.height - h, barWidth, h),
+          const Radius.circular(2),
+        ),
+        paint..color = color.withValues(alpha: isLast ? 1 : 0.5),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklinePainter old) =>
+      old.values != values || old.max != max || old.color != color;
 }
 
 class MetaPage extends StatefulWidget {
