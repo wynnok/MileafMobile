@@ -57,10 +57,10 @@
 
 ## 2026-11-01 图册与入口现状
 
-- 图册入口（opt-in，只在传 `MILEAF_RENDER_OUTPUT` 时运行）：2026-11-01 前有七个入口因选择器停留在旧版式而失败，现全部修好并通过——
+- 图册入口（opt-in，只在传 `MILEAF_RENDER_OUTPUT` 时运行）：2026-11-01 前有七个 C 入口因选择器停留在旧版式而失败，本轮逐一修好并实际运行通过（另有 `lake_render_test.dart`、`owner_render_test.dart` 属旧 A 证据、仍引用已删文案，未纳入本轮）——
   - `collage_render_test.dart`、`overview_state_render_test.dart`：净值口径入口由「驾驶净电耗 · …」改为本月块「净电耗 · 估算」；`overview_state_render_test.dart` 另需先展开「数据说明与更多」再截状态段。
-  - `c_gallery_render_test.dart`：路线脚注改为现行「路线 · 非导航」，只断言 100%；200% 断言脚注不出现。
-  - `collage_rhythm_render_test.dart`、`collage_conditions_render_test.dart`、`collage_charging_statistics_render_test.dart`：专题入口不再有 `TextButton`，改用章节卡文字「节奏／能耗／补能」。
+  - `c_gallery_render_test.dart`：路线脚注按 C05／原型断言「路线示意 · 非导航」（421fe61 曾缩短为「路线 · 非导航」，已回退），只在 100% 断言；≥150% 不绘制脚注属待办（见 `collage-drive-detail.md`）。
+  - `collage_rhythm_render_test.dart`、`collage_conditions_render_test.dart`、`collage_charging_statistics_render_test.dart`：专题入口改走 C 的 2×2 章节卡（`InkWell + CollageTile`；`chapters()` 的 busy/error 分支仍用 TextButton，不能作入口定位），定位抽到 `test/support/render_nav.dart`。
   - `charging_expansion_render_test.dart`：先展开「过程数据说明」，再截取「原始功率峰值」等过程指标。
   - `collage-renders/overview/` 已按 2026-11-01 版式重出 24 张；rhythm／conditions／charging-statistics 三个专题图册重跑后与已提交版本逐字节一致（专题页本身未变，仅导航入口变了），故未改动图片。
 - 图册指纹：`provenance.json` 仍是 d9d7d96／4471729 整册收口清单；2026-11-01 实测当前树 55/96 源文件、24/292 图片与其 SHA256 不符（图片不符项即本轮重出的 overview 24 张）。其余目录（如 drive-detail 48 张）仍停在各自最后一次重出；整册重新收口需连同各入口一并重跑后再更新该文件。

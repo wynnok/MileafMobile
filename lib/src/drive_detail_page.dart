@@ -460,7 +460,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         ),
         if (!large)
           const Text(
-            '路线 · 非导航',
+            '路线示意 · 非导航',
             style: TextStyle(color: Colors.white60, fontSize: 11),
           ),
       ],

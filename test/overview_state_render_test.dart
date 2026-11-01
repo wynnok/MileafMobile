@@ -13,6 +13,7 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'overview_visualization_test.dart';
 import 'statistics_test.dart' show fixture;
+import 'support/render_nav.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'support/statistics_insights_fixture.dart';
@@ -148,12 +149,7 @@ void main() {
           );
           await save('paired-$suffix');
           // C 之后配对口径与扩展能力状态收进「数据说明与更多」，需先展开再截状态段。
-          await tester.scrollUntilVisible(
-            find.text('数据说明与更多').hitTestable(),
-            140,
-          );
-          await tester.tap(find.text('数据说明与更多').hitTestable());
-          await tester.pumpAndSettle();
+          await expandCollapsible(tester, '数据说明与更多', delta: 140);
           if (scenario == 'capability-failure') {
             await tester.scrollUntilVisible(
               find.textContaining('扩展能力暂未确认'),

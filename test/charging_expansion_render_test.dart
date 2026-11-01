@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
@@ -11,6 +9,8 @@ import 'package:http/testing.dart';
 import 'charging_expansion_test.dart'
     show detailV2, expansionResponse, seriesV2;
 import 'charging_test.dart' show app, initial, jsonResponse;
+import 'support/render_nav.dart';
+import 'support/render_png.dart';
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
@@ -37,21 +37,8 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     final boundary = GlobalKey();
-    Future<void> save(String name) async {
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: name);
-      final render = tester.renderObject<RenderRepaintBoundary>(
-        find.byKey(boundary),
-      );
-      await tester.runAsync(() async {
-        final image = await render.toImage(pixelRatio: 2);
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        final file = File('$output/$name.png');
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(bytes!.buffer.asUint8List());
-        image.dispose();
-      });
-    }
+    Future<void> save(String name) =>
+        saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
 
     for (final brightness in [Brightness.light, Brightness.dark]) {
       for (final scale in [1.0, 2.0]) {
@@ -122,9 +109,7 @@ void main() {
         );
         await save('heater-$suffix');
         // 过程指标收在「过程数据说明」折叠层里，先展开再截取。
-        await tester.scrollUntilVisible(find.text('过程数据说明').hitTestable(), 180);
-        await tester.tap(find.text('过程数据说明').hitTestable());
-        await tester.pumpAndSettle();
+        await expandCollapsible(tester, '过程数据说明');
         await tester.scrollUntilVisible(
           find.textContaining('原始功率峰值').hitTestable(),
           180,

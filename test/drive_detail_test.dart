@@ -604,6 +604,8 @@ void main() {
     );
     expect(find.textContaining('底图未启用'), findsOneWidget);
     expect(find.text('启用地图'), findsOneWidget);
+    // C05：地图不可用时路线说明文字仍要在（不是只留一张空地图）。
+    expect(find.text('路线示意 · 非导航'), findsOneWidget);
     expect(find.textContaining('后续地图切片'), findsNothing);
     expect(find.text('允许加载底图'), findsNothing);
   });

@@ -6,7 +6,7 @@
 
 2026-10-31 视觉修正（用户反馈）：地图此前左右出血、仅下缘圆角，与 12px 页面边距的其他模块割裂。现行程详情地图与内容同栏（左右 12px、上 12px、下 8px），四角 20px 圆角，高度仍 300；充电详情地点图同步 20px 圆角并补 8px 下距；全屏 `DriveMapPage` 仍满宽、仅下缘 22px 圆角。`drive_detail_test` 改为断言地图左右边距与「距离」tile 一致。
 
-2026-11-01 文案与图册同步：`c_gallery_render_test.dart` 的路线脚注断言改为现行文案「路线 · 非导航」（原 C05／原型为「路线示意 · 非导航」），并只在 100% 断言——≥150% 时该脚注按 `if (!large)` 整行不绘制，本次补上 200% 的「不出现」断言。**待办**：421fe61（AMap 接入）把说明带从「地图下方说明带」并入地图 hero 的叠加层，同时缩短了脚注文案；C05 的「路线示意 · 非导航」与降级说明带尚未恢复（原型 `prototype.js:1388`、`style.css:1407` 与 C10 证据 `latest-drive-detail-dark-200.png` 均为原文案），恢复与否由产品决定，同时需恢复被 421fe61 删除的 `drive_map_test` 级别断言。当前覆盖由 `c_gallery_render_test.dart`（100%）与 `drive_detail_test.dart` 的降级用例承担。
+2026-11-01 脚注回退与降级覆盖：421fe61（AMap 接入）曾把 C05 的路线脚注缩短为「路线 · 非导航」，并删掉 `drive_map_test` 的文案断言。经复核（原型 `prototype.js:1388`、`style.css:1407` 与 C10 证据 `latest-drive-detail-dark-200.png` 均为「路线示意 · 非导航」），`lib/src/drive_detail_page.dart` 已回退文案；`drive_detail_test.dart` 的「默认未启用底图」用例新增该文案断言，补回 C05「地图不可用仍保留文字」的覆盖；`c_gallery_render_test.dart` 在 100% 断言同一文案。**待办**：≥150% 仍由 `if (!large)` 整行不绘制脚注（与 C10 的 200% 证据不符）；421fe61 把降级说明并入 hero 叠加层后，叠加层与 `MapPanel` 同意/失败卡（bottom 12、后绘制）的遮挡关系未验。两处需单独一轮版面修正，并重出 drive-detail 图册。
 
 ## 验证
 

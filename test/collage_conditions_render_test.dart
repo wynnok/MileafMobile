@@ -19,6 +19,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'overview_visualization_test.dart';
 import 'statistics_test.dart' show fixture;
 import 'statistics_usage_test.dart' show usageFixture;
+import 'support/render_nav.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'support/statistics_insights_fixture.dart';
@@ -196,11 +197,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await tester.tap(find.text('统计').last);
-          await tester.pumpAndSettle();
-          // C 之后专题入口是 2×2 章节卡（InkWell + CollageTile），不再有 TextButton。
-          await tester.scrollUntilVisible(find.text('能耗').hitTestable(), 160);
-          await tester.tap(find.text('能耗'));
+          await openStatisticsTopic(tester, '能耗');
           await save('conditions-$suffix');
           if (scenario == 'normal') {
             await tester.scrollUntilVisible(
