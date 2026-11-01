@@ -905,3 +905,38 @@ iOS 的 MapKit 只是无 key 时的过渡，不是同一供应商；Android key 
 - #11：新增“iOS AMap 平台视图与共享场景接入”，仍需双端真实底图/CRS/断网降级证据；保持 OPEN。
 - #17：上架侧仍增加“NO-IDFA 版本、隐私清单、IDFA 不使用声明”待验。
 - 0 新票。
+
+## 2026-11-01 充电「我的补能方式」构成环增量
+
+> 本节只改充电账本里「我的补能方式」这一段的版式与信息层级；数据口径、API、只读边界和 A「夜航」配色均不变。
+
+### Problem Statement
+
+「我的补能方式」原本是六行等权文字（8px 构成条 + legend 行 + DC 占比句 + 分类时长句 + 分类已知句 + 正文里的统计校验时间）。同屏上方的「每日补能」已是完整的图表段落，下方「地点账目」「最近的充电」也都是结构化列表，只有这一段是纯文本，既没有主次，也不承担任何"形状"。用户在截图评审时指出的正是这一段。
+
+### Solution
+
+- 版式：一句结论 → 100% 构成环 + 图例 → 1px 细线 → 三列绝对量 → 一句口径短注（[ADR 0004](../adr/0004-charging-method-visual.md)、[设计规格](../specs/charging-method-share-ring.md)）。
+- 环只画 AC / DC 已知分类能量，与 `dc_energy_share` 同分母；类型未知的能量单独成列，并在短注里声明"不计入构成"。若三段同环，一屏内会出现两个不同分母的 DC 百分比。
+- 结论阈值：≥90% 判"为主"，60–90% 判"更多，占 X%"，40–60% 判"接近"；未知能量只作为从句，不改分母。
+- 图例可点：复用现有 `chargeType` 筛选跳到记录列表；不加 chevron，靠按压态与语义表达可点。
+- 口径分层：区块内只留 `DC 占已知分类能量 X% · 分类已知 N/M 次`；`统计校验时间`、`未知不并入 AC`、`时长不是等待时间` 移入页尾「数据说明」。
+- 空态不画全零：`sessions == 0` 时只留空轨环 + 圆心 `—` + 「还没有充电记录」，不显示三列。
+
+### Testing Decisions
+
+- 读法逻辑抽成纯 Dart 的 `ChargingMethodReading`（`lib/src/charging_method.dart`），阈值、除零、尾零、缺失与零能量分支由 `test/charging_method_test.dart` 覆盖。
+- 环与图例是独立组件（`lib/src/design/components/share_ring.dart`），弧长数学抽成 `shareRingArcs` 直接断言占比与缺口，不靠截图比对。
+- 页面级用例走既有 seam（App + 可控 HTTP）：`test/charging_method_section_test.dart` 覆盖结论/图例/三列/跳转/口径迁移/200%/320 与 390 宽度。
+- 渲染矩阵由 `test/a_charging_method_render_test.dart` 产出 12 张（3 状态 × 浅深 × 100/200%），见 `docs/implementation/a-renders/charging-method/`。
+
+### Out of Scope
+
+- 不做按类次数、按类费用、按类地点（接口无字段）；不做"能量/时长"切换；不做逐日类型堆叠图。
+- 不改 `MileafCompositionBar` 在概览与补能专题的用法。
+- 不新增请求，不改 `MileafServer/`。
+
+### Ticket impact
+
+- 0 新票；本增量对应本地票 CM01–CM06。
+- 真机、真实站点、性能与双端隔离构建仍是独立外部 gate，不因本增量通过而关闭。

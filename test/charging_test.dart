@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'charging_expansion_test.dart' show expansionResponse;
@@ -529,7 +530,7 @@ void main() {
     expect(requests.last.queryParameters['to'], '2026-03-30T12:05:00.000Z');
     expect(requests.last.queryParameters.containsKey('cursor'), isFalse);
   });
-  testWidgets('补能构成区 0 条记录显示 — 而不是 0 kWh', (tester) async {
+  testWidgets('补能构成区 0 条记录只留空环与结论，不画全零', (tester) async {
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/stats') &&
           request.url.queryParameters['kind'] == 'charging') {
@@ -542,13 +543,11 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
-    expect(find.text('AC —'), findsOneWidget);
-    expect(find.text('DC —'), findsOneWidget);
-    expect(find.text('未知 —'), findsOneWidget);
-    expect(find.text('AC 0.00 kWh'), findsNothing);
     expect(find.text('还没有充电记录'), findsOneWidget);
-    expect(find.text('分类记录时长缺失'), findsOneWidget);
-    expect(find.textContaining('DC占已知分类能量 —'), findsOneWidget);
+    expect(find.byType(MileafShareRing), findsOneWidget);
+    expect(find.text('AC 0.00 kWh'), findsNothing);
+    expect(find.text('AC'), findsNothing, reason: '空态不显示图例与三列');
+    expect(find.textContaining('DC 占已知分类能量'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

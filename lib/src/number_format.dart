@@ -29,3 +29,7 @@ String relativeTime(DateTime time, DateTime now) {
   if (diff.inHours < 24) return '${diff.inHours} 小时前';
   return '${time.month}/${time.day}';
 }
+
+/// 两位小数、去掉尾零：`40.18` / `45` / `0`。金额、占比、kWh 同一处理。
+String decimal(num value) =>
+    groupedText(value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));

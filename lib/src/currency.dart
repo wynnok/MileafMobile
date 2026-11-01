@@ -4,6 +4,10 @@ import 'number_format.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+// `decimal` 住在纯文件 number_format.dart；这里保留导出，页面照旧从
+// currency.dart 导入即可。
+export 'number_format.dart' show decimal;
+
 abstract interface class CurrencyPreferenceStore {
   Future<String?> read(String site);
   Future<void> write(String site, String? code);
@@ -74,9 +78,6 @@ class CurrencySettings extends ChangeNotifier {
     super.dispose();
   }
 }
-
-String decimal(num value) =>
-    groupedText(value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
 
 class CurrencyPage extends StatefulWidget {
   const CurrencyPage({super.key, required this.settings});

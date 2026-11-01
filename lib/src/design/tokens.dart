@@ -242,6 +242,26 @@ abstract final class MileafBatteryMetrics {
   static const labelSize = 9.0;
 }
 
+/// Share ring geometry from Spec `charging-method-share-ring` §5.2 / §10.1.
+///
+/// A 12px donut split by AC / DC known energy. Dimensions step with the width
+/// and the text scale; the centre may disappear before any number may shrink.
+abstract final class MileafShareRingMetrics {
+  const MileafShareRingMetrics._();
+
+  static const diameterNarrow = 96.0;
+  static const diameter = 104.0;
+  static const diameterWide = 116.0;
+  static const diameterLargeText = 120.0;
+  static const stroke = 12.0;
+
+  /// Gap between segments, in arc pixels (converted with the radius).
+  static const gap = 3.0;
+  static const centerPad = 8.0;
+  static const legendRow = 44.0;
+  static const dot = 8.0;
+}
+
 /// Brand lockup measurements from Spec §6.2.
 abstract final class MileafBrand {
   const MileafBrand._();

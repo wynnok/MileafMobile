@@ -11,6 +11,7 @@ import 'design/typography.dart';
 
 import 'charging_contract.g.dart' as dto;
 import 'charging_experience_contract.g.dart' as expanded;
+import 'charging_method.dart';
 import 'charging_statistics_contract.g.dart' as legacy;
 import 'workspace.dart';
 import 'currency.dart';
@@ -1097,68 +1098,221 @@ class _ChargingPageState extends State<ChargingPage>
     );
   }
 
+  /// 「我的补能方式」：一句结论 → 构成环 + 图例 → 三列绝对量 → 一句口径。
+  ///
+  /// The ring shares the exact denominator of `dc_energy_share` (AC + DC known
+  /// energy); unknown energy is declared in the note instead of becoming a
+  /// third arc, so one screen never shows two different DC percentages.
   Widget _composition(expanded.ChargingStats stats) {
-    final total = stats.totals;
+    final reading = ChargingMethodReading.from(stats.totals);
     final colors = context.colors;
     final type = context.type;
-    // 没有一条记录带电量就是未知（`—`），0 条记录同样如此；真实 0 仍显示 0。
-    final missing = total.energyKnownSessions == 0;
-    final rows = <(String, num?)>[
-      ('AC', missing ? null : total.acEnergyKwh),
-      ('DC', missing ? null : total.dcEnergyKwh),
-      ('未知', missing ? null : total.unknownEnergyKwh),
-    ];
-    // 已知分类能量为 0 时分母为空：比例不是 0%，而是未知。有能量时按后端原口径展示。
-    final share = missing ? null : total.dcEnergyShare;
+    final inset = MileafLayout.pageInset(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        MileafSpace.section,
-        MileafLayout.pageInset(context),
-        0,
-      ),
+      padding: EdgeInsets.fromLTRB(inset, MileafSpace.section, inset, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader(title: '我的补能方式'),
           const SizedBox(height: MileafSpace.s8),
-          MileafCompositionBar(
-            segments: rows,
-            emptyMessage: total.sessions == 0
-                ? '还没有充电记录'
-                : (missing ? 'AC/DC 分类能量缺失' : '还没有分类能量'),
+          Text(reading.conclusion, style: type.body.copyWith(color: colors.text)),
+          const SizedBox(height: MileafSpace.s16),
+          _supplyRing(reading),
+          if (reading.categories.isNotEmpty) ...[
+            const SizedBox(height: MileafSpace.s20),
+            Container(height: 1, color: colors.line),
+            const SizedBox(height: MileafSpace.s16),
+            _categoryColumns(reading.categories),
+          ],
+          if (reading.note.isNotEmpty) ...[
+            const SizedBox(height: MileafSpace.s12),
+            Text(
+              reading.note,
+              style: type.micro.copyWith(color: colors.textFaint),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _supplyRing(ChargingMethodReading reading) {
+    final colors = context.colors;
+    final ring = MileafShareRing(
+      segments: [
+        ShareRingSegment(
+          label: 'AC',
+          value: reading.acShare,
+          color: colors.seriesPrimary,
+        ),
+        ShareRingSegment(
+          label: 'DC',
+          value: reading.dcShare,
+          color: colors.seriesSecondary,
+        ),
+      ],
+      centerValue: reading.centerValue,
+      centerLabel: reading.centerLabel,
+    );
+    if (!reading.showLegend) {
+      return Center(child: ring);
+    }
+    Widget legend(
+      String label,
+      String share,
+      Color color,
+      String chargeFilter,
+    ) => ShareRingLegendRow(
+      color: color,
+      label: label,
+      share: share,
+      onTap: () => openType(chargeFilter),
+      semanticsLabel: '查看 $label 充电记录',
+    );
+    final rows = <Widget>[
+      legend('AC', '${decimal(reading.acShare * 100)}%', colors.seriesPrimary, 'ac'),
+      legend('DC', '${decimal(reading.dcShare * 100)}%', colors.seriesSecondary, 'dc'),
+    ];
+    if (MileafLayout.largeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(child: ring),
+          const SizedBox(height: MileafSpace.s16),
+          ...rows,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ring,
+        const SizedBox(width: MileafSpace.s24),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: rows,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _categoryColumns(List<ChargingMethodCategory> categories) {
+    final columns = [
+      for (final category in categories) _categoryColumn(category),
+    ];
+    if (MileafLayout.largeText(context) || columns.length == 1) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < columns.length; i++) ...[
+            if (i > 0) const SizedBox(height: MileafSpace.s16),
+            columns[i],
+          ],
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < columns.length; i++) ...[
+          if (i > 0) const SizedBox(width: MileafSpace.s16),
+          Expanded(child: columns[i]),
+        ],
+      ],
+    );
+  }
+
+  Widget _categoryColumn(ChargingMethodCategory category) {
+    final colors = context.colors;
+    final type = context.type;
+    return Semantics(
+      key: ValueKey('charging-method-column-${category.label}'),
+      container: true,
+      label:
+          '${category.label} ${category.value}'
+          '${category.unit == null ? '' : ' ${category.unit}'}，${category.note}',
+      excludeSemantics: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            category.label,
+            style: type.label.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.inline6),
+          // 单位紧跟在空格之后：列宽不够时由文本引擎把它换到下一行，
+          // 不缩小字号、不用 FittedBox（Spec §10.1）。
+          Text.rich(
+            TextSpan(
+              text: category.value,
+              style: type.metricMd.copyWith(color: colors.text),
+              children: [
+                if (category.unit != null)
+                  TextSpan(
+                    text: ' ${category.unit}',
+                    style: type.micro.copyWith(color: colors.textFaint),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: MileafSpace.inline6),
+          Text(
+            category.note,
+            style: type.micro.copyWith(color: colors.textFaint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Jump to the record list pre-filtered by charging type (Spec §9).
+  void openType(String value) {
+    chargeType = value;
+    recordsOnly = true;
+    applyFilters();
+    scrollToTop();
+  }
+
+  Widget _compositionSkeleton() {
+    final inset = MileafLayout.pageInset(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(inset, MileafSpace.section, inset, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(title: '我的补能方式'),
           const SizedBox(height: MileafSpace.s8),
-          Wrap(
-            spacing: MileafSpace.s16,
-            runSpacing: MileafSpace.s4,
+          const SkeletonBlock(width: 160, height: 14),
+          const SizedBox(height: MileafSpace.s16),
+          const Row(
             children: [
-              for (final row in rows)
-                Text(
-                  '${row.$1} ${row.$2 == null ? '—' : '${decimal(row.$2!)} kWh'}',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
+              SkeletonBlock(
+                width: MileafShareRingMetrics.diameter,
+                height: MileafShareRingMetrics.diameter,
+                radius: MileafShareRingMetrics.diameter / 2,
+              ),
+              SizedBox(width: MileafSpace.s24),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBlock(width: 120, height: 12),
+                  SizedBox(height: MileafSpace.s16),
+                  SkeletonBlock(width: 96, height: 12),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: MileafSpace.s8),
-          Text(
-            'DC占已知分类能量 ${share == null ? '—' : decimal(share * 100)}%；'
-            '各分类只含已记录电量，未知不并入AC。',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            total.durationKnownSessions == 0
-                ? '分类记录时长缺失'
-                : 'AC ${decimal(total.acDurationMin)} 分钟 · '
-                      'DC ${decimal(total.dcDurationMin)} 分钟 · '
-                      '未知 ${decimal(total.unknownDurationMin)} 分钟',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            '分类已知 ${total.classificationKnownSessions} / ${total.sessions} 次',
-            style: type.micro.copyWith(color: colors.textFaint),
+          const SizedBox(height: MileafSpace.s20),
+          const Row(
+            children: [
+              SkeletonBlock(width: 64, height: 40),
+              SizedBox(width: MileafSpace.s16),
+              SkeletonBlock(width: 64, height: 40),
+              SizedBox(width: MileafSpace.s16),
+              SkeletonBlock(width: 64, height: 40),
+            ],
           ),
         ],
       ),
@@ -1570,7 +1724,12 @@ class _ChargingPageState extends State<ChargingPage>
 
   Widget _recentSection() {
     if (!expandedAvailable || recordsOnly) return const SizedBox.shrink();
-    if (items.isEmpty) return _recordsSection();
+    if (items.isEmpty) {
+      return Padding(
+        padding: MileafLayout.pageHorizontal(context),
+        child: _recordsSection(),
+      );
+    }
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1613,10 +1772,32 @@ class _ChargingPageState extends State<ChargingPage>
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              '按${expandedAvailable ? '结束' : '开始'}时间归期 · '
-              '时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
-              style: type.micro.copyWith(color: colors.textMuted),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '按${expandedAvailable ? '结束' : '开始'}时间归期 · '
+                  '时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  '构成环只含 AC / DC 已知分类能量；类型未知的能量单列显示，不并入任何一类。',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  '记录时长按分类累计，不等于等待时间。',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                if (statsCheckedAt != null) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    '统计校验时间 ${workspace.calendar!.local(statsCheckedAt!).toString().split('.').first}',
+                    style: type.micro.copyWith(color: colors.textFaint),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -1767,6 +1948,8 @@ class _ChargingPageState extends State<ChargingPage>
                   ],
                 ),
               ),
+              if (stats == null && statsLoading && !recordsOnly)
+                _compositionSkeleton(),
               if (stats != null && !recordsOnly) ...[
                 _hero(stats),
                 _readings(stats),
@@ -1785,19 +1968,6 @@ class _ChargingPageState extends State<ChargingPage>
                     ),
                   ),
                 _composition(stats),
-                if (statsCheckedAt != null)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s8,
-                      inset,
-                      0,
-                    ),
-                    child: Text(
-                      '统计校验时间 ${workspace.calendar!.local(statsCheckedAt!).toString().split('.').first}',
-                      style: type.micro.copyWith(color: colors.textFaint),
-                    ),
-                  ),
               ] else if (legacyStats != null && !recordsOnly)
                 Padding(
                   padding: EdgeInsets.fromLTRB(

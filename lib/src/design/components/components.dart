@@ -12,6 +12,7 @@ export 'map_frame.dart';
 export 'metric.dart';
 export 'nav_bar.dart';
 export 'section.dart';
+export 'share_ring.dart';
 export 'sheet.dart';
 export 'soc_interval.dart';
 export 'state_view.dart';
