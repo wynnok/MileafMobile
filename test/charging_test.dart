@@ -12,6 +12,8 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
 
+import 'charging_expansion_test.dart' show expansionResponse;
+import 'support/c_fixture.dart' show cEmptyChargingV2;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
@@ -526,5 +528,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(requests.last.queryParameters['to'], '2026-03-30T12:05:00.000Z');
     expect(requests.last.queryParameters.containsKey('cursor'), isFalse);
+  });
+  testWidgets('补能构成区 0 条记录显示 — 而不是 0 kWh', (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/stats') &&
+          request.url.queryParameters['kind'] == 'charging') {
+        return jsonResponse(cEmptyChargingV2());
+      }
+      return expansionResponse(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    expect(find.text('AC —'), findsOneWidget);
+    expect(find.text('DC —'), findsOneWidget);
+    expect(find.text('未知 —'), findsOneWidget);
+    expect(find.text('AC 0.00 kWh'), findsNothing);
+    expect(find.text('还没有充电记录'), findsOneWidget);
+    expect(find.text('AC — 分钟 · DC — 分钟 · 未知 — 分钟'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

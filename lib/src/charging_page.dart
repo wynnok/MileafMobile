@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -1103,17 +1101,13 @@ class _ChargingPageState extends State<ChargingPage>
     final total = stats.totals;
     final colors = context.colors;
     final type = context.type;
-    final missing = total.sessions > 0 && total.energyKnownSessions == 0;
-    final rows = <(String, num?, Color)>[
-      ('AC', missing ? null : total.acEnergyKwh, colors.seriesPrimary),
-      ('DC', missing ? null : total.dcEnergyKwh, colors.seriesSecondary),
-      ('未知', missing ? null : total.unknownEnergyKwh, colors.seriesNeutral),
+    // 没有一条记录带电量就是未知（`—`），0 条记录同样如此；真实 0 仍显示 0。
+    final missing = total.energyKnownSessions == 0;
+    final rows = <(String, num?)>[
+      ('AC', missing ? null : total.acEnergyKwh),
+      ('DC', missing ? null : total.dcEnergyKwh),
+      ('未知', missing ? null : total.unknownEnergyKwh),
     ];
-    final known = [
-      for (final row in rows)
-        if (row.$2 != null && row.$2! > 0) row,
-    ];
-    final sum = known.fold<num>(0, (value, row) => value + row.$2!);
     final share = total.dcEnergyShare;
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -1127,27 +1121,12 @@ class _ChargingPageState extends State<ChargingPage>
         children: [
           const SectionHeader(title: '我的补能方式'),
           const SizedBox(height: MileafSpace.s8),
-          if (sum > 0)
-            ClipRRect(
-              borderRadius: MileafRadius.xsAll,
-              child: SizedBox(
-                height: 8,
-                child: Row(
-                  children: [
-                    for (final row in known)
-                      Expanded(
-                        flex: math.max(1, (row.$2! / sum * 1000).round()),
-                        child: ColoredBox(color: row.$3),
-                      ),
-                  ],
-                ),
-              ),
-            )
-          else
-            Text(
-              missing ? 'AC/DC 分类能量缺失' : '还没有分类能量',
-              style: type.micro.copyWith(color: colors.textFaint),
-            ),
+          MileafCompositionBar(
+            segments: rows,
+            emptyMessage: total.sessions == 0
+                ? '还没有充电记录'
+                : (missing ? 'AC/DC 分类能量缺失' : '还没有分类能量'),
+          ),
           const SizedBox(height: MileafSpace.s8),
           Wrap(
             spacing: MileafSpace.s16,
@@ -1168,8 +1147,10 @@ class _ChargingPageState extends State<ChargingPage>
           ),
           const SizedBox(height: MileafSpace.s4),
           Text(
-            total.sessions > 0 && total.durationKnownSessions == 0
-                ? '分类记录时长缺失'
+            total.durationKnownSessions == 0
+                ? (total.sessions == 0
+                      ? 'AC — 分钟 · DC — 分钟 · 未知 — 分钟'
+                      : '分类记录时长缺失')
                 : 'AC ${decimal(total.acDurationMin)} 分钟 · '
                       'DC ${decimal(total.dcDurationMin)} 分钟 · '
                       '未知 ${decimal(total.unknownDurationMin)} 分钟',
