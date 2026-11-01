@@ -58,6 +58,7 @@ void main() {
     );
     expect(find.textContaining('参照 20.0'), findsOneWidget);
     await tester.ensureVisible(find.text('节奏').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
     expect(find.byType(BackButton), findsOneWidget);
