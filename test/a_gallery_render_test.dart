@@ -86,7 +86,7 @@ const markers = <String, Map<String, ({List<String> must, List<String> mustNot})
   },
   'topic-charging': {
     'normal': (must: ['补能账目', '¥186.4'], mustNot: ['还没有充电记录']),
-    'empty': (must: ['—'], mustNot: ['¥186.4']),
+    'empty': (must: ['还没有充电记录'], mustNot: ['¥186.4', '0 / 0 次']),
     'missing': (must: ['—'], mustNot: ['¥186.4']),
   },
   'topic-range': {

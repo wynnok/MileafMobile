@@ -1,6 +1,6 @@
 # A「夜航」图册（VA12）
 
-- 日期：2026-11-01
+- 日期：2026-11-01（第二轮重出：地图同意条 200%、补能空态、电量区间标签顺序）
 - 分支：`codex/mileaf-v1`（本地提交，未推送）
 - 生成入口：`test/a_gallery_render_test.dart`（opt-in；未设置 `MILEAF_RENDER_OUTPUT` 时跳过）
 - 生成条件：360×800 逻辑像素、pixelRatio 2（PNG 720×1600）；Inter 400/500/600 + 渲染机 CJK fallback（Arial Unicode）。
@@ -9,10 +9,12 @@
 
 ## 指纹
 
-- 132 张 PNG：`4dbd028835bd792da499fa2969909592291896d079f9dceaaddd7104a3aa15c4`
-  （`sha256` over 排序后的「文件名:文件 sha256」行）
-- 页面/组件/入口源码：`d040fa6d6d85d7bf735cfef7d1c34080a4339bac943cf27756022502a590afa4`
-  （`find lib/src -name '*.dart'` + `test/a_gallery_render_test.dart` + `test/support/a_gallery_fixture.dart` + `test/support/c_fixture.dart`，按路径排序后拼接）
+- 132 张 PNG：`86f2517051b4f82852fc9602aa1da99b71fa540f7c4b8ac9bd360cb3f301a143`
+  （`sha256` over 排序后的「文件名:文件 sha256」行，行间 `\n`，末尾带一个换行）
+- 页面/组件/入口源码：`5fc5dcae60586df783c324d591ec9f74f4808d3481d64c68bd2f8e0f4e36aa7f`
+  （`find lib/src -name '*.dart'` + `test/a_gallery_render_test.dart` + `test/support/a_gallery_fixture.dart` + `test/support/c_fixture.dart`，按路径排序后拼接；本轮 83 个文件）
+
+> 上一轮（VA12 首次 132 张）指纹为 PNG `4dbd0288…aa15c4` / 源码 `d040fa6d…afa4`（80 个源码文件），已作废。本轮中间态 `f1300da4…` 亦已作废——审查修正后重新生成。
 
 ## 矩阵：11 页 × 3 态 × 2 外观 × 2 字号 = 132 张
 
@@ -45,10 +47,10 @@
 
 - `overview-*`：深色 hero（额定续航 + 电量环）、本月主数、每日里程主图与参照虚线；200% 下三读数换行、无裁切；空态不画全零，缺失 `—`。
 - `drives-*`：期间主数 + 节奏条带 + 最近的路；空态 0.0 km / 0 趟 / 净电耗 `—` 与「这段时间还没有行程」。
-- `charging-*`：深色费用 hero + 覆盖 + 三读数 + stem；空态费用/能量/时长 `—`（「0/0 次有记录」即未知）＋「这段时间还没有充电记录」，不画全零补能图；缺失费用 `—`、次数 9 保留。
+- `charging-*`：深色费用 hero + 覆盖 + 三读数 + stem；空态费用/能量/时长 `—`（「0/0 次有记录」即未知）＋「这段时间还没有充电记录」，构成区 AC/DC/未知 与 DC 占比同为 `—`，不画全零补能图；缺失费用 `—`、次数 9 保留。
 - `statistics-*`：结论 + 深色里程主图 + 2×2 章节；200% 读数换行不裁切；缺失 `—`。
-- `drive-detail-*`：地图/路线示意、三结果、速度曲线与电量区间（标签按 §9.4 为「到达 68% / 出发 76%」）；empty 显示「无采样数据」，missing 只留失败条 + 重试。
-- `charge-detail-*`：电量弧 hero 全出血（左右到屏幕边）、三结果 2×2 换行、功率曲线；missing 保留 46.8 kWh / ¥71.28 / 34 分钟。
+- `drive-detail-*`：地图/路线示意、三结果、速度曲线与电量区间（标签按用户 2026-11-01 裁定为「出发 76% / 到达 68%」，行程顺序）；200% 下「底图未启用」同意条三行完整的隐私说明 +「启用地图」按钮，无省略号、无裁切（本轮修正）；empty 显示「无采样数据」，missing 只留失败条 + 重试。
+- `charge-detail-*`：电量弧 hero 全出血（左右到屏幕边）、三结果 2×2 换行、功率曲线；地点地图 ≥150% 时高度与行程地图同为 240，同意条同样全文可见；missing 保留 46.8 kWh / ¥71.28 / 34 分钟。
 - `topic-rhythm-*`：活跃天数、每日用车热图、证据 2×2。
 - `topic-energy-*`：温度分组主数 + 分组点图 + 证据；空态「区间内无已完成行程」。
 - `topic-charging-*`：已知支出 `¥186.4`、均价 `¥0.87/kWh`、覆盖 `8 / 9 次`、入电量走势、地点账目。
@@ -62,15 +64,15 @@
 3. 充电详情电量弧 hero 已全出血（VA09/VA12 修正）；`charge-detail-*` 为证。
 4. 缺失统一 `—`；费用无币种时显示金额 +「币种未记录」，不默认 CNY。
 5. 概览/统计没有 C 的彩色 tile 与五等权 tab；章节用 1px 分线；停放状态分布与分桶柱改为单绿色阶 + 灰阶（本轮由 Material 调色板改为 A token），分桶起点按本地日历显示（不再贴服务端 ISO）。
-6. 补能账目中 0 条记录时，费用/能量/时长按「0/0 次有记录」显示 `—`（Spec §9.5 空态），充电次数保留真实 `0`；构成区（AC/DC/未知）仍显示 `0 kWh` 并附「分类已知 0 / 0 次」。
-7. 补能专题（统计页内）的空态判定仍依赖 `totals == null`，成功返回 0 条记录时走 `—` + `0 / 0 次`，不进入「还没有充电记录」分支；本轮不改该页判定。
+6. 补能账目中 0 条记录时，费用/能量/时长按「0/0 次有记录」显示 `—`（Spec §9.5 空态），充电次数保留真实 `0`；构成区（AC/DC/未知）本轮改为 `—`（无一条记录带电量即未知），「DC 占已知分类」也改 `—`（分母为空不是 0%），「分类记录时长」统一为「分类记录时长缺失」，下方「分类已知 0 / 0 次」仍是真实计数。
+7. 补能专题（统计页内）0 条记录时本轮改为统一空态「还没有充电记录」，不再显示 `—` + `0 / 0 次` 的明细块；判定为 `sessions == 0`。
 
 ## 验证
 
 - `tool/flutterw analyze --no-pub`：通过（0 issue）。
-- `tool/flutterw test --no-pub`：**352 通过、22 跳过**（跳过为 opt-in 渲染入口、历史 C 图册与平台占位）。
+- `tool/flutterw test --no-pub`：**357 通过、22 跳过**（跳过为 opt-in 渲染入口、历史 C 图册与平台占位）。
 - 本目录 132 张由正式页面渲染；`a_gallery_render_test.dart` 对每页每态做**双向**断言：`must` 要求主数字/图表或空/缺失文案在场，`mustNot` 要求正常态快照数字（如 `1,198.6`、`¥186.4`、`432.0`）绝不出现在空/缺失格，反之正常格不得出现空态文案。断言失败会打印该页实际文本。
-- 各页面另有 A 回归：`a_overview_test.dart`、`a_drives_test.dart`、`a_charging_test.dart`、`a_statistics_test.dart`、`a_drive_detail_test.dart`、`a_charging_detail_test.dart`、`a_micro_spark_test.dart`。
+- 各页面另有 A 回归：`a_overview_test.dart`、`a_drives_test.dart`、`a_charging_test.dart`、`a_statistics_test.dart`、`a_drive_detail_test.dart`、`a_charging_detail_test.dart`、`a_micro_spark_test.dart`。本轮新增：两张地图的 200% 同意条几何断言（文案无 `maxLines`/`overflow`、按钮不超出地图）、`map_platform_test.dart` 的全屏地图 200%、补能构成 `—` 与补能专题空态。
 
 ## 外部 gate（不因本图册通过而关闭）
 
