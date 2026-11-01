@@ -110,9 +110,8 @@ void main() {
             ),
           );
           await save('overview-$suffix');
-          final metricLabel = scenario == 'capability-failure'
-              ? '驾驶净电耗 · 估算'
-              : '驾驶净电耗 · 配对估算';
+          // 净值口径的入口是本月块「净电耗 · 估算」tile（旧文案为「驾驶净电耗 …」）。
+          const metricLabel = '净电耗 · 估算';
           await tester.scrollUntilVisible(
             find.text(metricLabel).hitTestable(),
             120,

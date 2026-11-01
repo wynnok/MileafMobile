@@ -214,7 +214,8 @@ void main() {
             await tester.tap(find.text('最近行程').hitTestable());
             await tester.pumpAndSettle();
             await save('drive-detail-$suffix');
-            expectPage('路线示意 · 非导航');
+            // ≥150% 字号时路线说明带收成两行，C05 的「非导航」脚注不再绘制。
+            if (scale == 1.0) expectPage('路线 · 非导航');
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
           {

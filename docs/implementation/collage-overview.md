@@ -48,4 +48,15 @@ TDD：首个布局测试先失败（里程tile160宽，预期>175），实施后
 - 概览本月块启用 `stretch`：主 tile 的里程 Sparkline 改 `Expanded` 吸收余量（≥150% 单列时仍固定 26），回到 C 原型「主 tile 下半段大面积折线」的比例；净电耗 tile 补右上角图标，与费用 tile 的标签行同构。
 - 最近记录改为共享 tile 结构（标题行／主数／单行口径／页脚）：宽屏 `IntrinsicHeight` 两等列，页脚（时间戳）底对齐；≥150% 单列。充电卡口径改为「充入 46.80 kWh」，不再输出悬空的「结束电量」；进度条移入页脚上方并显式取 hero 主题的 `primary`/`onSurface`，避免轨道比进度更亮。
 
-回归：新增三项先失败（本月块底边差 60dp、最近记录底边差 4dp）后通过——两列矩形顶底对齐、页脚贴卡底（距卡底 20dp = 内容 12 + 卡片下距 8）、口径文案与 ≥150% 单列分支。全量 `tool/flutterw test --no-pub` 274 通过、19 项 opt-in 渲染跳过；`flutter analyze --no-pub` 无问题。渲染复核用临时脚手架在 390×844 浅/深 ×100/200 完成（位图未入库、脚手架已删除）：本月块两列顶底对齐，最近记录两卡等高、页脚同一基线，单列分支无溢出。图册入口 `test/collage_render_test.dart` 的选择器仍是旧口径文案（`驾驶净电耗 · 配对估算` 等），本次未修，因此 `collage-renders/overview/` 未刷新——属既有失效，另行修复。
+回归：新增三项先失败（本月块底边差 60dp、最近记录底边差 4dp）后通过——两列矩形顶底对齐、页脚贴卡底（距卡底 20dp = 内容 12 + 卡片下距 8）、口径文案与 ≥150% 单列分支。全量 `tool/flutterw test --no-pub` 274 通过、19 项 opt-in 渲染跳过；`flutter analyze --no-pub` 无问题。
+
+复现：`tool/flutterw test --no-pub test/collage_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/overview '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'`。
+
+## 2026-11-01 图册入口修复与概览图册刷新
+
+上一轮把概览版式改完后，两个 opt-in 渲染入口仍指向旧文案，图册因此没有现行证据。本次只修入口与图表，不改页面行为。
+
+- `test/collage_render_test.dart`：净值口径入口由旧文案「驾驶净电耗 · 配对估算／驾驶净电耗 · 估算」改为实际 tile「净电耗 · 估算」；配对图标题仍按 `pairedAvailable` 断言「配对净电耗趋势 · 估算」，能力失败分支保留「净电耗趋势 · 估算」。
+- `test/c_gallery_render_test.dart`：路线说明带脚注改为当前文案「路线 · 非导航」，并把断言收进 `scale == 1.0`——≥150% 字号时该脚注按 C05 不再绘制，旧断言在 200% 必然失败（旧文案同样如此）。
+- 重新生成 `docs/implementation/collage-renders/overview/`：24 张（normal／empty／missing × 浅／深 × 100／200，每档一张首屏 + 一张配对净电耗图），来源为上述 `collage_render_test.dart` 的正式 Flutter 渲染。文件包含 2026-10-31 电量环修正之后的版式，`provenance.json` 仍是集成时整册清单，未逐张重算。
+- 修复前两个入口均失败（`Bad state: No element`／找不到旧脚注），修复后各自通过；`collage_render_test` 仍属 opt-in，不传 `MILEAF_RENDER_OUTPUT` 时跳过。
