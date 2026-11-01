@@ -46,6 +46,15 @@ void background(WidgetTester tester) {
   }
 }
 
+Finder battery(int level) => find.bySemanticsLabel('电池电量 $level%');
+
+Future<void> openNotes(WidgetTester tester) async {
+  await tester.scrollUntilVisible(find.text('数据说明与更多'), 300);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('数据说明与更多'));
+  await tester.pumpAndSettle();
+}
+
 void foreground(WidgetTester tester) {
   for (final state in [
     AppLifecycleState.hidden,
@@ -58,6 +67,7 @@ void foreground(WidgetTester tester) {
 
 void main() {
   testWidgets('概览读取固定后端样本，条件刷新304保留采样并显示独立校验时间', (tester) async {
+    final semantics = tester.ensureSemantics();
     final store = MemorySessionStore()
       ..value = jsonEncode({
         'site': 'https://example.com/prefix',
@@ -103,38 +113,29 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsWidgets);
+    expect(battery(68), findsOneWidget);
     expect(find.textContaining('320'), findsWidgets);
     expect(find.textContaining('额定续航'), findsOneWidget);
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(refreshed, isTrue);
-    expect(find.textContaining('68 %'), findsWidgets);
+    expect(battery(68), findsOneWidget);
+    await openNotes(tester);
     await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
-    final noVisibleBorderPaths = paints
-      ..everything(
-        (method, arguments) =>
-            method != #drawPath || (arguments.last as Paint).color.a == 0,
-      );
-    expect(
-      tester.renderObject(find.widgetWithText(ExpansionTile, '车辆与数据时间')),
-      noVisibleBorderPaths,
-      reason: '车辆与数据时间卡片展开后不应绘制额外的上下分隔线',
-    );
+    expect(find.byType(Card), findsNothing, reason: 'A 概览内容不使用卡片');
+    expect(find.text('车辆与数据时间'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('校验时间'), 300);
     expect(find.textContaining('校验时间'), findsOneWidget);
     await tester.ensureVisible(find.text('车辆与数据时间'));
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
-    expect(
-      tester.renderObject(find.widgetWithText(ExpansionTile, '车辆与数据时间')),
-      noVisibleBorderPaths,
-      reason: '车辆与数据时间卡片收起后不应绘制额外的上下分隔线',
-    );
+    semantics.dispose();
   });
   testWidgets('快速切车不显示旧车迟到内容，选择能在重启恢复，刷新失败保留本车快照', (tester) async {
+    final semantics = tester.ensureSemantics();
     final store = MemorySessionStore()
       ..value = jsonEncode({
         'site': 'https://example.com/prefix',
@@ -185,7 +186,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(battery(21), findsOneWidget);
     old.complete(
       http.Response(
         File('test/fixtures/summary.json').readAsStringSync(),
@@ -194,19 +195,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsNothing);
+    expect(battery(68), findsNothing);
     fail = true;
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(battery(21), findsOneWidget);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     fail = false;
     await tester.pumpWidget(app('restart'));
     await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(battery(21), findsOneWidget);
+    semantics.dispose();
   });
   testWidgets('无缓存体304只普通GET恢复，前台换IANA和换日不复用旧查询', (tester) async {
+    final semantics = tester.ensureSemantics();
     final store = MemorySessionStore()
       ..value = jsonEncode({
         'site': 'https://example.com/prefix',
@@ -255,7 +258,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsWidgets);
+    expect(battery(68), findsOneWidget);
     expect(queries, ['Asia/Shanghai', 'Asia/Shanghai']);
     background(tester);
     foreground(tester);
@@ -271,12 +274,16 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     expect(queries.last, 'America/New_York');
+    await openNotes(tester);
     await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('车辆与数据时间'));
     await tester.pumpAndSettle();
     expect(find.textContaining('America/New_York'), findsOneWidget);
+    semantics.dispose();
   });
   testWidgets('所选车辆404刷新车辆列表后恢复仍存在车辆并提示', (tester) async {
+    final semantics = tester.ensureSemantics();
     final store = MemorySessionStore()
       ..value = jsonEncode({
         'site': 'https://example.com/prefix',
@@ -330,10 +337,12 @@ void main() {
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(battery(21), findsOneWidget);
     expect(find.textContaining('所选车辆已不可用'), findsOneWidget);
+    semantics.dispose();
   });
   testWidgets('360宽200%字体深色可读，休眠与null和零分离，未测版本不冒充schema错误', (tester) async {
+    final semantics = tester.ensureSemantics();
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
@@ -392,8 +401,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('0 %'), 200);
-    expect(find.text('0 %'), findsOneWidget);
+    expect(battery(0), findsOneWidget);
     // A missing range must render as —, never as 0 km.
     expect(find.textContaining('— km'), findsWidgets);
     expect(find.textContaining('额定续航'), findsOneWidget);
@@ -406,6 +414,7 @@ void main() {
     expect(find.textContaining('未声明已测兼容'), findsOneWidget);
     expect(find.text('schema 检查正常'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
   testWidgets('设置当前401退出旧路由，不保留服务快照且不刷新被遮挡概览', (tester) async {
     final store = MemorySessionStore()

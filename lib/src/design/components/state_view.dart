@@ -18,6 +18,7 @@ class StateView extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.icon,
+    this.onHero = false,
   });
 
   final StateViewKind kind;
@@ -26,6 +27,7 @@ class StateView extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
   final MileafIconName? icon;
+  final bool onHero;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,17 @@ class StateView extends StatelessWidget {
         ),
       );
     }
-    final tone = kind == StateViewKind.error ? colors.error : colors.textMuted;
+    final tone = kind == StateViewKind.error
+        ? colors.error
+        : onHero
+        ? colors.heroMuted
+        : colors.textMuted;
+    final titleColor = kind == StateViewKind.error
+        ? colors.error
+        : onHero
+        ? colors.heroText
+        : colors.text;
+    final messageColor = onHero ? colors.heroMuted : colors.textMuted;
     final glyph = icon ??
         (kind == StateViewKind.error
             ? MileafIconName.info
@@ -67,16 +79,14 @@ class StateView extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: type.title.copyWith(
-              color: kind == StateViewKind.error ? colors.error : colors.text,
-            ),
+            style: type.title.copyWith(color: titleColor),
           ),
           if (message != null) ...[
             const SizedBox(height: MileafSpace.s8),
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: type.body.copyWith(color: colors.textMuted),
+              style: type.body.copyWith(color: messageColor),
             ),
           ],
           if (onAction != null && actionLabel != null) ...[

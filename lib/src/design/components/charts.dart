@@ -62,6 +62,8 @@ class TimeSeriesChart extends StatefulWidget {
     this.subtitle,
     this.controls,
     this.height,
+    this.plotKey,
+    this.tickLabel,
     this.selectedIndex,
     this.onSelected,
     this.readout,
@@ -83,6 +85,8 @@ class TimeSeriesChart extends StatefulWidget {
   final String? subtitle;
   final Widget? controls;
   final double? height;
+  final Key? plotKey;
+  final String Function(DateTime)? tickLabel;
   final int? selectedIndex;
   final ValueChanged<int>? onSelected;
   final String Function(int index)? readout;
@@ -133,7 +137,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   }
 
   String _tick(DateTime time) =>
-      '${time.month}/${time.day}';
+      widget.tickLabel?.call(time) ?? '${time.month}/${time.day}';
 
   String _value(num? value) => value == null
       ? '—'
@@ -236,8 +240,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         LayoutBuilder(
           builder: (context, constraints) {
             final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-            final plotHeight = (widget.height ?? MileafLayout.chartHeight(context)) *
-                math.min(scale, 1.4);
+            final plotHeight =
+                widget.height ?? MileafLayout.chartHeight(context);
             final left = widget.showYAxis ? 34.0 : 0.0;
             final bottom = widget.showXAxis ? 18.0 * math.min(scale, 1.5) : 0.0;
             final plotWidth = math.max(1.0, constraints.maxWidth - left);
@@ -302,6 +306,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                   onHorizontalDragUpdate: (details) =>
                       selectAt(details.localPosition),
                   child: SizedBox(
+                    key: widget.plotKey,
                     height: plotHeight,
                     child: TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0, end: 1),

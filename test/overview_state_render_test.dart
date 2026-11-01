@@ -131,13 +131,13 @@ void main() {
             ),
           );
           await save('overview-$suffix');
-          // 净值口径的入口是本月块「净电耗 · 估算」tile（旧文案为「驾驶净电耗 …」）；
-          // 能力失败时同一 tile 仍在，只是图表标题退回非配对口径。
-          const metricLabel = '净电耗 · 估算';
+          // A：净值口径从主图「电耗」chip 进入；能力失败时退回非配对标题。
+          const metricLabel = '电耗';
           await tester.scrollUntilVisible(
             find.text(metricLabel).hitTestable(),
             120,
           );
+          await tester.pumpAndSettle();
           await tester.tap(find.text(metricLabel).hitTestable());
           await tester.pumpAndSettle();
           final chartTitle = scenario == 'capability-failure'

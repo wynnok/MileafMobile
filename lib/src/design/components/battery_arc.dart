@@ -150,6 +150,10 @@ class _ArcCenter extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
+        // The unit never disappears; it moves under the value when the arc is
+        // too narrow (200% uses the 72px arc).
+        if (!withUnit && level != null)
+          Text('%', textAlign: TextAlign.center, style: unitStyle),
         if (show) ...[
           Text(
             label,

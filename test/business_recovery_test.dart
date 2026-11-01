@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
 
+import 'support/battery_finder.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
@@ -63,11 +64,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('68 %'), findsWidgets);
+      expect(batteryText(68), findsWidgets);
       await tester.tap(find.byTooltip('刷新概览'));
       await tester.pumpAndSettle();
       expect(find.textContaining('请求过于频繁'), findsWidgets);
-      expect(find.textContaining('68 %'), findsWidgets);
+      expect(batteryText(68), findsWidgets);
       await tester.tap(find.byTooltip('刷新概览'));
       await tester.pumpAndSettle();
       expect(calls, 2);
@@ -133,7 +134,7 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(batteryText(21), findsWidgets);
     old.complete(
       http.Response(
         fixture,
@@ -145,12 +146,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(batteryText(21), findsWidgets);
     await tester.tap(find.text('行程').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('21 %'), findsWidgets);
+    expect(batteryText(21), findsWidgets);
     expect(reads, 2);
     await tester.pumpWidget(const SizedBox());
   });
@@ -194,7 +195,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('证书校验失败'), findsOneWidget);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
-    expect(find.textContaining('68 %'), findsWidgets);
+    expect(batteryText(68), findsWidgets);
     expect(find.textContaining('sensitive connection detail'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });

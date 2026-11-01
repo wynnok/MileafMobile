@@ -74,24 +74,21 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
-    expect(
-      find.text('与参照同期持平'),
-      findsOneWidget,
-      reason: 'C pill states the same-progress delta',
-    );
-    expect(find.text('净电耗 · 估算'), findsOneWidget);
-    expect(find.text('188 Wh/km'), findsOneWidget);
-    // C net tile states the paired delta against the reference.
-    expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
+    expect(find.text('持平'), findsOneWidget);
+    expect(find.textContaining('净电耗 188 Wh/km · 已知费用'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('费用有记录 2 / 8 次'), 120);
-    expect(find.textContaining('有效入电均价 0.4'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('2 / 8 次'), 120);
+    await tester.pumpAndSettle();
+    expect(find.text('费用有记录'), findsOneWidget);
+    expect(find.textContaining('0.4/kWh'), findsWidgets);
     await tester.scrollUntilVisible(
       find.textContaining('配对净电耗较参照差 -12.5'),
       150,
     );
+    await tester.pumpAndSettle();
     expect(find.textContaining('配对净电耗较参照差 -12.5'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -116,11 +113,13 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
-    expect(find.text('净电耗 · 估算'), findsOneWidget);
+    expect(find.textContaining('净电耗 —'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('未用旧净电耗替代配对值'), 150);
+    await tester.pumpAndSettle();
     expect(find.textContaining('未用旧净电耗替代配对值'), findsOneWidget);
     expect(find.textContaining('配对净电耗较参照差'), findsNothing);
   });

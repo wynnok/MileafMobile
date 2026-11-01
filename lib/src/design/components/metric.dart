@@ -34,6 +34,8 @@ class MileafNumber extends StatelessWidget {
 
   List<TextStyle> _tiers(BuildContext context) {
     final type = context.type;
+    // A missing value must not become a giant em-dash bar in display size.
+    if (value == null) return [type.metricMd];
     final all = switch (scale) {
       MetricValueScale.display => [type.display, type.metricLg, type.metricMd],
       MetricValueScale.metricLg => [type.metricLg, type.metricMd],

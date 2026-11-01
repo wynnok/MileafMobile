@@ -19,3 +19,13 @@ String groupedText(String text) {
   }
   return '$buffer$fraction';
 }
+
+
+/// Human relative time: 刚刚 / N 分钟前 / N 小时前 / M/D. Never "326880 分钟前".
+String relativeTime(DateTime time, DateTime now) {
+  final diff = now.difference(time);
+  if (diff.isNegative || diff.inMinutes < 1) return '刚刚';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} 分钟前';
+  if (diff.inHours < 24) return '${diff.inHours} 小时前';
+  return '${time.month}/${time.day}';
+}

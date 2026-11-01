@@ -10,6 +10,7 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'charging_test.dart' show MemoryCurrency;
 import 'session_test.dart' show connect;
+import 'support/battery_finder.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
@@ -100,7 +101,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField), 'synthetic-password');
     await tester.tap(find.text('登录'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('68 %'), findsWidgets);
+    expect(batteryText(68), findsWidgets);
     await tester.tap(find.text('行程').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(

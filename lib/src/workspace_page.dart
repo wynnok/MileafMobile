@@ -186,17 +186,18 @@ class _WorkspacePageState extends State<WorkspacePage> {
         });
         return const Scaffold(body: Center(child: Text('正在恢复车辆选择')));
       }
-      final topBar = MileafTopBar(
+      Widget topBar({bool onHero = false}) => MileafTopBar(
         vehicleName: vehicleName(vehicle),
         onVehicle: openVehicleSheet,
         onSettings: openSettings,
+        onHero: onHero,
       );
       final page = switch (tab) {
         0 => OverviewPage(
           key: ValueKey('$selected:${workspace.revision}'),
           workspace: workspace,
           currency: currency,
-          topBar: topBar,
+          topBar: topBar(onHero: true),
           onStatistics: (kind, selection) => setState(() {
             statisticsTopic = null;
             statisticsKind = kind == 'charging' ? 1 : 0;
@@ -214,7 +215,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
         1 => DrivesPage(
           key: ValueKey('drives:$selected'),
           workspace: workspace,
-          topBar: topBar,
+          topBar: topBar(),
           onRecord: (id) => record('drive', id),
         ),
         2 => ChargingPage(
@@ -222,7 +223,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
           workspace: workspace,
           currency: currency,
           filter: chargingFilter,
-          topBar: topBar,
+          topBar: topBar(),
           onRecord: record,
         ),
         3 => StatisticsPage(
@@ -231,7 +232,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
           initialTopic: statisticsTopic,
           initialSelection: statisticsSelection,
           currency: currency,
-          topBar: topBar,
+          topBar: topBar(),
           key: ValueKey('statistics:$selected:$statisticsEntry'),
           workspace: workspace,
         ),

@@ -54,6 +54,20 @@ class CurrencySettings extends ChangeNotifier {
   /// Display unit for labels that put the currency after a value.
   String get symbol => _symbols[code] ?? code ?? '币种未知';
 
+  /// A 夜航 value text: `—`, `¥72`, `72 USD` or `72` when no currency is set.
+  /// The missing-currency note is a separate label ([amountNote]), never a
+  /// parenthesised suffix that wraps mid-number.
+  String amountValue(num? value) {
+    if (value == null) return '—';
+    final symbol = _symbols[code];
+    if (symbol != null) return '$symbol${decimal(value)}';
+    if (code != null) return '${decimal(value)} $code';
+    return decimal(value);
+  }
+
+  /// Null when a currency code is configured; otherwise the label to show.
+  String? get amountNote => code == null ? '币种未记录' : null;
+
   String amount(num? value) => value == null
       ? '—（缺失）'
       : switch (code) {

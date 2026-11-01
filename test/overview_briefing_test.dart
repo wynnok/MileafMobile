@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:mileaf/src/design/components/chip.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'overview_visualization_test.dart';
@@ -11,40 +11,34 @@ import 'support/statistics_insights_fixture.dart';
 import 'charging_test.dart' show MemoryCurrency;
 import 'overview_test.dart' show background, foreground;
 
+Finder battery(int level) => find.bySemanticsLabel('电池电量 $level%');
+
 void main() {
-  testWidgets('C概览费用主 tile 语义可切到费用趋势图', (tester) async {
-    final semantics = tester.ensureSemantics();
-    try {
-      await openOverviewVisual(
-        tester,
-        (r) async => overviewResponse(
-          overviewFixture(
-            r.url.path.endsWith('/summary')
-                ? 'summary'
-                : r.url.queryParameters['kind'] == 'charging'
-                ? 'charging-stats'
-                : 'driving-stats',
-          ),
+  testWidgets('A概览辅助读数显示已知费用与币种缺失，并可切到费用趋势图', (tester) async {
+    await openOverviewVisual(
+      tester,
+      (r) async => overviewResponse(
+        overviewFixture(
+          r.url.path.endsWith('/summary')
+              ? 'summary'
+              : r.url.queryParameters['kind'] == 'charging'
+              ? 'charging-stats'
+              : 'driving-stats',
         ),
-        briefing: true,
-      );
-      final label = find.bySemanticsLabel('已知充电费用 72（币种未知），仅含费用已知记录');
-      expect(
-        tester
-            .getSemantics(label)
-            .getSemanticsData()
-            .hasAction(SemanticsAction.tap),
-        isTrue,
-      );
-      tester.semantics.tap(find.semantics.byLabel('已知充电费用 72（币种未知），仅含费用已知记录'));
-      await tester.pump();
-      await tester.scrollUntilVisible(find.bySemanticsLabel('已知费用趋势图表'), 120);
-      expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
-    } finally {
-      semantics.dispose();
-    }
+      ),
+      briefing: true,
+    );
+    expect(find.textContaining('已知费用 72'), findsOneWidget);
+    expect(find.textContaining('币种未记录'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('费用').hitTestable(), 150);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('费用').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
   testWidgets('C概览前台跨月下拉失败不把上月数据标为本月', (tester) async {
+    final semantics = tester.ensureSemantics();
     var now = DateTime.utc(2026, 3, 31, 12), fail = false;
     await openOverviewVisual(
       tester,
@@ -73,13 +67,15 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('21 %'), -150);
-    expect(find.text('21 %'), findsOneWidget);
-    expect(find.text('68 %'), findsNothing);
+    await tester.scrollUntilVisible(battery(21), -150);
+    await tester.pumpAndSettle();
+    expect(battery(21), findsOneWidget);
+    expect(battery(68), findsNothing);
     // The failed stats must be surfaced as unavailable, never silently shown as
     // the new month's current result.
     expect(find.textContaining('服务暂不可用'), findsWidgets);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
   testWidgets('C概览费用零与币种、AC/DC 使用服务端原值在数据说明层', (tester) async {
     final currency = MemoryCurrency()
@@ -103,14 +99,15 @@ void main() {
         briefing: true,
         currencyPreferences: currency,
       );
-      expect(find.bySemanticsLabel('已知充电费用 ¥0，仅含费用已知记录'), findsOneWidget);
+      expect(find.textContaining('已知费用 ¥0'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('数据说明与更多'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('AC'), 150);
+      await tester.scrollUntilVisible(find.textContaining('AC 120.00 kWh'), 150);
       await tester.pumpAndSettle();
-      expect(find.text('120.00 kWh'), findsOneWidget);
-      expect(find.text('20.00 kWh'), findsOneWidget);
+      expect(find.textContaining('AC 120.00 kWh'), findsOneWidget);
+      expect(find.textContaining('未知 —'), findsOneWidget);
       expect(find.textContaining('14.3 %'), findsOneWidget);
       expect(tester.takeException(), isNull);
     } finally {
@@ -146,7 +143,7 @@ void main() {
     fail = false;
     final previousCalls = List<String>.from(calls);
     await tester.scrollUntilVisible(find.text('重试补能'), -120);
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('重试补能'));
     for (var i = 0; i < 8; i++) {
       await tester.pump();
@@ -156,7 +153,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
-  testWidgets('C概览补能章节入口下钻到相同日期范围的充电统计', (tester) async {
+  testWidgets('A概览数据说明中的充电统计入口沿用相同日期范围', (tester) async {
     final queries = <Map<String, String>>[];
     await openOverviewVisual(tester, (request) async {
       if (request.url.path.endsWith('/summary')) {
@@ -173,9 +170,13 @@ void main() {
     }, briefing: true);
     await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('四个问题'), 150);
+    await tester.scrollUntilVisible(find.text('数据说明与更多'), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('补能').hitTestable());
+    await tester.tap(find.text('数据说明与更多'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('充电统计'), 150);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电统计'));
     await tester.pumpAndSettle();
     expect(
       queries,
@@ -267,8 +268,10 @@ void main() {
     );
     // The server net value (158 vs 166) drives the comparison wording.
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('估算净电耗比前一同长区间低 8 Wh/km'), 150);
     expect(find.text('估算净电耗比前一同长区间低 8 Wh/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -327,8 +330,10 @@ void main() {
     await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('配对估算净电耗'), 150);
     // The failed refresh must keep both the paired value and its original range.
     expect(find.textContaining('比较暂不可用'), findsWidgets);
     expect(find.text('配对估算净电耗'), findsOneWidget);
@@ -362,7 +367,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '近7天'))
+          .widget<StatusChip>(find.widgetWithText(StatusChip, '近7天'))
           .selected,
       isTrue,
     );

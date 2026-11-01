@@ -15,6 +15,8 @@ import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
 
+Finder battery(int level) => find.bySemanticsLabel('电池电量 $level%');
+
 Map<String, dynamic> overviewFixture(String name) =>
     jsonDecode(File('test/fixtures/$name.json').readAsStringSync())
         as Map<String, dynamic>;
@@ -135,6 +137,7 @@ void main() {
   });
   for (final failedResource in ['summary', 'stats']) {
     testWidgets('C概览$failedResource局部失败不遮蔽另一区域，重试只读失败资源', (tester) async {
+      final semantics = tester.ensureSemantics();
       final calls = <String, int>{'summary': 0, 'stats': 0};
       var failing = true;
       await openOverviewVisual(tester, (request) async {
@@ -150,7 +153,7 @@ void main() {
         );
       });
       if (failedResource == 'stats') {
-        expect(find.text('68 %'), findsOneWidget);
+        expect(battery(68), findsOneWidget);
       } else {
         expect(find.textContaining('960'), findsOneWidget);
       }
@@ -162,15 +165,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(calls[failedResource], 2);
       expect(calls[failedResource == 'stats' ? 'summary' : 'stats'], 1);
-      await tester.scrollUntilVisible(find.text('68 %'), -150);
+      await tester.scrollUntilVisible(battery(68), -150);
       await tester.pumpAndSettle();
-      expect(find.text('68 %'), findsOneWidget);
+      expect(battery(68), findsOneWidget);
       expect(find.textContaining('960'), findsOneWidget);
       expect(find.textContaining('服务暂不可用'), findsNothing);
       expect(tester.takeException(), isNull);
+      semantics.dispose();
     });
   }
   testWidgets('C概览趋势前台遵守TTL，过期推进截止，独立304和刷新失败保留图形', (tester) async {
+    final semantics = tester.ensureSemantics();
     var now = DateTime.utc(2026, 3, 15, 12);
     final requests = <http.Request>[];
     var fail = false;
@@ -208,10 +213,12 @@ void main() {
     await tester.scrollUntilVisible(find.textContaining('保留上次趋势快照'), -150);
     expect(find.textContaining('保留上次趋势快照'), findsOneWidget);
     expect(find.textContaining('960'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('68 %'), -150);
-    expect(find.text('68 %'), findsOneWidget);
+    await tester.scrollUntilVisible(battery(68), -150);
+    expect(battery(68), findsOneWidget);
+    semantics.dispose();
   });
   testWidgets('C概览切车后迟到旧趋势不覆盖新车summary', (tester) async {
+    final semantics = tester.ensureSemantics();
     final old = Completer<http.Response>();
     await openOverviewVisual(tester, (request) async {
       if (request.url.path.endsWith('/summary')) {
@@ -225,19 +232,20 @@ void main() {
       if (request.url.path.contains('/1/')) return old.future;
       return overviewResponse(monthTrend(firstDistance: 88));
     }, settle: false);
-    expect(find.text('68 %'), findsOneWidget);
+    expect(battery(68), findsOneWidget);
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.text('21 %'), findsOneWidget);
+    expect(battery(21), findsOneWidget);
     expect(find.textContaining('88.0 km'), findsWidgets);
     old.complete(overviewResponse(monthTrend(firstDistance: 4)));
     await tester.pumpAndSettle();
-    expect(find.text('21 %'), findsOneWidget);
-    expect(find.text('68 %'), findsNothing);
+    expect(battery(21), findsOneWidget);
+    expect(battery(68), findsNothing);
     expect(find.textContaining('4.0 km'), findsNothing);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
   testWidgets('C概览360x800首屏露出车况hero、本月主数与每日里程绘图区', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -263,7 +271,7 @@ void main() {
     final viewport = tester.getRect(find.byType(RefreshIndicator));
     expect(graph.top, greaterThanOrEqualTo(viewport.top));
     expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
-    expect(find.text('68 %').hitTestable(), findsOneWidget);
+    expect(battery(68), findsOneWidget);
     expect(find.textContaining('320').hitTestable(), findsWidgets);
     expect(find.text('今日 km').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
