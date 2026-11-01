@@ -121,7 +121,7 @@ class MileafNumber extends StatelessWidget {
           children: [
             Text(text, style: numberStyle, textAlign: textAlign),
             if (resolvedUnit != null) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: MileafSpace.inline2),
               Text(resolvedUnit, style: unitStyle, textAlign: textAlign),
             ],
           ],
@@ -302,7 +302,7 @@ class MetricDelta extends StatelessWidget {
           ],
         ),
         if (label != null) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: MileafSpace.inline2),
           Text(
             label!,
             textAlign: TextAlign.end,

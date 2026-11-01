@@ -192,7 +192,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             body: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     title: Text(() {
@@ -434,7 +434,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('统计', style: context.type.title),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: MileafSpace.inline2),
                   Text(
                     _periodLabel(),
                     style: context.type.label.copyWith(
@@ -1089,7 +1089,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     Map<String, dynamic>? other,
   ) => ExpansionTile(
     tilePadding: EdgeInsets.zero,
-    childrenPadding: const EdgeInsets.only(bottom: 8),
+    childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s8),
     title: const Text('数据说明与更多'),
     children: [
       MetricGrid(

@@ -64,6 +64,7 @@ abstract final class MileafPalette {
 abstract final class MileafSpace {
   const MileafSpace._();
 
+  static const inline2 = 2.0;
   static const inline6 = 6.0;
   static const inline10 = 10.0;
   static const row14 = 14.0;

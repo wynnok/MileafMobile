@@ -753,7 +753,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               if (detail case final d?) _coverageBand(d),
               if (detailLoading)
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: MileafSpace.s20),
                   child: MileafProgressLine(),
                 ),
               if (detailError != null)

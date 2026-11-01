@@ -775,7 +775,7 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
           )
         else
           Container(
-            padding: const EdgeInsets.only(top: 20),
+            padding: const EdgeInsets.only(top: MileafSpace.s20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

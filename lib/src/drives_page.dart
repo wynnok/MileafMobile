@@ -428,7 +428,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('行程', style: type.title),
-              const SizedBox(height: 2),
+              const SizedBox(height: MileafSpace.inline2),
               Text(
                 _rangeLabel,
                 style: type.label.copyWith(color: colors.textMuted),
