@@ -337,7 +337,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>
-      value == null ? '—（缺失）' : '${grouped(value, decimals: decimals)} $unit';
+      value == null ? '—' : '${grouped(value, decimals: decimals)} $unit';
   String time(DateTime t) =>
       workspace.calendar!.local(t).toString().split('.').first;
 

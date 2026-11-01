@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_panel.dart';
 
@@ -35,11 +36,16 @@ void main() {
     final net = tester.getTopLeft(find.bySemanticsLabel('净电耗 188 Wh/km'));
     expect(duration.dy, distance.dy);
     expect(net.dy, greaterThan(distance.dy));
-    await tester.scrollUntilVisible(
-      find.bySemanticsLabel(RegExp('电量区间')).hitTestable(),
-      160,
+    // Scroll on the widget itself: `.hitTestable()` on a semantics finder is
+    // empty whenever the node's centre lands between the track and its labels.
+    await tester.scrollUntilVisible(find.byType(SocIntervalBar), 160);
+    expect(
+      find.descendant(
+        of: find.byType(SocIntervalBar),
+        matching: find.bySemanticsLabel(RegExp('电量区间')),
+      ),
+      findsOneWidget,
     );
-    expect(find.bySemanticsLabel(RegExp('电量区间')), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

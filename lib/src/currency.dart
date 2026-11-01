@@ -52,7 +52,7 @@ class CurrencySettings extends ChangeNotifier {
   static const _symbols = {'CNY': '¥'};
 
   /// Display unit for labels that put the currency after a value.
-  String get symbol => _symbols[code] ?? code ?? '币种未知';
+  String get symbol => _symbols[code] ?? code ?? '币种未记录';
 
   /// A 夜航 value text: `—`, `¥72`, `72 USD` or `72` when no currency is set.
   /// The missing-currency note is a separate label ([amountNote]), never a

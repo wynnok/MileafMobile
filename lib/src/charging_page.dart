@@ -772,7 +772,7 @@ class _ChargingPageState extends State<ChargingPage>
   }
 
   String number(num? v, String unit) =>
-      v == null ? '—（缺失）' : '${decimal(v)} $unit';
+      v == null ? '—' : '${decimal(v)} $unit';
   String recordDay(DateTime value) {
     final local = workspace.calendar!.local(value);
     return '${local.year}年${local.month}月${local.day}日';
@@ -809,7 +809,8 @@ class _ChargingPageState extends State<ChargingPage>
     final colors = context.colors;
     final type = context.type;
     final inset = MileafLayout.pageInset(context);
-    final cost = total.cost == null
+    // 无一条记录带费用时，0 不是「花了 ¥0」而是「未知」（Spec §9.5 空态）。
+    final cost = total.cost == null || total.costKnownSessions == 0
         ? '—'
         : widget.currency.amountValue(total.cost);
     final unitCost = total.unitCostAdded.value == null
@@ -912,9 +913,9 @@ class _ChargingPageState extends State<ChargingPage>
 
   Widget _readings(expanded.ChargingStats stats) {
     final total = stats.totals;
-    final energyMissing = total.sessions > 0 && total.energyKnownSessions == 0;
-    final durationMissing =
-        total.sessions > 0 && total.durationKnownSessions == 0;
+    // 「0/0 次有记录」说明能量与时长未知，而不是 0（Spec §9.5 空态）。
+    final energyMissing = total.energyKnownSessions == 0;
+    final durationMissing = total.durationKnownSessions == 0;
     final energy = energyMissing ? '—' : decimal(total.energyAddedKwh);
     final duration = durationMissing
         ? '—'
@@ -1411,6 +1412,7 @@ class _ChargingPageState extends State<ChargingPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
+          // 0.1/0.2 合约没有费用覆盖计数，无法区分「未知」与「0 元」。
           '已知充电费用 ${widget.currency.amountValue(stats.totals.cost)}',
           style: type.title.copyWith(color: colors.text),
         ),

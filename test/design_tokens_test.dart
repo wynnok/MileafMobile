@@ -205,7 +205,6 @@ void main() {
           .listSync(recursive: true)
           .whereType<File>()
           .where((file) => file.path.endsWith('.dart'))
-          .where((file) => !file.path.endsWith('visual_theme.dart'))
           .where((file) => file.readAsStringSync().contains('lakeTheme'))
           .map((file) => file.path)
           .toList();

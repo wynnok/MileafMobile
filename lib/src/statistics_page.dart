@@ -104,11 +104,10 @@ class _StatisticsPageState extends State<_LegacyStatisticsPage> {
   Widget build(BuildContext context) => Column(
     children: [
       Padding(
-        padding: EdgeInsets.fromLTRB(
-          MileafLayout.pageInset(context),
-          MileafSpace.s8,
-          MileafLayout.pageInset(context),
-          0,
+        padding: MileafLayout.pagePadding(
+          context,
+          top: MileafSpace.s8,
+          bottom: 0,
         ),
         child: Wrap(
           spacing: MileafSpace.s8,
@@ -316,7 +315,7 @@ class _StatisticsViewState extends State<_StatisticsView>
   }
 
   String number(dynamic value, String unit, {int decimals = 0}) => value == null
-      ? '—（缺失）'
+      ? '—'
       : '${grouped(value as num, decimals: decimals)} $unit';
   Widget line(String label, dynamic value, String unit, {int decimals = 0}) =>
       Padding(
@@ -330,10 +329,8 @@ class _StatisticsViewState extends State<_StatisticsView>
     int selected,
     int length,
     ValueChanged<int> onSelect, {
-    Key? key,
     Key? nextKey,
   }) => Row(
-    key: key,
     mainAxisAlignment: MainAxisAlignment.end,
     children: [
           TextButton(
@@ -365,27 +362,25 @@ class _StatisticsViewState extends State<_StatisticsView>
     ],
   );
 
-  Widget _metric(String label, dynamic value, String unit, {int decimals = 0, MetricValueScale scale = MetricValueScale.metricLg}) => MetricBlock(
-    label: label,
-    value: value == null ? null : grouped(value as num, decimals: decimals),
-    unit: value == null ? null : unit,
-    scale: scale,
-  );
+  Widget _metric(String label, num? value, String unit, {int decimals = 0}) =>
+      MetricBlock(
+        label: label,
+        value: value == null ? null : grouped(value, decimals: decimals),
+        unit: value == null ? null : unit,
+        scale: MetricValueScale.metricLg,
+      );
 
   @override
   Widget build(BuildContext context) {
     final calendar = workspace.calendar!;
-    final inset = MileafLayout.pageInset(context);
     return ListenableBuilder(
       listenable: widget.currency,
       builder: (context, _) => RefreshIndicator(
         onRefresh: () => load(force: true),
         child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            inset,
-            MileafSpace.s12,
-            inset,
-            MileafSpace.s24,
+          padding: MileafLayout.pagePadding(
+            context,
+            top: MileafSpace.s12,
           ),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -515,13 +510,12 @@ class _StatisticsViewState extends State<_StatisticsView>
           drivingMetric,
           (index) => setState(() => drivingMetric = index),
         ),
-        height: 160,
         plotKey: const ValueKey('driving-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => drivingPoint = index),
         readout: (index) => '$title读数 '
-            '${index < values.length ? number(values[index], unit, decimals: decimals) : '—（缺失）'}',
+            '${index < values.length ? number(values[index], unit, decimals: decimals) : '—'}',
         emptyMessage: '区间内无趋势数据',
       ),
       if (times.isNotEmpty)
@@ -596,14 +590,13 @@ class _StatisticsViewState extends State<_StatisticsView>
             ChartSeries(label: '毛电耗', values: gross),
           ],
           semanticsLabel: '净电耗与毛电耗图表',
-          height: 160,
           plotKey: const ValueKey('driving-consumption-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
           onSelected: (index) => setState(() => consumptionPoint = index),
           readout: (index) =>
-              '净电耗读数 ${index < net.length ? number(net[index], 'Wh/km') : '—（缺失）'}'
-              '；毛电耗读数 ${index < gross.length ? number(gross[index], 'Wh/km') : '—（缺失）'}',
+              '净电耗读数 ${index < net.length ? number(net[index], 'Wh/km') : '—'}'
+              '；毛电耗读数 ${index < gross.length ? number(gross[index], 'Wh/km') : '—'}',
           note: '不同能量口径分别阅读；缺失值断线，不补零。',
           emptyMessage: '区间内无趋势数据',
         ),
@@ -619,7 +612,7 @@ class _StatisticsViewState extends State<_StatisticsView>
   }
 
   String _share(num? value) =>
-      value == null ? '—（缺失）' : '${(value * 100).toStringAsFixed(2)} %';
+      value == null ? '—' : '${(value * 100).toStringAsFixed(2)} %';
   Widget textLine(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
     child: Text('$label  $value'),
@@ -706,7 +699,6 @@ class _StatisticsViewState extends State<_StatisticsView>
           chargingMetric,
           (index) => setState(() => chargingMetric = index),
         ),
-        height: 160,
         plotKey: const ValueKey('charging-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
@@ -802,7 +794,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         Text(
           richer.totals.sessions > 0 &&
                   richer.totals.durationKnownSessions == 0
-              ? '记录时长 —（缺失）'
+              ? '记录时长 —'
               : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
           style: context.type.body.copyWith(color: context.colors.text),
         ),
@@ -906,24 +898,23 @@ class _StatisticsViewState extends State<_StatisticsView>
             if (richer != null) ChartSeries(label: '未知', values: unknown),
           ],
           semanticsLabel: 'AC 与 DC 时间分布图表',
-          height: 160,
           plotKey: const ValueKey('charging-classification-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
           onSelected: (index) => setState(() => classificationPoint = index),
           readout: (index) =>
-              'AC读数 ${index < ac.length ? number(ac[index], 'kWh', decimals: 2) : '—（缺失）'}',
+              'AC读数 ${index < ac.length ? number(ac[index], 'kWh', decimals: 2) : '—'}',
           emptyMessage: '区间内无趋势数据',
         ),
         if (times.isNotEmpty) ...[
           // One reading per series keeps AC/DC/未知 separately readable.
           Text(
-            'DC读数 ${number(dc[point], 'kWh', decimals: 2)}',
+            'DC读数 ${number(point < dc.length ? dc[point] : null, 'kWh', decimals: 2)}',
             style: context.type.body.copyWith(color: context.colors.text),
           ),
           if (unknown.isNotEmpty)
             Text(
-              '未知读数 ${number(unknown[point], 'kWh', decimals: 2)}',
+              '未知读数 ${number(point < unknown.length ? unknown[point] : null, 'kWh', decimals: 2)}',
               style: context.type.body.copyWith(color: context.colors.text),
             ),
           _steppers(
@@ -1024,7 +1015,7 @@ class _EnergyBars extends StatelessWidget {
             container: true,
             excludeSemantics: true,
             label:
-                '${values[i].$1} ${values[i].$2 == null ? '—（缺失）' : '${values[i].$2!.toStringAsFixed(2)} $unit'}',
+                '${values[i].$1} ${values[i].$2 == null ? '—' : '${values[i].$2!.toStringAsFixed(2)} $unit'}',
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
               child: Column(
@@ -1053,7 +1044,7 @@ class _EnergyBars extends StatelessWidget {
                   const SizedBox(height: MileafSpace.s8),
                   LayoutBuilder(
                     builder: (context, constraints) => Container(
-                      height: 6,
+                      height: MileafSpace.inline6,
                       decoration: BoxDecoration(
                         color: colors.line,
                         borderRadius: MileafRadius.xsAll,

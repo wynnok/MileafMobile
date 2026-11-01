@@ -349,8 +349,8 @@ void main() {
     );
     await tester.scrollUntilVisible(find.text('0 次'), 300);
     expect(find.text('0 次'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('净电耗  —（缺失）'), 300);
-    expect(find.text('净电耗  —（缺失）'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('净电耗  —'), 300);
+    expect(find.text('净电耗  —'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('2025-12-31 · 620.0 km'),
       300,

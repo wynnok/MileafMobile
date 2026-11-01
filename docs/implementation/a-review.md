@@ -78,3 +78,18 @@
 - `tool/flutterw analyze --no-pub`：0 issue。
 - `tool/flutterw test --no-pub`：**352 通过、22 跳过**。
 - 图册：`docs/implementation/a-renders/gallery/` 132 张，指纹见该目录 README。
+
+## 第二轮双轴审查（独立子代理）与修正
+
+范围 `git diff c70fa86...HEAD`，Standards 与 Spec 各 1 个子代理，共 23 项发现。其中硬性项已在本轮修正：
+
+1. **空态费用不是 0**：Spec §9.5「空：费用 `—`」。`charging_page.dart` 与 `statistics_charging_page.dart` 改为按覆盖计数判定——`cost_known_sessions == 0` → `—`；`energy_known_sessions`/`duration_known_sessions` 为 0 时同改。0.1/0.2 legacy 合约没有覆盖计数，保留原值并在注释说明。
+2. **`—（缺失）` 统一为 `—`**：`drive_detail_page.dart`、`charging_page.dart`、`charging_detail.dart`、`statistics_page.dart` 共 15 处，测试同步；Spec §3.3「未知用 `—`」。
+3. **电量区间标签**：按 §9.4「到达 68% / 出发 76%」调整为到达在前、`%` 紧贴数字（原先「出发 82 % / 到达 72 %」）。
+4. **`visual_theme.dart` 退役**：§13.3 首项，全仓无引用，已删除；`design_tokens_test.dart` 不再把它排除出 `lakeTheme` 扫描。
+5. **裸 token**：`height: 6` → `MileafSpace.inline6`；四处 `height: 160` 改为图表默认高度；`EdgeInsets.only(top/bottom: 8/6)` → token；`BorderRadius.circular(20)` → `MileafRadius.lg`；新增 `MileafLayout.pageHorizontal` 供充电详情与统计列表复用，去掉手写 `fromLTRB`。
+6. **图册断言区分性**：`markers` 改为 `must` + `mustNot` 双向断言，空/缺失格不得出现正常态数字（`1,198.6`、`¥186.4`、`432.0`、`32.9` 等），正常格不得出现空态文案。
+7. **币种文案统一**：`currency.symbol` 的兜底从「币种未知」改为与 `amountNote` 一致的「币种未记录」。
+8. **潜在越界崩溃**：`statistics_page.dart` 的「DC读数/未知读数」按 `point` 索引前加长度判断，避免分桶长度不等时 RangeError。
+
+保留为判断项（未改）：补能构成区 `0 kWh`、补能专题空态分支、legacy 统计页的 `_steppers`/`_EnergyBars` 私有实现、`MetricGrid` 未进 §13.1 清单、停放页调色板与日期格式（属 legacy 视觉清理）。

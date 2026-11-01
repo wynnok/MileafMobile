@@ -36,66 +36,69 @@ const pages = <String>[
 
 const scenarios = <String>['normal', 'empty', 'missing'];
 
-/// One required on-screen marker per page and state.
+/// Per page and state: strings that must all be on screen, and strings that
+/// must not.
 ///
-/// `normal` asserts a main number or chart heading, `empty` asserts the
-/// no-records/sample copy (or the real zero), `missing` asserts that unknown
-/// values print `—` instead of a fabricated number.
-const markers = <String, Map<String, List<String>>>{
+/// `must` proves the state actually rendered (a main number, a chart heading or
+/// the no-records copy); `mustNot` proves the state is real — an empty or
+/// missing render may never show the normal snapshot's numbers, and a normal
+/// render may never show the empty copy.
+const markers = <String, Map<String, ({List<String> must, List<String> mustNot})>>{
   'overview': {
-    'normal': ['本月 · 驾驶里程'],
-    'empty': ['本月 · 驾驶里程', '这段时间还没有行程'],
-    'missing': ['—'],
+    'normal': (must: ['本月 · 驾驶里程', '1,198.6'], mustNot: []),
+    'empty': (must: ['本月 · 驾驶里程', '0.0'], mustNot: ['1,198.6']),
+    'missing': (must: ['—'], mustNot: ['320']),
   },
   'drives': {
-    'normal': ['出行节奏'],
-    'empty': ['还没有行程', '暂无行程', '出行节奏'],
-    'missing': ['—'],
+    'normal': (must: ['出行节奏', '32.9'], mustNot: ['这段时间还没有行程']),
+    'empty': (must: ['这段时间还没有行程', '0.0'], mustNot: ['32.9']),
+    'missing': (must: ['—'], mustNot: ['32.9']),
   },
   'charging': {
-    'normal': ['已知充电费用'],
-    'empty': ['费用有记录 0 / 0 次', '还没有充电记录'],
-    'missing': ['—'],
+    'normal': (must: ['已知充电费用', '¥186.4'], mustNot: ['这段时间还没有充电记录']),
+    'empty': (must: ['—', '费用有记录 0 / 0 次'], mustNot: ['¥186.4']),
+    'missing': (must: ['—'], mustNot: ['¥186.4']),
   },
   'statistics': {
-    'normal': ['里程走势'],
-    'empty': ['里程走势', '—'],
-    'missing': ['—'],
+    'normal': (must: ['里程走势', '1,198.6'], mustNot: []),
+    'empty': (must: ['—'], mustNot: ['1,198.6']),
+    'missing': (must: ['—'], mustNot: ['158']),
   },
   'drive-detail': {
-    'normal': ['净电耗'],
-    'empty': ['32.9', '行程电量区间'],
-    'missing': ['失败', '重试'],
+    'normal': (must: ['净电耗', '32.9'], mustNot: ['无采样数据']),
+    'empty': (must: ['32.9'], mustNot: ['速度读数']),
+    'missing': (must: ['重试行程明细'], mustNot: ['32.9']),
   },
   'charge-detail': {
-    'normal': ['充电曲线', '这一次的账'],
-    'empty': ['此充电没有序列采样', '充电曲线'],
-    'missing': ['失败', '重试'],
+    'normal': (must: ['充电曲线', '46.8'], mustNot: ['此充电没有序列采样']),
+    'empty': (must: ['此充电没有序列采样'], mustNot: ['服务端采样 1']),
+    'missing': (must: ['重试充电曲线', '46.8'], mustNot: []),
   },
   'topic-rhythm': {
-    'normal': ['这段时间的用车节奏'],
-    'empty': ['区间内无已完成行程'],
-    'missing': ['—'],
+    'normal': (must: ['这段时间的用车节奏', '活跃'], mustNot: ['区间内无已完成行程']),
+    'empty': (must: ['区间内无已完成行程'], mustNot: ['活跃 22']),
+    'missing': (must: ['—'], mustNot: []),
   },
   'topic-energy': {
-    'normal': ['温度下的用车能耗'],
-    'empty': ['区间内无已完成行程'],
-    'missing': ['—'],
+    'normal': (must: ['温度下的用车能耗', '210'], mustNot: ['区间内无已完成行程']),
+    'empty': (must: ['区间内无已完成行程'], mustNot: ['210']),
+    'missing': (must: ['—'], mustNot: ['210']),
   },
   'topic-charging': {
-    'normal': ['补能账目'],
-    'empty': ['补能账目', '还没有充电记录'],
-    'missing': ['—'],
+    'normal': (must: ['补能账目', '¥186.4'], mustNot: ['还没有充电记录']),
+    'empty': (must: ['—'], mustNot: ['¥186.4']),
+    'missing': (must: ['—'], mustNot: ['¥186.4']),
   },
   'topic-range': {
-    'normal': ['满电等效额定续航'],
-    'empty': ['观察窗口内无充电记录'],
-    'missing': ['—'],
+    'normal': (must: ['满电等效额定续航', '432.0'], mustNot: ['观察窗口内无充电记录']),
+    'empty': (must: ['观察窗口内无充电记录'], mustNot: ['432.0']),
+    'missing': (must: ['—'], mustNot: ['432.0']),
   },
   'topic-parking': {
-    'normal': ['停放SOC变化'],
-    'empty': ['停放SOC变化'],
-    'missing': ['分桶SOC变化缺失，不补零'],
+    'normal': (must: ['停放SOC变化', '-2.0'], mustNot: ['分桶SOC变化缺失，不补零']),
+    'empty': (must: ['暂无有效窗口'], mustNot: ['分桶SOC变化缺失，不补零']),
+    // 汇总仍保留（-2.0 pp 是真实聚合），只有分桶读数未知。
+    'missing': (must: ['分桶SOC变化缺失，不补零'], mustNot: []),
   },
 };
 
@@ -246,10 +249,13 @@ void main() {
                   text.data ?? text.textSpan?.toPlainText() ?? '',
               ].where((line) => line.trim().isNotEmpty).toList();
               final wanted = markers[page]![scenario]!;
-              if (!wanted.any((needle) => texts.any((t) => t.contains(needle)))) {
+              bool seen(String needle) => texts.any((t) => t.contains(needle));
+              final absent = wanted.must.where((n) => !seen(n)).toList();
+              final leaked = wanted.mustNot.where(seen).toList();
+              if (absent.isNotEmpty || leaked.isNotEmpty) {
                 problems.add(
-                  '$label 缺少期望文案 $wanted；实际：'
-                  '${texts.take(60).join(' | ')}',
+                  '$label 断言不符：缺少 $absent${leaked.isEmpty ? '' : '，不应出现 $leaked'}'
+                  '；实际：${texts.take(60).join(' | ')}',
                 );
               }
               await save(label);

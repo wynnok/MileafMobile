@@ -239,10 +239,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
 
   String number(num? value, String unit, {bool temperature = false}) =>
       value == null
-      ? '—（缺失）'
+      ? '—'
       : '${temperature ? value.toStringAsFixed(1) : decimal(value)} $unit';
   String time(DateTime? value) => value == null
-      ? '—（缺失）'
+      ? '—'
       : workspace.calendar!.local(value).toString().split('.').first;
   String windowReason(String status) => switch (status) {
     'incomplete_session' => '充电进行中',
@@ -252,7 +252,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     _ => '数据不足',
   };
   Widget _inset(Widget child) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: MileafLayout.pageInset(context)),
+    padding: MileafLayout.pageHorizontal(context),
     child: child,
   );
 
@@ -382,7 +382,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             if (detail case final d?) ...[
               _inset(
                 Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  padding: const EdgeInsets.only(
+                    top: MileafSpace.s8,
+                    bottom: MileafSpace.s8,
+                  ),
                   child: Text(
                     d.location.displayName?.trim().isNotEmpty == true
                         ? d.location.displayName!
@@ -492,7 +495,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             if (detail case final d?) ...[
               _inset(
                 Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 6),
+                  padding: const EdgeInsets.only(
+                    top: MileafSpace.s8,
+                    bottom: MileafSpace.inline6,
+                  ),
                   child: Text(
                     '充电地点',
                     style: Theme.of(context).textTheme.labelSmall,
@@ -517,7 +523,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     consent: _mapConsent,
                     platform: _mapPlatform,
                     height: 180,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(MileafRadius.lg),
                   ),
                 ),
               ),
@@ -628,12 +634,12 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                             : '理想续航未受站点支持',
                       ),
                       Text(
-                        '充电器品牌 ${extra.charger?.fastChargerBrand ?? '—（缺失）'}',
+                        '充电器品牌 ${extra.charger?.fastChargerBrand ?? '—'}',
                       ),
                       Text(
-                        '充电器类型 ${extra.charger?.fastChargerType ?? '—（缺失）'}',
+                        '充电器类型 ${extra.charger?.fastChargerType ?? '—'}',
                       ),
-                      Text('充电线 ${extra.charger?.connChargeCable ?? '—（缺失）'}'),
+                      Text('充电线 ${extra.charger?.connChargeCable ?? '—'}'),
                       if (extra.charger?.sourceSampleAt != null)
                         Text('充电器记录时间 ${time(extra.charger!.sourceSampleAt)}'),
                       const Text('温度为室外均值；续航是额定或理想口径，不代表实际可达距离。'),
@@ -658,7 +664,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     Text(
                       '平均外温 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
                     ),
-                    Text('充电相数 ${d.chargerPhasesMode ?? '—（缺失）'}'),
+                    Text('充电相数 ${d.chargerPhasesMode ?? '—'}'),
                     Text(
                       '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
                     ),
@@ -778,7 +784,7 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                       ? 0
                       : 1;
                   return '${choice.$2}读数 '
-                      '${value == null ? '—（缺失）' : '${value.toStringAsFixed(digits)} ${choice.$3}'}';
+                      '${value == null ? '—' : '${value.toStringAsFixed(digits)} ${choice.$3}'}';
                 },
                 tickLabel: (time) {
                   final local = widget.calendar.local(time);
@@ -1232,7 +1238,7 @@ class _ChargingCurveState extends State<ChargingCurve> {
                 ? 0
                 : 1;
             return '${power ? '功率' : '电量'}读数 '
-                '${v == null ? '—（缺失）' : '${v.toStringAsFixed(digits)} ${power ? 'kW' : '%'}'}';
+                '${v == null ? '—' : '${v.toStringAsFixed(digits)} ${power ? 'kW' : '%'}'}';
           },
           tickLabel: (t) {
             final local = widget.calendar.local(t);

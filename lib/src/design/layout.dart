@@ -36,6 +36,10 @@ abstract final class MileafLayout {
   static Duration motion(BuildContext context, Duration duration) =>
       reduceMotion(context) ? Duration.zero : duration;
 
+  /// Horizontal-only inset, for lists that own their vertical rhythm.
+  static EdgeInsets pageHorizontal(BuildContext context) =>
+      EdgeInsets.symmetric(horizontal: pageInset(context));
+
   static EdgeInsets pagePadding(
     BuildContext context, {
     double top = 0,

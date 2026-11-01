@@ -157,7 +157,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('更多充电信息'));
     await tester.pumpAndSettle();
-    expect(find.text('结束 —（缺失）'), findsOneWidget);
+    expect(find.text('结束 —'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('充电类型未知'), -200);
     expect(find.text('充电类型未知'), findsOneWidget);
     expect(find.text('费用 0 USD'), findsOneWidget);
@@ -213,7 +213,7 @@ void main() {
     final rect = tester.getRect(chart);
     await tester.tapAt(rect.center);
     await tester.pumpAndSettle();
-    expect(find.text('功率读数 —（缺失）'), findsOneWidget);
+    expect(find.text('功率读数 —'), findsOneWidget);
     expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量 %').hitTestable(), -200);
     await tester.tap(find.text('电量 %').hitTestable());

@@ -112,9 +112,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('已知费用合计 0'), findsOneWidget);
       expect(find.text('币种未记录'), findsWidgets);
-      await tester.scrollUntilVisible(find.text('DC 能量占比（已知分类）  —（缺失）'), 200);
+      await tester.scrollUntilVisible(find.text('DC 能量占比（已知分类）  —'), 200);
       await tester.pumpAndSettle();
-      expect(find.text('DC 能量占比（已知分类）  —（缺失）'), findsOneWidget);
+      expect(find.text('DC 能量占比（已知分类）  —'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('已知费用均价  —/kWh'), 60);
       await tester.pumpAndSettle();
       expect(find.text('已知费用均价  —/kWh'), findsOneWidget);

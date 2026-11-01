@@ -242,14 +242,14 @@ void main() {
       await tester.scrollUntilVisible(known, 180);
       await tester.pumpAndSettle();
       expect(known, findsOneWidget);
-      expect(find.text('出发 82 %'), findsOneWidget);
-      expect(find.text('到达 72 %'), findsOneWidget);
+      expect(find.text('到达 72%'), findsOneWidget);
+      expect(find.text('出发 82%'), findsOneWidget);
       missing = true;
       await tester.tap(find.byTooltip('刷新行程明细'));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel(RegExp('电量区间.*82.*到达 未知')), findsOneWidget);
       expect(find.text('到达 —'), findsOneWidget);
-      expect(find.text('到达 0 %'), findsNothing);
+      expect(find.text('到达 0%'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();
