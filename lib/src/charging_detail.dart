@@ -3,12 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'api.dart';
-import 'data_cards.dart';
-import 'data_chart.dart';
+
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'charging_detail_contract.g.dart' as dto;
 import 'charging_experience_contract.g.dart' as expanded;
 import 'currency.dart';
-import 'collage.dart';
 import 'workspace.dart';
 import 'map/map_consent.dart';
 import 'map/map_panel.dart';
@@ -248,6 +251,67 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     'gap_or_ambiguous' => '采样间隔或电量变化不足以确认',
     _ => '数据不足',
   };
+  Widget _section({required Widget child}) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s20),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: colors.line)),
+        ),
+        padding: const EdgeInsets.only(top: MileafSpace.s12),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _results(dto.ChargingSessionDetail d) {
+    final colors = context.colors;
+    final type = context.type;
+    final items = [
+      '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
+      '费用 ${widget.currency.amount(d.cost)}',
+      '时长 ${number(d.durationMin, '分钟')}',
+    ];
+    final large = MileafLayout.largeText(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        MileafLayout.pageInset(context),
+        MileafSpace.s20,
+        MileafLayout.pageInset(context),
+        0,
+      ),
+      child: large
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final item in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: MileafSpace.s12),
+                    child: Text(
+                      item,
+                      style: type.title.copyWith(color: colors.text),
+                    ),
+                  ),
+              ],
+            )
+          : Wrap(
+              spacing: MileafSpace.s16,
+              runSpacing: MileafSpace.s8,
+              children: [
+                for (final item in items)
+                  Text(
+                    item,
+                    style: type.body.copyWith(
+                      color: colors.text,
+                      fontWeight: MileafType.weightSemiBold,
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.currency,
@@ -297,70 +361,69 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              CollageTile(
-                surface: CollageSurface.hero,
-                child: Builder(
-                  builder: (context) => Column(
+              MileafHero(
+                semanticLabel:
+                    '电量区间 ${d.startSoc ?? '未知'}% 至 ${d.endSoc ?? '未知'}%',
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    MileafLayout.pageInset(context),
+                    MileafSpace.s20,
+                    MileafLayout.pageInset(context),
+                    MileafSpace.s20,
+                  ),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('电量区间'),
-                      SizedBox(
-                        height: 36,
-                        child: CustomPaint(
-                          painter: _BatteryArc(
-                            d.startSoc,
-                            d.endSoc,
-                            Theme.of(context).colorScheme.primary,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '电量区间',
+                              style: context.type.label.copyWith(
+                                color: context.colors.heroMuted,
+                              ),
+                            ),
                           ),
+                          Text(
+                            d.isDc == null
+                                ? '充电类型未知'
+                                : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
+                            style: context.type.micro.copyWith(
+                              color: context.colors.heroFaint,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: MileafSpace.s12),
+                      Center(
+                        child: BatteryArc(
+                          level: d.endSoc,
+                          start: d.startSoc,
+                          onHero: true,
+                          label: '到达',
                         ),
                       ),
+                      const SizedBox(height: MileafSpace.s8),
                       Text(
                         '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        style: context.type.title.copyWith(
+                          color: context.colors.heroText,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束'),
+                      const SizedBox(height: MileafSpace.s4),
+                      Text(
+                        d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
+                        textAlign: TextAlign.center,
+                        style: context.type.micro.copyWith(
+                          color: context.colors.heroMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final large = largeText(context);
-                  final width = large
-                      ? constraints.maxWidth
-                      : (constraints.maxWidth - 16) / 3;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final item in [
-                        Text(
-                          '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text('费用 ${widget.currency.amount(d.cost)}'),
-                        Text('时长 ${number(d.durationMin, '分钟')}'),
-                      ])
-                        SizedBox(
-                          width: width,
-                          child: CollageTile(
-                            padding: const EdgeInsets.all(10),
-                            child: item,
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 2, bottom: 6),
-                child: Text(
-                  d.isDc == null ? '充电类型未知' : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
+              _results(d),
             ],
             if (seriesLoading) const LinearProgressIndicator(),
             if (seriesError != null) ...[
@@ -414,18 +477,16 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               ),
             ],
             if (detail case final d?) ...[
-              DataCard(
+              _section(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('两类能量', style: Theme.of(context).textTheme.titleSmall),
-                    EnergyComparison(
-                      values: [
-                        ('充入电池', d.energyAddedKwh),
-                        ('电网侧', d.energyUsedKwh),
-                      ],
-                      note: '两类能量分别记录，不相加。',
+                    Text('充入电池 ${number(d.energyAddedKwh, 'kWh')}'),
+                    Text(
+                      '电网侧 ${d.energyUsedKwh == null ? '—' : '${d.energyUsedKwh!.toStringAsFixed(2)} kWh'}',
                     ),
+                    const Text('两类能量分别记录，不相加。'),
                   ],
                 ),
               ),
@@ -433,7 +494,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 title: const Text('过程数据说明'),
                 children: [
                   if (expandedDetail?.processMetrics case final process?)
-                    DataCard(
+                    _section(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -462,7 +523,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 ],
               ),
               if (expandedDetail case final extra?) ...[
-                DataCard(
+                _section(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -481,7 +542,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     ],
                   ),
                 ),
-                DataCard(
+                _section(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -526,7 +587,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ),
                 ),
               ],
-              DataCard(
+              _section(
                 child: ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   title: const Text('更多充电信息'),
@@ -634,28 +695,76 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!socAxis)
-          TimeChart(
-            title: '充电曲线',
-            unit: choice.$3,
-            times: points.map((point) => point.t).toList(),
-            series: [
-              ChartSeries(
-                label: choice.$2,
-                values: points.map(reading).toList(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TimeSeriesChart(
+                title: '充电曲线',
+                unit: choice.$3,
+                times: points.map((point) => point.t).toList(),
+                series: [
+                  ChartSeries(
+                    label: choice.$2,
+                    values: points.map(reading).toList(),
+                  ),
+                ],
+                semanticsLabel: '${choice.$2}充电曲线',
+                controls: controls,
+                plotKey: const Key('charging-time-chart'),
+                selectedIndex: selected,
+                onSelected: (index) => setState(() => selected = index),
+                height: 160,
+                readout: (index) {
+                  final value = index < points.length
+                      ? reading(points[index])
+                      : null;
+                  final digits = metric == 'power'
+                      ? 2
+                      : value == null || value == value.roundToDouble()
+                      ? 0
+                      : 1;
+                  return '${choice.$2}读数 '
+                      '${value == null ? '—（缺失）' : '${value.toStringAsFixed(digits)} ${choice.$3}'}';
+                },
+                tickLabel: (time) {
+                  final local = widget.calendar.local(time);
+                  return '${local.month}/${local.day}';
+                },
               ),
+              if (points.isNotEmpty)
+                Text(
+                  widget.calendar
+                      .local(points[selected].t)
+                      .toString()
+                      .split('.')
+                      .first,
+                  style: context.type.micro.copyWith(
+                    color: context.colors.textMuted,
+                  ),
+                ),
+              if (points.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: selected > 0
+                          ? () => setState(() => selected--)
+                          : null,
+                      child: const Text('前一个采样'),
+                    ),
+                    TextButton(
+                      onPressed: selected < points.length - 1
+                          ? () => setState(() => selected++)
+                          : null,
+                      child: const Text('后一个采样'),
+                    ),
+                  ],
+                ),
             ],
-            timestamp: (time) =>
-                widget.calendar.local(time).toString().split('.').first,
-            presentation: ChartPresentation.line,
-            minimum: metric == 'soc' ? 0 : null,
-            maximum: metric == 'soc' ? 100 : null,
-            plotKey: const Key('charging-time-chart'),
-            controls: controls,
-            selectedIndex: selected,
-            onSelected: (index) => setState(() => selected = index),
           )
         else
-          DataCard(
+          Container(
+            padding: const EdgeInsets.only(top: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1022,6 +1131,7 @@ class ChargingCurve extends StatefulWidget {
 
 class _ChargingCurveState extends State<ChargingCurve> {
   bool power = true;
+  int selected = 0;
   num? value(dto.ChargePoint p) => power ? p.power : p.soc;
   @override
   Widget build(BuildContext context) {
@@ -1030,7 +1140,7 @@ class _ChargingCurveState extends State<ChargingCurve> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TimeChart(
+        TimeSeriesChart(
           title: '充电曲线',
           unit: power ? 'kW' : '%',
           times: [for (final p in points) p.t],
@@ -1040,11 +1150,7 @@ class _ChargingCurveState extends State<ChargingCurve> {
               values: [for (final p in points) value(p)],
             ),
           ],
-          timestamp: (t) =>
-              widget.calendar.local(t).toString().split('.').first,
-          presentation: ChartPresentation.line,
-          minimum: power ? null : 0,
-          maximum: power ? null : 100,
+          semanticsLabel: power ? '功率充电曲线' : '电量充电曲线',
           plotKey: const Key('charging-time-chart'),
           controls: Wrap(
             spacing: 8,
@@ -1061,7 +1167,50 @@ class _ChargingCurveState extends State<ChargingCurve> {
               ),
             ],
           ),
+          selectedIndex: selected,
+          onSelected: (index) => setState(() => selected = index),
+          readout: (index) {
+            final v = index < points.length ? value(points[index]) : null;
+            final digits = power
+                ? 2
+                : v == null || v == v.roundToDouble()
+                ? 0
+                : 1;
+            return '${power ? '功率' : '电量'}读数 '
+                '${v == null ? '—（缺失）' : '${v.toStringAsFixed(digits)} ${power ? 'kW' : '%'}'}';
+          },
+          tickLabel: (t) {
+            final local = widget.calendar.local(t);
+            return '${local.month}/${local.day}';
+          },
         ),
+        if (points.isNotEmpty)
+          Text(
+            widget.calendar
+                .local(points[selected].t)
+                .toString()
+                .split('.')
+                .first,
+            style: context.type.micro.copyWith(color: context.colors.textMuted),
+          ),
+        if (points.isNotEmpty)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: selected > 0
+                    ? () => setState(() => selected--)
+                    : null,
+                child: const Text('前一个采样'),
+              ),
+              TextButton(
+                onPressed: selected < points.length - 1
+                    ? () => setState(() => selected++)
+                    : null,
+                child: const Text('后一个采样'),
+              ),
+            ],
+          ),
         ExpansionTile(
           title: const Text('曲线数据说明'),
           children: [
@@ -1074,41 +1223,4 @@ class _ChargingCurveState extends State<ChargingCurve> {
       ],
     );
   }
-}
-
-/// Endpoints are independent observations; missing endpoints never draw a range.
-class _BatteryArc extends CustomPainter {
-  _BatteryArc(this.start, this.end, this.color);
-  final num? start, end;
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCenter(
-      center: Offset(size.width / 2, 32),
-      width: 128,
-      height: 48,
-    );
-    final pen = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..color = color.withValues(alpha: .18);
-    canvas.drawArc(rect, math.pi, math.pi, false, pen);
-    if (start != null && end != null) {
-      pen.color = color;
-      final low = math.min(start!, end!).clamp(0, 100) / 100;
-      final high = math.max(start!, end!).clamp(0, 100) / 100;
-      canvas.drawArc(
-        rect,
-        math.pi + math.pi * low,
-        math.pi * (high - low),
-        false,
-        pen,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BatteryArc old) =>
-      start != old.start || end != old.end || color != old.color;
 }

@@ -114,8 +114,8 @@ void main() {
     expect(find.text('2026-01-05 08:04:00'), findsOneWidget);
     expect(find.text('功率读数 11.00 kW'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('两类能量'), 200);
-    expect(find.text('电网侧'), findsOneWidget);
-    expect(find.text('22.00 kWh'), findsOneWidget);
+    expect(find.textContaining('电网侧'), findsOneWidget);
+    expect(find.textContaining('22.00 kWh'), findsOneWidget);
   });
   testWidgets('列表进入进行中详情，币种标签复用，明细与曲线局部失败互不遮蔽', (tester) async {
     var failSeries = true, failDetail = false;
@@ -153,6 +153,7 @@ void main() {
     expect(find.text('充电详情 #8'), findsOneWidget);
     expect(find.text('充电进行中，当前指标不代表最终结果'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('更多充电信息'), 200);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('更多充电信息'));
     await tester.pumpAndSettle();
     expect(find.text('结束 —（缺失）'), findsOneWidget);
@@ -209,9 +210,7 @@ void main() {
     final chart = find.byKey(const Key('charging-time-chart'));
     await tester.scrollUntilVisible(chart.hitTestable(), 200);
     final rect = tester.getRect(chart);
-    await tester.tapAt(
-      Offset(rect.left + 16 + (rect.width - 32) * .1, rect.center.dy),
-    );
+    await tester.tapAt(rect.center);
     await tester.pumpAndSettle();
     expect(find.text('功率读数 —（缺失）'), findsOneWidget);
     expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
