@@ -85,7 +85,7 @@
 
 1. **空态费用不是 0**：Spec §9.5「空：费用 `—`」。`charging_page.dart` 与 `statistics_charging_page.dart` 改为按覆盖计数判定——`cost_known_sessions == 0` → `—`；`energy_known_sessions`/`duration_known_sessions` 为 0 时同改。0.1/0.2 legacy 合约没有覆盖计数，保留原值并在注释说明。
 2. **`—（缺失）` 统一为 `—`**：`drive_detail_page.dart`、`charging_page.dart`、`charging_detail.dart`、`statistics_page.dart` 共 15 处，测试同步；Spec §3.3「未知用 `—`」。
-3. **电量区间标签**：按 §9.4「到达 68% / 出发 76%」调整为到达在前、`%` 紧贴数字（原先「出发 82 % / 到达 72 %」）。
+3. **电量区间标签**：按 §9.4「到达 68% / 出发 76%」调整为到达在前、`%` 紧贴数字（原先「出发 82 % / 到达 72 %」）。~~此结论已作废~~：2026-11-01 用户裁定改为「出发 … / 到达 …」，见第三轮第 6 项。
 4. **`visual_theme.dart` 退役**：§13.3 首项，全仓无引用，已删除；`design_tokens_test.dart` 不再把它排除出 `lakeTheme` 扫描。
 5. **裸 token**：`height: 6` → `MileafSpace.inline6`；四处 `height: 160` 改为图表默认高度；`EdgeInsets.only(top/bottom: 8/6)` → token；`BorderRadius.circular(20)` → `MileafRadius.lg`；新增 `MileafLayout.pageHorizontal` 供充电详情与统计列表复用，去掉手写 `fromLTRB`。
 6. **图册断言区分性**：`markers` 改为 `must` + `mustNot` 双向断言，空/缺失格不得出现正常态数字（`1,198.6`、`¥186.4`、`432.0`、`32.9` 等），正常格不得出现空态文案。
@@ -93,3 +93,53 @@
 8. **潜在越界崩溃**：`statistics_page.dart` 的「DC读数/未知读数」按 `point` 索引前加长度判断，避免分桶长度不等时 RangeError。
 
 保留为判断项（未改）：补能构成区 `0 kWh`、补能专题空态分支、legacy 统计页的 `_steppers`/`_EnergyBars` 私有实现、`MetricGrid` 未进 §13.1 清单、停放页调色板与日期格式（属 legacy 视觉清理）。
+
+> 上述五项已在第三轮处理完毕（构成区 `—`、专题空态、`_Sampling`+`MileafCategoryBars`、`MetricGrid` 进 §13.1、停放页 A token），见下节。
+
+## 第三轮双轴审查（固定点 f35ed0d，2026-11-01，独立子代理）
+
+范围 `git diff f35ed0d`（工作区改动）+ 两个新增组件文件。Standards 与 Spec 各 1 个子代理并行；两边独立成文，不互相排序。
+
+### Standards 轴
+
+硬性（已修）
+
+1. **名实不符**：`MileafCompositionBar` 原先是把 legacy `_EnergyBars` 搬家改名，画的是「每类一根、按最大值归一」的类别条，而 Spec §9.5 要求的分段构成条仍内联在 `charging_page` / `statistics_charging_page` / `overview_page` 三处。→ 已把分段条实现为 `MileafCompositionBar(segments, emptyMessage)` 并在三处共用；legacy 那根更名 `MileafCategoryBars`（`category_bars.dart`）。
+
+判断项（已修）
+
+2. 三类地图浮层（同意/不支持/失败）容器同形 → 抽 `_card`；`_consentPanel` 只做 `Positioned` 转发 → 内联。
+3. `sessions > 0 && energyKnownSessions == 0` 在 `statistics_page` 复制三处 → 合并为 `energyMissing`。
+4. 「≥150% 用 240」在两个详情页各写一次 → 进 `MileafLayout.mapHeight(context, normal:)`。
+5. `_Sampling.clampTo` 读起来像改值实为取索引 → 改名 `clampedIndex`。
+6. `chip_row.dart` 构造函数单行超 80 列 → 已按仓库格式拆行。
+
+判断项（保留）
+
+7. 同意条按钮仍是 Material `FilledButton`（Spec §7.6 的 `MileafButton` 目前只有设计画廊在用，A 生产页普遍用 Material 按钮）——换组件会改变视觉，不在本轮范围。
+8. 日期胶囊按标签文本定位（用户 P2.6 要求的替代方案），比 key 更脆；换来的是 lib 内不再有测试 seam。
+9. 补能构成的三条横切条件（会话数 / 已知能量 / 已知时长）仍分散在三个页面，未抽成共用谓词——判断为"三年后再改"，本轮只统一措辞与判定口径。
+
+### Spec 轴
+
+缺失 / 半成品（已处理）
+
+1. **指纹过期**：审查期间工作区仍在改动，子代理看到的 README 源码指纹（82 文件）落后于代码。→ 最终态已重出 132 张并重算：PNG `86f25170…01a143`、源码 `5fc5dcae…36aa7f`（83 文件），README 记中间态作废。
+2. **§13.2/§13.1 与实现不一致**：§13.2 写 `statistics_page` 用 `MileafCompositionBar`（实为 `MileafCategoryBars`），§13.1 未收该类。→ 已改；§13.1 组件清单补 `MetricGrid`/`ChipRow`/`SocIntervalBar`/`MapFrame`/`MileafCompositionBar`/`MileafCategoryBars`。
+3. **P2「`_amountLine` 与另一处金额行复用」未做**：全仓没有再出现同形的「金额 + 币种说明」行（`line()` 是「标签 + 值 + 单位」，`MetricBlock` 带 note 是卡片形态），找不到可复用的第二处，故不做，避免为功能相同的两行硬造抽象。
+
+实现有问题（已修）
+
+4. **同区块 0 与 `—` 自相矛盾**：0 条记录时构成区 AC/DC/未知 已改 `—`，但紧邻的「DC 占已知分类能量」仍是 `0%`（只判了 null）。→ 分母为空时改为 `—`：`charging_page`、legacy `statistics_page`（汇总与分桶）、`statistics_charging_page` 三处同改；有已知能量时仍按后端 `dc_energy_share` 原口径展示（`mobile-v1` §11 要求）。
+5. **200% 断言不严**：`a_charging_detail_test` 只断言按钮下缘在地图内，Stack 裁切不抛异常，文案可能被上缘裁掉仍是绿的。→ 补 `copy.top >= map.top`，与 `a_drive_detail_test` 对齐。
+6. **两套缺失措辞**：0 条记录时硬编码「AC — 分钟 · DC — 分钟 · 未知 — 分钟」，与已知能量缺失时的「分类记录时长缺失」并存。→ 统一为「分类记录时长缺失」，删掉硬编码分支。
+
+越界（记录，不改）
+
+7. 组件化外溢：新增 `MileafCategoryBars`、`MileafLayout.mapHeight`，并波及 `overview_page` / `statistics_charging_page` / `drive_detail_page`。均为行为等价的最小抽取（分段条像素一致，132 张图册 PNG 指纹未受影响），属判断项取舍而非功能扩张。
+8. 设计文档未跟踪：Spec/Ticket/ADR 0003 按用户边界仍在工作区未提交，本轮依据不在版本库内——与上一轮一致，属已知残余。
+
+### 结论
+
+- 两条硬性问题（组成组件名实不符、DC 占比 0% 与 `—` 并存）已修；判断项 6 条已修、3 条保留并说明理由。
+- 不改的边界照旧：`MileafServer/`、`teslamate/` 未动；未推送、未部署、未关闭任何 issue。
