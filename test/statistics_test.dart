@@ -10,7 +10,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/design/components/components.dart';
-import 'package:mileaf/src/statistics_period.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'support/session_store.dart';
@@ -65,10 +64,25 @@ http.Response fixture(String name) => http.Response(
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
 
+/// 打开日期 sheet 的动作胶囊。标签随当前期间变化（日期/本周/本年/起止日），
+/// 因此按文本而不是 lib 内的 key 定位。
+Finder dateAction() => find.byWidgetPredicate(
+  (widget) =>
+      widget is StatusChip &&
+      (widget.label == '日期' ||
+          widget.label == '本周' ||
+          widget.label == '本年' ||
+          widget.label.contains(' 至 ')),
+);
+
+Future<void> tapDateAction(WidgetTester tester) async {
+  await tester.tap(dateAction());
+  await tester.pumpAndSettle();
+}
+
 /// Opens the C 日期 sheet and picks a preset period (本周/本月/近7天/本年).
 Future<void> pickPeriod(WidgetTester tester, String label) async {
-  await tester.tap(find.byKey(dateActionKey));
-  await tester.pumpAndSettle();
+  await tapDateAction(tester);
   await tester.tap(
     find.descendant(
       of: find.byType(AlertDialog),
@@ -79,8 +93,7 @@ Future<void> pickPeriod(WidgetTester tester, String label) async {
 }
 
 Future<void> openDateSheet(WidgetTester tester) async {
-  await tester.tap(find.byKey(dateActionKey));
-  await tester.pumpAndSettle();
+  await tapDateAction(tester);
 }
 
 Future<void> custom(WidgetTester tester, String start, String end) async {

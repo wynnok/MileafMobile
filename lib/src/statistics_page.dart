@@ -109,9 +109,7 @@ class _StatisticsPageState extends State<_LegacyStatisticsPage> {
           top: MileafSpace.s8,
           bottom: 0,
         ),
-        child: Wrap(
-          spacing: MileafSpace.s8,
-          runSpacing: MileafSpace.s4,
+        child: ChipRow(
           children: [
             StatusChip(
               label: '驾驶统计',
@@ -178,10 +176,10 @@ class _StatisticsViewState extends State<_StatisticsView>
   int sequence = 0;
   int drivingMetric = 0;
   int chargingMetric = 0;
-  int drivingPoint = 0;
-  int consumptionPoint = 0;
-  int chargingPoint = 0;
-  int classificationPoint = 0;
+  final driving = _Sampling();
+  final consumption = _Sampling();
+  final charging = _Sampling();
+  final classification = _Sampling();
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
@@ -324,34 +322,35 @@ class _StatisticsViewState extends State<_StatisticsView>
       );
 
   /// A stepper row keeps the published 前/后一个采样 behaviour without the C
-  /// chart widget; selection state stays in the page.
-  Widget _steppers(
-    int selected,
-    int length,
-    ValueChanged<int> onSelect, {
-    Key? nextKey,
-  }) => Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-          TextButton(
-            onPressed: selected > 0 ? () => onSelect(selected - 1) : null,
-            child: const Text('前一个采样'),
-          ),
-      TextButton(
-        key: nextKey,
-        onPressed: selected < length - 1 ? () => onSelect(selected + 1) : null,
-        child: const Text('后一个采样'),
-      ),
-    ],
-  );
+  /// chart widget; it mutates the chart's [_Sampling] so pages never carry the
+  /// four selections themselves.
+  Widget _steppers(_Sampling sampling, int length, {Key? nextKey}) {
+    final selected = sampling.clampedIndex(length);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: selected > 0
+              ? () => setState(() => sampling.index = selected - 1)
+              : null,
+          child: const Text('前一个采样'),
+        ),
+        TextButton(
+          key: nextKey,
+          onPressed: selected < length - 1
+              ? () => setState(() => sampling.index = selected + 1)
+              : null,
+          child: const Text('后一个采样'),
+        ),
+      ],
+    );
+  }
 
   Widget _controls(
     List<String> labels,
     int selected,
     ValueChanged<int> onSelected,
-  ) => Wrap(
-    spacing: MileafSpace.s8,
-    runSpacing: MileafSpace.s4,
+  ) => ChipRow(
     children: [
       for (var i = 0; i < labels.length; i++)
         StatusChip(
@@ -477,7 +476,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       2 => 2,
       _ => 0,
     };
-    final point = drivingPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
+    final point = driving.clampedIndex(times.length);
     return [
       Padding(
         padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -513,16 +512,15 @@ class _StatisticsViewState extends State<_StatisticsView>
         plotKey: const ValueKey('driving-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
-        onSelected: (index) => setState(() => drivingPoint = index),
+        onSelected: (index) => setState(() => driving.index = index),
         readout: (index) => '$title读数 '
             '${index < values.length ? number(values[index], unit, decimals: decimals) : '—'}',
         emptyMessage: '区间内无趋势数据',
       ),
       if (times.isNotEmpty)
         _steppers(
-          point,
+          driving,
           times.length,
-          (index) => setState(() => drivingPoint = index),
           nextKey: const ValueKey('statistics-driving-next'),
         ),
       const SizedBox(height: MileafSpace.section),
@@ -574,7 +572,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     List<dto.DrivingBucket> buckets,
     List<DateTime> times,
   ) {
-    final point = consumptionPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
+    final point = consumption.clampedIndex(times.length);
     final net = [for (final bucket in buckets) bucket.consumptionWhKmNet];
     final gross = [for (final bucket in buckets) bucket.consumptionWhKmGross];
     return Column(
@@ -593,7 +591,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           plotKey: const ValueKey('driving-consumption-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
-          onSelected: (index) => setState(() => consumptionPoint = index),
+          onSelected: (index) => setState(() => consumption.index = index),
           readout: (index) =>
               '净电耗读数 ${index < net.length ? number(net[index], 'Wh/km') : '—'}'
               '；毛电耗读数 ${index < gross.length ? number(gross[index], 'Wh/km') : '—'}',
@@ -602,9 +600,8 @@ class _StatisticsViewState extends State<_StatisticsView>
         ),
         if (times.isNotEmpty)
           _steppers(
-            point,
+            consumption,
             times.length,
-            (index) => setState(() => consumptionPoint = index),
             nextKey: const ValueKey('statistics-consumption-next'),
           ),
       ],
@@ -654,12 +651,10 @@ class _StatisticsViewState extends State<_StatisticsView>
                 : richer.buckets[index].unitCostAdded.value,
         },
     ];
-    final point = chargingPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
-    final energy = richer != null &&
-            totals.sessions > 0 &&
-            richer.totals.energyKnownSessions == 0
-        ? null
-        : totals.energyAddedKwh;
+    final point = charging.clampedIndex(times.length);
+    // 没有一条记录带电量就是未知；真实 0 保留 0。
+    final energyMissing = richer != null && richer.totals.energyKnownSessions == 0;
+    final energy = energyMissing ? null : totals.energyAddedKwh;
     return [
       Padding(
         padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -702,7 +697,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         plotKey: const ValueKey('charging-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
-        onSelected: (index) => setState(() => chargingPoint = index),
+        onSelected: (index) => setState(() => charging.index = index),
         readout: (index) {
           final value = index < values.length ? values[index] : null;
           if (chargingMetric >= 2) {
@@ -722,39 +717,19 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       if (times.isNotEmpty)
         _steppers(
-          point,
+          charging,
           times.length,
-          (index) => setState(() => chargingPoint = index),
           nextKey: const ValueKey('statistics-charging-next'),
         ),
       const SizedBox(height: MileafSpace.section),
       const SectionHeader(title: 'AC / DC 补能'),
       const SizedBox(height: MileafSpace.s8),
-      _EnergyBars(
+      MileafCategoryBars(
         values: [
-          (
-            'AC',
-            richer != null &&
-                    totals.sessions > 0 &&
-                    richer.totals.energyKnownSessions == 0
-                ? null
-                : totals.acEnergyKwh,
-          ),
-          (
-            'DC',
-            richer != null &&
-                    totals.sessions > 0 &&
-                    richer.totals.energyKnownSessions == 0
-                ? null
-                : totals.dcEnergyKwh,
-          ),
+          ('AC', energyMissing ? null : totals.acEnergyKwh),
+          ('DC', energyMissing ? null : totals.dcEnergyKwh),
           if (richer != null)
-            (
-              '未知',
-              totals.sessions > 0 && richer.totals.energyKnownSessions == 0
-                  ? null
-                  : richer.totals.unknownEnergyKwh,
-            ),
+            ('未知', energyMissing ? null : richer.totals.unknownEnergyKwh),
         ],
         note: '仅已知分类能量；未知分类不归入 AC。',
       ),
@@ -870,10 +845,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     expanded.ChargingStats? richer,
     List<DateTime> times,
   ) {
-    final point = classificationPoint.clamp(
-      0,
-      times.isEmpty ? 0 : times.length - 1,
-    );
+    final point = classification.clampedIndex(times.length);
     final ac = [for (final b in buckets) b.acEnergyKwh];
     final dc = [for (final b in buckets) b.dcEnergyKwh];
     final unknown = richer == null
@@ -901,7 +873,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           plotKey: const ValueKey('charging-classification-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
-          onSelected: (index) => setState(() => classificationPoint = index),
+          onSelected: (index) => setState(() => classification.index = index),
           readout: (index) =>
               'AC读数 ${index < ac.length ? number(ac[index], 'kWh', decimals: 2) : '—'}',
           emptyMessage: '区间内无趋势数据',
@@ -918,9 +890,8 @@ class _StatisticsViewState extends State<_StatisticsView>
               style: context.type.body.copyWith(color: context.colors.text),
             ),
           _steppers(
-            point,
+            classification,
             times.length,
-            (index) => setState(() => classificationPoint = index),
             nextKey: const ValueKey('statistics-classification-next'),
           ),
         ],
@@ -981,101 +952,14 @@ class _StatisticsViewState extends State<_StatisticsView>
   );
 }
 
-/// AC / DC / 未知 energy: one accent plus a 50 % step and a neutral, never a
-/// second accent colour (Spec §2.4).
-class _EnergyBars extends StatelessWidget {
-  const _EnergyBars({required this.values, this.note});
+/// Selected sampling index for one chart.
+///
+/// The legacy page shows four charts; each keeps one of these instead of a raw
+/// `int` plus its own clamp, so 「前/后一个采样」 behaves identically everywhere.
+class _Sampling {
+  int index = 0;
 
-  static const unit = 'kWh';
-  final List<(String, num?)> values;
-  final String? note;
-
-  Color _bar(BuildContext context, int index) {
-    final colors = context.colors;
-    return switch (index % 3) {
-      0 => colors.accent,
-      1 => colors.accent.withValues(alpha: .5),
-      _ => colors.textFaint,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final type = context.type;
-    final maximum = values.fold<num>(
-      0,
-      (m, entry) => (entry.$2 ?? 0) > m ? entry.$2! : m,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < values.length; i++)
-          Semantics(
-            container: true,
-            excludeSemantics: true,
-            label:
-                '${values[i].$1} ${values[i].$2 == null ? '—' : '${values[i].$2!.toStringAsFixed(2)} $unit'}',
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    spacing: MileafSpace.s12,
-                    runSpacing: MileafSpace.s4,
-                    children: [
-                      Text(
-                        values[i].$1,
-                        style: type.body.copyWith(color: colors.textMuted),
-                      ),
-                      Text(
-                        values[i].$2 == null
-                            ? '—'
-                            : '${values[i].$2!.toStringAsFixed(2)} $unit',
-                        style: type.body.copyWith(
-                          color: colors.text,
-                          fontWeight: MileafType.weightSemiBold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: MileafSpace.s8),
-                  LayoutBuilder(
-                    builder: (context, constraints) => Container(
-                      height: MileafSpace.inline6,
-                      decoration: BoxDecoration(
-                        color: colors.line,
-                        borderRadius: MileafRadius.xsAll,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: SizedBox(
-                          width: maximum <= 0
-                              ? 0
-                              : constraints.maxWidth *
-                                    ((values[i].$2 ?? 0) / maximum).clamp(0, 1),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: _bar(context, i),
-                              borderRadius: MileafRadius.xsAll,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (note != null)
-          Text(
-            note!,
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-      ],
-    );
-  }
+  /// 0 for an empty bucket list, otherwise the index inside `0..length-1`.
+  int clampedIndex(int length) =>
+      length <= 0 ? 0 : index.clamp(0, length - 1);
 }

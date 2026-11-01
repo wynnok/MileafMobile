@@ -9,9 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'statistics_test.dart' show openStats, fixture, custom;
+import 'statistics_test.dart' show openStats, fixture, custom, tapDateAction;
 import 'package:mileaf/src/design/components/components.dart';
-import 'package:mileaf/src/statistics_period.dart';
 
 import 'charging_test.dart' show MemoryCurrency, app;
 
@@ -223,8 +222,7 @@ void main() {
         () => DateTime.utc(2026, 3, 15, 12),
         () => 'UTC',
       );
-      await tester.tap(find.byKey(dateActionKey));
-      await tester.pumpAndSettle();
+      await tapDateAction(tester);
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'design/components/components.dart';
-import 'design/tokens.dart';
 import 'workspace.dart';
 
 enum StatisticsPeriod { week, recent, month, year, custom }
@@ -106,9 +105,8 @@ class StatisticsPeriodControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
+                ChipRow(
+                  alignment: WrapCrossAlignment.start,
                   children: [
                     for (final preset in const {
                       StatisticsPeriod.week: '本周',
@@ -196,10 +194,7 @@ class StatisticsPeriodControls extends StatelessWidget {
   /// Two quick ranges plus the 日期 sheet action, all A chips; custom/week/year
   /// stay reachable from the sheet. Chips wrap instead of scrolling at 200%.
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: MileafSpace.s8,
-    runSpacing: MileafSpace.s4,
-    crossAxisAlignment: WrapCrossAlignment.center,
+  Widget build(BuildContext context) => ChipRow(
     children: [
       StatusChip(
         label: '本月',
@@ -216,7 +211,6 @@ class StatisticsPeriodControls extends StatelessWidget {
         ),
       ),
       StatusChip(
-        key: dateActionKey,
         label: switch (selection.period) {
           StatisticsPeriod.week => '本周',
           StatisticsPeriod.year => '本年',
@@ -235,6 +229,3 @@ class StatisticsPeriodControls extends StatelessWidget {
     ],
   );
 }
-
-/// Stable locator for the 日期 sheet action used by tests and the gallery.
-const dateActionKey = ValueKey('statistics-date-action');

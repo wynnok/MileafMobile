@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -1307,42 +1306,11 @@ class _OverviewPageState extends State<OverviewPage>
       ('DC', charging?.totals.dcEnergyKwh),
       ('未知', enhancedCharging?.totals.unknownEnergyKwh),
     ];
-    final known = [
-      for (final row in rows)
-        if (row.$2 != null && row.$2! > 0) row,
-    ];
-    final total = known.fold<num>(0, (sum, row) => sum + row.$2!);
     final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (total > 0)
-          ClipRRect(
-            borderRadius: MileafRadius.xsAll,
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  for (final (index, row) in known.indexed)
-                    Expanded(
-                      flex: math.max(1, (row.$2! / total * 1000).round()),
-                      child: ColoredBox(
-                        color: switch (index % 3) {
-                          0 => colors.seriesPrimary,
-                          1 => colors.seriesSecondary,
-                          _ => colors.seriesNeutral,
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          )
-        else
-          Text(
-            'AC/DC 分类能量缺失',
-            style: context.type.micro.copyWith(color: colors.textFaint),
-          ),
+        MileafCompositionBar(segments: rows),
         const SizedBox(height: MileafSpace.s8),
         Wrap(
           spacing: MileafSpace.s16,
