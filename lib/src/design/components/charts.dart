@@ -139,9 +139,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   String _tick(DateTime time) =>
       widget.tickLabel?.call(time) ?? '${time.month}/${time.day}';
 
-  String _value(num? value) => value == null
-      ? '—'
-      : '${_format(value)} ${widget.unit}';
+  String _value(num? value) =>
+      value == null ? '—' : '${_format(value)} ${widget.unit}';
 
   String _format(num value) => value is int
       ? '$value'
@@ -290,9 +289,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 onIncrease: selected < widget.times.length - 1
                     ? () => _select(selected + 1)
                     : null,
-                onDecrease: selected > 0
-                    ? () => _select(selected - 1)
-                    : null,
+                onDecrease: selected > 0 ? () => _select(selected - 1) : null,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (details) {
@@ -323,9 +320,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                           selected: selected,
                           plot: plot,
                           progress: progress,
-                          primary: onHero
-                              ? colors.accentHero
-                              : colors.accent,
+                          primary: onHero ? colors.accentHero : colors.accent,
                           reference: colors.reference,
                           axis: faint,
                           baseline: (onHero ? colors.heroText : colors.text)
@@ -389,19 +384,13 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: widget.onActivateSelected,
-              child: Text(
-                '看当天',
-                semanticsLabel: widget.activationLabel,
-              ),
+              child: Text('看当天', semanticsLabel: widget.activationLabel),
             ),
           ),
         if (widget.note != null)
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s4),
-            child: Text(
-              widget.note!,
-              style: type.micro.copyWith(color: faint),
-            ),
+            child: Text(widget.note!, style: type.micro.copyWith(color: faint)),
           ),
       ],
     );
@@ -421,10 +410,7 @@ class _ChartTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     header: true,
-    child: Text(
-      title,
-      style: context.type.title.copyWith(color: color),
-    ),
+    child: Text(title, style: context.type.title.copyWith(color: color)),
   );
 }
 
@@ -504,12 +490,15 @@ class StemChart extends StatelessWidget {
     this.subtitle,
     this.controls,
     this.height,
+    this.plotKey,
     this.selectedIndex,
     this.onSelected,
     this.readout,
     this.trailing,
     this.note,
     this.onHero = false,
+    this.onActivateSelected,
+    this.activationLabel = '查看这一天',
   });
 
   final String title;
@@ -520,12 +509,15 @@ class StemChart extends StatelessWidget {
   final String? subtitle;
   final Widget? controls;
   final double? height;
+  final Key? plotKey;
   final int? selectedIndex;
   final ValueChanged<int>? onSelected;
   final String Function(int index)? readout;
   final Widget? trailing;
   final String? note;
   final bool onHero;
+  final VoidCallback? onActivateSelected;
+  final String activationLabel;
 
   @override
   Widget build(BuildContext context) => TimeSeriesChart(
@@ -539,12 +531,15 @@ class StemChart extends StatelessWidget {
     subtitle: subtitle,
     controls: controls,
     height: height,
+    plotKey: plotKey,
     selectedIndex: selectedIndex,
     onSelected: onSelected,
     readout: readout,
     trailing: trailing,
     note: note,
     onHero: onHero,
+    onActivateSelected: onActivateSelected,
+    activationLabel: activationLabel,
   );
 }
 
@@ -654,10 +649,7 @@ class _SparkPainter extends CustomPainter {
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              color.withValues(alpha: .12),
-              color.withValues(alpha: 0),
-            ],
+            colors: [color.withValues(alpha: .12), color.withValues(alpha: 0)],
           ).createShader(Offset.zero & size),
       );
       canvas.drawPath(
@@ -712,12 +704,12 @@ class _ChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final known = series
-        .expand((s) => s.values)
-        .whereType<num>()
-        .toList();
+    final known = series.expand((s) => s.values).whereType<num>().toList();
     var high = known.isEmpty ? 1.0 : known.reduce(math.max).toDouble();
-    var low = math.min(0.0, known.isEmpty ? 0.0 : known.reduce(math.min).toDouble());
+    var low = math.min(
+      0.0,
+      known.isEmpty ? 0.0 : known.reduce(math.min).toDouble(),
+    );
     if (high == low) high = low + 1;
     final step = _niceStep((high - low) / 3);
     high = (high / step).ceil() * step;
@@ -738,12 +730,17 @@ class _ChartPainter extends CustomPainter {
     final labelStyle = TextStyle(
       fontFamily: MileafType.family,
       fontFamilyFallback: MileafType.fallback,
-      fontSize: MileafChartMetrics.axisLabelSize *
-          math.min(scaler.scale(1), 1.5),
+      fontSize:
+          MileafChartMetrics.axisLabelSize * math.min(scaler.scale(1), 1.5),
       color: axis,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
-    void label(String text, Offset at, {bool centered = false, bool right = false}) {
+    void label(
+      String text,
+      Offset at, {
+      bool centered = false,
+      bool right = false,
+    }) {
       final painter = TextPainter(
         text: TextSpan(text: text, style: labelStyle),
         textDirection: TextDirection.ltr,
@@ -752,7 +749,12 @@ class _ChartPainter extends CustomPainter {
       painter.paint(
         canvas,
         Offset(
-          at.dx - (right ? painter.width : centered ? painter.width / 2 : 0),
+          at.dx -
+              (right
+                  ? painter.width
+                  : centered
+                  ? painter.width / 2
+                  : 0),
           at.dy,
         ),
       );
@@ -761,10 +763,7 @@ class _ChartPainter extends CustomPainter {
 
     if (showYAxis && !largeText) {
       for (final value in {low, (low + high) / 2, high}) {
-        label(
-          _axisNumber(value),
-          Offset(0, y(value) - 5),
-        );
+        label(_axisNumber(value), Offset(0, y(value) - 5));
       }
     }
     if (showXAxis) {
@@ -775,10 +774,7 @@ class _ChartPainter extends CustomPainter {
         final centered = index != 0 && index != times.length - 1;
         label(
           tick(times[index]),
-          Offset(
-            x(index),
-            plot.bottom + 4,
-          ),
+          Offset(x(index), plot.bottom + 4),
           centered: centered,
           right: index == times.length - 1,
         );
@@ -854,16 +850,17 @@ class _ChartPainter extends CustomPainter {
   ) {
     final runs = chartRuns(chart.values);
     final areaPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          primary.withValues(alpha: MileafChartMetrics.areaMaxOpacity),
-          primary.withValues(alpha: MileafChartMetrics.areaMinOpacity),
-        ],
-      ).createShader(
-        Rect.fromLTWH(plot.left, plot.top, plot.width, plot.height),
-      );
+      ..shader =
+          LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              primary.withValues(alpha: MileafChartMetrics.areaMaxOpacity),
+              primary.withValues(alpha: MileafChartMetrics.areaMinOpacity),
+            ],
+          ).createShader(
+            Rect.fromLTWH(plot.left, plot.top, plot.width, plot.height),
+          );
     for (final run in runs) {
       final path = Path();
       for (var i = 0; i < run.length; i++) {
@@ -957,7 +954,12 @@ class _ChartPainter extends CustomPainter {
       if (value == null) continue;
       final top = math.min(y(0), y(value));
       final bottom = math.max(y(0), y(value));
-      final rect = Rect.fromLTRB(x(i) - width / 2, top, x(i) + width / 2, bottom);
+      final rect = Rect.fromLTRB(
+        x(i) - width / 2,
+        top,
+        x(i) + width / 2,
+        bottom,
+      );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           rect,
@@ -969,11 +971,7 @@ class _ChartPainter extends CustomPainter {
           ),
       );
       if (value == 0) {
-        canvas.drawCircle(
-          Offset(x(i), y(0)),
-          1.5,
-          Paint()..color = primary,
-        );
+        canvas.drawCircle(Offset(x(i), y(0)), 1.5, Paint()..color = primary);
       }
     }
   }
@@ -1009,7 +1007,9 @@ class _ChartPainter extends CustomPainter {
 
   double _niceStep(double raw) {
     if (raw <= 0 || !raw.isFinite) return 1;
-    final magnitude = math.pow(10, (math.log(raw) / math.ln10).floor()).toDouble();
+    final magnitude = math
+        .pow(10, (math.log(raw) / math.ln10).floor())
+        .toDouble();
     final fraction = raw / magnitude;
     final factor = fraction <= 1
         ? 1

@@ -109,7 +109,7 @@ void main() {
       find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度0至100%')),
       findsOneWidget,
     );
-    expect(find.text('2026年3月29日'), findsWidgets);
+    expect(find.textContaining('2026-03-29'), findsWidgets);
   });
   testWidgets('用户已选币种不被迟到的旧偏好恢复覆盖', (tester) async {
     final currency = DelayedCurrency();
@@ -258,9 +258,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('充入电池 20 kWh'), findsWidgets);
     expect(find.textContaining('电网侧 22 kWh'), findsWidgets);
-    expect(find.textContaining('费用 12（币种未知）'), findsWidgets);
-    await tester.scrollUntilVisible(find.textContaining('· 进行中'), 200);
-    expect(find.textContaining('· 进行中'), findsOneWidget);
+    expect(find.textContaining('费用 12'), findsWidgets);
+    expect(find.textContaining('币种未记录'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('进行中'), 200);
+    expect(find.text('进行中'), findsOneWidget);
     expect(find.textContaining('AC'), findsWidgets);
     expect(find.textContaining('¥'), findsNothing);
   });
@@ -369,11 +370,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('费用 0（币种未知）'), findsOneWidget);
-    expect(find.text('充电类型未知'), findsOneWidget);
+    expect(find.textContaining('费用 0'), findsOneWidget);
+    expect(find.textContaining('币种未记录'), findsWidgets);
+    expect(find.textContaining('充电类型未知'), findsOneWidget);
     expect(find.text('未知地点'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('费用 —（缺失）'), 200);
-    expect(find.text('费用 —（缺失）'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('费用 —'), 200);
+    expect(find.textContaining('费用 —'), findsOneWidget);
     await tester.tap(find.text('概览'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));

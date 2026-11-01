@@ -493,11 +493,11 @@ void main() {
     expect(query['from'], '2026-03-29T00:00:00.000Z');
     expect(query['to'], '2026-03-30T00:00:00.000Z');
     await tester.scrollUntilVisible(
-      find.text('2026年3月29日'),
+      find.textContaining('仅看 2026年3月29日'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('2026年3月29日'), findsWidgets);
+    expect(find.textContaining('仅看 2026年3月29日'), findsOneWidget);
     expect(find.textContaining('2026-03-28 23:10:00'), findsOneWidget);
   });
 
@@ -667,8 +667,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(RegExp('补入电池 —（缺失）')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('记录时长 —（缺失）.*非等待时间')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('补入电池 —')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('记录时长 —.*非等待时间')), findsOneWidget);
     expect(find.textContaining('费用有记录 0 / 8'), findsOneWidget);
     free = true;
     await tester.tap(find.byTooltip('刷新充电'));
