@@ -6,8 +6,8 @@
 - 生成条件：360×800 逻辑像素、pixelRatio 2（PNG 720×1600）；Inter 400/500/600 + 渲染机 CJK fallback（Arial Unicode）。
 - 数据：`test/support/c_fixture.dart` 的合成 fixture，不是真实站点。
 - 来源指纹：
-  - 36 张 PNG：`89075a62807912f9e924cce6aa78884527826343600ff75aed1c69b97e01c4e5`
-  - 页面/组件/入口源码：`e2a4ec4e54ca3e7c525f7ad44c7fef331349eff5eac744a05f388f4b2be37aff`
+  - 36 张 PNG：`c5f1ce492f6ec0889533fc41168f50752cc2d12703641d77a5cd4b67388a398a`
+  - 页面/组件/入口源码：`6dc01c8eec2b7430ce855b6df52dd717dc59f5dbd4a440f0f92cfc5f5a080bbf`
 
 ## 矩阵
 

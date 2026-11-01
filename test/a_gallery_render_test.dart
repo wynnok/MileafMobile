@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/currency.dart';
 import 'package:mileaf/src/workspace.dart';
 
@@ -17,6 +18,14 @@ import 'c_gallery_render_test.dart' show cGalleryClient;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
+
+class _Appearance implements AppearancePreferenceStore {
+  String? value;
+  @override
+  Future<String?> read() async => value;
+  @override
+  Future<void> write(String? next) async => value = next;
+}
 
 class _Cny implements CurrencyPreferenceStore {
   @override
@@ -52,7 +61,15 @@ void main() {
     Future<void> save(String name) =>
         saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
 
-    Future<void> pumpApp(String key, String scenario) async {
+    Future<void> pumpApp(
+      String key,
+      String scenario,
+      Brightness brightness,
+    ) async {
+      final appearanceStore = _Appearance()
+        ..value = brightness == Brightness.dark ? 'dark' : 'light';
+      final appearance = AppearanceController(appearanceStore);
+      await appearance.restore();
       final store = MemorySessionStore()
         ..value = jsonEncode({
           'site': cSite,
@@ -69,6 +86,7 @@ void main() {
             trustStore: MemoryTrustStore(),
             vehiclePreferences: MemoryVehiclePreferences(),
             currencyPreferences: _Cny(),
+            appearance: appearance,
             now: () => cNow,
             calendar: () async => CalendarContext('Asia/Shanghai'),
           ),
@@ -89,14 +107,14 @@ void main() {
           tester.platformDispatcher.platformBrightnessTestValue = brightness;
           tester.platformDispatcher.textScaleFactorTestValue = scale;
 
-          await pumpApp('overview-$suffix', scenario);
+          await pumpApp('overview-$suffix', scenario, brightness);
           await save('overview-$suffix');
           if (scenario == 'normal' && scale == 1.0) {
             expect(find.textContaining('每日里程'), findsWidgets);
             expect(find.textContaining('本月 · 驾驶里程'), findsWidgets);
           }
 
-          await pumpApp('drives-$suffix', scenario);
+          await pumpApp('drives-$suffix', scenario, brightness);
           await tester.tap(find.text('行程').last);
           await tester.pumpAndSettle();
           await save('drives-$suffix');
@@ -105,7 +123,7 @@ void main() {
             expect(find.text('最近的路'), findsOneWidget);
           }
 
-          await pumpApp('charging-$suffix', scenario);
+          await pumpApp('charging-$suffix', scenario, brightness);
           await tester.tap(find.text('充电').last);
           await tester.pumpAndSettle();
           await save('charging-$suffix');
@@ -114,7 +132,7 @@ void main() {
             expect(find.text('每日补能'), findsOneWidget);
           }
 
-          await pumpApp('statistics-$suffix', scenario);
+          await pumpApp('statistics-$suffix', scenario, brightness);
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
           await save('statistics-$suffix');
@@ -134,7 +152,7 @@ void main() {
             await tester.pumpAndSettle();
             await save('topic-rhythm-$suffix');
 
-            await pumpApp('charge-detail-$suffix', scenario);
+            await pumpApp('charge-detail-$suffix', scenario, brightness);
             await tester.scrollUntilVisible(
               find.text('最近充电').hitTestable(),
               200,
@@ -145,7 +163,7 @@ void main() {
             await tester.pumpAndSettle();
             await save('charge-detail-$suffix');
 
-            await pumpApp('drive-detail-$suffix', scenario);
+            await pumpApp('drive-detail-$suffix', scenario, brightness);
             await tester.scrollUntilVisible(
               find.text('最近行程').hitTestable(),
               200,
