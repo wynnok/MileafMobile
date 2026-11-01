@@ -7,7 +7,7 @@
 - 数据：`test/support/c_fixture.dart` 的合成 fixture，不是真实站点。
 - 来源指纹：
   - 36 张 PNG：`c5f1ce492f6ec0889533fc41168f50752cc2d12703641d77a5cd4b67388a398a`
-  - 页面/组件/入口源码：`6dc01c8eec2b7430ce855b6df52dd717dc59f5dbd4a440f0f92cfc5f5a080bbf`
+  - 页面/组件/入口源码：`addf89bc6489d0ec733c8bdd4a4405b7a2e4aa3d4a078050f3fee63cb41b48f6`
 
 ## 矩阵
 
