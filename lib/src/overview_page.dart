@@ -1166,41 +1166,44 @@ class _OverviewPageState extends State<OverviewPage>
       ],
     ),
   );
-  List<Widget> records(dto.Summary d) => [
-    Text('最近记录', style: Theme.of(context).textTheme.titleSmall),
-    const SizedBox(height: 8),
-    LayoutBuilder(
-      builder: (context, constraints) {
-        final single = largeText(context);
-        final width = single
-            ? constraints.maxWidth
-            : (constraints.maxWidth - 8) / 2;
-        Widget recent({
-          required String title,
-          required VoidCallback? onTap,
-          required CollageSurface surface,
-          required WidgetBuilder body,
-        }) => SizedBox(
-          width: width,
-          child: CollageTile(
-            surface: surface,
-            padding: EdgeInsets.zero,
-            child: InkWell(
-              onTap: onTap,
-              // CollageTile 只在自己的子树内换主题；深色 tile 的标题和正文
-              // 若沿用外层取到的样式，会变成深底上的近黑字而看不清。
-              child: Builder(
-                builder: (context) => Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
+
+  /// C 最近记录：两列等高，标题/主数/口径/页脚逐行对齐。
+  Widget _recentTiles(dto.Summary d) {
+    final drive = d.lastDrive;
+    final charge = d.lastCharge;
+    Widget tile({
+      required String title,
+      required VoidCallback? onTap,
+      required CollageSurface surface,
+      required WidgetBuilder body,
+      Widget? Function(BuildContext)? footer,
+    }) => CollageTile(
+      surface: surface,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: onTap,
+        // CollageTile 只在自己的子树内换主题；深色 tile 的标题和正文
+        // 若沿用外层取到的样式，会变成深底上的近黑字而看不清。
+        child: Builder(
+          builder: (context) {
+            final theme = Theme.of(context);
+            final foot = footer?.call(context);
+            return Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               title,
-                              style: Theme.of(context).textTheme.titleSmall,
+                              style: theme.textTheme.titleSmall,
                             ),
                           ),
                           if (onTap != null)
@@ -1211,92 +1214,130 @@ class _OverviewPageState extends State<OverviewPage>
                       body(context),
                     ],
                   ),
-                ),
+                  if (foot != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: foot,
+                    ),
+                ],
               ),
+            );
+          },
+        ),
+      ),
+    );
+    // 两张卡共用同一条结构：标题行 → 主数 → 单行口径 → 页脚（时间戳）。
+    Widget metric(BuildContext context, {required String value, String? note}) {
+      final theme = Theme.of(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-        );
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            recent(
-              title: '最近行程',
-              surface: CollageSurface.mint,
-              onTap: d.lastDrive == null
-                  ? null
-                  : () => widget.onRecord?.call('drive', d.lastDrive!.id),
-              body: (context) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    d.lastDrive == null
-                        ? '—'
-                        : number(d.lastDrive!.distanceKm, 'km', decimals: 1),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  if (d.lastDrive != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '净电耗 ${number(d.lastDrive!.consumptionWhKm, 'Wh/km')}',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    Text(
-                      timestamp(d.lastDrive!.startedAt),
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ],
-              ),
+          if (note != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              note,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall,
             ),
-            recent(
-              title: '最近充电',
-              surface: CollageSurface.hero,
-              onTap: d.lastCharge == null
-                  ? null
-                  : () => widget.onRecord?.call('charging', d.lastCharge!.id),
-              body: (context) => Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    d.lastCharge == null
-                        ? '—'
-                        : number(d.lastCharge!.endSoc, '%'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  if (d.lastCharge != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '充入 ${number(d.lastCharge!.energyKwh, 'kWh', decimals: 2)} · 结束电量',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    if (d.lastCharge!.endSoc case final soc?)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: LinearProgressIndicator(
-                          value: (soc / 100).clamp(0, 1),
-                          semanticsLabel: '最近充电结束电量',
-                          semanticsValue: '$soc %',
-                        ),
-                      ),
-                    Text(
-                      timestamp(d.lastCharge!.startedAt),
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ],
+          ],
+        ],
+      );
+    }
+
+    final driveTile = tile(
+      title: '最近行程',
+      surface: CollageSurface.mint,
+      onTap: drive == null
+          ? null
+          : () => widget.onRecord?.call('drive', drive.id),
+      body: (context) => metric(
+        context,
+        value: drive == null
+            ? '—'
+            : number(drive.distanceKm, 'km', decimals: 1),
+        note: drive == null
+            ? null
+            : '净电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
+      ),
+      footer: (context) => drive == null
+          ? null
+          : Text(
+              timestamp(drive.startedAt),
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+    );
+    final chargeTile = tile(
+      title: '最近充电',
+      surface: CollageSurface.hero,
+      onTap: charge == null
+          ? null
+          : () => widget.onRecord?.call('charging', charge.id),
+      body: (context) => metric(
+        context,
+        value: charge == null ? '—' : number(charge.endSoc, '%'),
+        note: charge == null
+            ? null
+            : '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
+      ),
+      footer: (context) {
+        if (charge == null) return null;
+        final theme = Theme.of(context);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (charge.endSoc case final soc?)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: LinearProgressIndicator(
+                  value: (soc / 100).clamp(0, 1),
+                  minHeight: 4,
+                  // 与充电页 hero 进度条同色，深色 tile 上轨道不比进度亮。
+                  color: const Color(0xFF8AD6AF),
+                  backgroundColor: const Color(0xFF315344),
+                  semanticsLabel: '最近充电结束电量',
+                  semanticsValue: '$soc %',
+                ),
               ),
+            Text(
+              timestamp(charge.startedAt),
+              style: theme.textTheme.labelSmall,
             ),
           ],
         );
       },
-    ),
+    );
+    if (largeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [driveTile, chargeTile],
+      );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: driveTile),
+          const SizedBox(width: 8),
+          Expanded(child: chargeTile),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> records(dto.Summary d) => [
+    Text('最近记录', style: Theme.of(context).textTheme.titleSmall),
+    const SizedBox(height: 8),
+    _recentTiles(d),
     DataCard(
       padding: EdgeInsets.zero,
       child: ExpansionTile(
@@ -1412,13 +1453,21 @@ class _OverviewPageState extends State<OverviewPage>
     ),
   );
 
-  Widget _monthBento() =>
-      CollageBento(lead: _monthTile(), evidence: [_netTile(), _costTile()]);
+  Widget _monthBento() => CollageBento(
+    stretch: true,
+    lead: _monthTile(),
+    evidence: [_netTile(), _costTile()],
+  );
 
   Widget _monthTile() {
     final theme = Theme.of(context);
+    final stacked = largeText(context);
     final value = driving?.totals.distanceKm;
     final parts = value == null ? '—' : grouped(value, decimals: 1);
+    final spark = [
+      for (final b in driving?.buckets ?? <stats.DrivingBucket>[])
+        b.distanceKm.toDouble(),
+    ];
     return Semantics(
       container: true,
       label:
@@ -1466,13 +1515,11 @@ class _OverviewPageState extends State<OverviewPage>
               const SizedBox(height: 6),
               deltaPill(_mileageDeltaPill),
               const SizedBox(height: 8),
-              Sparkline(
-                height: 26,
-                values: [
-                  for (final b in driving?.buckets ?? <stats.DrivingBucket>[])
-                    b.distanceKm.toDouble(),
-                ],
-              ),
+              // C 原型用里程折线填满主 tile 的下半段；两列等高时让它吸收余量。
+              if (stacked)
+                Sparkline(height: 26, values: spark)
+              else
+                Expanded(child: Sparkline(values: spark)),
             ],
           ),
         ),
@@ -1503,7 +1550,14 @@ class _OverviewPageState extends State<OverviewPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('净电耗 · 估算', style: theme.textTheme.labelSmall),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('净电耗 · 估算', style: theme.textTheme.labelSmall),
+                  ),
+                  const Icon(Icons.speed_outlined, size: 14),
+                ],
+              ),
               const SizedBox(height: 4),
               Text.rich(
                 TextSpan(

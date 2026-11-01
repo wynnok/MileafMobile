@@ -38,4 +38,14 @@ TDD：首个布局测试先失败（里程tile160宽，预期>175），实施后
 
 回归：`test/collage_overview_test.dart` 6 项——环描边内收、右侧至少落在内容区内 1dp、四边不出内容区（390dp×100%/130%/200%、320dp×130% 四档，含 ≥150% 的纵向堆叠分支），以及深色 tile 内每处文字与卡底对比度 ≥4.5、卡底确为深色（浅/深两种系统外观）。修正前这些断言均失败（描边为 null、文字对比度 1.09），修正后通过；全量 `tool/flutterw test --no-pub` 272 项通过、19 项 opt-in 渲染跳过；`flutter analyze --no-pub` 无问题。渲染复核：320dp×130%（热门最紧处主数不换行、环完整）、390dp×100/130/200%（浅/深），环均为完整圆弧，深色卡标题/正文/时间可读。
 
-已知未改：环轨道读 `colorScheme.surface`、最近充电进度轨道读 `secondaryContainer`，都是浅色 token 漏到深色 tile 上（轨道比进度亮，但两张截图未提出）。真正的修法是在 `collage.dart` 的 hero 主题里统一覆盖这些容器色，属独立一轮。C10 的 `c-fidelity-scratch/latest-overview-*.png` 对这两处不再是最新证据。
+已知未改：环轨道读 `colorScheme.surface`，是浅色 token 漏到深色 tile 上（轨道比进度亮，但两张截图未提出）。真正的修法是在 `collage.dart` 的 hero 主题里统一覆盖这些容器色，属独立一轮。C10 的 `c-fidelity-scratch/latest-overview-*.png` 对这两处不再是最新证据。
+
+## 2026-11-01 两列等高与最近记录改版（用户截图）
+
+用户指出两处两列区块左右不一致：本月块（主 tile 与「净电耗／已知充电费用」列）底边不齐、主 tile 下方留空；最近记录两张卡高度与内容节奏不一致，充电卡还把「结束电量」拆行、电量缺失时只剩半句。以下只调版面与文案结构，不改数据、口径、顺序与交互。
+
+- `CollageBento` 新增 `stretch`（默认 false，统计与充电调用点不变）：宽屏用 `IntrinsicHeight` + `CrossAxisAlignment.stretch` 让主 tile 与证据列等高，证据列 `spaceBetween` 顶底对齐；证据本身保持自然高度，避免 flex 参与 intrinsic 计算被压缩。
+- 概览本月块启用 `stretch`：主 tile 的里程 Sparkline 改 `Expanded` 吸收余量（≥150% 单列时仍固定 26），回到 C 原型「主 tile 下半段大面积折线」的比例；净电耗 tile 补右上角图标，与费用 tile 的标签行同构。
+- 最近记录改为共享 tile 结构（标题行／主数／单行口径／页脚）：宽屏 `IntrinsicHeight` 两等列，页脚（时间戳）底对齐；≥150% 单列。充电卡口径改为「充入 46.80 kWh」，不再输出悬空的「结束电量」；进度条移入页脚上方并显式取 hero 主题的 `primary`/`onSurface`，避免轨道比进度更亮。
+
+回归：新增三项先失败（本月块底边差 60dp、最近记录底边差 4dp）后通过——两列矩形顶底对齐、页脚贴卡底（距卡底 20dp = 内容 12 + 卡片下距 8）、口径文案与 ≥150% 单列分支。全量 `tool/flutterw test --no-pub` 274 通过、19 项 opt-in 渲染跳过；`flutter analyze --no-pub` 无问题。渲染复核用临时脚手架在 390×844 浅/深 ×100/200 完成（位图未入库、脚手架已删除）：本月块两列顶底对齐，最近记录两卡等高、页脚同一基线，单列分支无溢出。图册入口 `test/collage_render_test.dart` 的选择器仍是旧口径文案（`驾驶净电耗 · 配对估算` 等），本次未修，因此 `collage-renders/overview/` 未刷新——属既有失效，另行修复。

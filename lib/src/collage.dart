@@ -61,29 +61,49 @@ bool largeText(BuildContext context) =>
 
 /// A dominant result beside quieter evidence; large text always stacks.
 class CollageBento extends StatelessWidget {
-  const CollageBento({super.key, required this.lead, required this.evidence});
+  const CollageBento({
+    super.key,
+    required this.lead,
+    required this.evidence,
+    this.stretch = false,
+  });
   final Widget lead;
   final List<Widget> evidence;
+
+  /// 两列等高：主 tile 与证据列顶底对齐，列内证据保持自然高度。
+  ///
+  /// `lead` 内可用 `Expanded`/`Flexible` 吸收多出的高度；这类 flex 子按自身
+  /// 固有高度参与 intrinsic 计算，证据列不要放 flex 子，否则会被压缩。
+  final bool stretch;
   @override
-  Widget build(BuildContext context) => largeText(context)
-      ? Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [lead, ...evidence],
-        )
-      : Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 6, child: lead),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 5,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: evidence,
-              ),
-            ),
-          ],
-        );
+  Widget build(BuildContext context) {
+    if (largeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [lead, ...evidence],
+      );
+    }
+    final row = Row(
+      crossAxisAlignment: stretch
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 6, child: lead),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: stretch
+                ? MainAxisAlignment.spaceBetween
+                : MainAxisAlignment.start,
+            children: evidence,
+          ),
+        ),
+      ],
+    );
+    return stretch ? IntrinsicHeight(child: row) : row;
+  }
 }
 
 /// Quiet line sparkline used by C preview tiles (`1,198.6` tile, 四个问题).
