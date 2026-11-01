@@ -702,7 +702,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   @override
   Widget build(BuildContext context) {
     final inset = MileafLayout.pageInset(context);
-    final large = MileafLayout.largeText(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('行程 #${widget.id}'),
@@ -736,7 +735,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                 scene: _mapScene(interactive: false),
                 consent: _mapConsent,
                 platform: _mapPlatform,
-                height: large ? 240 : 320,
+                height: MileafLayout.mapHeight(context, normal: 320),
                 borderRadius: BorderRadius.zero,
                 onExpand: () => _openFullMap(context),
               ),

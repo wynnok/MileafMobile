@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../design/semantic.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
 import '../performance_trace.dart';
 import 'amap_android_platform.dart';
 import 'amap_ios_platform.dart';
@@ -198,7 +201,13 @@ class _MapPanelState extends State<MapPanel> {
                 ),
               if (_status == _MapStatus.ready) _chrome(context),
               if (_status == _MapStatus.loading) _loading(context),
-              if (_status == _MapStatus.consent) _consentPanel(context),
+              if (_status == _MapStatus.consent)
+                Positioned(
+                  left: MileafSpace.s12,
+                  right: MileafSpace.s12,
+                  bottom: MileafSpace.s12,
+                  child: _consentCard(context),
+                ),
               if (_status == _MapStatus.unsupported) _unsupportedPanel(context),
               if (_status == _MapStatus.failed) _failurePanel(context),
             ],
@@ -351,86 +360,82 @@ class _MapPanelState extends State<MapPanel> {
     );
   }
 
-  Widget _consentPanel(BuildContext context) {
-    final theme = Theme.of(context);
-    return Positioned(
-      left: 12,
-      right: 12,
-      bottom: 12,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('底图未启用 · 路线示意', style: theme.textTheme.labelMedium),
-            const SizedBox(height: 4),
-            Text(
-              '加载后会向${_platform.providerName}发送 IP、设备/网络信息和当前地图范围；不发送站点凭据，不读取手机定位。',
-              style: theme.textTheme.bodySmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+  /// Bottom-of-map notice: the full privacy copy in natural wrapping.
+  ///
+  /// No `maxLines`/`ellipsis` — at 200% the sentence wraps to three lines and
+  /// still fits inside the 240 map hero. Spacing, radius and type all come from
+  /// A tokens.
+  Widget _consentCard(BuildContext context) {
+    final colors = context.colors;
+    final type = context.type;
+    return _card(
+      context,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '底图未启用 · 路线示意',
+            style: type.label.copyWith(
+              fontWeight: MileafType.weightSemiBold,
+              color: colors.text,
             ),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () => showMapConsentSheet(
-                  context,
-                  widget.consent,
-                  providerName: _platform.providerName,
-                ),
-                child: const Text('启用地图'),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Text(
+            '加载后会向${_platform.providerName}发送 IP、设备/网络信息和当前地图范围；'
+            '不发送站点凭据，不读取手机定位。',
+            style: type.micro.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, MileafSpace.touch),
               ),
+              onPressed: () => showMapConsentSheet(
+                context,
+                widget.consent,
+                providerName: _platform.providerName,
+              ),
+              child: const Text('启用地图'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _unsupportedPanel(BuildContext context) {
-    final theme = Theme.of(context);
     return Positioned(
-      left: 12,
-      right: 12,
-      bottom: 12,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+      left: MileafSpace.s12,
+      right: MileafSpace.s12,
+      bottom: MileafSpace.s12,
+      child: _card(
+        context,
+        Text(
+          '此平台暂不支持底图，其他记录仍可阅读',
+          style: context.type.body.copyWith(color: context.colors.textMuted),
         ),
-        child: Text('此平台暂不支持底图，其他记录仍可阅读', style: theme.textTheme.bodySmall),
       ),
     );
   }
 
   Widget _failurePanel(BuildContext context) {
-    final theme = Theme.of(context);
+    final type = context.type;
     return Positioned(
-      left: 12,
-      right: 12,
-      bottom: 12,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Row(
+      left: MileafSpace.s12,
+      right: MileafSpace.s12,
+      bottom: MileafSpace.s12,
+      child: _card(
+        context,
+        Row(
           children: [
             Expanded(
               child: Text(
                 '地图暂不可用 · 其他记录仍可阅读',
-                style: theme.textTheme.bodySmall,
+                style: type.body.copyWith(color: context.colors.textMuted),
               ),
             ),
             TextButton(onPressed: _retry, child: const Text('重试底图')),
@@ -439,4 +444,15 @@ class _MapPanelState extends State<MapPanel> {
       ),
     );
   }
+
+  /// Every in-map notice shares one surface: raised, 10 radius, 1px line.
+  Widget _card(BuildContext context, Widget child) => Container(
+    padding: const EdgeInsets.all(MileafSpace.s12),
+    decoration: BoxDecoration(
+      color: context.colors.surfaceRaised,
+      borderRadius: MileafRadius.smAll,
+      border: Border.all(color: context.colors.line),
+    ),
+    child: child,
+  );
 }

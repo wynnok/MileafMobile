@@ -19,6 +19,12 @@ abstract final class MileafLayout {
   static bool reduceMotion(BuildContext context) =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
+  /// Map hero height. At 150%+ every map uses 240 (Spec §9.4) so the in-map
+  /// notice band, which grows with the text scaler, still fits without
+  /// clipping the copy or covering its action.
+  static double mapHeight(BuildContext context, {required double normal}) =>
+      largeText(context) ? 240 : normal;
+
   static double chartHeight(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= MileafBreakpoints.wide
       ? MileafSpace.chartHeightWide

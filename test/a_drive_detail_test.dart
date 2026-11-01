@@ -49,6 +49,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('A 200% 底图同意条全文可见且不遮挡启用地图', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    await openDetail(
+      tester,
+      (r) async => jsonResponse(
+        jsonEncode(
+          fixture(
+            r.url.path.endsWith('/series') ? 'drive-series' : 'drive-detail',
+          ),
+        ),
+      ),
+    );
+    final privacy = find.textContaining('不读取手机定位。');
+    expect(privacy, findsOneWidget, reason: '隐私说明必须完整留在页面上');
+    final text = tester.widget<Text>(privacy);
+    expect(text.maxLines, isNull, reason: '不得用 maxLines 截断');
+    expect(text.overflow, isNull, reason: '不得用 ellipsis 截断');
+    final map = tester.getRect(find.byType(MapPanel));
+    final copy = tester.getRect(privacy);
+    final button = tester.getRect(find.text('启用地图'));
+    expect(map.height, 240, reason: '200% 地图高度仍为 240');
+    expect(copy.top, greaterThanOrEqualTo(map.top));
+    expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
+    expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: '按钮不超出地图、不被裁切');
+    expect(find.textContaining('设备/网络信息'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('A 底图失败保留路线速写与结果', (tester) async {
     final consent = MapConsentController();
     addTearDown(consent.dispose);

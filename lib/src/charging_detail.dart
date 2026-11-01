@@ -522,7 +522,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     ),
                     consent: _mapConsent,
                     platform: _mapPlatform,
-                    height: 180,
+                    height: MileafLayout.mapHeight(context, normal: 180),
                     borderRadius: BorderRadius.circular(MileafRadius.lg),
                   ),
                 ),

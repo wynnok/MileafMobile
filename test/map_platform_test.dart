@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/map/amap_ios_platform.dart';
 import 'package:mileaf/src/map/amap_scene_wire.dart';
 import 'package:mileaf/src/map/geo.dart';
@@ -29,7 +30,9 @@ MapScene _scene({bool empty = false}) => driveScene(
   interactive: false,
 );
 
+// MapPanel 现在按 A token 绘制浮层，测试宿主必须提供 A 主题。
 Widget _app(MapPanel panel) => MaterialApp(
+  theme: mileafTheme(Brightness.dark),
   home: Scaffold(body: SingleChildScrollView(child: panel)),
 );
 
@@ -146,6 +149,38 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
+    expect(find.text('启用地图'), findsOneWidget);
+    final privacy = find.textContaining('不读取手机定位。');
+    expect(tester.widget<Text>(privacy).maxLines, isNull, reason: '不再限制行数');
+    final panel = tester.getRect(find.byType(MapPanel));
+    expect(panel.height, 300, reason: '地图高度不受文字缩放影响');
+    expect(
+      tester.getRect(find.text('启用地图')).bottom,
+      lessThanOrEqualTo(panel.bottom),
+      reason: '200% 下同意条仍完整落在地图内',
+    );
+  });
+
+  testWidgets('200% 全屏地图同意条留在面板内', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final fake = FakeMapPlatform();
+    final consent = MapConsentController();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.dark),
+        home: Scaffold(
+          body: MapPanel(
+            scene: _scene(),
+            consent: consent,
+            platform: fake,
+            height: double.infinity,
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('不读取手机定位。'), findsOneWidget);
     expect(find.text('启用地图'), findsOneWidget);
   });
 
