@@ -393,7 +393,7 @@ class _VehicleSheet extends StatelessWidget {
                                               : MileafType.weightRegular,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: MileafSpace.inline2),
                                       Text(
                                         '车辆 ID ${vehicle.id}',
                                         style: type.micro,

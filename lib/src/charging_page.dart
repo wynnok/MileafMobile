@@ -1290,7 +1290,7 @@ class _ChargingPageState extends State<ChargingPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: type.title),
-        const SizedBox(height: 2),
+        const SizedBox(height: MileafSpace.inline2),
         Text(subtitle, style: type.label.copyWith(color: colors.textMuted)),
       ],
     );
@@ -1386,7 +1386,7 @@ class _ChargingPageState extends State<ChargingPage>
                       fontWeight: MileafType.weightSemiBold,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: MileafSpace.inline2),
                   Text(
                     '已补入 ${number(value.energyAddedKwh, 'kWh')} · 不计入已完成统计',
                     style: type.micro.copyWith(color: colors.textMuted),
@@ -1518,7 +1518,7 @@ class _ChargingPageState extends State<ChargingPage>
                 ),
               ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: MileafSpace.inline2),
             Text(
               '${local.toString().split('.').first} · $kind',
               style: type.micro.copyWith(color: colors.textMuted),
@@ -1537,7 +1537,7 @@ class _ChargingPageState extends State<ChargingPage>
                 fontWeight: MileafType.weightSemiBold,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: MileafSpace.inline2),
             Text(
               '电网侧 ${number(value.energyUsedKwh, 'kWh')}',
               style: type.micro.copyWith(color: colors.textMuted),
@@ -1551,7 +1551,7 @@ class _ChargingPageState extends State<ChargingPage>
               style: type.micro.copyWith(color: colors.textMuted),
             ),
             if (extra.isNotEmpty) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: MileafSpace.inline2),
               Text(
                 extra.join(' · '),
                 style: type.micro.copyWith(color: colors.textFaint),
