@@ -10,6 +10,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture, custom;
+import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/statistics_period.dart';
+
 import 'charging_test.dart' show MemoryCurrency, app;
 
 void main() {
@@ -42,17 +45,16 @@ void main() {
     );
     await tester.tap(find.text('充电统计'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ChoiceChip, '均价'), findsOneWidget);
+    expect(find.widgetWithText(StatusChip, '均价'), findsOneWidget);
     final count = requests.length;
-    await tester.tap(find.widgetWithText(ChoiceChip, '均价'));
+    await tester.tap(find.widgetWithText(StatusChip, '均价'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('均价读数 0（币种未知）/kWh'));
-    expect(find.text('均价读数 0（币种未知）/kWh'), findsOneWidget);
-    await tester.ensureVisible(find.text('后一个采样').first);
+    expect(find.text('均价读数 0/kWh'), findsOneWidget);
+    await tester.drag(find.text('已知费用均价趋势'), const Offset(0, -200));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('后一个采样').first);
+    await tester.tap(find.byKey(const ValueKey('statistics-charging-next')));
     await tester.pumpAndSettle();
-    expect(find.text('均价读数 —（缺失）/kWh'), findsOneWidget);
+    expect(find.text('均价读数 —/kWh'), findsOneWidget);
     expect(requests.length, count);
     await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);
     expect(find.text('AC / DC 时间分布'), findsOneWidget);
@@ -108,13 +110,14 @@ void main() {
       );
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('已知费用合计 0（币种未知）'), findsOneWidget);
+      expect(find.bySemanticsLabel('已知费用合计 0'), findsOneWidget);
+      expect(find.text('币种未记录'), findsWidgets);
       await tester.scrollUntilVisible(find.text('DC 能量占比（已知分类）  —（缺失）'), 200);
       await tester.pumpAndSettle();
       expect(find.text('DC 能量占比（已知分类）  —（缺失）'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('已知费用均价  —（缺失）/kWh'), 60);
+      await tester.scrollUntilVisible(find.text('已知费用均价  —/kWh'), 60);
       await tester.pumpAndSettle();
-      expect(find.text('已知费用均价  —（缺失）/kWh'), findsOneWidget);
+      expect(find.text('已知费用均价  —/kWh'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('2025-12-31 · 20.00 kWh'), 250);
       await tester.pumpAndSettle();
       await tester.tap(find.text('2025-12-31 · 20.00 kWh'));
@@ -128,7 +131,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('刷新统计'));
       await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('已知费用合计 —（缺失）'), findsOneWidget);
+      expect(find.bySemanticsLabel('已知费用合计 —'), findsOneWidget);
     } finally {
       semantics.dispose();
     }
@@ -220,7 +223,7 @@ void main() {
         () => DateTime.utc(2026, 3, 15, 12),
         () => 'UTC',
       );
-      await tester.tap(find.byType(ActionChip).first);
+      await tester.tap(find.byKey(dateActionKey));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
@@ -252,7 +255,7 @@ void main() {
       expect(find.bySemanticsLabel('行程数 49 次'), findsOneWidget);
       expect(find.textContaining('保留上次快照'), findsNothing);
       expect(
-        find.widgetWithText(ActionChip, '本年'),
+        find.widgetWithText(StatusChip, '本年'),
         findsOneWidget,
         reason: '驾驶统计沿用同一年区间，控件显示当前为 本年',
       );
@@ -398,14 +401,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(kinds, ['driving', 'charging']);
       expect(find.bySemanticsLabel('充入电池能量 160.00 kWh'), findsOneWidget);
-      expect(find.bySemanticsLabel('已知费用合计 72（币种未知）'), findsOneWidget);
+      expect(find.bySemanticsLabel('已知费用合计 72'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('DC 能量占比（已知分类）  14.29 %'), 250);
       await tester.pumpAndSettle();
       expect(find.text('DC 能量占比（已知分类）  14.29 %'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('会话数  8 次'), 250);
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
-      expect(find.text('已知费用均价  0.51（币种未知）/kWh'), findsOneWidget);
+      expect(find.text('已知费用均价  0.51/kWh'), findsOneWidget);
       expect(find.text('按结束时间归期 · 仅统计已结束充电'), findsOneWidget);
     } finally {
       semantics.dispose();

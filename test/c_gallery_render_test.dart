@@ -115,7 +115,12 @@ MockClient cGalleryClient({String scenario = 'normal'}) =>
       return http.Response('{}', 404);
     });
 
-/// Every C page in one gallery, driven exclusively by test/support/c_fixture.dart.
+/// **Historical C「数据拼贴」gallery — no longer A evidence.**
+///
+/// The A「夜航」gallery lives in `test/a_gallery_render_test.dart`. This file is
+/// kept so the C compare renders can still be reproduced against the recorded
+/// fixtures; it is skipped unconditionally so it can never be mistaken for a
+/// current visual gate. `cGalleryClient` is still reused by A regression tests.
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
@@ -266,5 +271,5 @@ void main() {
         }
       }
     }
-  }, skip: output.isEmpty);
+  }, skip: true);
 }

@@ -103,7 +103,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('充电详情 #1'), findsOneWidget);
     expect(find.text('充入电池 20 kWh'), findsOneWidget);
-    expect(find.text('费用 12（币种未知）'), findsOneWidget);
+    expect(find.text('费用 12'), findsOneWidget);
+    expect(find.text('币种未记录'), findsWidgets);
     await tester.scrollUntilVisible(find.text('功率 kW'), 300);
     expect(find.text('功率 kW'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('后一个采样').hitTestable(), 200);
@@ -330,8 +331,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电明细'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('费用 —（缺失）').hitTestable(), 200);
-    expect(find.text('费用 —（缺失）'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('费用 —').hitTestable(), 200);
+    expect(find.text('费用 —'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byTooltip('刷新充电曲线').hitTestable(),
       200,

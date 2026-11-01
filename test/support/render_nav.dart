@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mileaf/src/collage.dart';
 
-/// 打开统计页并点进 C 的 2×2 章节卡专题。
+/// 打开统计页并点进 A 的 2×2 章节专题。
 ///
-/// 专题入口是 `InkWell + CollageTile` 的章节卡；`chapters()` 的 busy/error 分支
-/// 仍用 TextButton，不能作为稳定定位器。集中在这里，页面改版时只改一处。
+/// 专题入口是 `InkWell` 包裹的章节块（节奏/能耗/补能/长期）；busy/error 分支
+/// 用 TextButton，不能作为稳定定位器。集中在这里，页面改版时只改一处。
 Future<void> openStatisticsTopic(
   WidgetTester tester,
   String title, {
@@ -14,9 +13,9 @@ Future<void> openStatisticsTopic(
 }) async {
   await tester.tap(find.text('统计').last);
   await tester.pumpAndSettle();
-  final card = find.widgetWithText(CollageTile, title);
+  final card = find.text(title).hitTestable();
   await tester.scrollUntilVisible(
-    card.hitTestable(),
+    card,
     delta,
     scrollable: scrollable ?? find.byType(Scrollable).first,
   );

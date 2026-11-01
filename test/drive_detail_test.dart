@@ -225,7 +225,7 @@ void main() {
     expect(reference, findsOneWidget);
     expect(find.textContaining('此前30个完整本地日 · 全部路线'), findsOneWidget);
   });
-  testWidgets('行程电量区间保留起终点减少和未知值，不伪造成补能或零', (tester) async {
+  testWidgets('行程电量区间保留出发到达和未知值，不伪造成补能或零', (tester) async {
     final semantics = tester.ensureSemantics();
     try {
       var missing = false;
@@ -238,18 +238,18 @@ void main() {
         body['end']['battery_level'] = missing ? null : 72;
         return jsonResponse(jsonEncode(body));
       });
-      final known = find.bySemanticsLabel(RegExp('电量区间.*82.*72.*尺度0至100%'));
+      final known = find.bySemanticsLabel(RegExp('电量区间.*82.*72.*尺度 0 至 100%'));
       await tester.scrollUntilVisible(known, 180);
       await tester.pumpAndSettle();
       expect(known, findsOneWidget);
-      expect(find.text('起始 82 %'), findsOneWidget);
-      expect(find.text('结束 72 %'), findsOneWidget);
+      expect(find.text('出发 82 %'), findsOneWidget);
+      expect(find.text('到达 72 %'), findsOneWidget);
       missing = true;
       await tester.tap(find.byTooltip('刷新行程明细'));
       await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel(RegExp('电量区间.*82.*结束未知')), findsOneWidget);
-      expect(find.text('结束 —'), findsOneWidget);
-      expect(find.text('结束 0 %'), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('电量区间.*82.*到达 未知')), findsOneWidget);
+      expect(find.text('到达 —'), findsOneWidget);
+      expect(find.text('到达 0 %'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();

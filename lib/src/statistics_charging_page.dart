@@ -689,7 +689,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
       const Text('仅已结束充电按 ended_at 归期；充电列表按开始日，跨夜记录的日期可能不同。'),
       if (rich != null)
         Text(
-          '入电配对费用 ${scope.currency.amount(rich.totals.unitCostAdded.numeratorCost)} / ${rich.totals.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amount(rich.totals.unitCostGrid.numeratorCost)} / ${rich.totals.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率。',
+          '入电配对费用 ${scope.currency.amountValue(rich.totals.unitCostAdded.numeratorCost)} / ${rich.totals.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amountValue(rich.totals.unitCostGrid.numeratorCost)} / ${rich.totals.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率${scope.currency.amountNote == null ? '' : '；${scope.currency.amountNote}'}。',
         ),
       if (checkedAt != null)
         Text('查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间'),

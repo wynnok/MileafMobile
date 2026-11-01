@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'collage.dart';
 import 'number_format.dart';
 
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'statistics_period.dart';
 import 'statistics_usage_page.dart';
 import 'statistics_conditions_page.dart';
@@ -14,8 +18,6 @@ import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
 import 'api.dart';
 import 'currency.dart';
-import 'data_cards.dart';
-import 'data_chart.dart';
 import 'charging_statistics_contract.g.dart' as charge;
 import 'charging_experience_contract.g.dart' as expanded;
 
@@ -45,27 +47,27 @@ class _StatisticsEntryState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     final page = StatisticsInsightsPage(
-    workspace: widget.workspace,
-    currency: widget.currency,
-    initialSelection: widget.initialSelection,
-    initialTopic:
-        widget.initialTopic ??
-        (widget.initialKind == 1 ? 'charging' : 'overview'),
-    topics: {
-      'energy': (c) =>
-          StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
-      'charging': (context) => StatisticsChargingPage(context: context),
-      'usage': (c) => StatisticsUsagePage(source: c, onRecord: widget.onDrive),
-      'range': (context) => RangeObservationPage(context: context),
-      'parking': (context) => ParkingObservationPage(context: context),
-    },
-    legacyBuilder: (selection) => _LegacyStatisticsPage(
       workspace: widget.workspace,
       currency: widget.currency,
-      initialKind: widget.initialKind,
-      initialSelection: selection,
-    ),
-  );
+      initialSelection: widget.initialSelection,
+      initialTopic:
+          widget.initialTopic ??
+          (widget.initialKind == 1 ? 'charging' : 'overview'),
+      topics: {
+        'energy': (c) =>
+            StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
+        'charging': (context) => StatisticsChargingPage(context: context),
+        'usage': (c) => StatisticsUsagePage(source: c, onRecord: widget.onDrive),
+        'range': (context) => RangeObservationPage(context: context),
+        'parking': (context) => ParkingObservationPage(context: context),
+      },
+      legacyBuilder: (selection) => _LegacyStatisticsPage(
+        workspace: widget.workspace,
+        currency: widget.currency,
+        initialKind: widget.initialKind,
+        initialSelection: selection,
+      ),
+    );
     final bar = widget.topBar;
     if (bar == null) return page;
     return Column(
@@ -77,6 +79,10 @@ class _StatisticsEntryState extends State<StatisticsPage> {
   }
 }
 
+/// Legacy 0.1/0.2 fallback for sites without `statistics_insights-v1`.
+///
+/// It keeps the published totals/bucket semantics and now draws only A tokens
+/// and components: no C tiles, cards or chart copies.
 class _LegacyStatisticsPage extends StatefulWidget {
   const _LegacyStatisticsPage({
     required this.workspace,
@@ -98,19 +104,25 @@ class _StatisticsPageState extends State<_LegacyStatisticsPage> {
   Widget build(BuildContext context) => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.fromLTRB(
+          MileafLayout.pageInset(context),
+          MileafSpace.s8,
+          MileafLayout.pageInset(context),
+          0,
+        ),
         child: Wrap(
-          spacing: 8,
+          spacing: MileafSpace.s8,
+          runSpacing: MileafSpace.s4,
           children: [
-            ChoiceChip(
-              label: const Text('驾驶统计'),
+            StatusChip(
+              label: '驾驶统计',
               selected: kind == 0,
-              onSelected: (_) => setState(() => kind = 0),
+              onTap: () => setState(() => kind = 0),
             ),
-            ChoiceChip(
-              label: const Text('充电统计'),
+            StatusChip(
+              label: '充电统计',
               selected: kind == 1,
-              onSelected: (_) => setState(() => kind = 1),
+              onTap: () => setState(() => kind = 1),
             ),
           ],
         ),
@@ -167,6 +179,10 @@ class _StatisticsViewState extends State<_StatisticsView>
   int sequence = 0;
   int drivingMetric = 0;
   int chargingMetric = 0;
+  int drivingPoint = 0;
+  int consumptionPoint = 0;
+  int chargingPoint = 0;
+  int classificationPoint = 0;
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
@@ -304,18 +320,73 @@ class _StatisticsViewState extends State<_StatisticsView>
       : '${grouped(value as num, decimals: decimals)} $unit';
   Widget line(String label, dynamic value, String unit, {int decimals = 0}) =>
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
         child: Text('$label  ${number(value, unit, decimals: decimals)}'),
       );
+
+  /// A stepper row keeps the published 前/后一个采样 behaviour without the C
+  /// chart widget; selection state stays in the page.
+  Widget _steppers(
+    int selected,
+    int length,
+    ValueChanged<int> onSelect, {
+    Key? key,
+    Key? nextKey,
+  }) => Row(
+    key: key,
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: [
+          TextButton(
+            onPressed: selected > 0 ? () => onSelect(selected - 1) : null,
+            child: const Text('前一个采样'),
+          ),
+      TextButton(
+        key: nextKey,
+        onPressed: selected < length - 1 ? () => onSelect(selected + 1) : null,
+        child: const Text('后一个采样'),
+      ),
+    ],
+  );
+
+  Widget _controls(
+    List<String> labels,
+    int selected,
+    ValueChanged<int> onSelected,
+  ) => Wrap(
+    spacing: MileafSpace.s8,
+    runSpacing: MileafSpace.s4,
+    children: [
+      for (var i = 0; i < labels.length; i++)
+        StatusChip(
+          label: labels[i],
+          selected: selected == i,
+          onTap: () => onSelected(i),
+        ),
+    ],
+  );
+
+  Widget _metric(String label, dynamic value, String unit, {int decimals = 0, MetricValueScale scale = MetricValueScale.metricLg}) => MetricBlock(
+    label: label,
+    value: value == null ? null : grouped(value as num, decimals: decimals),
+    unit: value == null ? null : unit,
+    scale: scale,
+  );
+
   @override
   Widget build(BuildContext context) {
     final calendar = workspace.calendar!;
+    final inset = MileafLayout.pageInset(context);
     return ListenableBuilder(
       listenable: widget.currency,
       builder: (context, _) => RefreshIndicator(
         onRefresh: () => load(force: true),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: EdgeInsets.fromLTRB(
+            inset,
+            MileafSpace.s12,
+            inset,
+            MileafSpace.s24,
+          ),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             Row(
@@ -323,7 +394,7 @@ class _StatisticsViewState extends State<_StatisticsView>
                 Expanded(
                   child: Text(
                     widget.kind == 'driving' ? '驾驶结果' : '充电结果',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: context.type.title,
                   ),
                 ),
                 IconButton(
@@ -343,10 +414,12 @@ class _StatisticsViewState extends State<_StatisticsView>
               },
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
               child: Text(
                 '统计时区：${calendar.identifier}',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: context.type.micro.copyWith(
+                  color: context.colors.textMuted,
+                ),
               ),
             ),
             if (calendar.fallback) const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
@@ -368,27 +441,6 @@ class _StatisticsViewState extends State<_StatisticsView>
     );
   }
 
-  Widget _metrics(BuildContext context, List<Widget> values) => LayoutBuilder(
-    builder: (context, constraints) {
-      final stacked = largeText(context);
-      final width = stacked
-          ? constraints.maxWidth
-          : (constraints.maxWidth - 16) / 2;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: [
-            for (final value in values) SizedBox(width: width, child: value),
-          ],
-        ),
-      );
-    },
-  );
-
-  String _timestamp(CalendarContext calendar, DateTime time) =>
-      calendar.local(time).toString().split('.').first;
   String _tick(CalendarContext calendar, DateTime time) {
     final local = calendar.local(time);
     return '${local.month}/${local.day}';
@@ -425,89 +477,85 @@ class _StatisticsViewState extends State<_StatisticsView>
         },
     ];
     final times = [for (final bucket in buckets) bucket.bucketStart];
+    final decimals = switch (drivingMetric) {
+      0 => 1,
+      2 => 2,
+      _ => 0,
+    };
+    final point = drivingPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
     return [
-      _metrics(context, [
-        MetricTile(
-          label: '总里程',
-          value: number(totals.distanceKm, 'km', decimals: 1),
-          emphasize: true,
+      Padding(
+        padding: const EdgeInsets.only(top: MileafSpace.s8),
+        child: MetricGrid(
+          children: [
+            _metric('总里程', totals.distanceKm, 'km', decimals: 1),
+            _metric('行程数', totals.drives, '次'),
+          ],
         ),
-        MetricTile(
-          label: '行程数',
-          value: number(totals.drives, '次'),
-          emphasize: true,
-        ),
-      ]),
-      TimeChart(
+      ),
+      const SizedBox(height: MileafSpace.section),
+      TimeSeriesChart(
         key: ValueKey('driving-$drivingMetric'),
         title: '$title趋势',
         unit: unit,
-        times: times,
-        series: [ChartSeries(label: title, values: values)],
-        timestamp: (t) => _timestamp(calendar, t),
-        tickLabel: (t) => _tick(calendar, t),
         subtitle: _range(calendar),
-        plotKey: const ValueKey('driving-statistics-chart'),
-        valueLabel: (v) => number(
-          v,
-          unit,
-          decimals: drivingMetric == 0
-              ? 1
-              : drivingMetric == 2
-              ? 2
-              : 0,
-        ),
-        controls: Wrap(
-          spacing: 6,
-          runSpacing: 4,
-          children: [
-            for (var i = 0; i < titles.length; i++)
-              ChoiceChip(
-                label: Text(titles[i]),
-                selected: drivingMetric == i,
-                onSelected: (_) => setState(() => drivingMetric = i),
-              ),
-          ],
-        ),
-      ),
-      if (buckets.isEmpty) const Text('区间内无趋势数据'),
-      TimeChart(
-        title: '净 / 毛电耗',
-        unit: 'Wh/km',
         times: times,
         series: [
           ChartSeries(
-            label: '净电耗',
-            values: [for (final b in buckets) b.consumptionWhKmNet],
-          ),
-          ChartSeries(
-            label: '毛电耗',
-            values: [for (final b in buckets) b.consumptionWhKmGross],
+            label: title,
+            values: values,
+            style: drivingMetric == 1
+                ? ChartSeriesStyle.bars
+                : ChartSeriesStyle.area,
           ),
         ],
-        timestamp: (t) => _timestamp(calendar, t),
-        tickLabel: (t) => _tick(calendar, t),
-        presentation: ChartPresentation.line,
-        subtitle: _range(calendar),
-        plotKey: const ValueKey('driving-consumption-chart'),
-        note: '不同能量口径分别阅读；缺失值断线，不补零。',
-      ),
-      DataCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('区间指标', style: Theme.of(context).textTheme.titleSmall),
-            line('能量', totals.energyKwh, 'kWh', decimals: 2),
-            line('净电耗', totals.consumptionWhKmNet, 'Wh/km'),
-            line('毛电耗', totals.consumptionWhKmGross, 'Wh/km'),
-            line('最高速度', totals.speedMaxKmh, 'km/h'),
-          ],
+        semanticsLabel: '$title趋势图表',
+        controls: _controls(
+          titles,
+          drivingMetric,
+          (index) => setState(() => drivingMetric = index),
         ),
+        height: 160,
+        plotKey: const ValueKey('driving-statistics-chart'),
+        tickLabel: (t) => _tick(calendar, t),
+        selectedIndex: point,
+        onSelected: (index) => setState(() => drivingPoint = index),
+        readout: (index) => '$title读数 '
+            '${index < values.length ? number(values[index], unit, decimals: decimals) : '—（缺失）'}',
+        emptyMessage: '区间内无趋势数据',
       ),
-      Text('按开始时间归期 · 仅统计已完成行程', style: Theme.of(context).textTheme.bodySmall),
-      if (totals.drives == 0) const Text('区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。'),
+      if (times.isNotEmpty)
+        _steppers(
+          point,
+          times.length,
+          (index) => setState(() => drivingPoint = index),
+          nextKey: const ValueKey('statistics-driving-next'),
+        ),
+      const SizedBox(height: MileafSpace.section),
+      _consumption(context, calendar, buckets, times),
+      const SizedBox(height: MileafSpace.section),
+      const SectionHeader(title: '区间指标'),
+      const SizedBox(height: MileafSpace.s4),
+      line('能量', totals.energyKwh, 'kWh', decimals: 2),
+      line('净电耗', totals.consumptionWhKmNet, 'Wh/km'),
+      line('毛电耗', totals.consumptionWhKmGross, 'Wh/km'),
+      line('最高速度', totals.speedMaxKmh, 'km/h'),
+      const SizedBox(height: MileafSpace.s12),
+      Text(
+        '按开始时间归期 · 仅统计已完成行程',
+        style: context.type.micro.copyWith(color: context.colors.textMuted),
+      ),
+      if (totals.drives == 0)
+        Padding(
+          padding: const EdgeInsets.only(top: MileafSpace.s8),
+          child: Text(
+            '区间内无已完成行程；零值为服务端真实结果，比率缺失不补零。',
+            style: context.type.body.copyWith(color: context.colors.textMuted),
+          ),
+        ),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
         title: const Text('统计口径'),
         children: const [
           Text(
@@ -517,18 +565,63 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: Theme.of(context).textTheme.bodySmall,
+        style: context.type.micro.copyWith(color: context.colors.textMuted),
       ),
-      const SizedBox(height: 16),
-      Text('时间桶明细', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: MileafSpace.section),
+      const SectionHeader(title: '时间桶明细'),
       for (final bucket in buckets) _bucket(context, bucket, calendar),
     ];
+  }
+
+  /// 净 / 毛电耗 keeps both published series in one chart; missing stays broken.
+  Widget _consumption(
+    BuildContext context,
+    CalendarContext calendar,
+    List<dto.DrivingBucket> buckets,
+    List<DateTime> times,
+  ) {
+    final point = consumptionPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
+    final net = [for (final bucket in buckets) bucket.consumptionWhKmNet];
+    final gross = [for (final bucket in buckets) bucket.consumptionWhKmGross];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TimeSeriesChart(
+          title: '净 / 毛电耗',
+          unit: 'Wh/km',
+          subtitle: _range(calendar),
+          times: times,
+          series: [
+            ChartSeries(label: '净电耗', values: net),
+            ChartSeries(label: '毛电耗', values: gross),
+          ],
+          semanticsLabel: '净电耗与毛电耗图表',
+          height: 160,
+          plotKey: const ValueKey('driving-consumption-chart'),
+          tickLabel: (t) => _tick(calendar, t),
+          selectedIndex: point,
+          onSelected: (index) => setState(() => consumptionPoint = index),
+          readout: (index) =>
+              '净电耗读数 ${index < net.length ? number(net[index], 'Wh/km') : '—（缺失）'}'
+              '；毛电耗读数 ${index < gross.length ? number(gross[index], 'Wh/km') : '—（缺失）'}',
+          note: '不同能量口径分别阅读；缺失值断线，不补零。',
+          emptyMessage: '区间内无趋势数据',
+        ),
+        if (times.isNotEmpty)
+          _steppers(
+            point,
+            times.length,
+            (index) => setState(() => consumptionPoint = index),
+            nextKey: const ValueKey('statistics-consumption-next'),
+          ),
+      ],
+    );
   }
 
   String _share(num? value) =>
       value == null ? '—（缺失）' : '${(value * 100).toStringAsFixed(2)} %';
   Widget textLine(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
+    padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
     child: Text('$label  $value'),
   );
 
@@ -547,7 +640,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       '已知费用',
       richer == null ? '已知费用均价' : '有效入电均价',
     ];
-    final currencyUnit = widget.currency.code ?? '币种未知';
+    final currencyUnit = widget.currency.code ?? '币种未记录';
     final units = ['kWh', '次', currencyUnit, '$currencyUnit/kWh'];
     final unit = units[chargingMetric];
     final times = [for (final bucket in buckets) bucket.bucketStart];
@@ -568,171 +661,173 @@ class _StatisticsViewState extends State<_StatisticsView>
                 : richer.buckets[index].unitCostAdded.value,
         },
     ];
+    final point = chargingPoint.clamp(0, times.isEmpty ? 0 : times.length - 1);
+    final energy = richer != null &&
+            totals.sessions > 0 &&
+            richer.totals.energyKnownSessions == 0
+        ? null
+        : totals.energyAddedKwh;
     return [
-      _metrics(context, [
-        MetricTile(
-          label: '充入电池能量',
-          value: number(
-            richer != null &&
-                    totals.sessions > 0 &&
-                    richer.totals.energyKnownSessions == 0
-                ? null
-                : totals.energyAddedKwh,
-            'kWh',
-            decimals: 2,
-          ),
-          emphasize: true,
+      Padding(
+        padding: const EdgeInsets.only(top: MileafSpace.s8),
+        child: MetricGrid(
+          children: [
+            _metric('充入电池能量', energy, 'kWh', decimals: 2),
+            MetricBlock(
+              label: '已知费用合计',
+              value: widget.currency.amountValue(totals.cost),
+              scale: MetricValueScale.metricLg,
+              note: widget.currency.amountNote,
+            ),
+          ],
         ),
-        MetricTile(
-          label: '已知费用合计',
-          value: widget.currency.amount(totals.cost),
-          emphasize: true,
-        ),
-      ]),
-      TimeChart(
+      ),
+      const SizedBox(height: MileafSpace.section),
+      TimeSeriesChart(
         key: ValueKey('charging-$chargingMetric'),
         title: '${titles[chargingMetric]}趋势',
         unit: unit,
-        times: times,
-        series: [ChartSeries(label: labels[chargingMetric], values: values)],
-        timestamp: (t) => _timestamp(calendar, t),
-        tickLabel: (t) => _tick(calendar, t),
         subtitle: _range(calendar),
-        presentation: chargingMetric == 3
-            ? ChartPresentation.line
-            : ChartPresentation.bars,
-        plotKey: const ValueKey('charging-statistics-chart'),
-        valueLabel: (v) => chargingMetric >= 2
-            ? '${widget.currency.amount(v)}${chargingMetric == 3 ? '/kWh' : ''}'
-            : number(v, unit, decimals: chargingMetric == 0 ? 2 : 0),
-        controls: Wrap(
-          spacing: 6,
-          runSpacing: 4,
-          children: [
-            for (var i = 0; i < labels.length; i++)
-              ChoiceChip(
-                label: Text(labels[i]),
-                selected: chargingMetric == i,
-                onSelected: (_) => setState(() => chargingMetric = i),
-              ),
-          ],
+        times: times,
+        series: [
+          ChartSeries(
+            label: labels[chargingMetric],
+            values: values,
+            style: switch (chargingMetric) {
+              0 => ChartSeriesStyle.stem,
+              1 || 2 => ChartSeriesStyle.bars,
+              _ => ChartSeriesStyle.line,
+            },
+          ),
+        ],
+        semanticsLabel: '${titles[chargingMetric]}趋势图表',
+        controls: _controls(
+          labels,
+          chargingMetric,
+          (index) => setState(() => chargingMetric = index),
         ),
+        height: 160,
+        plotKey: const ValueKey('charging-statistics-chart'),
+        tickLabel: (t) => _tick(calendar, t),
+        selectedIndex: point,
+        onSelected: (index) => setState(() => chargingPoint = index),
+        readout: (index) {
+          final value = index < values.length ? values[index] : null;
+          if (chargingMetric >= 2) {
+            return '${labels[chargingMetric]}读数 '
+                '${widget.currency.amountValue(value)}'
+                '${chargingMetric == 3 ? '/kWh' : ''}';
+          }
+          return '${labels[chargingMetric]}读数 '
+              '${number(value, unit, decimals: chargingMetric == 0 ? 2 : 0)}';
+        },
         note: chargingMetric >= 2
             ? richer == null
                   ? '仅费用已知记录；缺失费用不视为零，合计不保证覆盖全部花费。'
                   : '有效均价使用费用和入电均有效的同批记录；缺失费用不视为零。'
             : null,
+        emptyMessage: '区间内无趋势数据',
       ),
-      if (buckets.isEmpty) const Text('区间内无趋势数据'),
-      DataCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('AC / DC 补能', style: Theme.of(context).textTheme.titleSmall),
-            EnergyComparison(
-              values: [
-                (
-                  'AC',
-                  richer != null &&
-                          totals.sessions > 0 &&
-                          richer.totals.energyKnownSessions == 0
-                      ? null
-                      : totals.acEnergyKwh,
-                ),
-                (
-                  'DC',
-                  richer != null &&
-                          totals.sessions > 0 &&
-                          richer.totals.energyKnownSessions == 0
-                      ? null
-                      : totals.dcEnergyKwh,
-                ),
-                if (richer != null)
-                  (
-                    '未知',
-                    totals.sessions > 0 &&
-                            richer.totals.energyKnownSessions == 0
-                        ? null
-                        : richer.totals.unknownEnergyKwh,
-                  ),
-              ],
-              note: '仅已知分类能量；未知分类不归入 AC。',
-            ),
-            textLine('DC 能量占比（已知分类）', _share(totals.dcEnergyShare)),
-            const Text('占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。'),
-            if (richer != null)
-              Text(
-                richer.totals.sessions > 0 &&
-                        richer.totals.durationKnownSessions == 0
-                    ? '分类记录时长缺失'
-                    : 'AC ${decimal(richer.totals.acDurationMin)} 分钟 · DC ${decimal(richer.totals.dcDurationMin)} 分钟 · 未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
-              ),
-          ],
+      if (times.isNotEmpty)
+        _steppers(
+          point,
+          times.length,
+          (index) => setState(() => chargingPoint = index),
+          nextKey: const ValueKey('statistics-charging-next'),
         ),
-      ),
-      TimeChart(
-        title: 'AC / DC 时间分布',
-        unit: 'kWh',
-        times: times,
-        series: [
-          ChartSeries(
-            label: 'AC',
-            values: [for (final b in buckets) b.acEnergyKwh],
+      const SizedBox(height: MileafSpace.section),
+      const SectionHeader(title: 'AC / DC 补能'),
+      const SizedBox(height: MileafSpace.s8),
+      _EnergyBars(
+        values: [
+          (
+            'AC',
+            richer != null &&
+                    totals.sessions > 0 &&
+                    richer.totals.energyKnownSessions == 0
+                ? null
+                : totals.acEnergyKwh,
           ),
-          ChartSeries(
-            label: 'DC',
-            values: [for (final b in buckets) b.dcEnergyKwh],
+          (
+            'DC',
+            richer != null &&
+                    totals.sessions > 0 &&
+                    richer.totals.energyKnownSessions == 0
+                ? null
+                : totals.dcEnergyKwh,
           ),
           if (richer != null)
-            ChartSeries(
-              label: '未知',
-              values: [
-                for (final bucket in richer.buckets)
-                  bucket.sessions > 0 && bucket.energyKnownSessions == 0
-                      ? null
-                      : bucket.unknownEnergyKwh,
-              ],
+            (
+              '未知',
+              totals.sessions > 0 && richer.totals.energyKnownSessions == 0
+                  ? null
+                  : richer.totals.unknownEnergyKwh,
             ),
         ],
-        timestamp: (t) => _timestamp(calendar, t),
-        tickLabel: (t) => _tick(calendar, t),
-        presentation: ChartPresentation.groupedBars,
-        subtitle: _range(calendar),
-        plotKey: const ValueKey('charging-classification-chart'),
+        note: '仅已知分类能量；未知分类不归入 AC。',
       ),
-      DataCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('区间指标', style: Theme.of(context).textTheme.titleSmall),
-            line('会话数', totals.sessions, '次'),
-            textLine(
-              richer == null ? '已知费用均价' : '有效入电均价',
-              '${widget.currency.amount(richer == null ? totals.costPerKwh : richer.totals.unitCostAdded.value)}/kWh',
-            ),
-            if (richer != null) ...[
-              Text(
-                '费用有记录 ${richer.totals.costKnownSessions} / ${richer.totals.sessions} 次',
-              ),
-              Text('对应入电 ${decimal(richer.totals.costKnownEnergyKwh)} kWh'),
-              Text(
-                richer.totals.sessions > 0 &&
-                        richer.totals.durationKnownSessions == 0
-                    ? '记录时长 —（缺失）'
-                    : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
-              ),
-              textLine(
-                '有效网侧均价',
-                '${widget.currency.amount(richer.totals.unitCostGrid.value)}/kWh',
-              ),
-            ],
-          ],
+      textLine('DC 能量占比（已知分类）', _share(totals.dcEnergyShare)),
+      Text(
+        '占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。',
+        style: context.type.micro.copyWith(color: context.colors.textMuted),
+      ),
+      if (richer != null)
+        Text(
+          richer.totals.sessions > 0 &&
+                  richer.totals.durationKnownSessions == 0
+              ? '分类记录时长缺失'
+              : 'AC ${decimal(richer.totals.acDurationMin)} 分钟 · DC ${decimal(richer.totals.dcDurationMin)} 分钟 · 未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
+          style: context.type.micro.copyWith(color: context.colors.textMuted),
         ),
+      const SizedBox(height: MileafSpace.section),
+      _classification(context, calendar, buckets, richer, times),
+      const SizedBox(height: MileafSpace.section),
+      const SectionHeader(title: '区间指标'),
+      const SizedBox(height: MileafSpace.s4),
+      line('会话数', totals.sessions, '次'),
+      _amountLine(
+        richer == null ? '已知费用均价' : '有效入电均价',
+        richer == null ? totals.costPerKwh : richer.totals.unitCostAdded.value,
+        perKwh: true,
       ),
-      Text('按结束时间归期 · 仅统计已结束充电', style: Theme.of(context).textTheme.bodySmall),
-      if (totals.sessions == 0) const Text('区间内无已结束充电；零为真实结果，缺失比率不补零。'),
+      if (richer != null) ...[
+        Text(
+          '费用有记录 ${richer.totals.costKnownSessions} / ${richer.totals.sessions} 次',
+          style: context.type.body.copyWith(color: context.colors.text),
+        ),
+        Text(
+          '对应入电 ${decimal(richer.totals.costKnownEnergyKwh)} kWh',
+          style: context.type.body.copyWith(color: context.colors.text),
+        ),
+        Text(
+          richer.totals.sessions > 0 &&
+                  richer.totals.durationKnownSessions == 0
+              ? '记录时长 —（缺失）'
+              : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
+          style: context.type.body.copyWith(color: context.colors.text),
+        ),
+        _amountLine(
+          '有效网侧均价',
+          richer.totals.unitCostGrid.value,
+          perKwh: true,
+        ),
+      ],
+      const SizedBox(height: MileafSpace.s12),
+      Text(
+        '按结束时间归期 · 仅统计已结束充电',
+        style: context.type.micro.copyWith(color: context.colors.textMuted),
+      ),
+      if (totals.sessions == 0)
+        Padding(
+          padding: const EdgeInsets.only(top: MileafSpace.s8),
+          child: Text(
+            '区间内无已结束充电；零为真实结果，缺失比率不补零。',
+            style: context.type.body.copyWith(color: context.colors.textMuted),
+          ),
+        ),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
         title: const Text('统计口径'),
         children: const [
           Text(
@@ -742,36 +837,138 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: Theme.of(context).textTheme.bodySmall,
+        style: context.type.micro.copyWith(color: context.colors.textMuted),
       ),
-      const SizedBox(height: 16),
-      Text('时间桶明细', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: MileafSpace.section),
+      const SectionHeader(title: '时间桶明细'),
       for (final (index, bucket) in buckets.indexed)
-        _chargingBucket(bucket, calendar, richer?.buckets[index]),
+        _chargingBucket(context, bucket, calendar, richer?.buckets[index]),
     ];
   }
 
+  /// A price line: amount plus a separate currency-note label (never brackets).
+  Widget _amountLine(String label, num? value, {bool perKwh = false}) {
+    final note = widget.currency.amountNote;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+      child: Wrap(
+        spacing: MileafSpace.s8,
+        runSpacing: MileafSpace.s4,
+        children: [
+          Text(
+            '$label  ${widget.currency.amountValue(value)}'
+            '${perKwh ? '/kWh' : ''}',
+          ),
+          if (note != null)
+            Text(
+              note,
+              style: context.type.micro.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _classification(
+    BuildContext context,
+    CalendarContext calendar,
+    List<charge.ChargingBucket> buckets,
+    expanded.ChargingStats? richer,
+    List<DateTime> times,
+  ) {
+    final point = classificationPoint.clamp(
+      0,
+      times.isEmpty ? 0 : times.length - 1,
+    );
+    final ac = [for (final b in buckets) b.acEnergyKwh];
+    final dc = [for (final b in buckets) b.dcEnergyKwh];
+    final unknown = richer == null
+        ? const <num?>[]
+        : [
+            for (final bucket in richer.buckets)
+              bucket.sessions > 0 && bucket.energyKnownSessions == 0
+                  ? null
+                  : bucket.unknownEnergyKwh,
+          ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TimeSeriesChart(
+          title: 'AC / DC 时间分布',
+          unit: 'kWh',
+          subtitle: _range(calendar),
+          times: times,
+          series: [
+            ChartSeries(label: 'AC', values: ac),
+            ChartSeries(label: 'DC', values: dc),
+            if (richer != null) ChartSeries(label: '未知', values: unknown),
+          ],
+          semanticsLabel: 'AC 与 DC 时间分布图表',
+          height: 160,
+          plotKey: const ValueKey('charging-classification-chart'),
+          tickLabel: (t) => _tick(calendar, t),
+          selectedIndex: point,
+          onSelected: (index) => setState(() => classificationPoint = index),
+          readout: (index) =>
+              'AC读数 ${index < ac.length ? number(ac[index], 'kWh', decimals: 2) : '—（缺失）'}',
+          emptyMessage: '区间内无趋势数据',
+        ),
+        if (times.isNotEmpty) ...[
+          // One reading per series keeps AC/DC/未知 separately readable.
+          Text(
+            'DC读数 ${number(dc[point], 'kWh', decimals: 2)}',
+            style: context.type.body.copyWith(color: context.colors.text),
+          ),
+          if (unknown.isNotEmpty)
+            Text(
+              '未知读数 ${number(unknown[point], 'kWh', decimals: 2)}',
+              style: context.type.body.copyWith(color: context.colors.text),
+            ),
+          _steppers(
+            point,
+            times.length,
+            (index) => setState(() => classificationPoint = index),
+            nextKey: const ValueKey('statistics-classification-next'),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _chargingBucket(
+    BuildContext context,
     charge.ChargingBucket bucket,
     CalendarContext calendar,
     expanded.ChargingBucket? richer,
-  ) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    title: Text(
-      '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
-    ),
-    children: [
-      line('会话数', bucket.sessions, '次'),
-      textLine('已知费用合计', widget.currency.amount(bucket.cost)),
-      textLine(
-        richer == null ? '已知费用均价' : '有效入电均价',
-        '${widget.currency.amount(richer == null ? bucket.costPerKwh : richer.unitCostAdded.value)}/kWh',
+  ) {
+    final note = widget.currency.amountNote;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: EdgeInsets.zero,
+      title: Text(
+        '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
       ),
-      line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
-      line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
-      textLine('DC 能量占比（已知分类）', _share(bucket.dcEnergyShare)),
-    ],
-  );
+      children: [
+        line('会话数', bucket.sessions, '次'),
+        textLine('已知费用合计', widget.currency.amountValue(bucket.cost)),
+        if (note != null)
+          Text(
+            note,
+            style: context.type.micro.copyWith(color: context.colors.textMuted),
+          ),
+        _amountLine(
+          richer == null ? '已知费用均价' : '有效入电均价',
+          richer == null ? bucket.costPerKwh : richer.unitCostAdded.value,
+          perKwh: true,
+        ),
+        line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
+        line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
+        textLine('DC 能量占比（已知分类）', _share(bucket.dcEnergyShare)),
+      ],
+    );
+  }
 
   Widget _bucket(
     BuildContext context,
@@ -779,6 +976,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     CalendarContext calendar,
   ) => ExpansionTile(
     tilePadding: EdgeInsets.zero,
+    childrenPadding: EdgeInsets.zero,
     title: Text(
       '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
     ),
@@ -790,4 +988,103 @@ class _StatisticsViewState extends State<_StatisticsView>
       line('最高速度', bucket.speedMaxKmh, 'km/h'),
     ],
   );
+}
+
+/// AC / DC / 未知 energy: one accent plus a 50 % step and a neutral, never a
+/// second accent colour (Spec §2.4).
+class _EnergyBars extends StatelessWidget {
+  const _EnergyBars({required this.values, this.note});
+
+  static const unit = 'kWh';
+  final List<(String, num?)> values;
+  final String? note;
+
+  Color _bar(BuildContext context, int index) {
+    final colors = context.colors;
+    return switch (index % 3) {
+      0 => colors.accent,
+      1 => colors.accent.withValues(alpha: .5),
+      _ => colors.textFaint,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final type = context.type;
+    final maximum = values.fold<num>(
+      0,
+      (m, entry) => (entry.$2 ?? 0) > m ? entry.$2! : m,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < values.length; i++)
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label:
+                '${values[i].$1} ${values[i].$2 == null ? '—（缺失）' : '${values[i].$2!.toStringAsFixed(2)} $unit'}',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: MileafSpace.s12,
+                    runSpacing: MileafSpace.s4,
+                    children: [
+                      Text(
+                        values[i].$1,
+                        style: type.body.copyWith(color: colors.textMuted),
+                      ),
+                      Text(
+                        values[i].$2 == null
+                            ? '—'
+                            : '${values[i].$2!.toStringAsFixed(2)} $unit',
+                        style: type.body.copyWith(
+                          color: colors.text,
+                          fontWeight: MileafType.weightSemiBold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: MileafSpace.s8),
+                  LayoutBuilder(
+                    builder: (context, constraints) => Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: colors.line,
+                        borderRadius: MileafRadius.xsAll,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: maximum <= 0
+                              ? 0
+                              : constraints.maxWidth *
+                                    ((values[i].$2 ?? 0) / maximum).clamp(0, 1),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: _bar(context, i),
+                              borderRadius: MileafRadius.xsAll,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (note != null)
+          Text(
+            note!,
+            style: type.micro.copyWith(color: colors.textMuted),
+          ),
+      ],
+    );
+  }
 }

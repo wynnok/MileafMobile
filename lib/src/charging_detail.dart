@@ -251,16 +251,23 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     'gap_or_ambiguous' => '采样间隔或电量变化不足以确认',
     _ => '数据不足',
   };
+  Widget _inset(Widget child) => Padding(
+    padding: EdgeInsets.symmetric(horizontal: MileafLayout.pageInset(context)),
+    child: child,
+  );
+
   Widget _section({required Widget child}) {
     final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s20),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.line)),
+    return _inset(
+      Padding(
+        padding: const EdgeInsets.only(top: MileafSpace.s20),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: colors.line)),
+          ),
+          padding: const EdgeInsets.only(top: MileafSpace.s12),
+          child: child,
         ),
-        padding: const EdgeInsets.only(top: MileafSpace.s12),
-        child: child,
       ),
     );
   }
@@ -270,7 +277,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     final type = context.type;
     final items = [
       '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
-      '费用 ${widget.currency.amount(d.cost)}',
+      '费用 ${widget.currency.amountValue(d.cost)}',
+      ?widget.currency.amountNote,
       '时长 ${number(d.durationMin, '分钟')}',
     ];
     final large = MileafLayout.largeText(context);
@@ -340,32 +348,47 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(12),
+          // The battery-arc hero is the dark anchor, so it bleeds to both
+          // edges; every other block carries the page inset itself.
+          padding: EdgeInsets.zero,
           children: [
             if (detailLoading) const LinearProgressIndicator(),
-            if (detailError != null) ...[
-              Semantics(liveRegion: true, child: Text(detailError!)),
-              if (!unavailable)
-                TextButton(
-                  onPressed: detailLoading
-                      ? null
-                      : () => loadDetail(force: true),
-                  child: const Text('重试充电明细'),
+            if (detailError != null)
+              _inset(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(liveRegion: true, child: Text(detailError!)),
+                    if (!unavailable)
+                      TextButton(
+                        onPressed: detailLoading
+                            ? null
+                            : () => loadDetail(force: true),
+                        child: const Text('重试充电明细'),
+                      ),
+                  ],
                 ),
-            ],
+              ),
             if (unavailable)
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('返回上一页'),
+              _inset(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('返回上一页'),
+                  ),
+                ),
               ),
             if (detail case final d?) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  d.location.displayName?.trim().isNotEmpty == true
-                      ? d.location.displayName!
-                      : '未知地点',
-                  style: Theme.of(context).textTheme.titleMedium,
+              _inset(
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: Text(
+                    d.location.displayName?.trim().isNotEmpty == true
+                        ? d.location.displayName!
+                        : '未知地点',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
               ),
               MileafHero(
@@ -433,53 +456,69 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               _results(d),
             ],
             if (seriesLoading) const LinearProgressIndicator(),
-            if (seriesError != null) ...[
-              Semantics(liveRegion: true, child: Text(seriesError!)),
-              TextButton(
-                onPressed: seriesLoading ? null : () => loadSeries(force: true),
-                child: const Text('重试充电曲线'),
-              ),
-            ],
-            if (!ownershipMismatch && expandedSeries != null)
-              ExpandedChargingCurve(
-                key: ValueKey(
-                  '${widget.id}:${identityHashCode(expandedSeries)}',
+            if (seriesError != null)
+              _inset(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(liveRegion: true, child: Text(seriesError!)),
+                    TextButton(
+                      onPressed: seriesLoading
+                          ? null
+                          : () => loadSeries(force: true),
+                      child: const Text('重试充电曲线'),
+                    ),
+                  ],
                 ),
-                series: expandedSeries!,
-                calendar: workspace.calendar!,
+              ),
+            if (!ownershipMismatch && expandedSeries != null)
+              _inset(
+                ExpandedChargingCurve(
+                  key: ValueKey(
+                    '${widget.id}:${identityHashCode(expandedSeries)}',
+                  ),
+                  series: expandedSeries!,
+                  calendar: workspace.calendar!,
+                ),
               )
             else if (!ownershipMismatch && series != null)
-              ChargingCurve(
-                key: ValueKey('${widget.id}:${identityHashCode(series)}'),
-                series: series!,
-                calendar: workspace.calendar!,
-              ),
-            if (detail case final d?) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 6),
-                child: Text(
-                  '充电地点',
-                  style: Theme.of(context).textTheme.labelSmall,
+              _inset(
+                ChargingCurve(
+                  key: ValueKey('${widget.id}:${identityHashCode(series)}'),
+                  series: series!,
+                  calendar: workspace.calendar!,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: MapPanel(
-                  key: ValueKey(
-                    'charging-map:${owner.generation}:$vehicle:${widget.id}',
+            if (detail case final d?) ...[
+              _inset(
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 6),
+                  child: Text(
+                    '充电地点',
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
-                  scene: placeScene(
-                    location: MapCoordinate(
-                      d.location.lat?.toDouble(),
-                      d.location.lon?.toDouble(),
+                ),
+              ),
+              _inset(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: MapPanel(
+                    key: ValueKey(
+                      'charging-map:${owner.generation}:$vehicle:${widget.id}',
                     ),
-                    brightness: Theme.of(context).brightness,
-                    interactive: false,
+                    scene: placeScene(
+                      location: MapCoordinate(
+                        d.location.lat?.toDouble(),
+                        d.location.lon?.toDouble(),
+                      ),
+                      brightness: Theme.of(context).brightness,
+                      interactive: false,
+                    ),
+                    consent: _mapConsent,
+                    platform: _mapPlatform,
+                    height: 180,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  consent: _mapConsent,
-                  platform: _mapPlatform,
-                  height: 180,
-                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ],
@@ -500,9 +539,11 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ],
                 ),
               ),
-              ExpansionTile(
-                title: const Text('过程数据说明'),
-                children: [
+              _inset(
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('过程数据说明'),
+                  children: [
                   if (expandedDetail?.processMetrics case final process?)
                     _section(
                       child: Column(
@@ -530,7 +571,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   if (expandedDetail != null &&
                       expandedDetail!.processMetrics == null)
                     const Text('原始充电过程指标暂不可用。'),
-                ],
+                  ],
+                ),
               ),
               if (expandedDetail case final extra?) ...[
                 _section(
@@ -541,12 +583,14 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                         '这一次的账',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
-                      Text('已记录费用 ${widget.currency.amount(d.cost)}'),
+                      Text('已记录费用 ${widget.currency.amountValue(d.cost)}'),
+                      if (widget.currency.amountNote case final note?)
+                        Text(note),
                       Text(
-                        '每入电 kWh ${widget.currency.amount(extra.unitCostAdded?.value)}/kWh',
+                        '每入电 kWh ${widget.currency.amountValue(extra.unitCostAdded?.value)}/kWh',
                       ),
                       Text(
-                        '每网侧 kWh ${widget.currency.amount(extra.unitCostGrid?.value)}/kWh',
+                        '每网侧 kWh ${widget.currency.amountValue(extra.unitCostGrid?.value)}/kWh',
                       ),
                       const Text('均价按服务端有效配对计算；费用未知不代表免费。'),
                     ],

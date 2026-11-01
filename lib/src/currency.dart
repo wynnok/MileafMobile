@@ -68,14 +68,6 @@ class CurrencySettings extends ChangeNotifier {
   /// Null when a currency code is configured; otherwise the label to show.
   String? get amountNote => code == null ? '币种未记录' : null;
 
-  String amount(num? value) => value == null
-      ? '—（缺失）'
-      : switch (code) {
-          final c? when _symbols[c] != null =>
-            '${_symbols[c]}${decimal(value)}',
-          final c? => '${decimal(value)} $c',
-          null => '${decimal(value)}（币种未知）',
-        };
   @override
   void dispose() {
     _disposed = true;

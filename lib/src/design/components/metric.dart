@@ -253,6 +253,37 @@ class MetricBlock extends StatelessWidget {
   }
 }
 
+/// Two-column metric grid that stacks to one column at large text sizes.
+///
+/// Children keep their natural height; no card and no equal-height stretching.
+class MetricGrid extends StatelessWidget {
+  const MetricGrid({
+    super.key,
+    required this.children,
+    this.spacing = MileafSpace.s16,
+  });
+
+  final List<Widget> children;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final stacked = MileafLayout.largeText(context);
+      final width = stacked
+          ? constraints.maxWidth
+          : (constraints.maxWidth - spacing) / 2;
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
+      );
+    },
+  );
+}
+
 /// Comparison direction: arrow + value + reference label, never red/green.
 class MetricDelta extends StatelessWidget {
   const MetricDelta({

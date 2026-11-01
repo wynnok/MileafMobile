@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'number_format.dart';
 
 import 'api.dart';
-import 'data_cards.dart';
 
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -597,7 +596,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       children: [
         const SectionHeader(title: '行程电量区间'),
         const SizedBox(height: MileafSpace.s8),
-        SocInterval(start: d.start.batteryLevel, end: d.end.batteryLevel),
+        SocIntervalBar(start: d.start.batteryLevel, end: d.end.batteryLevel),
         if (d.endedAt != null &&
             d.start.batteryLevel != null &&
             d.end.batteryLevel != null)

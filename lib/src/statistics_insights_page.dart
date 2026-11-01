@@ -10,7 +10,6 @@ import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 import 'session.dart';
-import 'data_cards.dart';
 import 'driving_statistics_contract.g.dart' as legacy;
 import 'statistics_insights_contract.g.dart' as insights;
 
@@ -1094,46 +1093,56 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     children: [
       MetricGrid(
         children: [
-          MetricTile(
+          MetricBlock(
             label: '行驶净电耗（配对估算）',
-            value: '${paired?['value_wh_km'] ?? '—'} Wh/km',
+            value: '${paired?['value_wh_km'] ?? '—'}',
+            unit: 'Wh/km',
             note:
                 '有效${enhanced.totals.netConsumptionPaired.eligibleDrives}趟 · ${enhanced.totals.comparisonQuality.distanceCoverage == null ? '里程覆盖未知' : '里程覆盖${(enhanced.totals.comparisonQuality.distanceCoverage! * 100).toStringAsFixed(0)}%'}',
           ),
-          MetricTile(
+          MetricBlock(
             label: '已知充电支出',
             value: chargingError != null
                 ? '—'
-                : widget.currency.amount(
+                : widget.currency.amountValue(
                     (charging?['totals'] as Map?)?['cost'] as num?,
                   ),
             note:
                 chargingError ??
-                '费用有记录 ${(charging?['totals'] as Map?)?['cost_known_sessions'] ?? '—'}/${(charging?['totals'] as Map?)?['sessions'] ?? '—'} 次',
+                '费用有记录 ${(charging?['totals'] as Map?)?['cost_known_sessions'] ?? '—'}/${(charging?['totals'] as Map?)?['sessions'] ?? '—'} 次${widget.currency.amountNote == null ? '' : ' · ${widget.currency.amountNote}'}',
           ),
-          MetricTile(
+          MetricBlock(
             label: '记录驾驶时长',
             value: enhanced.totals.drivingCoverage.durationKnownMin == null
-                ? '—（缺失）'
-                : '${enhanced.totals.drivingCoverage.durationKnownMin!.toStringAsFixed(0)} 分钟',
+                ? '—'
+                : enhanced.totals.drivingCoverage.durationKnownMin!
+                      .toStringAsFixed(0),
+            unit: enhanced.totals.drivingCoverage.durationKnownMin == null
+                ? null
+                : '分钟',
             note:
                 '${enhanced.totals.drivingCoverage.durationKnownDrives}/${enhanced.totals.drivingCoverage.completedDrives}趟有记录',
           ),
-          MetricTile(
+          MetricBlock(
             label: '已完成行程',
-            value: '${enhanced.totals.drivingCoverage.completedDrives} 趟',
+            value: '${enhanced.totals.drivingCoverage.completedDrives}',
+            unit: '趟',
             note: '${enhanced.totals.drivingCoverage.ongoingDrives}趟进行中，未计入结果',
           ),
-          MetricTile(
+          MetricBlock(
             label: '估算行驶能量',
-            value: '${stats.totals.energyKwh?.toStringAsFixed(2) ?? '—'} kWh',
+            value: stats.totals.energyKwh?.toStringAsFixed(2) ?? '—',
+            unit: stats.totals.energyKwh == null ? null : 'kWh',
             note:
                 '${enhanced.totals.drivingCoverage.netEnergyKnownDrives}趟能量有记录',
           ),
-          MetricTile(
+          MetricBlock(
             label: '能量有效里程',
-            value:
-                '${enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm?.toStringAsFixed(1) ?? '—'} km',
+            value: enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm
+                    ?.toStringAsFixed(1),
+            unit: enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm == null
+                ? null
+                : 'km',
             note: '与全里程分开核对',
           ),
         ],

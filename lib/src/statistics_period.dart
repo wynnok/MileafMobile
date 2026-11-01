@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'period_chips.dart';
+import 'design/components/components.dart';
+import 'design/tokens.dart';
 import 'workspace.dart';
 
 enum StatisticsPeriod { week, recent, month, year, custom }
@@ -192,31 +193,48 @@ class StatisticsPeriodControls extends StatelessWidget {
     end.dispose();
   }
 
-  /// C keeps two quick ranges on the left and the 日期 sheet action on the
-  /// right; custom/week/year stay reachable from the sheet.
+  /// Two quick ranges plus the 日期 sheet action, all A chips; custom/week/year
+  /// stay reachable from the sheet. Chips wrap instead of scrolling at 200%.
   @override
-  Widget build(BuildContext context) => PeriodChips(
-    labels: const ['本月', '近7天'],
-    selected: switch (selection.period) {
-      StatisticsPeriod.month => 0,
-      StatisticsPeriod.recent => 1,
-      _ => -1,
-    },
-    onSelected: (index) => onChanged(
-      StatisticsSelection(
-        period: index == 0 ? StatisticsPeriod.month : StatisticsPeriod.recent,
+  Widget build(BuildContext context) => Wrap(
+    spacing: MileafSpace.s8,
+    runSpacing: MileafSpace.s4,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      StatusChip(
+        label: '本月',
+        selected: selection.period == StatisticsPeriod.month,
+        onTap: () => onChanged(
+          const StatisticsSelection(period: StatisticsPeriod.month),
+        ),
       ),
-    ),
-    trailing: ActionChip(
-      avatar: const Icon(Icons.calendar_today_outlined, size: 16),
-      label: Text(switch (selection.period) {
-        StatisticsPeriod.week => '本周',
-        StatisticsPeriod.year => '本年',
-        StatisticsPeriod.custom =>
-          '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
-        _ => '日期',
-      }),
-      onPressed: () => custom(context),
-    ),
+      StatusChip(
+        label: '近7天',
+        selected: selection.period == StatisticsPeriod.recent,
+        onTap: () => onChanged(
+          const StatisticsSelection(period: StatisticsPeriod.recent),
+        ),
+      ),
+      StatusChip(
+        key: dateActionKey,
+        label: switch (selection.period) {
+          StatisticsPeriod.week => '本周',
+          StatisticsPeriod.year => '本年',
+          StatisticsPeriod.custom =>
+            '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
+          _ => '日期',
+        },
+        selected: switch (selection.period) {
+          StatisticsPeriod.week ||
+          StatisticsPeriod.year ||
+          StatisticsPeriod.custom => true,
+          _ => false,
+        },
+        onTap: () => custom(context),
+      ),
+    ],
   );
 }
+
+/// Stable locator for the 日期 sheet action used by tests and the gallery.
+const dateActionKey = ValueKey('statistics-date-action');

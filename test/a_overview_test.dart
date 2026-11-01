@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
-import 'package:mileaf/src/collage.dart';
 import 'package:mileaf/src/currency.dart';
 import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/semantic.dart';
@@ -107,8 +106,6 @@ void main() {
     await openOverview(tester);
     expect(find.byType(MileafHero), findsOneWidget);
     expect(find.byType(Card), findsNothing);
-    expect(find.byType(CollageTile), findsNothing);
-    expect(find.byType(CollageBento), findsNothing);
     expect(find.text('四个问题'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('最近充电').hitTestable(),

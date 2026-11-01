@@ -146,6 +146,15 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
   }
 
   String n(Object? x) => x is num ? x.toStringAsFixed(1) : '—';
+
+  /// 分桶起点按本地日历显示，不把服务端 ISO 原样贴进读数行。
+  String stamp(Object? iso) {
+    final parsed = iso is String ? DateTime.tryParse(iso) : null;
+    final calendar = widget.context.workspace.calendar;
+    if (parsed == null || calendar == null) return '—';
+    final local = calendar.local(parsed);
+    return '${local.year}/${local.month}/${local.day}';
+  }
   String change(Map? x) =>
       '${n(x?['soc_change_pp'])} pp · ${n(x?['soc_change_pp_per_24h'])} pp/24h';
   Widget states(Map row) {
@@ -155,7 +164,14 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       'offline': '离线',
       'unknown': '未知',
     };
-    final colors = [Colors.teal, Colors.indigo, Colors.orange, Colors.grey];
+    // A「夜航」只有一条绿色色阶：状态用不透明度分层，不用 Material 调色板。
+    final palette = context.colors;
+    final colors = [
+      palette.accent,
+      palette.accent.withValues(alpha: .55),
+      palette.lineStrong,
+      palette.textFaint,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -249,19 +265,16 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                     painter: _ParkingPainter(
                       rows,
                       selected,
-                      Theme.of(context).colorScheme,
+                      context.colors,
                       MediaQuery.textScalerOf(context).scale(11),
-                      Theme.of(context).textTheme.bodySmall ??
-                          const TextStyle(),
+                      context.type.micro,
                     ),
                     size: Size(box.maxWidth, 190),
                   ),
                 ),
               ),
             ),
-            Text(
-              '${rows[selected]['bucket_start']} · ${change(rows[selected])}',
-            ),
+            Text('${stamp(rows[selected]['bucket_start'])} · ${change(rows[selected])}'),
             Text(
               '有效 ${rows[selected]['valid_windows']} · 观测 ${n(rows[selected]['observed_hours'])} h',
             ),
@@ -433,7 +446,7 @@ class _ParkingPainter extends CustomPainter {
   final TextStyle labelStyle;
   final List<Map<String, dynamic>> rows;
   final int selected;
-  final ColorScheme colors;
+  final MileafColors colors;
   @override
   void paint(Canvas canvas, Size size) {
     final maxValue = [
@@ -448,7 +461,7 @@ class _ParkingPainter extends CustomPainter {
         text: TextSpan(
           text: text,
           style: labelStyle.copyWith(
-            color: colors.onSurface,
+            color: colors.textMuted,
             fontSize: fontSize,
           ),
         ),
@@ -460,7 +473,7 @@ class _ParkingPainter extends CustomPainter {
     canvas.drawLine(
       Offset(72, middle),
       Offset(size.width, middle),
-      Paint()..color = colors.outline,
+      Paint()..color = colors.line,
     );
     label('0 pp', Offset(0, middle));
     label('+${maxValue.toStringAsFixed(0)} pp', const Offset(0, 0));
@@ -477,13 +490,13 @@ class _ParkingPainter extends CustomPainter {
         Offset(x, middle),
         Offset(x, y),
         Paint()
-          ..color = v < 0 ? colors.tertiary : colors.primary
+          ..color = v < 0 ? colors.textFaint : colors.accent
           ..strokeWidth = math.min(12, (size.width - 80) / rows.length * .6),
       );
       canvas.drawCircle(
         Offset(x, y),
         i == selected ? 5 : 3,
-        Paint()..color = colors.primary,
+        Paint()..color = colors.accent,
       );
     }
   }

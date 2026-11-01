@@ -10,5 +10,6 @@ export 'metric.dart';
 export 'nav_bar.dart';
 export 'section.dart';
 export 'sheet.dart';
+export 'soc_interval.dart';
 export 'state_view.dart';
 export 'top_bar.dart';

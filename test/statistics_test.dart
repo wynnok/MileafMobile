@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/statistics_period.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'support/session_store.dart';
@@ -65,7 +67,7 @@ http.Response fixture(String name) => http.Response(
 
 /// Opens the C 日期 sheet and picks a preset period (本周/本月/近7天/本年).
 Future<void> pickPeriod(WidgetTester tester, String label) async {
-  await tester.tap(find.byType(ActionChip).first);
+  await tester.tap(find.byKey(dateActionKey));
   await tester.pumpAndSettle();
   await tester.tap(
     find.descendant(
@@ -77,7 +79,7 @@ Future<void> pickPeriod(WidgetTester tester, String label) async {
 }
 
 Future<void> openDateSheet(WidgetTester tester) async {
-  await tester.tap(find.byType(ActionChip).first);
+  await tester.tap(find.byKey(dateActionKey));
   await tester.pumpAndSettle();
 }
 
@@ -187,9 +189,9 @@ void main() {
       () => DateTime.utc(2026, 4, 2),
       () => 'Asia/Shanghai',
     );
-    expect(find.widgetWithText(ChoiceChip, '里程'), findsOneWidget);
+    expect(find.widgetWithText(StatusChip, '里程'), findsOneWidget);
     final requestCount = requests.length;
-    await tester.tap(find.widgetWithText(ChoiceChip, '能量'));
+    await tester.tap(find.widgetWithText(StatusChip, '能量'));
     await tester.pumpAndSettle();
     expect(find.text('能量趋势'), findsOneWidget);
     expect(find.textContaining('-3.00 kWh'), findsWidgets);

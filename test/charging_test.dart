@@ -106,7 +106,7 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     expect(
-      find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度0至100%')),
+      find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度 0 至 100%')),
       findsOneWidget,
     );
     expect(find.textContaining('2026-03-29'), findsWidgets);

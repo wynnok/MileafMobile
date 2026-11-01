@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mileaf/src/design/components/nav_bar.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'overview_visualization_test.dart';
 import 'statistics_usage_test.dart' show usageClient;
@@ -20,7 +20,7 @@ void main() {
     );
     await custom(tester, '2026-10-02', '2026-10-03');
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '本月')).selected,
+      tester.widget<StatusChip>(find.widgetWithText(StatusChip, '本月')).selected,
       isFalse,
     );
     seen.clear();
@@ -32,7 +32,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '本月')).selected,
+      tester.widget<StatusChip>(find.widgetWithText(StatusChip, '本月')).selected,
       isTrue,
     );
     expect(

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'api.dart';
-import 'data_cards.dart';
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -1412,9 +1411,11 @@ class _ChargingPageState extends State<ChargingPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '已知充电费用 ${widget.currency.amount(stats.totals.cost)}',
+          '已知充电费用 ${widget.currency.amountValue(stats.totals.cost)}',
           style: type.title.copyWith(color: colors.text),
         ),
+        if (widget.currency.amountNote case final note?)
+          Text(note, style: type.micro.copyWith(color: colors.textFaint)),
         const SizedBox(height: MileafSpace.s4),
         Text(
           '补入电池 ${number(stats.totals.energyAddedKwh, 'kWh')} · '
@@ -1528,7 +1529,7 @@ class _ChargingPageState extends State<ChargingPage>
               '电量 ${number(value.startSoc, '%')} → ${number(value.endSoc, '%')}',
               style: type.label.copyWith(color: colors.textMuted),
             ),
-            SocInterval(start: value.startSoc, end: value.endSoc),
+            SocIntervalBar(start: value.startSoc, end: value.endSoc),
             const SizedBox(height: MileafSpace.s4),
             Text(
               '充入电池 ${number(value.energyAddedKwh, 'kWh')}',
