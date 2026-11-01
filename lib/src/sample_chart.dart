@@ -2,7 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'data_chart.dart';
+import 'design/components/components.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 
 class SampleChart extends StatelessWidget {
   const SampleChart({
@@ -26,52 +29,120 @@ class SampleChart extends StatelessWidget {
   final Key plotKey;
   final Key? plotObserverKey;
 
-  /// C 图卡标题（如「速度过程」）；缺省沿用指标名。
+  /// Chart title (e.g. 速度过程); falls back to the metric label.
   final String? title;
-
-  /// C 图卡副标题（如「点按图形读值」）。
   final String? subtitle;
+
+  String _value(num? value) {
+    if (value == null) return '—';
+    final text = value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1);
+    return '$text $unit';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final type = context.type;
     final values = points.map((p) => p.$2).whereType<num>().toList();
-    String value(num n) =>
-        '${n.toStringAsFixed(n == n.roundToDouble() ? 0 : 1)} $unit';
-    return Column(
+    final selected = (selectedIndex ?? 0)
+        .clamp(0, math.max(0, points.length - 1))
+        .toInt();
+    final chart = TimeSeriesChart(
+      title: title ?? label,
+      unit: unit,
+      subtitle: subtitle,
+      times: [for (final point in points) point.$1],
+      series: [
+        ChartSeries(
+          label: label,
+          values: [for (final point in points) point.$2],
+        ),
+      ],
+      semanticsLabel: '$label过程图表',
+      selectedIndex: selected,
+      onSelected: onSelected,
+      height: 120,
+      tickLabel: (time) {
+        final local = timestamp(time);
+        return local;
+      },
+      readout: (index) {
+        if (index < 0 || index >= points.length) return '$label读数 —';
+        return '$label读数 ${_value(points[index].$2)}';
+      },
+      emptyMessage: '没有采样点',
+      plotKey: plotKey,
+    );
+    final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TimeChart(
-          title: title ?? label,
-          subtitle: subtitle,
-          unit: unit,
-          times: points.map((p) => p.$1).toList(),
-          series: [
-            ChartSeries(label: label, values: points.map((p) => p.$2).toList()),
-          ],
-          timestamp: timestamp,
-          presentation: ChartPresentation.line,
-          plotKey: plotKey,
-          plotObserverKey: plotObserverKey,
-          selectedIndex: selectedIndex,
-          onSelected: onSelected,
-        ),
+        plotObserverKey == null
+            ? chart
+            : KeyedSubtree(key: plotObserverKey, child: chart),
+        if (points.isNotEmpty && onSelected != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: selected <= 0
+                    ? null
+                    : () => onSelected!(selected - 1),
+                child: const Text('前一个采样'),
+              ),
+              TextButton(
+                onPressed: selected >= points.length - 1
+                    ? null
+                    : () => onSelected!(selected + 1),
+                child: const Text('后一个采样'),
+              ),
+            ],
+          ),
+        if (points.length == 1)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: Text(
+              '仅1个采样点，无法绘制趋势',
+              style: type.micro.copyWith(color: colors.textMuted),
+            ),
+          ),
+        if (points.isNotEmpty && values.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: Text(
+              '此指标没有已知读数',
+              style: type.micro.copyWith(color: colors.textMuted),
+            ),
+          ),
         ExpansionTile(
-          title: Text('$label数据说明'),
+          tilePadding: EdgeInsets.zero,
+          shape: const Border(),
+          collapsedShape: const Border(),
+          title: Text(
+            '$label数据说明',
+            style: type.body.copyWith(color: colors.textMuted),
+          ),
           children: [
-            const Text('连线仅为采样示意，不代表连续观测；缺失值断线，不补点或补零。'),
-            Text(
-              '$label采样：${points.length} 点；已知 ${values.length} 点',
-              style: Theme.of(context).textTheme.bodySmall,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '连线仅为采样示意，不代表连续观测；缺失值断线，不补点或补零。',
+                style: type.micro.copyWith(color: colors.textMuted),
+              ),
             ),
             if (values.isNotEmpty)
-              Text(
-                '采样范围 ${value(values.reduce(math.min))} 至 ${value(values.reduce(math.max))}；不是原始极值',
-                style: Theme.of(context).textTheme.bodySmall,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '$label采样：${points.length} 点；已知 ${values.length} 点；'
+                  '范围 ${_value(values.reduce(math.min))} 至 '
+                  '${_value(values.reduce(math.max))}，不是原始极值。',
+                  style: type.micro.copyWith(color: colors.textFaint),
+                ),
               ),
           ],
         ),
-        if (points.length == 1) const Text('仅1个采样点，无法绘制趋势'),
-        if (points.isNotEmpty && values.isEmpty) const Text('此指标没有已知读数'),
       ],
     );
+    return body;
   }
 }

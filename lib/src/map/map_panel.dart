@@ -429,7 +429,7 @@ class _MapPanelState extends State<MapPanel> {
           children: [
             Expanded(
               child: Text(
-                '底图暂不可用 · 其他记录仍可阅读',
+                '地图暂不可用 · 其他记录仍可阅读',
                 style: theme.textTheme.bodySmall,
               ),
             ),

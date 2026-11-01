@@ -53,7 +53,7 @@ Future<void> openDetail(
 }
 
 void main() {
-  testWidgets('详情地图与页面内容同边距并先于路线与结果', (tester) async {
+  testWidgets('详情地图全出血并先于路线与结果', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -66,15 +66,14 @@ void main() {
     );
     final map = tester.getRect(find.byType(MapPanel));
     final route = tester.getRect(find.textContaining(' → ').first);
-    final tile = tester.getRect(
-      find.ancestor(of: find.text('距离'), matching: find.byType(CollageTile)),
-    );
+    final result = tester.getRect(find.bySemanticsLabel('距离 20.0 km'));
     final viewWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
     expect(map.top, lessThan(route.top));
-    expect(map.left, tile.left);
-    expect(viewWidth - map.right, map.left);
-    expect(map.width, viewWidth - 24);
+    expect(route.top, lessThan(result.top));
+    expect(map.left, 0);
+    expect(map.width, viewWidth);
+    expect(map.height, 320);
   });
 
   testWidgets('电耗口径行保留负值本次值与真实零参照并提供口径说明', (tester) async {
@@ -466,7 +465,7 @@ void main() {
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('电量读数'), 200);
-    expect(find.textContaining('电量读数 —（缺失）'), findsOneWidget);
+    expect(find.textContaining('电量读数 —'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('概览最近记录进入同一详情，明细404可返回，独立空series仍可阅读', (tester) async {
@@ -522,7 +521,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('速度读数'), 150);
     expect(
-      find.textContaining('速度读数 —（缺失）'),
+      find.textContaining('速度读数 —'),
       findsOneWidget,
       reason: tester
           .widgetList<Text>(find.textContaining('速度读数'))
