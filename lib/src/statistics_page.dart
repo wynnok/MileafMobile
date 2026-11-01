@@ -28,6 +28,7 @@ class StatisticsPage extends StatefulWidget {
     this.initialKind = 0,
     this.initialTopic,
     this.initialSelection = const StatisticsSelection(),
+    this.topBar,
   });
   final ValueChanged<int>? onDrive;
   final VehicleWorkspace workspace;
@@ -35,13 +36,15 @@ class StatisticsPage extends StatefulWidget {
   final int initialKind;
   final String? initialTopic;
   final StatisticsSelection initialSelection;
+  final Widget? topBar;
   @override
   State<StatisticsPage> createState() => _StatisticsEntryState();
 }
 
 class _StatisticsEntryState extends State<StatisticsPage> {
   @override
-  Widget build(BuildContext context) => StatisticsInsightsPage(
+  Widget build(BuildContext context) {
+    final page = StatisticsInsightsPage(
     workspace: widget.workspace,
     currency: widget.currency,
     initialSelection: widget.initialSelection,
@@ -63,6 +66,15 @@ class _StatisticsEntryState extends State<StatisticsPage> {
       initialSelection: selection,
     ),
   );
+    final bar = widget.topBar;
+    if (bar == null) return page;
+    return Column(
+      children: [
+        bar,
+        Expanded(child: page),
+      ],
+    );
+  }
 }
 
 class _LegacyStatisticsPage extends StatefulWidget {

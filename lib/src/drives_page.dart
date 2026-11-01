@@ -11,9 +11,15 @@ import 'drives_contract.g.dart' as dto;
 import 'workspace.dart';
 
 class DrivesPage extends StatefulWidget {
-  const DrivesPage({super.key, required this.workspace, this.onRecord});
+  const DrivesPage({
+    super.key,
+    required this.workspace,
+    this.onRecord,
+    this.topBar,
+  });
   final VehicleWorkspace workspace;
   final void Function(int id)? onRecord;
+  final Widget? topBar;
   @override
   State<DrivesPage> createState() => _DrivesPageState();
 }
@@ -529,7 +535,8 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       value == null || value.trim().isEmpty ? '未知地点' : value;
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
+  Widget build(BuildContext context) {
+    final content = RefreshIndicator(
     onRefresh: () {
       resetQuery();
       return Future.wait([load(force: true), loadStats(force: true)]);
@@ -773,4 +780,13 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       ),
     ),
   );
+    final bar = widget.topBar;
+    if (bar == null) return content;
+    return Column(
+      children: [
+        bar,
+        Expanded(child: content),
+      ],
+    );
+  }
 }

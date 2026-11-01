@@ -36,6 +36,7 @@ class ChargingPage extends StatefulWidget {
     required this.currency,
     this.onRecord,
     this.initialEntry,
+    this.topBar,
     required this.filter,
   });
   final VehicleWorkspace workspace;
@@ -43,6 +44,7 @@ class ChargingPage extends StatefulWidget {
   final ChargingFilter filter;
   final ChargingEntry? initialEntry;
   final void Function(String kind, int id)? onRecord;
+  final Widget? topBar;
   @override
   State<ChargingPage> createState() => _ChargingPageState();
 }
@@ -1055,7 +1057,8 @@ class _ChargingPageState extends State<ChargingPage>
   );
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) {
+    final content = ListenableBuilder(
     listenable: widget.currency,
     builder: (context, _) => RefreshIndicator(
       onRefresh: refreshAll,
@@ -1497,6 +1500,15 @@ class _ChargingPageState extends State<ChargingPage>
       ),
     ),
   );
+    final bar = widget.topBar;
+    if (bar == null) return content;
+    return Column(
+      children: [
+        bar,
+        Expanded(child: content),
+      ],
+    );
+  }
 }
 
 /// Compact C duration: 34 分钟, 2h05, 5h10.

@@ -35,12 +35,14 @@ class OverviewPage extends StatefulWidget {
     this.onRecord,
     this.onStatistics,
     this.onInsight,
+    this.topBar,
   });
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final void Function(String, StatisticsSelection)? onStatistics;
   final void Function(String, StatisticsSelection)? onInsight;
   final void Function(String kind, int id)? onRecord;
+  final Widget? topBar;
   @override
   State<OverviewPage> createState() => _OverviewPageState();
 }
@@ -1380,7 +1382,7 @@ class _OverviewPageState extends State<OverviewPage>
               (ModalRoute.of(context)?.isCurrent ?? false),
         );
       }
-      return RefreshIndicator(
+      final content = RefreshIndicator(
         key: viewportKey,
         onRefresh: () => load(force: true),
         child: ListView(
@@ -1424,6 +1426,14 @@ class _OverviewPageState extends State<OverviewPage>
             ),
           ],
         ),
+      );
+      final bar = widget.topBar;
+      if (bar == null) return content;
+      return Column(
+        children: [
+          bar,
+          Expanded(child: content),
+        ],
       );
     },
   );

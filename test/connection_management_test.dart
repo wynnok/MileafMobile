@@ -32,6 +32,14 @@ MemorySessionStore saved() => MemorySessionStore()
     'token': 'old-token',
     'expires_at': '2099-01-01T00:00:00Z',
   });
+/// VA02: the vehicle list refresh lives inside the vehicle sheet.
+Future<void> refreshVehicles(WidgetTester tester, String current) async {
+  await tester.tap(find.text(current).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byTooltip('刷新车辆'));
+  await tester.pump();
+}
+
 Future<void> openSettings(WidgetTester tester) async {
   await tester.tap(find.byTooltip('设置'));
   await tester.pumpAndSettle();
@@ -159,8 +167,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         delayOld = true;
-        await tester.tap(find.byTooltip('刷新车辆'));
-        await tester.pump();
+        await refreshVehicles(tester, '旧代次车辆');
         await openSettings(tester);
         await tester.tap(find.text('重新登录当前站点'));
         await replace(tester, 'https://$target/prefix');
@@ -200,8 +207,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         delayed = true;
-        await tester.tap(find.byTooltip('刷新车辆'));
-        await tester.pump();
+        await refreshVehicles(tester, '旧车辆');
         await openSettings(tester);
         await tester.tap(find.text('退出此设备'));
         await tester.pumpAndSettle();

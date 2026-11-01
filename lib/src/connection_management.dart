@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'appearance.dart';
+import 'appearance_sheet.dart';
 import 'session.dart';
 
 /// Business shells reuse this entry point; route owns candidate-only state.
@@ -17,9 +19,11 @@ class ConnectionManagementPage extends StatefulWidget {
     required this.session,
     this.onServiceInformation,
     this.onCurrency,
+    this.appearance,
   });
   final VoidCallback? onServiceInformation;
   final VoidCallback? onCurrency;
+  final AppearanceController? appearance;
   final SessionController session;
   @override
   State<ConnectionManagementPage> createState() =>
@@ -113,6 +117,19 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
                 onPressed: widget.onCurrency,
                 child: const Text('站点币种'),
               ),
+            if (widget.appearance case final appearance?) ...[
+              const SizedBox(height: 4),
+              ListenableBuilder(
+                listenable: appearance,
+                builder: (context, _) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('外观'),
+                  subtitle: Text(appearance.mode.label),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showAppearanceSheet(context, appearance),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             TextFormField(
               controller: _address,

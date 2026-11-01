@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/nav_bar.dart';
 
 import 'overview_visualization_test.dart';
 import 'statistics_usage_test.dart' show usageClient;
@@ -23,7 +24,12 @@ void main() {
       isFalse,
     );
     seen.clear();
-    await tester.tap(find.widgetWithText(NavigationDestination, '统计'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MileafNavBar),
+        matching: find.text('统计'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '本月')).selected,
@@ -154,7 +160,12 @@ void main() {
       DateTime.utc(2026, 9, 30, 16),
     );
     expect(tester.takeException(), isNull);
-    await tester.tap(find.widgetWithText(NavigationDestination, '统计'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MileafNavBar),
+        matching: find.text('统计'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('驾驶里程'), findsWidgets);
   });
