@@ -118,9 +118,9 @@ void main() {
           );
           await tester.tap(find.text(metricLabel).hitTestable());
           await tester.pumpAndSettle();
-          final chartTitle = scenario == 'capability-failure'
-              ? '净电耗趋势 · 估算'
-              : '配对净电耗趋势 · 估算';
+          // 本入口只跑 normal／empty／missing，三者都声明 driving_coverage 能力，
+          // 配对图标题固定；能力失败分支由 overview_state_render_test 覆盖。
+          const chartTitle = '配对净电耗趋势 · 估算';
           await tester.scrollUntilVisible(
             find.text(chartTitle).hitTestable(),
             120,

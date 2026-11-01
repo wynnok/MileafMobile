@@ -54,9 +54,12 @@ TDD：首个布局测试先失败（里程tile160宽，预期>175），实施后
 
 ## 2026-11-01 图册入口修复与概览图册刷新
 
-上一轮把概览版式改完后，两个 opt-in 渲染入口仍指向旧文案，图册因此没有现行证据。本次只修入口与图表，不改页面行为。
+上一轮把概览版式改完后，仍有 opt-in 渲染入口指向旧文案，图册因此没有现行证据。本次只修入口与图表，不改页面行为。
 
-- `test/collage_render_test.dart`：净值口径入口由旧文案「驾驶净电耗 · 配对估算／驾驶净电耗 · 估算」改为实际 tile「净电耗 · 估算」；配对图标题仍按 `pairedAvailable` 断言「配对净电耗趋势 · 估算」，能力失败分支保留「净电耗趋势 · 估算」。
-- `test/c_gallery_render_test.dart`：路线说明带脚注改为当前文案「路线 · 非导航」，并把断言收进 `scale == 1.0`——≥150% 字号时该脚注按 C05 不再绘制，旧断言在 200% 必然失败（旧文案同样如此）。
-- 重新生成 `docs/implementation/collage-renders/overview/`：24 张（normal／empty／missing × 浅／深 × 100／200，每档一张首屏 + 一张配对净电耗图），来源为上述 `collage_render_test.dart` 的正式 Flutter 渲染。文件包含 2026-10-31 电量环修正之后的版式，`provenance.json` 仍是集成时整册清单，未逐张重算。
-- 修复前两个入口均失败（`Bad state: No element`／找不到旧脚注），修复后各自通过；`collage_render_test` 仍属 opt-in，不传 `MILEAF_RENDER_OUTPUT` 时跳过。
+- `test/collage_render_test.dart`：净值口径入口由旧文案「驾驶净电耗 · 配对估算／驾驶净电耗 · 估算」改为实际 tile「净电耗 · 估算」；该入口只跑 normal／empty／missing，三者都声明 `driving_coverage` 能力，故配对图标题断言为「配对净电耗趋势 · 估算」。原先按 `scenario == 'capability-failure'` 分支的「净电耗趋势 · 估算」在此入口不可达，已随旧文案一并收掉。
+- `test/overview_state_render_test.dart`：同样改用「净电耗 · 估算」入口（该入口确实跑 capability-failure，图表标题仍保留两分支）；另把状态段截图改为先展开「数据说明与更多」——C 之后配对口径与扩展能力状态收进该折叠层，旧入口在折叠状态下取不到「配对净电耗与覆盖」。
+- `test/c_gallery_render_test.dart`：路线说明带脚注改为现行文案「路线 · 非导航」，并只在 `scale == 1.0` 断言；200% 档改为断言该脚注不出现（`if (!large)` 整行不绘制）。文案本身的取舍见 `collage-drive-detail.md` 待办。
+- 重新生成 `docs/implementation/collage-renders/overview/`：24 张（normal／empty／missing × 浅／深 × 100／200，每档一张首屏 + 一张配对净电耗图），来源为 `collage_render_test.dart` 的正式 Flutter 渲染，包含 2026-10-31 电量环修正之后的版式。
+- 修复前三个入口分别失败（`Bad state: No element`／找不到旧脚注／折叠层取不到状态段），修复后各自通过；三个入口仍属 opt-in，不传 `MILEAF_RENDER_OUTPUT` 时跳过。
+- 未同步：`provenance.json` 是 d9d7d96／4471729 集成时的整册清单（292 图、96 源文件），当前树已有 24/292 图与 53/96 源文件与其 SHA256 不符；本次不重算整册，故未改该文件。整册刷新（drive-detail 48 张等也停在上一次集成前）需连同各图册一并重出，另行处理。
+- 另有四个更早失效的 opt-in 入口也在同一轮修好，清单与验证见 `collage-integration.md`；其专题图册重跑后与已提交版本逐字节一致，故未改动图片。

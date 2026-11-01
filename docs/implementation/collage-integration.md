@@ -54,3 +54,13 @@
 主要实现提交：#8 `a18f1c4`；#9 `ff7f8fd`；#12 `1ee8d1e`；#14 `73dc3fe`；#10 `8c0b9ea`；#13 `e8b97aa`；#18 `583dd7d`；#20 `d559af1`；#15 `5db6c00` / `bfcae8e`；#19 `170f7b2`；#21 `6559a07`；QA `d9d7d96`；审查修复 `8de8ace`。证据与性能协议提交为 `a7464ef`、`6964f20`、`a1e7f60`。
 
 代码和自动化实施完成；C10 用户视觉评审仍待验。#11 地图供应商/CRS/许可/双端网络、#16 设备性能（N=0）、#17 真实设备/站点/Grafana及最终外部验收仍未通过，#8–#21 保持开放。不推送、不建 PR、不部署、不跑真机；本轮未重建双端原生产物。
+
+## 2026-11-01 图册与入口现状
+
+- 图册入口（opt-in，只在传 `MILEAF_RENDER_OUTPUT` 时运行）：2026-11-01 前有七个入口因选择器停留在旧版式而失败，现全部修好并通过——
+  - `collage_render_test.dart`、`overview_state_render_test.dart`：净值口径入口由「驾驶净电耗 · …」改为本月块「净电耗 · 估算」；`overview_state_render_test.dart` 另需先展开「数据说明与更多」再截状态段。
+  - `c_gallery_render_test.dart`：路线脚注改为现行「路线 · 非导航」，只断言 100%；200% 断言脚注不出现。
+  - `collage_rhythm_render_test.dart`、`collage_conditions_render_test.dart`、`collage_charging_statistics_render_test.dart`：专题入口不再有 `TextButton`，改用章节卡文字「节奏／能耗／补能」。
+  - `charging_expansion_render_test.dart`：先展开「过程数据说明」，再截取「原始功率峰值」等过程指标。
+  - `collage-renders/overview/` 已按 2026-11-01 版式重出 24 张；rhythm／conditions／charging-statistics 三个专题图册重跑后与已提交版本逐字节一致（专题页本身未变，仅导航入口变了），故未改动图片。
+- 图册指纹：`provenance.json` 仍是 d9d7d96／4471729 整册收口清单；2026-11-01 实测当前树 55/96 源文件、24/292 图片与其 SHA256 不符（图片不符项即本轮重出的 overview 24 张）。其余目录（如 drive-detail 48 张）仍停在各自最后一次重出；整册重新收口需连同各入口一并重跑后再更新该文件。

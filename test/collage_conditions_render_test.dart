@@ -198,11 +198,9 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
-          await tester.scrollUntilVisible(
-            find.widgetWithText(TextButton, '能耗').hitTestable(),
-            160,
-          );
-          await tester.tap(find.widgetWithText(TextButton, '能耗'));
+          // C 之后专题入口是 2×2 章节卡（InkWell + CollageTile），不再有 TextButton。
+          await tester.scrollUntilVisible(find.text('能耗').hitTestable(), 160);
+          await tester.tap(find.text('能耗'));
           await save('conditions-$suffix');
           if (scenario == 'normal') {
             await tester.scrollUntilVisible(

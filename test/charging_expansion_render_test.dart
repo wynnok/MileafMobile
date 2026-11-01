@@ -121,6 +121,10 @@ void main() {
           180,
         );
         await save('heater-$suffix');
+        // 过程指标收在「过程数据说明」折叠层里，先展开再截取。
+        await tester.scrollUntilVisible(find.text('过程数据说明').hitTestable(), 180);
+        await tester.tap(find.text('过程数据说明').hitTestable());
+        await tester.pumpAndSettle();
         await tester.scrollUntilVisible(
           find.textContaining('原始功率峰值').hitTestable(),
           180,

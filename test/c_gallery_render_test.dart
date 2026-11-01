@@ -214,8 +214,18 @@ void main() {
             await tester.tap(find.text('最近行程').hitTestable());
             await tester.pumpAndSettle();
             await save('drive-detail-$suffix');
-            // ≥150% 字号时路线说明带收成两行，C05 的「非导航」脚注不再绘制。
-            if (scale == 1.0) expectPage('路线 · 非导航');
+            if (scale == 1.0) {
+              // 现行文案；C05 原型为「路线示意 · 非导航」，差异见
+              // docs/implementation/collage-drive-detail.md 的待办记录。
+              expectPage('路线 · 非导航');
+            } else {
+              // ≥150% 时说明带只留 A → B 与时间，脚注整行不绘制。
+              expect(
+                find.textContaining('非导航'),
+                findsNothing,
+                reason: 'C05 脚注在 200% 不绘制',
+              );
+            }
             await pumpApp('overview-return-$suffix', scenario: scenario);
           }
           {

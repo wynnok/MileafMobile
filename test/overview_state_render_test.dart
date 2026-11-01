@@ -130,9 +130,9 @@ void main() {
             ),
           );
           await save('overview-$suffix');
-          final metricLabel = scenario == 'capability-failure'
-              ? '驾驶净电耗 · 估算'
-              : '驾驶净电耗 · 配对估算';
+          // 净值口径的入口是本月块「净电耗 · 估算」tile（旧文案为「驾驶净电耗 …」）；
+          // 能力失败时同一 tile 仍在，只是图表标题退回非配对口径。
+          const metricLabel = '净电耗 · 估算';
           await tester.scrollUntilVisible(
             find.text(metricLabel).hitTestable(),
             120,
@@ -147,6 +147,13 @@ void main() {
             120,
           );
           await save('paired-$suffix');
+          // C 之后配对口径与扩展能力状态收进「数据说明与更多」，需先展开再截状态段。
+          await tester.scrollUntilVisible(
+            find.text('数据说明与更多').hitTestable(),
+            140,
+          );
+          await tester.tap(find.text('数据说明与更多').hitTestable());
+          await tester.pumpAndSettle();
           if (scenario == 'capability-failure') {
             await tester.scrollUntilVisible(
               find.textContaining('扩展能力暂未确认'),

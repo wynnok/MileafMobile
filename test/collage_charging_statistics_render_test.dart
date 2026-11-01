@@ -212,8 +212,9 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
+          // C 之后专题入口是 2×2 章节卡（InkWell + CollageTile），不再有 TextButton。
           await tester.scrollUntilVisible(
-            find.widgetWithText(TextButton, '补能').hitTestable(),
+            find.text('补能').hitTestable(),
             180,
             scrollable: find.byType(Scrollable).first,
           );

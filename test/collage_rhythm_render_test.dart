@@ -187,11 +187,9 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.text('统计').last);
           await tester.pumpAndSettle();
-          await tester.scrollUntilVisible(
-            find.widgetWithText(TextButton, '节奏').hitTestable(),
-            160,
-          );
-          await tester.tap(find.widgetWithText(TextButton, '节奏'));
+          // C 之后专题入口是 2×2 章节卡（InkWell + CollageTile），不再有 TextButton。
+          await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 160);
+          await tester.tap(find.text('节奏'));
           await save('rhythm-$suffix');
           if (scenario == 'normal') {
             await tester.scrollUntilVisible(
