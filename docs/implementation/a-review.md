@@ -52,3 +52,29 @@
 - Standards：4 组硬性问题，3 组已修复，1 组（legacy 退役）保留为残余；判断项 8 项。
 - Spec：11 项发现，1 项（浅色图）已修复并复验，2 项文档/清单已补，其余为图册范围、legacy 与措辞残余。
 - 最差遗留：**VA12 五专题完整矩阵未完成**，以及 **legacy `Collage*`/`amount()` 路径仍在**。两者都不影响 A 主路径的 351 项测试，但不能算 VA12/VA14 的完整验收。
+
+## 复审补记：VA12 完整图册 + VA14 legacy 清理（2026-11-01，同一分支）
+
+上一轮留下的两项「最差遗留」已在本轮修复，结论更新如下。
+
+### 已关闭
+
+1. **VA12 五专题矩阵**：图册由 36 张扩到 **132 张**（11 页 × normal/empty/missing × 浅/深 × 100/200%），五专题全部进入，两个长期专题经「长期」页的「展开长期续航」/「展开停放观察」进入。新增 `test/support/a_gallery_fixture.dart`，三态语义分离：empty 为真实无记录/无采样，missing 为字段未知 → `—`，两详情的 missing 走明细 503 / 系列 503。每个「页 × 态」在渲染时断言至少一条主数字或空/缺失文案；断言失败会打印该页实际文本，避免"看起来渲染成功"。132 个文件哈希互不相同，66 对浅/深与 66 对 100/200% 全部不同。
+2. **§13.2/§13.3 退役**：`lib/src/collage.dart`、`data_chart.dart`、`period_chips.dart`、`data_cards.dart` 已删除；`statistics_page.dart` 的 legacy 0.1/0.2 fallback 只用 A token 与 A 组件（`StatusChip`、`MetricBlock`、`TimeSeriesChart`），`statistics_insights_page.dart` 改用 `MetricBlock` + `MetricGrid`，`period_chips.dart` 的胶囊改为内联 `Wrap` + `StatusChip`。全仓 `rg "CollageTile|CollageBento|Sparkline|data_cards|period_chips|data_chart"` 在 `lib/` 为 0 命中，`test/` 仅剩一条说明性注释。
+3. **`currency.amount()`**：方法已从 `currency.dart` 删除；金额统一 `amountValue` + `amountNote`，无币种显示金额 +「币种未记录」，不默认 CNY、不加括号换行。全仓 `rg "currency\.amount\("` 为 0 命中（仅文档记述）。
+4. **`SocInterval` 措辞**：新组件 `design/components/soc_interval.dart`（0–100 轨 + 区间段，标签「出发 / 到达」，语义摘要含尺度），行程详情与充电列表共用；`test/drive_detail_test.dart`、`test/charging_test.dart` 已同步。
+5. **充电详情 hero**：`ListView` padding 置 0，电量弧 hero 全出血，其余内容包在 `MileafLayout.pageInset` 内，地图保留自身边距；`a_charging_detail_test.dart` 新增 hero 左右到边的断言。
+6. **`c_gallery_render_test.dart`**：标注为历史 C 证据并 `skip: true`，不删除文档与 fixture，仍导出 `cGalleryClient` 供 A 回归复用。
+7. **本轮新发现并修复**：`statistics_parking_page.dart` 仍用 Material 调色板（`Colors.teal/indigo/orange/grey`）与 `ColorScheme`，分桶读数直接贴服务端 ISO 时间。已改为 A 语义色（单绿色阶 + 灰阶）、`context.type.micro`，分桶起点按本地日历显示；`test/statistics_parking_test.dart` 通过。
+
+### 仍保留
+
+- 专题自定义 painter 的语义摘要仍由外层文本提供，未逐一纳入共享图表测试。
+- 补能专题 0 条记录时走「真实 0」而非空态分支（页面判定依赖 `totals == null`），图册按真实行为记录。
+- 未跟踪设计文档仍按用户边界保留在工作区。
+
+### 结果
+
+- `tool/flutterw analyze --no-pub`：0 issue。
+- `tool/flutterw test --no-pub`：**352 通过、22 跳过**。
+- 图册：`docs/implementation/a-renders/gallery/` 132 张，指纹见该目录 README。

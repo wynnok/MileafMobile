@@ -5,8 +5,8 @@
 ## 自动化结果
 
 - `tool/flutterw analyze --no-pub`：**通过**（0 issue）。
-- `tool/flutterw test --no-pub`：**351 通过、22 跳过**。跳过项为 opt-in 渲染入口与真机/平台类占位。
-- 渲染：`docs/implementation/a-renders/overview/` 12 张；`docs/implementation/a-renders/gallery/` 36 张。浅/深文件哈希逐对复核，全部不同。
+- `tool/flutterw test --no-pub`：**352 通过、22 跳过**。跳过项为 opt-in 渲染入口、历史 C 图册（`c_gallery_render_test.dart`，已标注历史并 `skip: true`）与真机/平台类占位。
+- 渲染：`docs/implementation/a-renders/overview/` 12 张；`docs/implementation/a-renders/gallery/` **132 张**（11 页 × normal/empty/missing × 浅/深 × 100/200%）。132 个文件哈希互不相同，66 对浅/深与 66 对 100/200% 全部不同。
 - 对比度：`test/design_tokens_test.dart` 深浅色表全部通过；触控/reduce motion/图表语义见 `test/design_components_test.dart` 与 `a-accessibility.md`。
 - 双轴审查：`a-review.md`。
 
@@ -25,9 +25,9 @@
 | VA09 充电详情 | 完成 | `charging_detail.dart`、`a_charging_detail_test` |
 | VA10 五个专题 | 完成（主路径） | 五页均改用 A token/分区；专题测试 40 项通过 |
 | VA11 连接/登录/设置 | 完成 | `connection_page/session_pages/setup_page/connection_management`；38 项测试 |
-| VA12 图册矩阵 | **部分** | 36 张覆盖四主 Tab + 两详情 + 节奏专题；五专题完整 ×12 矩阵未补齐，见 gallery README |
+| VA12 图册矩阵 | 完成 | 132 张：四主 Tab + 两详情 + 五专题 × 浅/深 × 100/200% × normal/empty/missing；每页每态断言主数字/图表或空/缺失文案，见 gallery README 指纹与矩阵 |
 | VA13 可达性/对比度 | 完成（自动化） | `a-accessibility.md`；真机读屏待验 |
-| VA14 回归/审查/文档 | 完成（含残余） | 351 项测试、analyze、`a-review.md`、本清单；性能真机数据未测 |
+| VA14 回归/审查/文档 | 完成（含残余） | 352 项测试、analyze、`a-review.md`、本清单；legacy 视觉路径已清理（见下）；性能真机数据未测 |
 
 ## Spec §14 验收项（按可自动化部分勾选）
 
@@ -41,10 +41,13 @@
 - [x] 电池弧 88/72；区间 18→82 不伪装成 0→82。
 - [x] 概览/行程/充电/统计/两详情/专题 360×800 与 200% 主要回归。
 - [x] 空态不画全零；缺失不补 0；费用不默认 CNY（A 主路径）。
-- [x] 无 `Card`/`CollageTile` 在 A 主路径页面（legacy fallback 除外）。
+- [x] 无 `Card`/`CollageTile`/`Sparkline` 在 A 页面；`collage.dart`、`data_chart.dart`、`period_chips.dart`、`data_cards.dart` 已删除，legacy 0.1/0.2 fallback 仍可用但只用 A token/组件。
+- [x] `currency.amount()` 已移除：金额走 `amountValue` + `amountNote`，全仓 `rg "currency.amount\("` 为 0 命中。
+- [x] 电量区间按 Spec §9.4 用「出发/到达」，0–100 轨 + 区间段；行程详情与充电列表共用同一组件。
+- [x] 充电详情电池弧 hero 全出血，其余内容保留页边距（`a_charging_detail_test.dart`）。
 - [x] 双轴审查归档；残余项列明。
+- [x] VA12 完整渲染矩阵：132 张。
 - [ ] 真机截图、真实站点、地图底图/CRS/许可、性能、双端隔离构建（外部 gate）。
-- [ ] VA12 五专题完整渲染矩阵。
 
 ## 关键路径性能 sanity
 
@@ -52,12 +55,9 @@
 
 ## 残余风险
 
-1. **VA12 范围**：36 张 vs 规范 132 张；详情 empty/fail、五专题其余四页未进图册。
-2. **legacy 路径**：`collage.dart`/`data_chart.dart`/`period_chips.dart`/`data_cards.dart` 仍被旧站点 fallback 使用；`currency.amount()` 在 legacy/说明层仍输出括号币种。
-3. **专题自定义 painter**：日历/续航/停放图的语义摘要靠外层文本，未全部纳入共享图表测试。
-4. **电量区间标签**：`SocInterval` 仍用“起始/结束”，Spec §9.4 写“到达/出发”。
-5. **充电详情 hero**：深色电池弧仍在 12px 内容边距内，非全出血。
-6. **设计文档未跟踪**：`docs/specs/visual-system-a*.md`、`docs/adr/0003-visual-direction-a.md` 按用户边界未提交；README/AGENTS 的链接在本工作区可打开，但提交树中缺失。
+1. **专题自定义 painter**：日历/续航/停放图的语义摘要靠外层文本，未全部纳入共享图表测试（本轮只把停放页的颜色/字号改为 A token）。
+2. **补能专题的空态分支**：`StatisticsChargingPage` 的空态依赖 `totals == null`，成功返回 0 条记录时走真实 0 展示（`¥0`、`0 / 0 次`、不画图）。图册按真实行为记录，未改页面判定。
+3. **设计文档未跟踪**：`docs/specs/visual-system-a*.md`、`docs/adr/0003-visual-direction-a.md` 按用户边界未提交；README/AGENTS 的链接在本工作区可打开，但提交树中缺失。
 
 ## 外部 gate（不因本轮通过而关闭）
 
