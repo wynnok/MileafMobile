@@ -4,7 +4,7 @@
 通过独立部署的 Mileaf Server API，以图表、地图和关键数字尽可能展示车况记录、行程、充电和统计。
 Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
-**当前状态：版面与视觉已按用户 2026-10-30 确认的 C「数据拼贴」方向完成重构，并于 2026-10-31 通过 C10 用户视觉验收；湖畔配色保留，代码、自动化与双端隔离构建已验证，真机/真实站点/地图/性能等外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [C 逐页对照与 C10 评审材料](docs/implementation/collage-audit/c-fidelity-report.md)、[视觉方向 ADR](docs/adr/0001-visual-direction-c.md) 与 [原始设计原型](docs/prototypes/visual-refresh/renders/index.html)；A「湖畔」版面渲染仅作历史证据（[实施记录](docs/implementation/lake-visualization.md)）。
+**当前状态：版面与视觉已按用户 2026-11-01 确认的 A「夜航」方向完成 VA01–VA14 实施；代码、自动化与实际 Flutter 渲染已验证，真机/真实站点/地图/性能等外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [A 视觉系统 Spec](docs/specs/visual-system-a.md)、[A 视觉方向 ADR](docs/adr/0003-visual-direction-a.md)、[A 渲染索引](docs/implementation/a-renders/gallery/README.md) 与 [可达性审计](docs/implementation/a-accessibility.md)。C「数据拼贴」的页面、渲染与 C10 验收记录保留为历史证据，不再作为当前视觉依据。
 
 本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
@@ -25,7 +25,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 | [API 能力与差异](docs/product/api-capabilities.md) | 当前后端实际能支撑什么，哪些不能假设 |
 | [需求澄清与实施交接](docs/product/to-spec-readiness.md) | 本轮纠偏如何进入既有 Spec/工单，下一阶段应交付什么 |
 
-以上为与正式 Spec 配套的产品与体验基线；C「数据拼贴」原型已获用户确认并已按页还原，正式页面的浅深色/大字体实际渲染由 `test/c_gallery_render_test.dart` 生成，最终双端体验仍需相应外部证据。
+以上为与正式 Spec 配套的产品与体验基线；A「夜航」正式页面的浅深色/大字体实际渲染由 `test/a_gallery_render_test.dart` 生成，输出到 `docs/implementation/a-renders/gallery/`。C 的渲染与逐页对照仅作历史证据。最终双端体验仍需相应外部证据。
 正式需求与依赖关系以 [GitHub Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其子任务为准。
 
 ## 工作约定
@@ -47,6 +47,8 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
 - [最终验证与本地产物](docs/implementation/final-verification.md)
 - [性能合成数据准备与未测状态](docs/implementation/performance.md)
+- [A 渲染索引](docs/implementation/a-renders/gallery/README.md)
+- [A 可达性审计](docs/implementation/a-accessibility.md)
 - [两轴审查与修复](docs/implementation/code-review.md)
 - [完整验收矩阵与响应复验](docs/implementation/acceptance.md)
 - [行程详情和采样](docs/implementation/drive-detail.md)

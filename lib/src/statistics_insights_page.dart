@@ -151,7 +151,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   }
 
   void selectTopic(String key) {
-    debugPrint('SELECT TOPIC $key');
     if (key == 'overview') {
       setState(() => topic = key);
       if (current == null && !busy) load();
@@ -840,9 +839,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   Widget _insightRow(insights.DrivingStats enhanced) {
     final net = enhanced.totals.netConsumptionPaired.valueWhKm;
-    final note = net == null
-        ? '净电耗缺失，样本不足。'
-        : '本期净电耗 ${_whKm(net)} Wh/km；每日走势见能耗专题。';
+    final note = net == null ? '净电耗缺失，样本不足。' : '净电耗 ${_whKm(net)} Wh/km';
     final colors = context.colors;
     final type = context.type;
     final text = Text(note, style: type.body.copyWith(color: colors.text));

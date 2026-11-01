@@ -59,7 +59,7 @@ void main() {
       await tester.ensureVisible(find.text('后一个采样'));
       await tester.tap(find.text('后一个采样'));
       await tester.pump();
-      expect(find.textContaining('速度读数 —（缺失）'), findsOneWidget);
+      expect(find.textContaining('速度读数 —'), findsOneWidget);
       await tester.tap(find.text('后一个采样'));
       await tester.pump();
       expect(find.textContaining('速度读数 90 km/h'), findsOneWidget);

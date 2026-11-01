@@ -281,8 +281,11 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
         MileafLayout.pageInset(context),
         0,
       ),
-      child: large
-          ? Column(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (large)
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final item in items)
@@ -295,7 +298,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ),
               ],
             )
-          : Wrap(
+          else
+            Wrap(
               spacing: MileafSpace.s16,
               runSpacing: MileafSpace.s8,
               children: [
@@ -309,6 +313,9 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ),
               ],
             ),
+          const SizedBox(height: MileafSpace.section),
+        ],
+      ),
     );
   }
 
@@ -483,8 +490,11 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   children: [
                     Text('两类能量', style: Theme.of(context).textTheme.titleSmall),
                     Text('充入电池 ${number(d.energyAddedKwh, 'kWh')}'),
+                    Text('电网侧'),
                     Text(
-                      '电网侧 ${d.energyUsedKwh == null ? '—' : '${d.energyUsedKwh!.toStringAsFixed(2)} kWh'}',
+                      d.energyUsedKwh == null
+                          ? '—'
+                          : '${d.energyUsedKwh!.toStringAsFixed(2)} kWh',
                     ),
                     const Text('两类能量分别记录，不相加。'),
                   ],
@@ -728,7 +738,8 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                 },
                 tickLabel: (time) {
                   final local = widget.calendar.local(time);
-                  return '${local.month}/${local.day}';
+                  return '${local.hour.toString().padLeft(2, '0')}:'
+                      '${local.minute.toString().padLeft(2, '0')}';
                 },
               ),
               if (points.isNotEmpty)
@@ -1181,7 +1192,8 @@ class _ChargingCurveState extends State<ChargingCurve> {
           },
           tickLabel: (t) {
             final local = widget.calendar.local(t);
-            return '${local.month}/${local.day}';
+            return '${local.hour.toString().padLeft(2, '0')}:'
+                '${local.minute.toString().padLeft(2, '0')}';
           },
         ),
         if (points.isNotEmpty)

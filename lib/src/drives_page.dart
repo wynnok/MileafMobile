@@ -659,7 +659,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   Widget _featuredRoute(dto.Drive d) {
     final type = context.type;
     final colors = context.colors;
-    final meta = '${_clock(d.startedAt)} · ${_duration(d)} · ${_net(d)}';
+    final meta = '${_clock(d.startedAt)} · ${_duration(d)}\n${_net(d)}';
     final distance = _distance(d);
     return Semantics(
       button: true,
@@ -722,7 +722,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
 
   Widget _routeRow(dto.Drive d) {
     final distance = _distance(d);
-    final meta = '${_clock(d.startedAt)} · ${_duration(d)} · ${_net(d)}';
+    final meta = '${_clock(d.startedAt)} · ${_duration(d)}\n${_net(d)}';
     return MileafDataRow(
       key: ValueKey('drive-${d.id}'),
       title: _route(d),

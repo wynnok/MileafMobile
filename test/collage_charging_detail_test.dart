@@ -137,7 +137,7 @@ void main() {
       } else if (state == 'tile-failure') {
         fake.fail();
         await tester.pumpAndSettle();
-        expect(find.textContaining('底图暂不可用'), findsOneWidget);
+        expect(find.textContaining('地图暂不可用'), findsOneWidget);
       } else {
         fake.completeLoad('GS(test)');
         await tester.pumpAndSettle();

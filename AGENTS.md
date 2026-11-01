@@ -39,3 +39,5 @@ Single-context: root `GLOSSARY.md` plus `docs/adr/`.
 See `docs/agents/domain.md`.
 
 - 2026-10-31 地图双端接入：共享 Dart `MapPanel`；Android 高德 11.3.100 `TextureMapView`；iOS 使用高德 11.2.100 `MAMapView`（`AMap3DMap-NO-IDFA`，key 绑定 Bundle ID `app.mileaf.mileaf`，经非公开 xcconfig 注入）；MapKit 过渡已移除；WGS84→GCJ-02 只在地图边界；真实底图/真机/CRS/大陆网络仍待验，#4/#11 保持 OPEN。实现与证据见 `docs/implementation/amap-map.md`，决定见 `docs/adr/0002-map-provider.md`。
+
+- 2026-11-01 用户确认 A「夜航」为当前视觉方向，并按 VA01–VA14 顺序实施；正式 Flutter 页面、共享组件、实际渲染与可达性证据见 `docs/implementation/a-renders/` 与 `docs/implementation/a-accessibility.md`，决定见 `docs/adr/0003-visual-direction-a.md`。VA01–VA14 代码与自动化在 `codex/mileaf-v1` 本地提交；C10/C「数据拼贴」文档与渲染仅作历史证据。真机、真实站点/地图、性能与双端隔离构建仍为独立外部 gate，不因 A 实施而关闭。

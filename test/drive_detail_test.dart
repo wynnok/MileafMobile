@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:mileaf/src/collage.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_panel.dart';
 import 'package:mileaf/src/map/map_platform.dart';

@@ -202,7 +202,7 @@ void main() {
     );
     fake.fail();
     await tester.pumpAndSettle();
-    expect(find.textContaining('底图暂不可用'), findsOneWidget);
+    expect(find.textContaining('地图暂不可用'), findsOneWidget);
     expect(find.text('重试底图'), findsOneWidget);
     await tester.tap(find.text('重试底图'));
     await tester.pumpAndSettle();
@@ -225,7 +225,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 15));
     await tester.pumpAndSettle();
-    expect(find.textContaining('底图暂不可用'), findsOneWidget);
+    expect(find.textContaining('地图暂不可用'), findsOneWidget);
   });
 
   testWidgets('地图与隐私页可撤销同意', (tester) async {
