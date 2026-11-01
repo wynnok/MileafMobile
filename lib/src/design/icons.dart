@@ -196,21 +196,24 @@ class _MileafIconPainter extends CustomPainter {
           ..lineTo(x(12), y(12))
           ..lineTo(x(15.3), y(14.1));
       case MileafIconName.settings:
-        path.addOval(
-          Rect.fromCircle(center: at(12, 12), radius: x(3.1)),
-        );
-        for (var i = 0; i < 8; i++) {
-          final angle = i * math.pi / 4;
-          path
-            ..moveTo(
-              x(12 + 5.3 * math.cos(angle)),
-              y(12 + 5.3 * math.sin(angle)),
-            )
-            ..lineTo(
-              x(12 + 7.6 * math.cos(angle)),
-              y(12 + 7.6 * math.sin(angle)),
-            );
+        // Eight-tooth gear outline with a round hub.
+        final center = at(12, 12);
+        for (var i = 0; i < 16; i++) {
+          final angle = -math.pi / 2 + i * math.pi / 8;
+          final radius = i.isEven ? 7.4 : 5.9;
+          final point = Offset(
+            center.dx + math.cos(angle) * x(radius),
+            center.dy + math.sin(angle) * y(radius),
+          );
+          if (i == 0) {
+            path.moveTo(point.dx, point.dy);
+          } else {
+            path.lineTo(point.dx, point.dy);
+          }
         }
+        path
+          ..close()
+          ..addOval(Rect.fromCircle(center: center, radius: x(2.8)));
       case MileafIconName.chevron:
         path
           ..moveTo(x(9.4), y(5.8))
