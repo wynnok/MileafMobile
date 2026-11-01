@@ -205,6 +205,42 @@ abstract final class MileafIconMetrics {
   static const brandDotDiameter = 2.7;
 }
 
+/// Chart geometry from Spec §8; no chart package is introduced.
+abstract final class MileafChartMetrics {
+  const MileafChartMetrics._();
+
+  static const lineStroke = 1.5;
+  static const microStroke = 1.2;
+  static const areaMaxOpacity = .16;
+  static const areaMinOpacity = .0;
+  static const currentPoint = 4.0;
+  static const currentHalo = 8.0;
+  static const pointRadius = 2.5;
+  static const stemStroke = 1.5;
+  static const stemIdleOpacity = .35;
+  static const stemEndpoint = 2.5;
+  static const barMaxWidth = 12.0;
+  static const barSlotCoverage = .6;
+  static const barIdleOpacity = .3;
+  static const barRadius = 1.0;
+  static const axisLabelSize = 9.0;
+  static const referenceDash = <double>[4, 4];
+  static const yTicks = 3;
+}
+
+/// 88px battery arc (72 at 200%); 2.5 stroke, 10% track, 22/9 centre.
+abstract final class MileafBatteryMetrics {
+  const MileafBatteryMetrics._();
+
+  static const size = 88.0;
+  static const largeTextSize = 72.0;
+  static const stroke = 2.5;
+  static const trackOpacity = .10;
+  static const valueSize = 22.0;
+  static const valueHeight = 24.0;
+  static const labelSize = 9.0;
+}
+
 /// Brand lockup measurements from Spec §6.2.
 abstract final class MileafBrand {
   const MileafBrand._();
