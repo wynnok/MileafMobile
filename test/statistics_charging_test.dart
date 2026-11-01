@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 
 import 'charging_expansion_test.dart' show expansionResponse, chargingStatsV2;
 import 'charging_test.dart' show jsonResponse;
+import 'support/c_fixture.dart' show cEmptyChargingV2;
 import 'support/statistics_insights_fixture.dart';
 import 'statistics_test.dart' show openStats;
 
@@ -241,6 +242,33 @@ void main() {
     await tester.tap(metric);
     await tester.pumpAndSettle();
     expect(find.text('有效入电均价走势'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('补能专题 0 条记录走空态而不是 — + 0 / 0 次', (tester) async {
+    await openStats(
+      tester,
+      MockClient((request) async {
+        if (request.url.path.endsWith('/stats') &&
+            request.url.queryParameters['kind'] == 'charging') {
+          return jsonResponse(cEmptyChargingV2());
+        }
+        return statisticsChargingResponse(request);
+      }),
+      () => DateTime.utc(2026, 3, 30, 12),
+      () => 'UTC',
+      statisticsInsights: true,
+    );
+    await tester.scrollUntilVisible(
+      find.text('补能').hitTestable(),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('补能'));
+    await tester.pumpAndSettle();
+    expect(find.text('还没有充电记录'), findsOneWidget);
+    expect(find.text('已知支出 · 覆盖同时看'), findsNothing);
+    expect(find.textContaining('费用有记录 0 / 0'), findsNothing);
+    expect(find.text('AC / DC / 未知时间分布'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

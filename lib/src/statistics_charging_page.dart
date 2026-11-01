@@ -287,7 +287,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: MileafProgressLine(),
           ),
-        if (totals != null) ...[
+        // 0 条记录不是「费用 0 元、0 次 0 kWh」：直接走空态，不画空账目。
+        if (totals != null && totals.sessions > 0) ...[
           _conclusion(totals, rich),
           _trend(stats!, detail, labels, units),
           if (expandedAvailable && stats.buckets.isNotEmpty)
@@ -550,11 +551,6 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
       ('DC', energyMissing ? null : totals.dcEnergyKwh),
       if (rich != null) ('未知', energyMissing ? null : rich.unknownEnergyKwh),
     ];
-    final known = [
-      for (final row in rows)
-        if (row.$2 != null && row.$2! > 0) row,
-    ];
-    final total = known.fold<num>(0, (sum, row) => sum + row.$2!);
     final durationMissing =
         rich != null && rich.sessions > 0 && rich.durationKnownSessions == 0;
     return Column(
@@ -562,33 +558,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
       children: [
         const SectionHeader(title: '补能结构', range: 'AC / DC / 未知时间分布'),
         const SizedBox(height: MileafSpace.s8),
-        if (total > 0)
-          ClipRRect(
-            borderRadius: MileafRadius.xsAll,
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  for (final (index, row) in known.indexed)
-                    Expanded(
-                      flex: (row.$2! / total * 1000).round().clamp(1, 1000),
-                      child: ColoredBox(
-                        color: switch (index % 3) {
-                          0 => colors.seriesPrimary,
-                          1 => colors.seriesSecondary,
-                          _ => colors.seriesNeutral,
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          )
-        else
-          Text(
-            'AC/DC 分类能量缺失',
-            style: type.micro.copyWith(color: colors.textFaint),
-          ),
+        MileafCompositionBar(segments: rows),
         const SizedBox(height: MileafSpace.s8),
         Wrap(
           spacing: MileafSpace.s16,
