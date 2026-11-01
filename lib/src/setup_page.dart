@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'design/brand_mark.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'session.dart';
 
 class SetupPage extends StatefulWidget {
@@ -41,13 +46,25 @@ class _SetupPageState extends State<SetupPage> {
           appBar: AppBar(title: const Text('首次初始化站点')),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(MileafLayout.pageInset(context)),
               child: Form(
                 key: _form,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(session.site!.uri.toString()),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: MileafWordmark(markSize: 32),
+                    ),
+                    const SizedBox(height: MileafSpace.s20),
+                    Text('首次初始化站点', style: context.type.title),
+                    const SizedBox(height: MileafSpace.s4),
+                    Text(
+                      session.site!.uri.toString(),
+                      style: context.type.label.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     const Text('仅适用于尚未设置访问口令的站点。已有站点请返回登录。'),
                     const SizedBox(height: 24),
@@ -57,10 +74,7 @@ class _SetupPageState extends State<SetupPage> {
                       enableSuggestions: false,
                       autocorrect: false,
                       enabled: !session.loading,
-                      decoration: const InputDecoration(
-                        labelText: '新站点口令',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: '新站点口令'),
                       validator: (value) => (value?.runes.length ?? 0) < 10
                           ? '口令至少需要 10 个字符'
                           : null,
@@ -72,10 +86,7 @@ class _SetupPageState extends State<SetupPage> {
                       enableSuggestions: false,
                       autocorrect: false,
                       enabled: !session.loading,
-                      decoration: const InputDecoration(
-                        labelText: '再次输入口令',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: '再次输入口令'),
                       validator: (value) =>
                           value != _password.text ? '两次输入的口令不一致' : null,
                     ),
@@ -93,7 +104,12 @@ class _SetupPageState extends State<SetupPage> {
                     if (session.message != null)
                       Semantics(
                         liveRegion: true,
-                        child: Text(session.message!),
+                        child: Text(
+                          session.message!,
+                          style: context.type.body.copyWith(
+                            color: context.colors.error,
+                          ),
+                        ),
                       ),
                   ],
                 ),

@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'appearance.dart';
 import 'appearance_sheet.dart';
+import 'design/components/components.dart';
+import 'design/icons.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'session.dart';
 
 /// Business shells reuse this entry point; route owns candidate-only state.
@@ -101,36 +107,52 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
     appBar: AppBar(title: const Text('连接与本地访问')),
     body: SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(MileafLayout.pageInset(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('当前服务：${widget.session.site!.uri}'),
-            const Text('验证新连接和车辆成功后才替换；失败时保留当前连接。'),
+            Text(
+              '当前服务：${widget.session.site!.uri}',
+              style: context.type.label.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+            const SizedBox(height: MileafSpace.s4),
+            Text(
+              '验证新连接和车辆成功后才替换；失败时保留当前连接。',
+              style: context.type.micro.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+            const SizedBox(height: MileafSpace.s12),
             if (widget.onServiceInformation != null)
-              TextButton(
-                onPressed: widget.onServiceInformation,
-                child: const Text('服务版本与兼容性'),
+              MileafDataRow(
+                title: '服务版本与兼容性',
+                icon: MileafIconName.info,
+                showChevron: true,
+                topLine: true,
+                onTap: widget.onServiceInformation,
               ),
             if (widget.onCurrency != null)
-              TextButton(
-                onPressed: widget.onCurrency,
-                child: const Text('站点币种'),
+              MileafDataRow(
+                title: '站点币种',
+                icon: MileafIconName.wallet,
+                showChevron: true,
+                onTap: widget.onCurrency,
               ),
-            if (widget.appearance case final appearance?) ...[
-              const SizedBox(height: 4),
+            if (widget.appearance case final appearance?)
               ListenableBuilder(
                 listenable: appearance,
-                builder: (context, _) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('外观'),
-                  subtitle: Text(appearance.mode.label),
-                  trailing: const Icon(Icons.chevron_right),
+                builder: (context, _) => MileafDataRow(
+                  title: '外观',
+                  meta: appearance.mode.label,
+                  icon: MileafIconName.settings,
+                  showChevron: true,
+                  bottomLine: true,
                   onTap: () => showAppearanceSheet(context, appearance),
                 ),
               ),
-            ],
-            const SizedBox(height: 24),
+            const SizedBox(height: MileafSpace.s24),
             TextFormField(
               controller: _address,
               enabled: !_busy,
@@ -179,7 +201,15 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
               child: const Text('退出此设备'),
             ),
             if (_message != null)
-              Semantics(liveRegion: true, child: Text(_message!)),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _message!,
+                  style: context.type.body.copyWith(
+                    color: context.colors.error,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

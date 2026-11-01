@@ -4,6 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'design/brand_mark.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 
 class ConnectionPage extends StatefulWidget {
   const ConnectionPage({
@@ -134,7 +139,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
     appBar: AppBar(title: const Text('行笺 Mileaf')),
     body: SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(MileafLayout.pageInset(context)),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
@@ -143,13 +148,20 @@ class _ConnectionPageState extends State<ConnectionPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    '连接你的站点',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: MileafWordmark(markSize: 32),
                   ),
-                  const SizedBox(height: 12),
-                  const Text('输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。'),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: MileafSpace.s20),
+                  Text('连接你的站点', style: context.type.title),
+                  const SizedBox(height: MileafSpace.s8),
+                  Text(
+                    '输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。',
+                    style: context.type.body.copyWith(
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: MileafSpace.s24),
                   TextFormField(
                     controller: _address,
                     enabled: !_loading && !_savingTrust,
@@ -159,7 +171,6 @@ class _ConnectionPageState extends State<ConnectionPage> {
                       errorMaxLines: 4,
                       labelText: '服务根地址',
                       hintText: 'https://example.com/mileaf',
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       try {
@@ -175,7 +186,12 @@ class _ConnectionPageState extends State<ConnectionPage> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  const Text('推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。'),
+                  Text(
+                    '推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。',
+                    style: context.type.micro.copyWith(
+                      color: context.colors.textMuted,
+                    ),
+                  ),
                   if (_site?.uri.scheme == 'http') ...[
                     const SizedBox(height: 12),
                     const Text(
@@ -191,7 +207,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
                           : (value) => _setTrust(value ?? false),
                     ),
                   ],
-                  const SizedBox(height: 24),
+                  const SizedBox(height: MileafSpace.s24),
                   FilledButton(
                     onPressed: _loading || _loadingTrust ? null : _check,
                     child: Text(_loading ? '正在检查…' : '检查连接'),
@@ -203,15 +219,22 @@ class _ConnectionPageState extends State<ConnectionPage> {
                     ),
                   if (_loading)
                     const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
+                      padding: EdgeInsets.only(top: MileafSpace.s8),
+                      child: MileafProgressLine(),
                     ),
                   if (_message != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Semantics(
                         liveRegion: true,
-                        child: Text(_message!),
+                        child: Text(
+                          _message!,
+                          style: context.type.body.copyWith(
+                            color: _healthySite != null
+                                ? context.colors.accent
+                                : context.colors.error,
+                          ),
+                        ),
                       ),
                     ),
                 ],

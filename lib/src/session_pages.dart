@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'design/brand_mark.dart';
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'session.dart';
 import 'setup_page.dart';
 import 'connection_page.dart';
@@ -33,11 +39,23 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(title: const Text('登录行笺')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(MileafLayout.pageInset(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(session.site!.uri.toString()),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: MileafWordmark(markSize: 32),
+              ),
+              const SizedBox(height: MileafSpace.s20),
+              Text('登录行笺', style: context.type.title),
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                session.site!.uri.toString(),
+                style: context.type.label.copyWith(
+                  color: context.colors.textMuted,
+                ),
+              ),
               TextButton(
                 onPressed: session.loading
                     ? null
@@ -63,15 +81,12 @@ class _LoginPageState extends State<LoginPage> {
                 enableSuggestions: false,
                 autocorrect: false,
                 enabled: !session.loading,
-                decoration: const InputDecoration(
-                  labelText: '站点访问口令',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: '站点访问口令'),
                 onFieldSubmitted: (_) {
                   if (session.canLogin) _login();
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: MileafSpace.s24),
               FilledButton(
                 onPressed: session.canLogin ? _login : null,
                 child: Text(session.loading ? '正在登录…' : '登录'),
@@ -91,7 +106,12 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Semantics(
                     liveRegion: true,
-                    child: Text(session.message!),
+                    child: Text(
+                      session.message!,
+                      style: context.type.body.copyWith(
+                        color: context.colors.error,
+                      ),
+                    ),
                   ),
                 ),
               if (session.retryAfter != null) const Text('服务要求等待后再试；不会自动重试。'),
@@ -125,9 +145,9 @@ class VehiclePage extends StatelessWidget {
     ),
     body: SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(MileafLayout.pageInset(context)),
         children: [
-          if (session.loading) const Center(child: CircularProgressIndicator()),
+          if (session.loading) const MileafProgressLine(),
           if (session.message != null) ...[
             Semantics(liveRegion: true, child: Text(session.message!)),
             TextButton(
@@ -140,11 +160,11 @@ class VehiclePage extends StatelessWidget {
               session.vehicles.isEmpty)
             const Text('此站点暂无车辆，请检查 TeslaMate 的车辆记录后刷新。'),
           for (final vehicle in session.vehicles)
-            Card(
-              child: ListTile(
-                title: Text(vehicleName(vehicle)),
-                subtitle: Text('车辆 ID ${vehicle.id}'),
-              ),
+            MileafDataRow(
+              title: vehicleName(vehicle),
+              meta: '车辆 ID ${vehicle.id}',
+              topLine: true,
+              bottomLine: true,
             ),
         ],
       ),
