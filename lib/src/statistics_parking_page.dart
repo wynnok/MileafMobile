@@ -2,8 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'data_cards.dart';
-import 'collage.dart';
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
+
 import 'statistics_insights_page.dart';
 import 'parking_observations_contract.g.dart' as dto;
 
@@ -191,188 +195,227 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         t = d?['totals'] as Map?,
         compact = c.compact && !widget.expanded;
     if (c.features['parking_observations'] != true) {
-      return const DataCard(child: Text('当前站点不支持停放观察'));
+      return const Text('当前站点不支持停放观察');
     }
     final rows = [
       if (d != null)
         for (final x in d['buckets'] as List)
           Map<String, dynamic>.from(x as Map),
     ];
-    final chart = CollageTile(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '停放SOC变化',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              IconButton(
-                onPressed: busy ? null : () => load(force: true),
-                tooltip: '刷新停放观察',
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-          if (busy) const LinearProgressIndicator(),
-          if (error != null) Text(error!),
-          if (error != null)
-            TextButton(
-              onPressed: () => load(force: true),
-              child: const Text('重试停放观察'),
+    final chart = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: SectionHeader(title: '停放SOC变化')),
+            IconButton(
+              onPressed: busy ? null : () => load(force: true),
+              tooltip: '刷新停放观察',
+              icon: const Icon(Icons.refresh),
             ),
-          if (!compact) ...[
-            const Text('SOC百分点变化 · 负值下降，正值回弹，零为不变；标准化率为已观测结果，不预测未来24小时。'),
-            if (rows.isNotEmpty &&
-                rows.every((row) => row['soc_change_pp'] == null))
-              const Text('分桶SOC变化缺失，不补零'),
-            if (rows.isNotEmpty) ...[
-              SizedBox(
-                height: 190,
-                child: LayoutBuilder(
-                  builder: (context, box) => GestureDetector(
-                    onTapDown: (p) => setState(
-                      () => selected =
-                          (p.localPosition.dx / box.maxWidth * rows.length)
-                              .floor()
-                              .clamp(0, rows.length - 1),
+          ],
+        ),
+        if (busy) const LinearProgressIndicator(),
+        if (error != null) Text(error!),
+        if (error != null)
+          TextButton(
+            onPressed: () => load(force: true),
+            child: const Text('重试停放观察'),
+          ),
+        if (!compact) ...[
+          const Text('SOC百分点变化 · 负值下降，正值回弹，零为不变；标准化率为已观测结果，不预测未来24小时。'),
+          if (rows.isNotEmpty &&
+              rows.every((row) => row['soc_change_pp'] == null))
+            const Text('分桶SOC变化缺失，不补零'),
+          if (rows.isNotEmpty) ...[
+            SizedBox(
+              height: 190,
+              child: LayoutBuilder(
+                builder: (context, box) => GestureDetector(
+                  onTapDown: (p) => setState(
+                    () => selected =
+                        (p.localPosition.dx / box.maxWidth * rows.length)
+                            .floor()
+                            .clamp(0, rows.length - 1),
+                  ),
+                  onHorizontalDragUpdate: (p) => setState(
+                    () => selected =
+                        (p.localPosition.dx / box.maxWidth * rows.length)
+                            .floor()
+                            .clamp(0, rows.length - 1),
+                  ),
+                  child: CustomPaint(
+                    key: const Key('parking-trend-chart'),
+                    painter: _ParkingPainter(
+                      rows,
+                      selected,
+                      Theme.of(context).colorScheme,
+                      MediaQuery.textScalerOf(context).scale(11),
+                      Theme.of(context).textTheme.bodySmall ??
+                          const TextStyle(),
                     ),
-                    onHorizontalDragUpdate: (p) => setState(
-                      () => selected =
-                          (p.localPosition.dx / box.maxWidth * rows.length)
-                              .floor()
-                              .clamp(0, rows.length - 1),
-                    ),
-                    child: CustomPaint(
-                      key: const Key('parking-trend-chart'),
-                      painter: _ParkingPainter(
-                        rows,
-                        selected,
-                        Theme.of(context).colorScheme,
-                        MediaQuery.textScalerOf(context).scale(11),
-                        Theme.of(context).textTheme.bodySmall ??
-                            const TextStyle(),
-                      ),
-                      size: Size(box.maxWidth, 190),
-                    ),
+                    size: Size(box.maxWidth, 190),
                   ),
                 ),
               ),
-              Text(
-                '${rows[selected]['bucket_start']} · ${change(rows[selected])}',
-              ),
-              Text(
-                '有效 ${rows[selected]['valid_windows']} · 观测 ${n(rows[selected]['observed_hours'])} h',
-              ),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: selected > 0
-                        ? () => setState(() => selected--)
-                        : null,
-                    child: const Text('前一点'),
-                  ),
-                  TextButton(
-                    onPressed: selected + 1 < rows.length
-                        ? () => setState(() => selected++)
-                        : null,
-                    child: const Text('后一点'),
-                  ),
-                ],
-              ),
-            ],
-            if (t != null) ...[
-              const Text('状态分布 · 以有效窗口观测小时为同一分母'),
-              states(Map<String, dynamic>.from(t)),
-              Text(
-                '候选 ${t['candidate_windows']} · 排除 ${t['excluded_windows']} · 开放 ${t['open_windows']}',
-              ),
-              Text('排除原因：${t['excluded_by_reason']}'),
-            ],
-            ExpansionTile(
-              title: const Text('数据说明'),
+            ),
+            Text(
+              '${rows[selected]['bucket_start']} · ${change(rows[selected])}',
+            ),
+            Text(
+              '有效 ${rows[selected]['valid_windows']} · 观测 ${n(rows[selected]['observed_hours'])} h',
+            ),
+            Row(
               children: [
-                if (d != null) Text('状态：${d['status']} · 查询生成：${d['as_of']}'),
-                const Text(
-                  '按窗口开始时间归期；闭合结束可晚于查询结束，但已发生且不晚于查询生成时间。不裁切或分摊SOC。精确事件边界取值，持续≥1h，绝对里程差<1km。状态仅代表记录，不归因车辆功能；离线不等于睡眠，开放状态归未知。',
+                TextButton(
+                  onPressed: selected > 0
+                      ? () => setState(() => selected--)
+                      : null,
+                  child: const Text('前一点'),
                 ),
-                Text(
-                  '方法 closed-window-soc-v1 · provisional · 阈值 ${d?['thresholds'] ?? '默认：≥1h，绝对里程差<1km'}',
+                TextButton(
+                  onPressed: selected + 1 < rows.length
+                      ? () => setState(() => selected++)
+                      : null,
+                  child: const Text('后一点'),
                 ),
               ],
             ),
-            Text(
-              '匹配窗口 ${d?['matched_windows'] ?? 0} · 已载证据 ${items.length}（匹配数不等于有效数）',
-            ),
-            for (final row in items)
-              ExpansionTile(
-                title: Text(
-                  '${row['window_id']} · ${row['included'] == true ? '有效' : '未计入'} · ${row['quality']}',
-                ),
-                subtitle: Text(
-                  '${row['window_start']} → ${row['window_end'] ?? '开放尾段，无最终变化'}',
-                ),
-                children: [
-                  Text('持续 ${n(row['duration_hours'])} h · ${change(row)}'),
-                  Text(
-                    '排除：${row['exclusion_reason'] ?? '无'} · partial_state_coverage 表示部分状态覆盖，仍可有效',
-                  ),
-                  Text(
-                    '里程变化 ${n(row['odometer_change_km'])} km · 负里程诊断 ${row['negative_odometer_change']}',
-                  ),
-                  for (final edge in ['start', 'end'])
-                    Text(
-                      '${edge == 'start' ? '起点' : '终点'} 事件 ${row['${edge}_event']} · 时间 ${row[edge]['raw_time'] ?? '缺失'} · SOC ${row[edge]['soc'] ?? '—'}%（${row[edge]['soc_source'] ?? '缺失'}）· 里程 ${row[edge]['odometer_km'] ?? '—'} km（${row[edge]['odometer_source'] ?? '缺失'}）· 位置 ${row[edge]['position_id'] ?? '—'}',
-                    ),
-                  Text(
-                    '在线 ${n(row['online_hours'])} h · 睡眠 ${n(row['asleep_hours'])} h · 离线 ${n(row['offline_hours'])} h · 未知 ${n(row['unknown_hours'])} h',
-                  ),
-                ],
-              ),
-            if (cursor != null)
-              TextButton(
-                onPressed: busy ? null : () => load(more: true),
-                child: const Text('加载更多窗口'),
-              ),
           ],
+          if (t != null) ...[
+            const Text('状态分布 · 以有效窗口观测小时为同一分母'),
+            states(Map<String, dynamic>.from(t)),
+            Text(
+              '候选 ${t['candidate_windows']} · 排除 ${t['excluded_windows']} · 开放 ${t['open_windows']}',
+            ),
+            Text('排除原因：${t['excluded_by_reason']}'),
+          ],
+          ExpansionTile(
+            title: const Text('数据说明'),
+            children: [
+              if (d != null) Text('状态：${d['status']} · 查询生成：${d['as_of']}'),
+              const Text(
+                '按窗口开始时间归期；闭合结束可晚于查询结束，但已发生且不晚于查询生成时间。不裁切或分摊SOC。精确事件边界取值，持续≥1h，绝对里程差<1km。状态仅代表记录，不归因车辆功能；离线不等于睡眠，开放状态归未知。',
+              ),
+              Text(
+                '方法 closed-window-soc-v1 · provisional · 阈值 ${d?['thresholds'] ?? '默认：≥1h，绝对里程差<1km'}',
+              ),
+            ],
+          ),
+          Text(
+            '匹配窗口 ${d?['matched_windows'] ?? 0} · 已载证据 ${items.length}（匹配数不等于有效数）',
+          ),
+          for (final row in items)
+            ExpansionTile(
+              title: Text(
+                '${row['window_id']} · ${row['included'] == true ? '有效' : '未计入'} · ${row['quality']}',
+              ),
+              subtitle: Text(
+                '${row['window_start']} → ${row['window_end'] ?? '开放尾段，无最终变化'}',
+              ),
+              children: [
+                Text('持续 ${n(row['duration_hours'])} h · ${change(row)}'),
+                Text(
+                  '排除：${row['exclusion_reason'] ?? '无'} · partial_state_coverage 表示部分状态覆盖，仍可有效',
+                ),
+                Text(
+                  '里程变化 ${n(row['odometer_change_km'])} km · 负里程诊断 ${row['negative_odometer_change']}',
+                ),
+                for (final edge in ['start', 'end'])
+                  Text(
+                    '${edge == 'start' ? '起点' : '终点'} 事件 ${row['${edge}_event']} · 时间 ${row[edge]['raw_time'] ?? '缺失'} · SOC ${row[edge]['soc'] ?? '—'}%（${row[edge]['soc_source'] ?? '缺失'}）· 里程 ${row[edge]['odometer_km'] ?? '—'} km（${row[edge]['odometer_source'] ?? '缺失'}）· 位置 ${row[edge]['position_id'] ?? '—'}',
+                  ),
+                Text(
+                  '在线 ${n(row['online_hours'])} h · 睡眠 ${n(row['asleep_hours'])} h · 离线 ${n(row['offline_hours'])} h · 未知 ${n(row['unknown_hours'])} h',
+                ),
+              ],
+            ),
+          if (cursor != null)
+            TextButton(
+              onPressed: busy ? null : () => load(more: true),
+              child: const Text('加载更多窗口'),
+            ),
         ],
-      ),
+      ],
     );
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        CollageTile(
-          surface: CollageSurface.hero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('有效窗口SOC变化'),
-              Text(
-                '${n(t?['soc_change_pp'])} pp',
-                style: Theme.of(context).textTheme.displaySmall
-                    ?.copyWith(color: const Color(0xFFEEF7EF)),
-              ),
-              Text(
-                '有效窗口 ${t?['valid_windows'] ?? 0} · 观测 ${n(t?['observed_hours'])} h',
-              ),
-              Text('标准化率 ${n(t?['soc_change_pp_per_24h'])} pp/24h'),
-              const Text('仅代表有效观测窗口'),
-              if (d != null && t?['valid_windows'] == 0)
-                const Text('暂无有效窗口，不能判断SOC变化'),
-            ],
+        MileafHero(
+          semanticLabel: '有效窗口SOC变化 ${n(t?['soc_change_pp'])} 个百分点',
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              MileafLayout.pageInset(context),
+              MileafSpace.s20,
+              MileafLayout.pageInset(context),
+              MileafSpace.s20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '有效窗口SOC变化',
+                  style: context.type.label.copyWith(
+                    color: context.colors.heroMuted,
+                  ),
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                MileafNumber(
+                  value: n(t?['soc_change_pp']),
+                  unit: 'pp',
+                  scale: MetricValueScale.display,
+                  onHero: true,
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                Text(
+                  '有效窗口 ${t?['valid_windows'] ?? 0} · 观测 ${n(t?['observed_hours'])} h · '
+                  '标准化率 ${n(t?['soc_change_pp_per_24h'])} pp/24h',
+                  style: context.type.body.copyWith(
+                    color: context.colors.heroMuted,
+                  ),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  '仅代表有效观测窗口',
+                  style: context.type.micro.copyWith(
+                    color: context.colors.heroFaint,
+                  ),
+                ),
+                if (d != null && t?['valid_windows'] == 0) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    '暂无有效窗口，不能判断SOC变化',
+                    style: context.type.micro.copyWith(
+                      color: context.colors.heroFaint,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
-        chart,
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            MileafLayout.pageInset(context),
+            MileafSpace.section,
+            MileafLayout.pageInset(context),
+            0,
+          ),
+          child: chart,
+        ),
       ],
     );
     return compact
         ? body
         : LayoutBuilder(
             builder: (context, box) => box.hasBoundedHeight
-                ? ListView(padding: const EdgeInsets.all(18), children: [body])
+                ? ListView(
+                    padding: EdgeInsets.only(
+                      top: MileafSpace.s8,
+                      bottom: MileafSpace.s24,
+                    ),
+                    children: [body],
+                  )
                 : body,
           );
   }

@@ -2,9 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'design/components/components.dart';
+import 'design/icons.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'statistics_insights_page.dart';
-import 'data_cards.dart';
-import 'collage.dart';
+import 'statistics_usage_page.dart';
 import 'workspace.dart';
 import 'range_observations_contract.g.dart' as dto;
 
@@ -144,7 +149,11 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   Widget build(BuildContext context) {
     final c = widget.context;
     if (c.features['range_observations'] != true) {
-      return const DataCard(child: Text('当前站点不支持长期续航观察'));
+      return const StateView(
+        kind: StateViewKind.empty,
+        title: '当前站点不支持长期续航观察',
+        message: '站点未声明额定续航观察能力。',
+      );
     }
     final d = data, totals = d?['totals'] as Map?;
     final rows = d == null
@@ -154,122 +163,179 @@ class _RangeObservationPageState extends State<RangeObservationPage>
               Map<String, dynamic>.from(row as Map),
           ];
     final compact = c.compact && !widget.expanded;
-    final contents = <Widget>[
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              '满电等效额定续航',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-          IconButton(
-            onPressed: () => load(force: true),
-            icon: const Icon(Icons.refresh),
-            tooltip: '刷新续航观察',
-          ),
-        ],
+    final chosen = rows.isEmpty
+        ? null
+        : rows[selected.clamp(0, rows.length - 1)];
+    final content = <Widget>[
+      SectionHeader(
+        title: '满电等效额定续航',
+        range: compact ? null : '独立$months个月观察窗口',
+        action: MileafIconButton(
+          icon: MileafIconName.refresh,
+          tooltip: '刷新续航观察',
+          onPressed: loading ? null : () => load(force: true),
+        ),
       ),
-      if (loading) const LinearProgressIndicator(),
-      if (error != null) Text(error!),
+      if (loading) const MileafProgressLine(),
       if (error != null)
-        TextButton(
-          onPressed: () => load(force: true),
-          child: const Text('重试续航观察'),
+        Padding(
+          padding: const EdgeInsets.only(top: MileafSpace.s8),
+          child: InlineBanner(
+            message: error!,
+            tone: BannerTone.error,
+            actionLabel: '重试续航观察',
+            onAction: () => load(force: true),
+          ),
         ),
       if (d != null && totals?['status'] == 'unsupported')
-        const Text('当前数据源不支持额定续航观察'),
-      if (d != null && totals?['status'] == 'no_records')
-        const Text('观察窗口内无充电记录'),
-      if (d != null && totals?['status'] == 'insufficient_data')
-        const Text('尚无有效续航样本'),
-      if (compact) ...[
-        Text(
-          '${value(totals?['median_range_km'])} km',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-      ] else ...[
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final m in [6, 12])
-              ChoiceChip(
-                label: Text('$m个月'),
-                selected: months == m,
-                onSelected: (_) {
-                  if (m != months) {
-                    setState(() {
-                      months = m;
-                      data = null;
-                    });
-                    load();
-                  }
-                },
+        const StateView(kind: StateViewKind.empty, title: '当前数据源不支持额定续航观察')
+      else if (d != null && totals?['status'] == 'no_records')
+        const StateView(
+          kind: StateViewKind.empty,
+          title: '观察窗口内无充电记录',
+          message: '换一个观察窗口或继续记录充电。',
+        )
+      else if (d != null && totals?['status'] == 'insufficient_data')
+        const StateView(
+          kind: StateViewKind.empty,
+          title: '尚无有效续航样本',
+          message: '有效样本不足时不推算额定续航。',
+        )
+      else ...[
+        if (!compact) ...[
+          const SizedBox(height: MileafSpace.s16),
+          Wrap(
+            spacing: MileafSpace.s8,
+            runSpacing: MileafSpace.s8,
+            children: [
+              for (final m in [6, 12])
+                StatusChip(
+                  label: '$m个月',
+                  selected: months == m,
+                  onTap: () {
+                    if (m != months) {
+                      setState(() {
+                        months = m;
+                        data = null;
+                      });
+                      load();
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          Text(
+            '所选月中位数',
+            style: context.type.label.copyWith(color: context.colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          MileafNumber(
+            value: chosen?['median_range_km'] == null
+                ? null
+                : value(chosen!['median_range_km']),
+            unit: 'km',
+            scale: compact
+                ? MetricValueScale.metricLg
+                : MetricValueScale.display,
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Text(
+            '满电等效额定续航 · 记录估计 · 非电池健康检测',
+            style: context.type.micro.copyWith(color: context.colors.textMuted),
+          ),
+        ] else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: MileafNumber(
+                  value: chosen?['median_range_km'] == null
+                      ? null
+                      : value(chosen!['median_range_km']),
+                  unit: 'km',
+                  scale: MetricValueScale.metricLg,
+                ),
               ),
-          ],
-        ),
-        const Text('月中位数 · P10–P90有效日波动带（km）'),
-        if (rows.isNotEmpty) ...[
+            ],
+          ),
+        if (!compact && rows.isNotEmpty) ...[
+          const SizedBox(height: MileafSpace.s16),
+          Text(
+            '月中位数 · P10–P90有效日波动带（km）',
+            style: context.type.label.copyWith(color: context.colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s8),
           SizedBox(
-            height: 210,
+            height: MileafLayout.largeText(context) ? 220 : 200,
             child: LayoutBuilder(
               builder: (context, box) => GestureDetector(
                 onTapDown: (p) {
-                  final i =
-                      ((p.localPosition.dx - 42) /
-                              (box.maxWidth - 58) *
-                              rows.length)
-                          .floor()
-                          .clamp(0, rows.length - 1);
+                  final i = (p.localPosition.dx / box.maxWidth * rows.length)
+                      .floor()
+                      .clamp(0, rows.length - 1);
                   setState(() => selected = i);
                 },
                 onHorizontalDragUpdate: (p) {
-                  final i =
-                      ((p.localPosition.dx - 42) /
-                              (box.maxWidth - 58) *
-                              rows.length)
-                          .floor()
-                          .clamp(0, rows.length - 1);
+                  final i = (p.localPosition.dx / box.maxWidth * rows.length)
+                      .floor()
+                      .clamp(0, rows.length - 1);
                   setState(() => selected = i);
                 },
-                child: CustomPaint(
-                  key: const Key('range-observation-chart'),
-                  size: Size(box.maxWidth, 210),
-                  painter: _RangePainter(
-                    rows,
-                    selected,
-                    Theme.of(context).colorScheme,
-                    c.workspace.calendar!,
-                    MediaQuery.textScalerOf(context).scale(11),
-                    Theme.of(context).textTheme.bodySmall ?? const TextStyle(),
+                child: Semantics(
+                  label: '月续航走势图表，横向拖动选择月份',
+                  child: CustomPaint(
+                    key: const Key('range-observation-chart'),
+                    size: Size(box.maxWidth, 200),
+                    painter: _RangePainter(
+                      rows,
+                      selected.clamp(0, rows.length - 1),
+                      context.colors,
+                      c.workspace.calendar!,
+                      MileafLayout.largeText(context),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
+          const SizedBox(height: MileafSpace.s8),
           Builder(
             builder: (_) {
-              final row = rows[selected], coverage = row['coverage'] as Map?;
+              final row = rows[selected.clamp(0, rows.length - 1)];
+              final coverage = row['coverage'] as Map?;
               final date = c.workspace.calendar!.local(
                 DateTime.parse(row['bucket_start'] as String),
               );
+              final sample = switch (row['sample_status']) {
+                'sparse' => '样本稀疏，仅供点读',
+                'adequate' => '有效样本',
+                _ => '无有效样本',
+              };
               return Semantics(
                 liveRegion: true,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       '${date.year}/${date.month} · ${row['partial'] == true ? '未结束月' : '完整月'}',
+                      style: context.type.body.copyWith(
+                        color: context.colors.text,
+                      ),
                     ),
+                    const SizedBox(height: MileafSpace.s4),
                     Text(
                       '中位 ${value(row['median_range_km'])} km · P10 ${value(row['p10_range_km'])} / P90 ${value(row['p90_range_km'])} km',
+                      style: context.type.body.copyWith(
+                        color: context.colors.textMuted,
+                      ),
                     ),
+                    const SizedBox(height: MileafSpace.s4),
                     Text(
-                      '有效日 ${coverage?['valid_days'] ?? 0} · ${row['sample_status'] == 'sparse'
-                          ? '样本稀疏，仅供点读'
-                          : row['sample_status'] == 'adequate'
-                          ? '有效样本'
-                          : '无有效样本'}',
+                      '有效日 ${coverage?['valid_days'] ?? 0} · $sample',
+                      style: context.type.micro.copyWith(
+                        color: context.colors.textMuted,
+                      ),
                     ),
                     Wrap(
                       children: [
@@ -292,69 +358,71 @@ class _RangeObservationPageState extends State<RangeObservationPage>
               );
             },
           ),
-        ],
-        ExpansionTile(
-          title: const Text('样本与估计方法'),
-          children: [
-            const Text(
-              '固定使用额定续航和仪表电量，同点电量20–90%；先求单次充电中位数，再求每日中位数和月分位数。筛选阈值为首版产品规则，非显著性或健康检测标准。',
-            ),
-            Text('窗口内首次有效采样：${d?['first_observed_at'] ?? '—'}（仅查询窗口，不是新车基线）'),
-            for (final row in rows)
-              Text(
-                '${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).year}/${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).month} · 有效日 ${(row['coverage'] as Map?)?['valid_days'] ?? 0} · 有效会话 ${(row['coverage'] as Map?)?['valid_sessions'] ?? 0} · 有效采样 ${(row['coverage'] as Map?)?['valid_points'] ?? 0}',
+          const SizedBox(height: MileafSpace.section),
+          StatisticsTopicFacts(
+            facts: [
+              StatisticsTopicFact(
+                label: '有效日',
+                value: '${(chosen?['coverage'] as Map?)?['valid_days'] ?? '—'}',
+                unit: '天',
               ),
-          ],
-        ),
-      ],
-    ];
-    final chosen = rows.isEmpty ? null : rows[selected];
-    final headline = CollageTile(
-      surface: CollageSurface.hero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('所选月中位数'),
-          Text(
-            '${value(chosen?['median_range_km'])} km',
-            style: Theme.of(context).textTheme.displaySmall
-                ?.copyWith(color: const Color(0xFFEEF7EF)),
+              StatisticsTopicFact(
+                label: '有效会话',
+                value:
+                    '${(chosen?['coverage'] as Map?)?['valid_sessions'] ?? '—'}',
+                unit: '次',
+              ),
+              StatisticsTopicFact(
+                label: '有效采样',
+                value:
+                    '${(chosen?['coverage'] as Map?)?['valid_points'] ?? '—'}',
+                unit: '点',
+              ),
+              StatisticsTopicFact(
+                label: 'P10',
+                value: value(chosen?['p10_range_km']),
+                unit: 'km',
+              ),
+              StatisticsTopicFact(
+                label: 'P90',
+                value: value(chosen?['p90_range_km']),
+                unit: 'km',
+              ),
+            ],
           ),
-          Text('独立$months个月观察窗口'),
-          const Text('满电等效额定续航 · 记录估计'),
-          const Text('非电池健康检测 · 非实际可开距离'),
-          if (chosen?['sample_status'] == 'sparse') const Text('覆盖不足 · 仅供点读'),
         ],
-      ),
-    );
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!compact) headline,
-        CollageTile(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: contents,
-          ),
-        ),
-        if (!compact && d != null)
-          ExpansionTile(
-            title: const Text('数据说明'),
+        const SizedBox(height: MileafSpace.section),
+        if (!compact)
+          StatisticsTopicNotes(
             children: [
-              Text('$months个本地月 · ${d['query']['from']} 至 ${d['query']['to']}'),
-              Text('查询生成时间：${d['as_of']}（非采样时间）'),
-              const Text('此窗口独立于首页期间；不代表 SOH、容量或衰减。'),
+              Text(
+                '$months个本地月 · ${d?['query']['from']} 至 ${d?['query']['to']}',
+              ),
+              Text('查询生成时间：${d?['as_of']}（非采样时间）'),
+              Text('窗口内首次有效采样：${d?['first_observed_at'] ?? '—'}（仅查询窗口，不是新车基线）'),
+              const Text(
+                '固定使用额定续航和仪表电量，同点电量20–90%；先求单次充电中位数，再求每日中位数和月分位数。筛选阈值为首版产品规则，非显著性或健康检测标准。此窗口独立于首页期间；不代表 SOH、容量或衰减。',
+              ),
+              for (final row in rows)
+                Text(
+                  '${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).year}/${widget.context.workspace.calendar!.local(DateTime.parse(row['bucket_start'] as String)).month} · 有效日 ${(row['coverage'] as Map?)?['valid_days'] ?? 0} · 有效会话 ${(row['coverage'] as Map?)?['valid_sessions'] ?? 0} · 有效采样 ${(row['coverage'] as Map?)?['valid_points'] ?? 0}',
+                  style: context.type.micro.copyWith(
+                    color: context.colors.textMuted,
+                  ),
+                ),
             ],
           ),
       ],
+    ];
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: content,
     );
-    return compact
-        ? body
-        : LayoutBuilder(
-            builder: (context, constraints) => constraints.hasBoundedHeight
-                ? ListView(padding: const EdgeInsets.all(12), children: [body])
-                : body,
-          );
+    if (compact) return body;
+    return ListView(
+      padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+      children: [body],
+    );
   }
 }
 
@@ -364,15 +432,14 @@ class _RangePainter extends CustomPainter {
     this.selected,
     this.colors,
     this.calendar,
-    this.fontSize,
-    this.labelStyle,
+    this.largeText,
   );
   final List<Map<String, dynamic>> rows;
   final int selected;
-  final ColorScheme colors;
+  final MileafColors colors;
   final CalendarContext calendar;
-  final double fontSize;
-  final TextStyle labelStyle;
+  final bool largeText;
+
   @override
   void paint(Canvas canvas, Size size) {
     final values = [
@@ -380,38 +447,38 @@ class _RangePainter extends CustomPainter {
         for (final k in ['p10_range_km', 'median_range_km', 'p90_range_km'])
           if (r[k] is num) (r[k] as num).toDouble(),
     ];
-    final low = values.isEmpty
-        ? 0.0
-        : (values.reduce(math.min) / 10).floor() * 10.0 - 10;
-    final high = values.isEmpty
-        ? 100.0
-        : (values.reduce(math.max) / 10).ceil() * 10.0 + 10;
-    const left = 42.0, top = 15.0;
-    final width = size.width - 58, height = size.height - 45;
+    if (values.isEmpty) return;
+    final low = (values.reduce(math.min) / 10).floor() * 10.0 - 10;
+    final high = (values.reduce(math.max) / 10).ceil() * 10.0 + 10;
+    final left = largeText ? 0.0 : 34.0;
+    const top = 12.0;
+    final width = size.width - left - 8;
+    final height = size.height - 34;
+    if (width <= 0 || height <= 0) return;
     double x(int i) => left + (i + .5) * width / rows.length;
     double y(num n) => top + height - (n - low) / (high - low) * height;
+    final labelStyle = TextStyle(
+      fontFamily: MileafType.family,
+      fontFamilyFallback: MileafType.fallback,
+      fontSize: largeText ? 11 : MileafChartMetrics.axisLabelSize,
+      color: colors.textFaint,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     void label(String text, Offset p) {
       final t = TextPainter(
-        text: TextSpan(
-          text: text,
-          style: labelStyle.copyWith(
-            color: colors.onSurfaceVariant,
-            fontSize: fontSize,
-          ),
-        ),
+        text: TextSpan(text: text, style: labelStyle),
         textDirection: TextDirection.ltr,
+        maxLines: 1,
       )..layout();
       t.paint(canvas, p);
+      t.dispose();
     }
 
-    for (var i = 0; i < 3; i++) {
-      final n = low + (high - low) * i / 2;
-      canvas.drawLine(
-        Offset(left, y(n)),
-        Offset(size.width - 8, y(n)),
-        Paint()..color = colors.outlineVariant,
-      );
-      label(n.toStringAsFixed(0), Offset(0, y(n) - 7));
+    if (!largeText) {
+      for (var i = 0; i < 3; i++) {
+        final n = low + (high - low) * i / 2;
+        label(n.toStringAsFixed(0), Offset(0, y(n) - 6));
+      }
     }
     bool known(int i) =>
         rows[i]['status'] == 'available' && rows[i]['median_range_km'] is num;
@@ -420,16 +487,18 @@ class _RangePainter extends CustomPainter {
         rows[i]['sample_status'] == 'adequate' &&
         rows[i]['p10_range_km'] is num &&
         rows[i]['p90_range_km'] is num;
-    for (var i = 0; i < rows.length; i++) {
-      final r = rows[i];
-      final date = calendar.local(DateTime.parse(r['bucket_start'] as String));
-      if (fontSize > 15
-          ? i == 0 || i == rows.length - 1
-          : rows.length <= 6 || i.isEven) {
-        label('${date.month}月', Offset(x(i) - 10, top + height + 9));
-      }
-      if (i > 0 && adequate(i - 1) && adequate(i)) {
-        final a = rows[i - 1];
+    final xLabels = largeText
+        ? {0, rows.length - 1}
+        : {0, ((rows.length - 1) / 2).round(), rows.length - 1};
+    for (final i in xLabels) {
+      final date = calendar.local(
+        DateTime.parse(rows[i]['bucket_start'] as String),
+      );
+      label('${date.month}月', Offset(x(i) - 10, top + height + 10));
+    }
+    for (var i = 1; i < rows.length; i++) {
+      if (adequate(i - 1) && adequate(i)) {
+        final a = rows[i - 1], r = rows[i];
         final band = Path()
           ..moveTo(x(i - 1), y(a['p10_range_km'] as num))
           ..lineTo(x(i), y(r['p10_range_km'] as num))
@@ -438,27 +507,43 @@ class _RangePainter extends CustomPainter {
           ..close();
         canvas.drawPath(
           band,
-          Paint()..color = colors.primary.withValues(alpha: .15),
-        );
-        canvas.drawLine(
-          Offset(x(i - 1), y(a['median_range_km'] as num)),
-          Offset(x(i), y(r['median_range_km'] as num)),
           Paint()
-            ..color = colors.primary
-            ..strokeWidth = 2,
+            ..color = colors.accent.withValues(
+              alpha: MileafChartMetrics.areaMaxOpacity,
+            ),
         );
       }
-      if (known(i)) {
-        final p = Paint()
-          ..color = colors.primary
-          ..strokeWidth = 2
-          ..style = adequate(i) ? PaintingStyle.fill : PaintingStyle.stroke;
+      if (known(i - 1) && known(i)) {
+        canvas.drawLine(
+          Offset(x(i - 1), y(rows[i - 1]['median_range_km'] as num)),
+          Offset(x(i), y(rows[i]['median_range_km'] as num)),
+          Paint()
+            ..color = colors.accent
+            ..strokeWidth = MileafChartMetrics.lineStroke
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+    for (var i = 0; i < rows.length; i++) {
+      if (!known(i)) continue;
+      final point = Offset(x(i), y(rows[i]['median_range_km'] as num));
+      if (i == selected) {
         canvas.drawCircle(
-          Offset(x(i), y(r['median_range_km'] as num)),
-          i == selected ? 5 : 3,
-          p,
+          point,
+          MileafChartMetrics.currentHalo,
+          Paint()..color = colors.accent.withValues(alpha: .2),
         );
       }
+      canvas.drawCircle(
+        point,
+        i == selected
+            ? MileafChartMetrics.currentPoint
+            : MileafChartMetrics.pointRadius,
+        Paint()
+          ..color = colors.accent
+          ..style = adequate(i) ? PaintingStyle.fill : PaintingStyle.stroke
+          ..strokeWidth = MileafChartMetrics.lineStroke,
+      );
     }
   }
 

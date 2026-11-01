@@ -7,10 +7,13 @@ import 'charging_page.dart';
 import 'charging_detail.dart';
 import 'charging_experience_contract.g.dart' as expanded;
 import 'charging_statistics_contract.g.dart' as legacy;
-import 'data_cards.dart';
-import 'collage.dart';
-import 'data_chart.dart';
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'statistics_insights_page.dart';
+import 'statistics_usage_page.dart';
 
 class StatisticsChargingPage extends StatefulWidget {
   const StatisticsChargingPage({super.key, required this.context});
@@ -235,6 +238,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
     if (from.isBefore(to)) openRecords(from: from, to: to);
   }
 
+  String _cost(num? value) => scope.currency.amountValue(value);
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: scope.currency,
@@ -244,286 +249,450 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
       final labels = ['入电量', '已知支出', '有效入电均价', '充电次数'];
       final units = [
         'kWh',
-        scope.currency.code ?? '币种未知',
-        '${scope.currency.code ?? '币种未知'}/kWh',
+        scope.currency.symbol,
+        '${scope.currency.symbol}/kWh',
         '次',
       ];
-      return ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          Text('补能账目', style: Theme.of(context).textTheme.headlineSmall),
-          const Text('按结束日 · 仅已完成充电'),
-          if (capabilityError != null) Text(capabilityError!),
-          if (error != null) Text(error!),
-          if (loading) const LinearProgressIndicator(),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: loading ? null : () => load(force: true),
-              child: const Text('刷新补能统计'),
+      final children = <Widget>[
+        SectionHeader(
+          title: '补能账目',
+          range: '按结束日 · 仅已完成充电',
+          action: TextButton(
+            onPressed: loading ? null : () => load(force: true),
+            child: const Text('刷新补能统计'),
+          ),
+        ),
+        if (capabilityError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: InlineBanner(
+              message: capabilityError!,
+              tone: BannerTone.warning,
+              actionLabel: '重试补能能力',
+              onAction: () => load(force: true),
             ),
           ),
-          if (totals != null) ...[
-            CollageTile(
-              surface: CollageSurface.hero,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    '已知支出 · 覆盖同时看',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  MetricTile(
-                    label: '已知充电支出',
-                    value: scope.currency.amount(totals.cost),
-                    emphasize: true,
-                  ),
-                  Text(
-                    rich == null
-                        ? '费用覆盖未提供，已知支出不代表全部用车成本'
-                        : '费用有记录 ${rich.costKnownSessions} / ${rich.sessions} 次',
-                  ),
-                  if (rich != null) Text('对应入电 ${rich.costKnownEnergyKwh} kWh'),
-                ],
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: InlineBanner(
+              message: error!,
+              tone: BannerTone.error,
+              actionLabel: '刷新补能统计',
+              onAction: () => load(force: true),
+            ),
+          ),
+        if (loading && totals != null)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: MileafProgressLine(),
+          ),
+        if (totals != null) ...[
+          _conclusion(totals, rich),
+          _trend(stats!, detail, labels, units),
+          if (expandedAvailable && stats.buckets.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: openBucket,
+                child: const Text('查看此期间补能'),
               ),
             ),
-            TimeChart(
-              selectedIndex: selectedBucket,
-              onSelected: (value) => setState(() => selectedBucket = value),
-              title: '${labels[metric]}走势',
-              unit: units[metric],
-              times: [for (final bucket in stats!.buckets) bucket.bucketStart],
-              series: [
-                ChartSeries(
-                  label: labels[metric],
-                  values: [
-                    for (var i = 0; i < stats.buckets.length; i++)
-                      switch (metric) {
-                        0 =>
-                          detail != null &&
-                                  detail.buckets[i].sessions > 0 &&
-                                  detail.buckets[i].energyKnownSessions == 0
-                              ? null
-                              : stats.buckets[i].energyAddedKwh,
-                        1 => stats.buckets[i].cost,
-                        2 =>
-                          detail?.buckets[i].unitCostAdded.value ??
-                              (detail == null
-                                  ? stats.buckets[i].costPerKwh
-                                  : null),
-                        _ => stats.buckets[i].sessions,
-                      },
-                  ],
-                ),
-              ],
-              timestamp: (t) => scope.workspace.calendar!
-                  .local(t)
-                  .toString()
-                  .split('.')
-                  .first,
-              tickLabel: (t) {
-                final d = scope.workspace.calendar!.local(t);
-                return '${d.month}/${d.day}';
-              },
-              presentation: metric == 2
-                  ? ChartPresentation.line
-                  : ChartPresentation.bars,
-              controls: Wrap(
-                spacing: 6,
-                children: [
-                  for (var i = 0; i < labels.length; i++)
-                    ChoiceChip(
-                      label: Text(labels[i]),
-                      selected: metric == i,
-                      onSelected: (_) => setState(() => metric = i),
-                    ),
-                ],
-              ),
-            ),
-            if (expandedAvailable && stats.buckets.isNotEmpty)
-              TextButton(onPressed: openBucket, child: const Text('查看此期间补能')),
-            CollageTile(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MetricTile(
-                    label: '充入电池',
-                    value:
-                        '${rich != null && rich.sessions > 0 && rich.energyKnownSessions == 0 ? '—' : totals.energyAddedKwh} kWh',
-                  ),
-                  Text('充电 ${totals.sessions} 次'),
-                  if (rich != null) ...[
-                    Text(
-                      '能量有记录 ${rich.energyKnownSessions} / ${rich.sessions} 次',
-                    ),
-                    Text(
-                      '有效入电均价 ${scope.currency.amount(rich.unitCostAdded.value)}/kWh',
-                    ),
-                    Text(
-                      '有效网侧均价 ${scope.currency.amount(rich.unitCostGrid.value)}/kWh',
-                    ),
-                    Text(
-                      '入电均价有效分母 ${rich.unitCostAdded.denominatorKwh} kWh；网侧 ${rich.unitCostGrid.denominatorKwh} kWh',
-                    ),
-                    Text(
-                      '记录时长 ${rich.sessions > 0 && rich.durationKnownSessions == 0 ? '—' : rich.durationMinTotal} 分钟 · 有效 ${rich.durationKnownSessions} / ${rich.sessions} 次',
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            CollageTile(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('补能结构', style: Theme.of(context).textTheme.titleMedium),
-                  EnergyComparison(
-                    values: [
-                      (
-                        'AC',
-                        rich != null &&
-                                rich.sessions > 0 &&
-                                rich.energyKnownSessions == 0
-                            ? null
-                            : totals.acEnergyKwh,
-                      ),
-                      (
-                        'DC',
-                        rich != null &&
-                                rich.sessions > 0 &&
-                                rich.energyKnownSessions == 0
-                            ? null
-                            : totals.dcEnergyKwh,
-                      ),
-                      if (rich != null)
-                        (
-                          '未知',
-                          rich.sessions > 0 && rich.energyKnownSessions == 0
-                              ? null
-                              : rich.unknownEnergyKwh,
-                        ),
-                    ],
-                  ),
-                  Text(
-                    'DC占已知分类 ${totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
-                  ),
-                  if (rich != null)
-                    Text(
-                      rich.sessions > 0 && rich.durationKnownSessions == 0
-                          ? '分类记录时长缺失'
-                          : '分类记录时长：AC ${rich.acDurationMin} / DC ${rich.dcDurationMin} / 未知 ${rich.unknownDurationMin} 分钟',
-                    ),
-                  const Text('DC 占比分母：AC + DC 已知分类能量'),
-                  const Text('未知不归AC；记录时长不是等待时间'),
-                ],
-              ),
-            ),
-            TimeChart(
-              title: 'AC / DC / 未知时间分布',
-              unit: 'kWh',
-              times: [for (final bucket in stats.buckets) bucket.bucketStart],
-              series: [
-                for (final kind in ['AC', 'DC', if (detail != null) '未知'])
-                  ChartSeries(
-                    label: kind,
-                    values: [
-                      for (var i = 0; i < stats.buckets.length; i++)
-                        if (detail != null &&
-                            detail.buckets[i].sessions > 0 &&
-                            detail.buckets[i].energyKnownSessions == 0)
-                          null
-                        else
-                          switch (kind) {
-                            'AC' => stats.buckets[i].acEnergyKwh,
-                            'DC' => stats.buckets[i].dcEnergyKwh,
-                            _ => detail!.buckets[i].unknownEnergyKwh,
-                          },
-                    ],
-                  ),
-              ],
-              timestamp: (t) => scope.workspace.calendar!
-                  .local(t)
-                  .toString()
-                  .split('.')
-                  .first,
-              tickLabel: (t) {
-                final d = scope.workspace.calendar!.local(t);
-                return '${d.month}/${d.day}';
-              },
-              presentation: ChartPresentation.bars,
-            ),
-          ] else if (!loading && error == null)
-            const Text('尚无补能统计'),
+          const SizedBox(height: MileafSpace.section),
+          _facts(totals, rich),
+          const SizedBox(height: MileafSpace.section),
+          _composition(totals, rich),
           if (expandedAvailable) ...[
-            Text('自己的地点账目', style: Theme.of(context).textTheme.titleMedium),
-            if (locationsLoading) const LinearProgressIndicator(),
-            if (locationsError != null) Text(locationsError!),
-            if (locationsError != null)
-              TextButton(
-                onPressed: locationsLoading
-                    ? null
-                    : () => loadLocations(force: true),
-                child: const Text('重试地点账目'),
-              ),
-            for (final place in locations)
-              ListTile(
-                title: Text(place.location.displayName ?? '未知地点'),
-                subtitle: Text(
-                  '${place.sessions} 次 · ${place.energyKnownSessions == 0 && place.sessions > 0 ? '—' : place.energyAddedKwh} kWh · 费用有记录 ${place.costKnownSessions}/${place.sessions}次',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => openRecords(place: place),
-              ),
-            if (locationCursor != null)
-              TextButton(
-                onPressed: locationsLoading
-                    ? null
-                    : () => loadLocations(more: true),
-                child: const Text('加载更多地点'),
-              ),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final entry in const {
-                  'ac': 'AC记录',
-                  'dc': 'DC记录',
-                  'unknown': '未知分类记录',
-                }.entries)
-                  TextButton(
-                    onPressed: () => openRecords(type: entry.key),
-                    child: Text(entry.value),
-                  ),
-              ],
-            ),
-            TextButton(
-              onPressed: () => openRecords(),
-              child: const Text('查看期间补能记录'),
-            ),
+            const SizedBox(height: MileafSpace.section),
+            _locationSection(),
           ],
-          ExpansionTile(
-            title: const Text('数据说明'),
-            children: [
-              const ListTile(
-                title: Text('仅已结束充电按 ended_at 归期；充电列表按开始日，跨夜记录的日期可能不同。'),
-              ),
-              if (rich != null)
-                ListTile(
-                  title: Text(
-                    '入电配对费用 ${scope.currency.amount(rich.unitCostAdded.numeratorCost)} / ${rich.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amount(rich.unitCostGrid.numeratorCost)} / ${rich.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率。',
-                  ),
-                ),
-              if (checkedAt != null)
-                Text(
-                  '查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-            ],
+          const SizedBox(height: MileafSpace.section),
+          _notes(detail),
+        ] else if (!loading && error == null)
+          const StateView(
+            kind: StateViewKind.empty,
+            title: '还没有充电记录',
+            message: '尚无补能统计；换一个期间或继续记录。',
           ),
-        ],
+      ];
+      return ListView(
+        padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+        children: children,
       );
     },
+  );
+
+  Widget _conclusion(
+    legacy.ChargingMetrics totals,
+    expanded.ChargingMetrics? rich,
+  ) {
+    final colors = context.colors;
+    final type = context.type;
+    final cost = scope.currency.amountValue(totals.cost);
+    final known = rich?.costKnownSessions ?? 0;
+    final coverage = totals.sessions == 0
+        ? 0.0
+        : (known / totals.sessions).clamp(0.0, 1.0);
+    final note = scope.currency.amountNote;
+    final costEnergy = rich == null
+        ? '—'
+        : '${rich.costKnownEnergyKwh.toStringAsFixed(1)} kWh';
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '已知支出 · 覆盖同时看',
+            style: type.label.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          MileafNumber(value: cost, scale: MetricValueScale.display),
+          if (note != null) ...[
+            const SizedBox(height: MileafSpace.s4),
+            Text(note, style: type.micro.copyWith(color: colors.textFaint)),
+          ],
+          const SizedBox(height: MileafSpace.s8),
+          Text(
+            '有效入电均价 ${scope.currency.amountValue(rich?.unitCostAdded.value)}/kWh',
+            style: type.body.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: MileafSpace.s12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '费用覆盖',
+                  style: type.label.copyWith(color: colors.textMuted),
+                ),
+              ),
+              Text(
+                '$known / ${totals.sessions} 次',
+                style: type.label.copyWith(color: colors.text),
+              ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Semantics(
+            label: '费用记录覆盖：$known/${totals.sessions}次',
+            child: ClipRRect(
+              borderRadius: MileafRadius.fullAll,
+              child: Container(
+                height: 4,
+                color: colors.line,
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: coverage,
+                  heightFactor: 1,
+                  child: ColoredBox(color: colors.accent),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Text(
+            '费用有记录 $known / ${totals.sessions} 次 · '
+            '对应入电 $costEnergy',
+            style: type.micro.copyWith(color: colors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _trend(
+    legacy.ChargingStats stats,
+    expanded.ChargingStats? detail,
+    List<String> labels,
+    List<String> units,
+  ) {
+    final buckets = stats.buckets;
+    if (buckets.isEmpty) return const SizedBox.shrink();
+    final values = [
+      for (var i = 0; i < buckets.length; i++)
+        switch (metric) {
+          0 =>
+            detail != null &&
+                    detail.buckets[i].sessions > 0 &&
+                    detail.buckets[i].energyKnownSessions == 0
+                ? null
+                : buckets[i].energyAddedKwh,
+          1 => buckets[i].cost,
+          2 =>
+            detail?.buckets[i].unitCostAdded.value ??
+                (detail == null ? buckets[i].costPerKwh : null),
+          _ => buckets[i].sessions,
+        },
+    ];
+    final selected = selectedBucket.clamp(0, buckets.length - 1);
+    String tick(DateTime t) {
+      final d = scope.workspace.calendar!.local(t);
+      return '${d.month}/${d.day}';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      child: TimeSeriesChart(
+        title: '${labels[metric]}走势',
+        unit: units[metric],
+        subtitle: '按结束日',
+        times: [for (final bucket in buckets) bucket.bucketStart],
+        series: [
+          ChartSeries(
+            label: labels[metric],
+            values: values,
+            style: metric == 2 ? ChartSeriesStyle.line : ChartSeriesStyle.bars,
+          ),
+        ],
+        semanticsLabel: '补能走势图表',
+        controls: Wrap(
+          spacing: MileafSpace.s8,
+          runSpacing: MileafSpace.s8,
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              ChoiceChip(
+                label: Text(labels[i]),
+                selected: metric == i,
+                onSelected: (_) => setState(() => metric = i),
+              ),
+          ],
+        ),
+        selectedIndex: selected,
+        onSelected: (value) => setState(() => selectedBucket = value),
+        height: 118,
+        tickLabel: tick,
+        readout: (index) {
+          if (index < 0 || index >= buckets.length) return '—';
+          final value = values[index];
+          final date = tick(buckets[index].bucketStart);
+          return switch (metric) {
+            0 =>
+              '$date ${value == null ? '—' : '${value.toStringAsFixed(1)} kWh'}',
+            1 => '$date ${_cost(value)}',
+            2 => '$date ${value == null ? '—' : '${_cost(value)}/kWh'}',
+            _ => '$date ${value == null ? '—' : '${value.toInt()} 次'}',
+          };
+        },
+        trailing: Text(
+          '点按读值',
+          style: context.type.label.copyWith(color: context.colors.textFaint),
+        ),
+      ),
+    );
+  }
+
+  Widget _facts(legacy.ChargingMetrics totals, expanded.ChargingMetrics? rich) {
+    final energyMissing =
+        rich != null && rich.sessions > 0 && rich.energyKnownSessions == 0;
+    final durationMissing =
+        rich != null && rich.sessions > 0 && rich.durationKnownSessions == 0;
+    final energy = energyMissing
+        ? '—'
+        : totals.energyAddedKwh.toStringAsFixed(1);
+    final duration = rich == null || durationMissing
+        ? '—'
+        : '${rich.durationMinTotal}';
+    return StatisticsTopicFacts(
+      facts: [
+        StatisticsTopicFact(
+          label: '充入电池',
+          value: energy,
+          unit: 'kWh',
+          note: rich == null
+              ? null
+              : '${rich.energyKnownSessions}/${rich.sessions} 次有记录',
+        ),
+        StatisticsTopicFact(
+          label: '充电次数',
+          value: '${totals.sessions}',
+          unit: '次',
+          note: '已完成',
+        ),
+        StatisticsTopicFact(
+          label: '记录时长',
+          value: duration,
+          unit: '分钟',
+          note: rich == null
+              ? null
+              : '${rich.durationKnownSessions}/${rich.sessions} 次有记录 · 非等待时间',
+        ),
+        StatisticsTopicFact(
+          label: '费用有记录',
+          value: rich == null
+              ? '—'
+              : '${rich.costKnownSessions} / ${rich.sessions}',
+          unit: '次',
+        ),
+        StatisticsTopicFact(
+          label: 'DC 占已知分类',
+          value: totals.dcEnergyShare == null
+              ? '—'
+              : (totals.dcEnergyShare! * 100).toStringAsFixed(1),
+          unit: '%',
+        ),
+      ],
+    );
+  }
+
+  Widget _composition(
+    legacy.ChargingMetrics totals,
+    expanded.ChargingMetrics? rich,
+  ) {
+    final colors = context.colors;
+    final type = context.type;
+    final energyMissing =
+        rich != null && rich.sessions > 0 && rich.energyKnownSessions == 0;
+    final rows = <(String, num?)>[
+      ('AC', energyMissing ? null : totals.acEnergyKwh),
+      ('DC', energyMissing ? null : totals.dcEnergyKwh),
+      if (rich != null) ('未知', energyMissing ? null : rich.unknownEnergyKwh),
+    ];
+    final known = [
+      for (final row in rows)
+        if (row.$2 != null && row.$2! > 0) row,
+    ];
+    final total = known.fold<num>(0, (sum, row) => sum + row.$2!);
+    final durationMissing =
+        rich != null && rich.sessions > 0 && rich.durationKnownSessions == 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(title: '补能结构', range: 'AC / DC / 未知时间分布'),
+        const SizedBox(height: MileafSpace.s8),
+        if (total > 0)
+          ClipRRect(
+            borderRadius: MileafRadius.xsAll,
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  for (final (index, row) in known.indexed)
+                    Expanded(
+                      flex: (row.$2! / total * 1000).round().clamp(1, 1000),
+                      child: ColoredBox(
+                        color: switch (index % 3) {
+                          0 => colors.seriesPrimary,
+                          1 => colors.seriesSecondary,
+                          _ => colors.seriesNeutral,
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          )
+        else
+          Text(
+            'AC/DC 分类能量缺失',
+            style: type.micro.copyWith(color: colors.textFaint),
+          ),
+        const SizedBox(height: MileafSpace.s8),
+        Wrap(
+          spacing: MileafSpace.s16,
+          runSpacing: MileafSpace.s4,
+          children: [
+            for (final (label, value) in rows)
+              Text(
+                '$label ${value == null ? '—' : '${value.toStringAsFixed(2)} kWh'}',
+                style: type.micro.copyWith(color: colors.textMuted),
+              ),
+          ],
+        ),
+        const SizedBox(height: MileafSpace.s8),
+        Text(
+          'DC占已知分类 ${totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
+          style: type.body.copyWith(color: colors.text),
+        ),
+        if (rich != null) ...[
+          const SizedBox(height: MileafSpace.s4),
+          Text(
+            durationMissing
+                ? '分类记录时长缺失'
+                : '分类记录时长：AC ${rich.acDurationMin} / DC ${rich.dcDurationMin} / 未知 ${rich.unknownDurationMin} 分钟',
+            style: type.body.copyWith(color: colors.textMuted),
+          ),
+        ],
+        const SizedBox(height: MileafSpace.s4),
+        Text(
+          'DC 占比分母：AC + DC 已知分类能量 · 未知不归AC；记录时长不是等待时间',
+          style: type.micro.copyWith(color: colors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  Widget _locationSection() {
+    final colors = context.colors;
+    final type = context.type;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(title: '自己的地点账目'),
+        if (locationsLoading) const MileafProgressLine(),
+        if (locationsError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s8),
+            child: InlineBanner(
+              message: locationsError!,
+              tone: BannerTone.error,
+              actionLabel: '重试地点账目',
+              onAction: () => loadLocations(force: true),
+            ),
+          ),
+        const SizedBox(height: MileafSpace.s4),
+        if (locations.isEmpty && !locationsLoading && locationsError == null)
+          Text('还没有地点账目', style: type.body.copyWith(color: colors.textMuted)),
+        for (final place in locations)
+          MileafDataRow(
+            title: place.location.displayName ?? '未知地点',
+            meta:
+                '${place.sessions} 次 · '
+                '${place.energyKnownSessions == 0 && place.sessions > 0 ? '—' : '${place.energyAddedKwh.toStringAsFixed(1)} kWh'} · '
+                '费用有记录 ${place.costKnownSessions}/${place.sessions}次',
+            topLine: true,
+            showChevron: true,
+            onTap: () => openRecords(place: place),
+          ),
+        if (locationCursor != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: locationsLoading
+                  ? null
+                  : () => loadLocations(more: true),
+              child: const Text('加载更多地点'),
+            ),
+          ),
+        const SizedBox(height: MileafSpace.s8),
+        Wrap(
+          spacing: MileafSpace.s8,
+          runSpacing: MileafSpace.s8,
+          children: [
+            for (final entry in const {
+              'ac': 'AC记录',
+              'dc': 'DC记录',
+              'unknown': '未知分类记录',
+            }.entries)
+              StatusChip(
+                label: entry.value,
+                onTap: () => openRecords(type: entry.key),
+              ),
+            StatusChip(label: '查看期间补能记录', onTap: () => openRecords()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _notes(expanded.ChargingStats? rich) => StatisticsTopicNotes(
+    children: [
+      const Text('仅已结束充电按 ended_at 归期；充电列表按开始日，跨夜记录的日期可能不同。'),
+      if (rich != null)
+        Text(
+          '入电配对费用 ${scope.currency.amount(rich.totals.unitCostAdded.numeratorCost)} / ${rich.totals.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amount(rich.totals.unitCostGrid.numeratorCost)} / ${rich.totals.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率。',
+        ),
+      if (checkedAt != null)
+        Text('查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间'),
+    ],
   );
 }

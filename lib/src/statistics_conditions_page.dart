@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'statistics_insights_page.dart';
-import 'collage.dart';
-import 'statistics_usage_page.dart';
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 import 'statistics_conditions_contract.g.dart' as dto;
+import 'statistics_insights_page.dart';
+import 'statistics_usage_page.dart';
 
 String conditionsValue(Object? value) =>
     value is num ? value.toString().replaceFirst(RegExp(r'\.0$'), '') : '—';
@@ -88,306 +92,413 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
   String label(Map<String, dynamic> b) =>
       '[${conditionsValue(b['lower_c'])}, ${conditionsValue(b['upper_c'])}) °C';
   Widget coverage(Object? value) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       for (final e in usageMap(value).entries)
         if (e.value is Map)
-          Text(
-            '${e.key}：有效 ${conditionsValue(usageMap(e.value)['valid_count'])} 趟 / ${conditionsValue(usageMap(e.value)['valid_distance_km'])} km；排除 ${conditionsValue(usageMap(e.value)['excluded_count'])} 趟',
+          Padding(
+            padding: const EdgeInsets.only(bottom: MileafSpace.s4),
+            child: Text(
+              '${e.key}：有效 ${conditionsValue(usageMap(e.value)['valid_count'])} 趟 / ${conditionsValue(usageMap(e.value)['valid_distance_km'])} km；排除 ${conditionsValue(usageMap(e.value)['excluded_count'])} 趟',
+              style: context.type.micro.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
           ),
     ],
   );
+
   @override
   Widget build(BuildContext context) {
     if (source.features['driving_analysis'] != true) {
-      return const Center(child: Text('当前站点不支持能耗条件分析'));
+      return const StateView(
+        kind: StateViewKind.empty,
+        title: '当前站点不支持能耗条件分析',
+        message: '站点未声明能耗条件分析能力。',
+      );
     }
     final d = data;
     final bins = usageItems(d?['temperature_bins']);
     final b = bins.isEmpty ? null : bins[selected.clamp(0, bins.length - 1)];
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        CollageTile(
-          surface: CollageSurface.hero,
-          child: Builder(
-            builder: (context) => Column(
+    final colors = context.colors;
+    final type = context.type;
+    final children = <Widget>[
+      SectionHeader(
+        title: '温度下的用车能耗',
+        range: 'Wh/km',
+        action: TextButton(
+          onPressed: () => load(force: true),
+          child: const Text('刷新能耗条件'),
+        ),
+      ),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.only(top: MileafSpace.s8),
+          child: InlineBanner(
+            message: error!,
+            tone: BannerTone.error,
+            actionLabel: '重试能耗条件',
+            onAction: () => load(force: true),
+          ),
+        ),
+      if (d == null && error == null)
+        const StateView(kind: StateViewKind.loading, title: '正在读取能耗条件')
+      else if (d != null && d['status'] == 'unsupported')
+        const StateView(
+          kind: StateViewKind.empty,
+          title: '当前站点不支持能耗条件分析',
+          message: '站点未声明能耗条件分析能力。',
+        )
+      else if (d != null && d['status'] == 'no_records')
+        const StateView(
+          kind: StateViewKind.empty,
+          title: '区间内无已完成行程',
+          message: '这段时间没有可配对的已完成行程。',
+        )
+      else if (d != null && d['status'] == 'available') ...[
+        const SizedBox(height: MileafSpace.s16),
+        if (b == null)
+          Text(
+            '等待可用的温度与配对样本',
+            style: type.body.copyWith(color: colors.textMuted),
+          )
+        else ...[
+          Semantics(
+            container: true,
+            label:
+                '室外均温 ${label(b)}，净电耗 ${conditionsValue(b['consumption_wh_km'])} Wh/km',
+            excludeSemantics: true,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('温度下的用车能耗'),
-                if (b != null && d?['status'] == 'available') ...[
-                  Text(
-                    '${conditionsValue(b['consumption_wh_km'])} Wh/km',
-                    style: MediaQuery.textScalerOf(context).scale(14) >= 21
-                        ? Theme.of(context).textTheme.headlineSmall
-                        : Theme.of(context).textTheme.headlineLarge,
-                  ),
-                  Text('室外均温 ${label(b)}'),
-                  Text(switch (b['sample_status']) {
+                Text(
+                  '所选温度组 · ${label(b)}',
+                  style: type.label.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                MileafNumber(
+                  value: b['consumption_wh_km'] == null
+                      ? null
+                      : conditionsValue(b['consumption_wh_km']),
+                  unit: 'Wh/km',
+                  scale: MetricValueScale.display,
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  switch (b['sample_status']) {
                     'adequate' => '样本达到暂定门槛',
                     'sparse' => '小样本，仅供点读',
                     _ => '配对样本不足',
-                  }),
-                ] else
-                  const Text('等待可用的温度与配对样本'),
-                const Text('关联观察，不代表因果或排名'),
-              ],
-            ),
-          ),
-        ),
-        if (error != null) Text(error!),
-        if (d != null)
-          TextButton(
-            onPressed: () => load(force: true),
-            child: const Text('刷新能耗条件'),
-          ),
-        if (error != null || d == null)
-          TextButton(
-            onPressed: () => load(force: true),
-            child: const Text('重试能耗条件'),
-          ),
-        if (d != null) ...[
-          if (d['status'] == 'unsupported')
-            const Text('当前站点不支持能耗条件分析')
-          else if (d['status'] == 'no_records')
-            const Text('区间内无已完成行程')
-          else ...[
-            Text('未知温度 ${conditionsValue(d['unknown_temperature_drives'])} 趟'),
-            CollageTile(
-              surface: CollageSurface.mint,
-              child: Text(
-                '完整区间 ${conditionsValue(usageMap(d['summary'])['driving_distance_km'])} km · 单程中位数 ${conditionsValue(usageMap(d['summary'])['distance_p50_km'])} km',
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('加权净电耗 · Wh/km'),
-            const Text('行程室外均温 · 5°C半开分组'),
-            if (bins.isNotEmpty) ...[
-              Semantics(
-                label: '温度分类点图，横向拖动选择温度组',
-                child: LayoutBuilder(
-                  builder: (context, constraints) => GestureDetector(
-                    onTapDown: (p) => setState(
-                      () => selected =
-                          (p.localPosition.dx /
-                                  constraints.maxWidth *
-                                  bins.length)
-                              .floor()
-                              .clamp(0, bins.length - 1),
-                    ),
-                    onHorizontalDragUpdate: (p) => setState(
-                      () => selected =
-                          (p.localPosition.dx /
-                                  constraints.maxWidth *
-                                  bins.length)
-                              .floor()
-                              .clamp(0, bins.length - 1),
-                    ),
-                    child: SizedBox(
-                      height: MediaQuery.textScalerOf(context).scale(14) >= 21
-                          ? 230
-                          : 180,
-                      width: double.infinity,
-                      child: CustomPaint(
-                        painter: _TemperaturePlot(
-                          bins,
-                          selected,
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.outline,
-                          (Theme.of(context).textTheme.bodySmall ??
-                                  const TextStyle())
-                              .copyWith(
-                                fontSize: MediaQuery.textScalerOf(context)
-                                    .scale(12),
-                              ),
-                        ),
-                      ),
-                    ),
+                  },
+                  style: type.body.copyWith(
+                    color: colors.text,
+                    fontWeight: MileafType.weightSemiBold,
                   ),
                 ),
-              ),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (var i = 0; i < bins.length; i++)
-                    ChoiceChip(
-                      label: Text(label(bins[i])),
-                      selected: selected == i,
-                      onSelected: (_) => setState(() => selected = i),
-                    ),
-                ],
-              ),
-              Wrap(
-                spacing: 16,
-                children: [
-                  TextButton(
-                    onPressed: selected > 0
-                        ? () => setState(() => selected--)
-                        : null,
-                    child: const Text('上一温度组'),
-                  ),
-                  TextButton(
-                    onPressed: selected < bins.length - 1
-                        ? () => setState(() => selected++)
-                        : null,
-                    child: const Text('下一温度组'),
-                  ),
-                ],
-              ),
-            ],
-            if (b != null) ...[
-              Text(label(b), style: Theme.of(context).textTheme.titleLarge),
-              Text(
-                '候选 ${conditionsValue(b['drives'])} 趟 · 已知里程 ${conditionsValue(b['distance_km'])} km',
-              ),
-              Text(
-                '有效配对 ${conditionsValue(usageMap(usageMap(b['coverage'])['paired'])['valid_count'])} 趟 · ${conditionsValue(b['paired_distance_km'])} km',
-              ),
-              Text(
-                '配对原值 ${conditionsValue(b['paired_energy_kwh'])} kWh / ${conditionsValue(b['paired_distance_km'])} km',
-              ),
-              Text(
-                '单程中位数 ${conditionsValue(b['median_drive_distance_km'])} km · 平均记录速度 ${conditionsValue(b['mean_trip_speed_kmh'])} km/h',
-              ),
-              ExpansionTile(
-                title: const Text('该组数据覆盖'),
-                children: [coverage(b['coverage'])],
-              ),
-              if (b['evidence_filter'] is Map)
-                TextButton(
-                  onPressed: () => openDrivingEvidence(
-                    context,
-                    source,
-                    usageMap(b['evidence_filter']),
-                    title: '温度组行程证据',
-                    onRecord: widget.onRecord,
-                  ),
-                  child: const Text('查看该温度组行程'),
-                ),
-            ],
-            const SizedBox(height: 16),
-            Text('短途、中途与长途', style: Theme.of(context).textTheme.titleMedium),
-            for (final item in usageItems(d['distance_bins'])) ...[
-              Text(
-                '[${conditionsValue(item['lower_km'])}, ${item['upper_km'] == null ? '∞' : conditionsValue(item['upper_km'])}) km · ${conditionsValue(item['consumption_wh_km'])} Wh/km',
-              ),
-              LinearProgressIndicator(
-                value:
-                    ((item['distance_km'] as num? ?? 0) /
-                            (usageMap(d['summary'])['driving_distance_km']
-                                    as num? ??
-                                1))
-                        .clamp(0, 1)
-                        .toDouble(),
-              ),
-              Text(
-                '${conditionsValue(item['drives'])} 趟 · 配对 ${conditionsValue(item['paired_energy_kwh'])} kWh / ${conditionsValue(item['paired_distance_km'])} km',
-              ),
-              ExpansionTile(
-                title: const Text('距离组数据覆盖'),
-                children: [coverage(item['coverage'])],
-              ),
-            ],
-            ExpansionTile(
-              title: const Text('数据覆盖与暂定口径'),
-              children: [
+                const SizedBox(height: MileafSpace.s4),
                 Text(
-                  '快照 ${d['as_of']} · ${d['method']} v${d['version']} · ${d['validation']}',
+                  '关联观察，不代表因果或排名',
+                  style: type.micro.copyWith(color: colors.textMuted),
                 ),
-                for (final e in usageMap(d['thresholds']).entries)
-                  Text('${e.key}：${conditionsValue(e.value)}'),
-                coverage(usageMap(d['summary'])['coverage']),
-                const Text('各指标有效集独立；配对总能量 / 配对总里程直接读取服务端，不平均逐趟比率。'),
               ],
             ),
-          ],
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          Text(
+            '未知温度 ${conditionsValue(d['unknown_temperature_drives'])} 趟',
+            style: type.body.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          Text(
+            '加权净电耗 · Wh/km',
+            style: type.label.copyWith(color: colors.textMuted),
+          ),
+          Text(
+            '行程室外均温 · 5°C半开分组',
+            style: type.micro.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Semantics(
+            label: '温度分类点图，横向拖动选择温度组',
+            child: LayoutBuilder(
+              builder: (context, constraints) => GestureDetector(
+                onTapDown: (p) => setState(
+                  () => selected =
+                      (p.localPosition.dx / constraints.maxWidth * bins.length)
+                          .floor()
+                          .clamp(0, bins.length - 1),
+                ),
+                onHorizontalDragUpdate: (p) => setState(
+                  () => selected =
+                      (p.localPosition.dx / constraints.maxWidth * bins.length)
+                          .floor()
+                          .clamp(0, bins.length - 1),
+                ),
+                child: SizedBox(
+                  height: MileafLayout.largeText(context) ? 230 : 180,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: _TemperaturePlot(
+                      bins,
+                      selected,
+                      colors,
+                      type.body.copyWith(color: colors.textFaint),
+                      MileafLayout.largeText(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Wrap(
+            spacing: MileafSpace.s8,
+            runSpacing: MileafSpace.s8,
+            children: [
+              for (var i = 0; i < bins.length; i++)
+                ChoiceChip(
+                  label: Text(label(bins[i])),
+                  selected: selected == i,
+                  onSelected: (_) => setState(() => selected = i),
+                ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Wrap(
+            spacing: MileafSpace.s16,
+            children: [
+              TextButton(
+                onPressed: selected > 0
+                    ? () => setState(() => selected--)
+                    : null,
+                child: const Text('上一温度组'),
+              ),
+              TextButton(
+                onPressed: selected < bins.length - 1
+                    ? () => setState(() => selected++)
+                    : null,
+                child: const Text('下一温度组'),
+              ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.section),
+          StatisticsTopicFacts(
+            facts: [
+              StatisticsTopicFact(
+                label: '候选',
+                value: conditionsValue(b['drives']),
+                unit: '趟',
+              ),
+              StatisticsTopicFact(
+                label: '已知里程',
+                value: conditionsValue(b['distance_km']),
+                unit: 'km',
+              ),
+              StatisticsTopicFact(
+                label: '有效配对',
+                value: conditionsValue(
+                  usageMap(usageMap(b['coverage'])['paired'])['valid_count'],
+                ),
+                unit: '趟',
+                note:
+                    '${conditionsValue(b['paired_distance_km'])} km · '
+                    '${conditionsValue(b['paired_energy_kwh'])} kWh',
+              ),
+              StatisticsTopicFact(
+                label: '单程中位数',
+                value: conditionsValue(b['median_drive_distance_km']),
+                unit: 'km',
+              ),
+              StatisticsTopicFact(
+                label: '平均记录速度',
+                value: conditionsValue(b['mean_trip_speed_kmh']),
+                unit: 'km/h',
+              ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          StatisticsTopicNotes(
+            title: '该组数据覆盖',
+            children: [coverage(b['coverage'])],
+          ),
+          if (b['evidence_filter'] is Map)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => openDrivingEvidence(
+                  context,
+                  source,
+                  usageMap(b['evidence_filter']),
+                  title: '温度组行程证据',
+                  onRecord: widget.onRecord,
+                ),
+                child: const Text('查看该温度组行程'),
+              ),
+            ),
+        ],
+        const SizedBox(height: MileafSpace.section),
+        _distanceSection(d),
+        const SizedBox(height: MileafSpace.section),
+        _notesSection(d),
+      ],
+    ];
+    return ListView(
+      padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+      children: children,
+    );
+  }
+
+  Widget _distanceSection(Map<String, dynamic> d) {
+    final items = usageItems(d['distance_bins']);
+    final total = usageMap(d['summary'])['driving_distance_km'] as num? ?? 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(title: '短途、中途与长途', range: 'Wh/km'),
+        const SizedBox(height: MileafSpace.s4),
+        for (final item in items) ...[
+          MileafDataRow(
+            title:
+                '[${conditionsValue(item['lower_km'])}, ${item['upper_km'] == null ? '∞' : conditionsValue(item['upper_km'])}) km',
+            meta:
+                '${conditionsValue(item['drives'])} 趟 · 占比 '
+                '${((item['distance_km'] as num? ?? 0) / total * 100).clamp(0, 100).toStringAsFixed(1)}% · '
+                '配对 ${conditionsValue(item['paired_energy_kwh'])} kWh / ${conditionsValue(item['paired_distance_km'])} km',
+            value: conditionsValue(item['consumption_wh_km']),
+            unit: 'Wh/km',
+            topLine: true,
+          ),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text(
+              '距离组数据覆盖',
+              style: context.type.micro.copyWith(
+                color: context.colors.textFaint,
+              ),
+            ),
+            childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s8),
+            expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [coverage(item['coverage'])],
+          ),
         ],
       ],
     );
   }
+
+  Widget _notesSection(Map<String, dynamic> d) => StatisticsTopicNotes(
+    title: '数据覆盖与暂定口径',
+    children: [
+      Text(
+        '快照 ${d['as_of']} · ${d['method']} v${d['version']} · ${d['validation']}',
+      ),
+      for (final e in usageMap(d['thresholds']).entries)
+        Text('${e.key}：${conditionsValue(e.value)}'),
+      coverage(usageMap(d['summary'])['coverage']),
+      const Text('各指标有效集独立；配对总能量 / 配对总里程直接读取服务端，不平均逐趟比率。'),
+    ],
+  );
 }
 
 class _TemperaturePlot extends CustomPainter {
   _TemperaturePlot(
     this.bins,
     this.selected,
-    this.color,
-    this.axis,
+    this.colors,
     this.labelStyle,
+    this.largeText,
   );
   final List<Map<String, dynamic>> bins;
   final int selected;
-  final Color color, axis;
+  final MileafColors colors;
   final TextStyle labelStyle;
+  final bool largeText;
+
   @override
   void paint(Canvas canvas, Size size) {
     final values = bins.map((b) => b['consumption_wh_km']).whereType<num>();
+    if (values.isEmpty) return;
     var low = 0.0, high = 1.0;
     for (final v in values) {
       if (v < low) low = v.toDouble();
       if (v > high) high = v.toDouble();
     }
-    final fontSize = labelStyle.fontSize ?? 12;
-    final plotTop = fontSize * 1.5 + 8;
-    final plotBottom = size.height - fontSize * 1.5 - 4;
+    final fontSize = labelStyle.fontSize ?? 9;
+    final plotTop = fontSize * 2 + MileafSpace.s8;
+    final plotBottom = size.height - fontSize * 2 - 4;
     final plotHeight = (plotBottom - plotTop).clamp(1.0, size.height);
-    final baseline = plotBottom - (0 - low) / (high - low) * plotHeight;
+    final span = (high - low).abs() < .001 ? 1.0 : high - low;
     canvas.drawLine(
-      Offset(0, baseline),
-      Offset(size.width, baseline),
-      Paint()..color = axis,
+      Offset(0, plotBottom),
+      Offset(size.width, plotBottom),
+      Paint()..color = colors.line,
     );
+    if (!largeText) {
+      for (var i = 0; i < 3; i++) {
+        final value = low + span * i / 2;
+        _text(
+          canvas,
+          value.toStringAsFixed(0),
+          Offset(0, plotBottom - (value - low) / span * plotHeight - fontSize),
+          colors.textFaint,
+        );
+      }
+    }
     for (var i = 0; i < bins.length; i++) {
-      final label = TextPainter(
-        text: TextSpan(
-          text:
-              '${conditionsValue(bins[i]['lower_c'])}–${conditionsValue(bins[i]['upper_c'])}',
-          style: labelStyle.copyWith(color: axis),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      label.paint(
+      final center = (i + .5) * size.width / bins.length;
+      _text(
         canvas,
+        '${conditionsValue(bins[i]['lower_c'])}–${conditionsValue(bins[i]['upper_c'])}',
         Offset(
-          ((i + .5) * size.width / bins.length - label.width / 2).clamp(
-            0,
-            size.width - label.width,
-          ),
-          size.height - label.height,
+          (center - size.width / bins.length / 2).clamp(0, size.width),
+          size.height - fontSize * 1.4,
         ),
+        colors.textFaint,
       );
       final v = bins[i]['consumption_wh_km'];
-
       if (v is! num) continue;
-      final point = Offset(
-        (i + .5) * size.width / bins.length,
-        plotBottom - (v - low) / (high - low) * plotHeight,
-      );
+      final point = Offset(center, plotBottom - (v - low) / span * plotHeight);
+      if (i == selected) {
+        canvas.drawCircle(
+          point,
+          MileafChartMetrics.currentHalo,
+          Paint()..color = colors.accent.withValues(alpha: .2),
+        );
+      }
       canvas.drawCircle(
         point,
-        i == selected ? 7 : 4,
+        i == selected
+            ? MileafChartMetrics.currentPoint
+            : MileafChartMetrics.pointRadius,
         Paint()
-          ..color = color
-          ..style = (bins[i]['sample_status'] == 'adequate'
+          ..color = colors.accent
+          ..style = bins[i]['sample_status'] == 'adequate'
               ? PaintingStyle.fill
-              : PaintingStyle.stroke)
-          ..strokeWidth = 2,
+              : PaintingStyle.stroke
+          ..strokeWidth = MileafChartMetrics.lineStroke,
       );
-      final text = TextPainter(
-        text: TextSpan(
-          text: conditionsValue(v),
-          style: labelStyle.copyWith(color: color),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      text.paint(
+      _text(
         canvas,
+        conditionsValue(v),
         Offset(
-          (point.dx - text.width / 2).clamp(0, size.width - text.width),
-          point.dy - text.height - 6,
+          (point.dx - fontSize * 1.5).clamp(0, size.width),
+          point.dy - fontSize * 1.6,
         ),
+        colors.accent,
       );
     }
+  }
+
+  void _text(Canvas canvas, String text, Offset at, Color color) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: labelStyle.copyWith(color: color),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    painter.paint(canvas, at);
+    painter.dispose();
   }
 
   @override
