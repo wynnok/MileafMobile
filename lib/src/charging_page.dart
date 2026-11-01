@@ -1108,7 +1108,8 @@ class _ChargingPageState extends State<ChargingPage>
       ('DC', missing ? null : total.dcEnergyKwh),
       ('未知', missing ? null : total.unknownEnergyKwh),
     ];
-    final share = total.dcEnergyShare;
+    // 已知分类能量为 0 时分母为空：比例不是 0%，而是未知。有能量时按后端原口径展示。
+    final share = missing ? null : total.dcEnergyShare;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1148,9 +1149,7 @@ class _ChargingPageState extends State<ChargingPage>
           const SizedBox(height: MileafSpace.s4),
           Text(
             total.durationKnownSessions == 0
-                ? (total.sessions == 0
-                      ? 'AC — 分钟 · DC — 分钟 · 未知 — 分钟'
-                      : '分类记录时长缺失')
+                ? '分类记录时长缺失'
                 : 'AC ${decimal(total.acDurationMin)} 分钟 · '
                       'DC ${decimal(total.dcDurationMin)} 分钟 · '
                       '未知 ${decimal(total.unknownDurationMin)} 分钟',

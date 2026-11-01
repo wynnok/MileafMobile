@@ -529,7 +529,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
         ),
         StatisticsTopicFact(
           label: 'DC 占已知分类',
-          value: totals.dcEnergyShare == null
+          // 已知分类能量为 0 时分母为空：比例未知，不是 0%。
+          value: energyMissing || totals.dcEnergyShare == null
               ? '—'
               : (totals.dcEnergyShare! * 100).toStringAsFixed(1),
           unit: '%',
@@ -573,7 +574,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
         ),
         const SizedBox(height: MileafSpace.s8),
         Text(
-          'DC占已知分类 ${totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
+          'DC占已知分类 ${energyMissing || totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
           style: type.body.copyWith(color: colors.text),
         ),
         if (rich != null) ...[

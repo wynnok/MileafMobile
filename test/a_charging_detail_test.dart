@@ -123,6 +123,7 @@ void main() {
     final copy = tester.getRect(privacy);
     final button = tester.getRect(find.text('启用地图'));
     expect(map.height, 240, reason: '≥150% 时地点地图与行程地图同为 240');
+    expect(copy.top, greaterThanOrEqualTo(map.top), reason: '文案不超出地图上缘');
     expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
     expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: '按钮完整在地图内');
     expect(find.textContaining('设备/网络信息'), findsOneWidget);

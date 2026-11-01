@@ -733,15 +733,18 @@ class _StatisticsViewState extends State<_StatisticsView>
         ],
         note: '仅已知分类能量；未知分类不归入 AC。',
       ),
-      textLine('DC 能量占比（已知分类）', _share(totals.dcEnergyShare)),
+      textLine(
+        'DC 能量占比（已知分类）',
+        // 已知分类能量为 0 时分母为空，比例是未知而不是 0%。
+        energyMissing ? '—' : _share(totals.dcEnergyShare),
+      ),
       Text(
         '占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。',
         style: context.type.micro.copyWith(color: context.colors.textMuted),
       ),
       if (richer != null)
         Text(
-          richer.totals.sessions > 0 &&
-                  richer.totals.durationKnownSessions == 0
+          richer.totals.durationKnownSessions == 0
               ? '分类记录时长缺失'
               : 'AC ${decimal(richer.totals.acDurationMin)} 分钟 · DC ${decimal(richer.totals.dcDurationMin)} 分钟 · 未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
           style: context.type.micro.copyWith(color: context.colors.textMuted),
@@ -767,8 +770,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           style: context.type.body.copyWith(color: context.colors.text),
         ),
         Text(
-          richer.totals.sessions > 0 &&
-                  richer.totals.durationKnownSessions == 0
+          richer.totals.durationKnownSessions == 0
               ? '记录时长 —'
               : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
           style: context.type.body.copyWith(color: context.colors.text),
@@ -927,7 +929,12 @@ class _StatisticsViewState extends State<_StatisticsView>
         ),
         line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
         line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
-        textLine('DC 能量占比（已知分类）', _share(bucket.dcEnergyShare)),
+        textLine(
+          'DC 能量占比（已知分类）',
+          richer != null && richer.energyKnownSessions == 0
+              ? '—'
+              : _share(bucket.dcEnergyShare),
+        ),
       ],
     );
   }

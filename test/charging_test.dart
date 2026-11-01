@@ -547,7 +547,8 @@ void main() {
     expect(find.text('未知 —'), findsOneWidget);
     expect(find.text('AC 0.00 kWh'), findsNothing);
     expect(find.text('还没有充电记录'), findsOneWidget);
-    expect(find.text('AC — 分钟 · DC — 分钟 · 未知 — 分钟'), findsOneWidget);
+    expect(find.text('分类记录时长缺失'), findsOneWidget);
+    expect(find.textContaining('DC占已知分类能量 —'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
