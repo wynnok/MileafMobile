@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+@Deprecated('A「夜航」uses mileafTheme from src/design/theme.dart')
 ThemeData lakeTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme =
