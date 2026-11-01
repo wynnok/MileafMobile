@@ -2,7 +2,7 @@
 
 - 日期：2026-11-01
 - 分支：`codex/mileaf-v1`（本地提交，未推送）
-- 范围：VA01–VA04；本目录只覆盖 **概览页首个视觉切片**。VA05–VA14 尚未实施。
+- 范围：VA01–VA04 的概览首个视觉切片。VA05–VA14 已完成，完整图册见 `../gallery/`。
 - 生成入口：`test/a_overview_render_test.dart`（opt-in，`MILEAF_RENDER_OUTPUT` 未设置时跳过）
 - 生成条件：360×800 逻辑像素、pixelRatio 2（PNG 720×1600）、浅/深 × 100/200% × normal/empty/missing = 12 张。
 - 字体：随包 Inter 400/500/600 + 渲染机 CJK fallback（Arial Unicode）；真机应走 PingFang SC / Noto Sans CJK。
@@ -39,7 +39,7 @@
 ## 本轮验证
 
 - `tool/flutterw analyze --no-pub`：通过。
-- `tool/flutterw test --no-pub`：338 通过、21 跳过（跳过项为 opt-in 渲染/真机类入口）。
+- `tool/flutterw test --no-pub`：351 通过、22 跳过（跳过项为 opt-in 渲染/真机类入口）。
 - 本目录 12 张全部由正式 Flutter 页面渲染；`a_overview_test.dart` 覆盖弧不裁切、唯一深色锚点、无卡片、本月块不留空、200% 单列/两列、浅色 hero 对比度。
 - `overview_a_regression_test.dart` 覆盖时间人性化、币种缺失/已知、空态不画全零、部分缺失 `—`、200% 浅色无溢出。
 
