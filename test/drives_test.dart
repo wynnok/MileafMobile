@@ -238,8 +238,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('看当天'), 120);
     await tester.tap(find.text('看当天'));
     await tester.pumpAndSettle();
-    expect(listQueries.last['from'], '2026-03-28T16:00:00.000Z');
-    expect(listQueries.last['to'], '2026-03-29T16:00:00.000Z');
+    expect(listQueries.last['from'], '2026-03-29T16:00:00.000Z');
+    expect(listQueries.last['to'], '2026-03-30T12:00:00.000Z');
     expect(find.text('49 趟'), findsOneWidget);
   });
 
@@ -498,10 +498,11 @@ void main() {
     );
     expect(find.text('进行中'), findsOneWidget);
     expect(find.textContaining('净电耗 0 Wh/km'), findsOneWidget);
-    expect(find.textContaining('—（缺失）'), findsOneWidget);
+    expect(find.textContaining('—'), findsWidgets);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     refresh = true;
     await tester.scrollUntilVisible(find.byTooltip('刷新行程'), -300);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
@@ -523,7 +524,7 @@ void main() {
       now: () => now,
       calendar: () async => CalendarContext(zone),
     );
-    expect(find.text('所选日期没有行程'), findsOneWidget);
+    expect(find.text('这段时间还没有行程'), findsOneWidget);
     await tester.tap(find.text('日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
@@ -580,7 +581,7 @@ void main() {
     await tester.ensureVisible(find.text('Y · 尾号 0002'));
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.text('所选日期没有行程'), findsOneWidget);
+    expect(find.text('这段时间还没有行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-17')), findsNothing);
     expect(tester.takeException(), isNull);
     slow.complete(
