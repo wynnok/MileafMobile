@@ -21,8 +21,9 @@ class SocIntervalBar extends StatelessWidget {
 
   static const double _trackHeight = 8;
 
-  /// Spec §9.4 writes the pair as 「到达 68% / 出发 76%」: end first, no gap
-  /// before `%`, so the label never wraps mid-number.
+  /// The pair reads 「出发 76% / 到达 68%」 — journey order, `%` glued to the
+  /// number so a label never wraps mid-value. (2026-11-01 用户裁定以此顺序为准，
+  /// 覆盖 Spec §9.4 原句的「到达 / 出发」。)
   String _value(num? level) =>
       level == null ? '—' : '${level.toStringAsFixed(0)}%';
 
@@ -85,13 +86,13 @@ class SocIntervalBar extends StatelessWidget {
             runSpacing: MileafSpace.s4,
             children: [
               Text(
-                '到达 ${_value(end)}',
+                '出发 ${_value(start)}',
                 style: (large ? type.body : type.label).copyWith(
                   color: colors.textMuted,
                 ),
               ),
               Text(
-                '出发 ${_value(start)}',
+                '到达 ${_value(end)}',
                 style: (large ? type.body : type.label).copyWith(
                   color: colors.textMuted,
                 ),

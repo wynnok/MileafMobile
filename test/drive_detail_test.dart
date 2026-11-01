@@ -244,6 +244,12 @@ void main() {
       expect(known, findsOneWidget);
       expect(find.text('到达 72%'), findsOneWidget);
       expect(find.text('出发 82%'), findsOneWidget);
+      // 2026-11-01 用户裁定：标签按行程顺序「出发」在前。
+      expect(
+        tester.getTopLeft(find.text('出发 82%')).dx,
+        lessThan(tester.getTopLeft(find.text('到达 72%')).dx),
+        reason: '出发在左，到达在右',
+      );
       missing = true;
       await tester.tap(find.byTooltip('刷新行程明细'));
       await tester.pumpAndSettle();
