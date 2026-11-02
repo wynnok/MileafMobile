@@ -181,7 +181,7 @@ TeslaMate 已记录车辆、行程、充电和历史统计，但其 Grafana 仪�
 - 两类列表默认最近 30 个本地日历日：今天及前 29 天，从首日零点到当前时刻。用户可选择含首尾日期的区间；历史结束日转换为次日零点，今天结束则截到当前时刻，不请求未来时间。
 - 统一转换为带时区的 UTC 半开区间 `[from,to)`，保持 `from < to`；列表按 started_at 归期，顺序以服务端为准。列表不额外套用统计的 730 天上限。
 - page size=20，cursor 不透明；滚动到底逐页加载，next_cursor=null 才是到底。并发翻页合并/抑制重复请求，按 ID 去重；刷新、筛选和切车重置分页。游标不是数据库快照，不承诺跨请求的快照一致性。
-- 进行中行程依据 ended_at=null 标识；充电依据 is_active。保留未完成指标的 null，不虚构最终时长、电量、距离或能量。翻页失败保留已加载结果并局部重试。
+- 进行中行程依据 ended_at=null 标识；充电须同时满足 `is_active` 与车辆 `summary.state.value == 'charging'`——`is_active` 只表示上游充电进程未写结束时间，车辆在充电中掉线时该进程会长期开放（见 2026-11-02 增量）。保留未完成指标的 null，不虚构最终时长、电量、距离或能量。翻页失败保留已加载结果并局部重试。
 
 ### 8. 详情、序列和图表
 
@@ -940,3 +940,42 @@ iOS 的 MapKit 只是无 key 时的过渡，不是同一供应商；Android key 
 
 - 0 新票；本增量对应本地票 CM01–CM06。
 - 真机、真实站点、性能与双端隔离构建仍是独立外部 gate，不因本增量通过而关闭。
+
+## 2026-11-02 充电「正在充电」判定增量
+
+> 只改充电页顶部「进行中充电」行的显示条件；数据口径、API、只读边界与 A「夜航」版式不变。
+
+### Problem Statement
+
+真机截图：车辆早已停止充电且处于 offline，充电页顶部仍显示「正在充电 · 清鸥府 / 已补入 27.56 kWh」。用户要求先区分「接口没返回对」还是「前端没处理对」。
+
+### Root Cause
+
+- `GET /vehicles/{id}/charging-sessions` 的 `is_active` 定义为 `charging_processes.end_date IS NULL`（MileafServer `charging_sessions.py`），是历史语义，不表示此刻在充电。
+- TeslaMate 在 `charging` 状态收到 `offline` 时不结束充电进程（`vehicle.ex` 只重排抓取），只有 `asleep` 或其它非充电状态才 complete；因此充电中掉线后 `end_date` 会长期为 NULL。
+- 服务端「当前是否充电」的权威判断在 `/v1/vehicles` 与 `/vehicles/{id}/summary` 的 `state`：最新未结束会话，且其后无行程、自候选开始无 asleep/offline。后端已修正，两者均返回 offline。
+- App 充电页只读 `is_active`，从未读取车辆状态。两套口径在掉线场景必然分叉。**接口按各自契约都正确，前端用历史语义的字段回答了实时问题。**
+
+### Solution
+
+- 行显示条件改为 `is_active && summary.state.value == 'charging'`；其它取值一律不显示（2026-11-02 用户选择 A）。
+- 状态未知（请求失败、格式不兼容、字段缺失）同样不显示：没有证据就不声称「正在充电」。
+- 数据源为 `GET /vehicles/{id}/summary?tz=<IANA>`，与概览共用 `BusinessCache` 键，不新增端点、不加轮询、不改后端。
+- 行内文案、层级、间距、配色不变；隐藏时不占用原来的纵向空间。
+
+### Testing Decisions
+
+- `test/charging_expansion_test.dart` 新增 4 条：summary 返回 `offline` 时不出现「正在充电」且确实请求了 summary；summary 返回 503 时同样不出现；站点声明 `max-age` 时概览已读过的 summary 切页命中缓存，不重复请求；下拉刷新绕过缓存重发 summary。
+- 既有「进行中充电独立于按结束日统计和列表」保持通过（共享 fixture 的 `state` 为 `charging`）。
+- 全量测试 397 通过 / 23 跳过。
+
+### Out of Scope
+
+- 不改 `MileafServer/`，不改 `is_active` 的服务端语义。
+- 不新增「上次充电未结束」这类中性提示（用户选择直接隐藏）。
+- 不改充电详情页对该记录的状态措辞（`充电进行中，当前指标不代表最终结果` 仍按记录是否结束判断）。
+- 不在该行显示 freshness /「数据截至」。
+
+### Ticket impact
+
+- 0 新票；本增量为本地实现，决定见 [ADR 0005](../adr/0005-active-charging-evidence.md)。

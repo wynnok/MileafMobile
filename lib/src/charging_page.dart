@@ -13,6 +13,7 @@ import 'charging_contract.g.dart' as dto;
 import 'charging_experience_contract.g.dart' as expanded;
 import 'charging_method.dart';
 import 'charging_statistics_contract.g.dart' as legacy;
+import 'overview_contract.g.dart' as overview;
 import 'workspace.dart';
 import 'currency.dart';
 
@@ -62,6 +63,7 @@ class _ChargingPageState extends State<ChargingPage>
   int sequence = 0;
   int statsSequence = 0, capabilitySequence = 0;
   int locationSequence = 0, activeSequence = 0;
+  int vehicleStateSequence = 0;
   bool expandedAvailable = false, statsLoading = false;
   bool recordsOnly = false;
   bool capabilityChecked = false;
@@ -72,6 +74,9 @@ class _ChargingPageState extends State<ChargingPage>
   final locations = <expanded.ChargingLocation>[];
   final activeItems = <dto.ChargingSession>[];
   String? activeError;
+
+  /// Latest `state.value` from `/vehicles/{id}/summary`; null means unknown.
+  String? vehicleState;
   final search = TextEditingController();
   final scroll = ScrollController();
   String searchTerm = '', chargeType = 'all', costStatus = 'all';
@@ -129,7 +134,9 @@ class _ChargingPageState extends State<ChargingPage>
     statsSequence++;
     locationSequence++;
     activeSequence++;
+    vehicleStateSequence++;
     activeItems.clear();
+    vehicleState = null;
     locations.clear();
     locationCursor = null;
     locationId = null;
@@ -166,6 +173,7 @@ class _ChargingPageState extends State<ChargingPage>
     capabilitySequence++;
     locationSequence++;
     activeSequence++;
+    vehicleStateSequence++;
     search.dispose();
     scroll.dispose();
     workspace.removeListener(contextChanged);
@@ -229,6 +237,8 @@ class _ChargingPageState extends State<ChargingPage>
       activeSequence++;
       locationSequence++;
       activeItems.clear();
+      vehicleState = null;
+      vehicleStateSequence++;
       locations.clear();
       locationCursor = null;
       matchedSessions = null;
@@ -328,11 +338,48 @@ class _ChargingPageState extends State<ChargingPage>
     loadActive();
   }
 
+  /// `is_active` only means the upstream charging process has no end time yet
+  /// (an offline mid-charge session keeps it open). Only the vehicle's own
+  /// state may claim "正在充电"; anything else keeps the row hidden.
+  bool get activeConfirmed => vehicleState == 'charging';
+
+  /// Reads the vehicle state shared with the overview page. Failure keeps
+  /// [vehicleState] null: without proof the row stays hidden.
+  Future<void> loadVehicleState({bool force = false}) async {
+    final owner = workspace.session.current;
+    final vehicle = workspace.selectedId;
+    final calendar = workspace.calendar;
+    if (owner == null || vehicle == null || calendar == null) return;
+    final attempt = ++vehicleStateSequence;
+    String? value;
+    try {
+      final result = await workspace.cache.get(
+        owner,
+        'vehicles/$vehicle/summary',
+        query: {'tz': calendar.identifier},
+        force: force,
+      );
+      final decoded = overview.Summary.fromJson(result.body);
+      if (decoded.vehicle.id != vehicle) throw const FormatException();
+      value = decoded.state?.value;
+    } catch (_) {
+      value = null;
+    }
+    if (!mounted ||
+        attempt != vehicleStateSequence ||
+        !workspace.session.isCurrent(owner) ||
+        workspace.selectedId != vehicle) {
+      return;
+    }
+    if (value != vehicleState) setState(() => vehicleState = value);
+  }
+
   Future<void> loadActive({bool force = false}) async {
     final owner = workspace.session.current;
     final vehicle = workspace.selectedId;
     if (!expandedAvailable || owner == null || vehicle == null) return;
     final attempt = ++activeSequence;
+    await loadVehicleState(force: force);
     try {
       final result = await workspace.cache.get(
         owner,
@@ -1935,7 +1982,8 @@ class _ChargingPageState extends State<ChargingPage>
                         onAction: () => loadActive(force: true),
                       ),
                     for (final active in activeItems)
-                      if (!recordsOnly || selectedDay == null)
+                      if (activeConfirmed &&
+                          (!recordsOnly || selectedDay == null))
                         _activeRow(active),
                     if (loading || statsLoading) const MileafProgressLine(),
                     if (statsError != null)

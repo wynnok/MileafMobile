@@ -455,6 +455,93 @@ void main() {
     expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
   });
 
+  testWidgets('车辆已离线时不把未结束会话当成正在充电', (tester) async {
+    final requests = <Uri>[];
+    final client = MockClient((request) async {
+      requests.add(request.url);
+      if (request.url.path.endsWith('/summary')) {
+        final body = jsonDecode(initial(request).body) as Map<String, dynamic>;
+        body['state'] = {'value': 'offline', 'since': '2026-03-30T09:00:00Z'};
+        return jsonResponse(body);
+      }
+      return expansionResponse(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    expect(
+      requests.any((url) => url.path.endsWith('/summary')),
+      isTrue,
+      reason: '充电页必须用车辆状态确认此刻是否真的在充电',
+    );
+    expect(find.textContaining('正在充电'), findsNothing);
+    expect(find.textContaining('不计入已完成统计'), findsNothing);
+    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+  });
+
+  testWidgets('无法确认车辆状态时不显示正在充电', (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) {
+        return http.Response('unavailable', 503);
+      }
+      return expansionResponse(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('正在充电'), findsNothing);
+  });
+
+  testWidgets('概览读过的车辆状态切到充电页不重复请求', (tester) async {
+    var summaries = 0;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) {
+        summaries++;
+        // 站点声明 max-age 时两个页面共用同一个缓存键。
+        return http.Response(initial(request).body, 200, headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'max-age=30',
+        });
+      }
+      return expansionResponse(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    expect(summaries, 1);
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    expect(summaries, 1, reason: '同一 summary 缓存键应命中，不重复请求');
+    expect(find.textContaining('正在充电'), findsOneWidget);
+  });
+
+  testWidgets('下拉刷新绕过缓存重读车辆状态', (tester) async {
+    var summaries = 0;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/summary')) {
+        summaries++;
+        return http.Response(initial(request).body, 200, headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'max-age=30',
+        });
+      }
+      return expansionResponse(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电'));
+    await tester.pumpAndSettle();
+    final before = summaries;
+    await tester.fling(find.byType(ListView).first, const Offset(0, 350), 1200);
+    await tester.pumpAndSettle();
+    expect(
+      summaries,
+      greaterThan(before),
+      reason: '下拉刷新必须绕过 max-age 重读车辆状态',
+    );
+  });
+
   testWidgets('充电统计使用配对有效均价而非旧口径', (tester) async {
     final client = MockClient((request) async => expansionResponse(request));
     await tester.pumpWidget(app(client));
