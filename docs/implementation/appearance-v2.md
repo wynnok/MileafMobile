@@ -85,3 +85,106 @@ AV01、AV04、AV05：色板基座（tokens / semantic / theme）、默认外观�
 - 卡片形态下 `MileafHero` 不再声明 `SystemUiOverlayStyle.light`；`overview_page` 的 `_topInset()` 只在满幅返回状态栏高度。
 - 已知会被挡住的既有测试：`a_overview_test.dart` 的「浅色下『行笺』字标颜色 == heroText」（浅色 top bar 回纸面后应为 `text`）、`design_components_test.dart` 的浅色 hero 断言（仍然成立，但要补「卡片形态不覆盖系统栏」）；均属 AV03/AV02。
 - 本批自审（两轴，基线 `0b6ae57`）已修：补 `accentStrong` 插值/`copyWith` 与透明度断言、`sheetLight` 断言改为 Spec 字面值、删除误导性的 `AppearanceController.isDark`、两处 primitive 命名补进偏离清单、测试改名去掉「默认深色底」。带进下一批的：按压高亮 7 处（见上）、`accentFocus`/`accentPressed` 重复表达、§3.3 的过时行号。
+
+## 批 2 记录（2026-11-02）
+
+### 范围
+
+AV02、AV03、AV06：hero 卡片形态、概览头部归属、图表颜色复核。这是外观 v2 里**唯一的**结构性改动批次。未改版面内容顺序与数量、未改字号/间距档位/圆角体系、未改图表几何、未引入新图表类型、未改交互与 `Semantics`。色值一律取自既有 `MileafPalette`（**没有新增 hex**）。
+
+改动文件（12 个 lib + 4 个 test）：
+
+- `lib/src/design/semantic.dart`：新增私有 `_lStar()` 与 `bool get heroAsCard`（判据见下）；`seriesSecondary` 由 `accent 50%` 改为 `azure600`（AV06，理由与实测见「偏离」第 6 条）。
+- `lib/src/design/layout.dart`：新增 `MileafLayout.heroInset(context)`：卡片 → `cardPad(16)`，满幅 → `pageInset(20/24)`。
+- `lib/src/design/components/hero.dart`：形态由 `MileafColors.heroAsCard` 推导，构造参数未变（调用方无从指定形态）。卡片：左右 `cardInset(12)`、圆角 `lg(20)`、无描边无阴影、光晕按卡片尺寸推导、**不声明** `AnnotatedRegion<SystemUiOverlayStyle>`、不加状态栏 inset。满幅：行为与批 1 完全一致（光晕 + `SystemUiOverlayStyle.light` + `heroTop`）。`mileafHeroPadding()` 同样按形态返回（卡片 16/20/16/20，满幅原样）。
+- `lib/src/overview_page.dart`：`_topInset()` 在卡片形态返回 0；卡片形态把 `topBar` 挪到 `ListView` 第一项（纸面），hero 紧随其后；两处 hero 横向 `pageInset` → `heroInset`。
+- `lib/src/workspace_page.dart`：概览 `topBar(onHero: !context.colors.heroAsCard)`。通知条底色本就是 `surface`，无需改动。
+- `charging_page.dart`、`charging_detail.dart`、`statistics_insights_page.dart`、`statistics_parking_page.dart`：横向 `pageInset` → `heroInset`。
+- `charts.dart`：唯一的水平网格线（零基线）改为纸面 `line` / hero 内 `heroText` 12%（Spec §8；原先是 `text`/`heroText` 18%）。
+- `category_bars.dart`：`accent / accent 50% / textFaint` 改为 `seriesPrimary / seriesSecondary / seriesNeutral`，与 `composition_bar` 同一口径（数值变化仅来自 AV06 的次系列决定）。
+- `statistics_usage_page.dart`：热力格 9px 日期在最强格上的墨色改为深墨（见「偏离」第 6 条）。
+
+### 形态判据
+
+```
+Δ L*(hero, canvas) > 20  →  卡片      // 实测：浅色 93.58
+Δ L*(hero, canvas) ≤ 20  →  满幅      // 实测：深色 0.61
+```
+
+判据只写在 `MileafColors.heroAsCard` 一处，计算用语义层的私有 `_lStar()`（`computeLuminance` → CIELAB L\*）。`design_tokens_test.dart` 除了断言两种模式的现状，还用 `#2C2C2C`（Δ15）与 `#474747`（Δ27）夹住 20 这个阈值——阈值本身被守住，而不是只守住今天恰好成立的取值。
+
+### 7 处 hero 调用点
+
+| # | 位置 | 形态相关改动 |
+| --- | --- | --- |
+| 1 | `overview_page.dart:636/638`（车况 hero） | 横向 `heroInset`；`_topInset()` 卡片下归零 |
+| 2 | `overview_page.dart:715/717`（hero 骨架） | 同上 |
+| 3 | `overview_page.dart:762`（hero 缺失/错误） | 无横向 `pageInset` 可替换（`StateView` 自带固定 `s20`），见「偏离」第 2 条 |
+| 4 | `charging_page.dart:856`（已知充电费用） | 横向 `heroInset` |
+| 5 | `charging_detail.dart:400/402`（电量区间弧） | 横向 `heroInset` |
+| 6 | `statistics_insights_page.dart:789/791`（里程走势） | 横向 `heroInset` |
+| 7 | `statistics_parking_page.dart:364/366`（SOC 变化） | 横向 `heroInset` |
+
+7 处全部覆盖：6 处有横向 `pageInset` 的调用点已替换，第 3 处没有横向 `pageInset`（空态由 `StateView` 自带留白），所以全仓 `hero` 内已无 `MileafLayout.pageInset` 残留。形态判断只出现在 `semantic.dart`（`heroAsCard`）与消费它的 `heroInset` / `MileafHero` / `overview_page._topInset` / `workspace_page` 的 `onHero`，页面里没有第二份 ΔL\* 计算。
+
+### 命令与实测数字
+
+```sh
+./tool/flutterw analyze --no-pub
+# No issues found! (12.9s)
+
+./tool/flutterw test --no-pub
+# 00:47 +423 ~23: All tests passed!   （423 通过、23 默认跳过；批 1 是 403，本批净增 20 条）
+
+./tool/flutterw dart format --output=none --set-exit-if-changed lib test
+# 批 2 本体提交后紧接着一次机械格式化提交（2cb51d8）：
+# Formatted 159 files (0 changed) in 0.77 seconds.  → exit 0
+```
+
+几何核对（`a_overview_test.dart` 的矩阵，2 模式 × 320/360/390 × 100%/200% 共 12 条）：卡片左右外距 12、内容宽 264/304/334（= 宽 − 12×2 − 16×2）；满幅内容宽 280/320/342（= 宽 − pageInset×2），与 Spec §6.5 逐项一致，全部无横向溢出。
+
+### 有意改动的既有测试
+
+| 位置 | 旧断言 | 为什么必须改（旧断言编码了哪个被推翻的决定） |
+| --- | --- | --- |
+| `a_overview_test.dart:183-190` | 浅色下「行笺」字标颜色 == `heroText` | 旧断言编码「概览 top bar 永远在 hero 内」。ADR 0006 D4 / Spec §6.4 推翻它：浅色 hero 成卡片后品牌行回到纸面，字标必须用纸面正文色 `text`；深色仍在 hero 内，因此改为按模式取值（深 `heroText` / 浅 `text`）。 |
+| `a_charging_detail_test.dart` 「A 充电详情电池弧 hero 全出血…」 | `hero.left == 0`、`hero.right == 360`、内容 `left ≥ 20` | 同名旧断言编码「hero 永远全出血」。本批后用 `getRect(MileafHero)` 量到的是**外框**（卡片形态下它仍然整行宽），旧断言会假绿，所以改为量可见卡片：左右 `12 / 348`、内容 `left = 28`（12 + 16），并改名去掉「全出血」。 |
+| `design_components_test.dart:40-160` | 深色锚点光晕 + 浅色页仍用深色 hero | **未改**，仍然成立。按 Ticket 要求补了 4 条卡片形态断言（见下）。 |
+
+新增断言：
+
+- `design_tokens_test.dart`：hero 形态判据与 20 L\* 阈值上下界；图表主系列/次系列/参照/中性序列在 canvas 与 surface 上 ≥3:1、轴标签 ≥4.5:1、主次系列间 ≥1.4:1（不合并）、hero 内 `accentHero`/`heroFaint` 达标；热力格最强格的 9px 标签 ≥4.5:1。
+- `design_components_test.dart`：浅色卡片量出左右各 12、`borderRadius == 20`、`elevation == 0`、hero 子树内**不存在** `AnnotatedRegion<SystemUiOverlayStyle>`；深色满幅（卡片 rect == hero rect）且声明 `statusBarIconBrightness == light`；320 宽 200% 不溢出。
+- `a_overview_test.dart`：上面那张 12 条的矩阵（形态 + 品牌行归属 + 内容宽）；「浅色 → 深色 → 浅色不残留双倍 inset」（两次浅色的卡片 rect 完全相同、切换回浅色仍紧贴品牌行区块）。
+
+### 偏离 Spec 的地方
+
+没有新色值，也没有改字号/间距档位/圆角体系。以下是与 Spec 字面表述不完全一致的几何或取值选择：
+
+1. **卡片只加左右 12，不加纵向 12**（§6.3 写「上下各 12」）。组件加纵向外边距会把概览的「品牌行 → 卡片」变成 24（品牌行自身已有 12 下内边距），也会挪动其它页既有的 8/16/28 纵向节奏。现在：概览的卡片距品牌行正好 12（来自 `MileafTopBar` 自身的下内边距），其余页 hero 与相邻区块的纵向间距保持页面原有档位。
+2. **缺失/错误态 hero 的内容左右是 32，不是 28**：`StateView` 的横向内边距是固定的 `s20`（12 + 20），它是共享组件、非 hero 页也在用，本批没有为 4px 改它的 API。
+3. **卡片内纵向 padding 沿用各调用点原值**（概览 `s4`/`heroBottom 18`，充电费用与两个统计 hero 本来就是 `s20`/`s20`）。§6.3 的「纵向 20」只对后四处字面成立；概览保持原值以免改动 hero 内部排版（AV02 明确不做）。
+4. **光晕用盒内分数坐标实现**：卡片形态把 §6.3 的圆心 `(w×1.02, −h×0.15)` 写成 `Alignment(1.04, -1.3)`、半径 `0.95`（盒内短边比例），这样宽度和「内容驱动、构建期不可知」的高度都由盒子自己解析，峰值仍是 18%。满幅形态按「保持现有行为」保留原固定 420 圆盘（与 §6.2 的公式本来就不完全一致，属既有实现）。
+5. **§9 的「≥560 时卡片在内容限宽 560 内」未施加**：hero 与页面其它块一样直接铺满，没有引入 `MileafContent`（会把 hero 变成另一个几何体系，超出 AV02 范围）。
+6. **AV06 改的是「用哪个既有 token」，不是新色**，共四处：
+   - `seriesSecondary`：`accent 50%` 合成为**浅 1.78 / 深 2.78**，两模式都不到 3:1，也就无法满足 Ticket 的「主/次系列在各自底色 ≥3:1」。改为 `azure600`：#0B62C4 对白卡 5.90、对深色 surface 3.07，与主色相差 1.66 / 2.41。代价是浅色下 DC 段从「淡蓝」变成「深蓝」（本会话临时渲染 `a_charging_method` 已确认可分辨；未归档，正式图册归 AV07），且它与 `reference` 石墨在浅色下明度接近（1.07），靠色相区分——**这是本轮唯一可能需要你复核的视觉取舍**；若要保留「50%」的字面，则 Ticket 的 3:1 验收项必须改写。
+   - 图表零基线：`text`/`heroText` 18% → 纸面 `line`、hero 内 `heroText` 12%（§8 的字面值）。
+   - 热力格 9px 日期：最强格（`accent` 72%）上的白字只有浅 2.45 / 深 4.11，改为深墨（浅 `text` 7.60、深 `textOnAccent` 4.79）。
+   - `category_bars` 由内联 `accent`/50%/`textFaint` 改为 series token（取值只随上一项变化）。
+
+### 未完成 / 已知问题
+
+1. **全仓格式化基线已收口**：批 2 拆成两个本地提交——`656de86` 是本批本体（按仓库现存风格书写，新增行自查 ≤80 列），`2cb51d8` 是紧随的**纯机械格式化**（`dart format lib test`，47 文件重排）。逐文件比对「去掉空白与逗号后的字符流」，除 `overview_page.dart` 里为满足 `curly_braces_in_flow_control_structures` 补的两只花括号（行为不变）外完全相同。最终 `--set-exit-if-changed` = 0 changed、analyze 0 issue、test 423/23。这落实了批 1 建议的「把机械格式化和结构性改动分开」。本记录引用的行号均为这两个提交之后的树。
+2. `test/owner_statistics_render_test.dart`（opt-in 渲染，默认 skip）仍按已被替换掉的五个 ChoiceChip（「节奏/能耗/补能/长期」）点击，**既有问题、非本批引入**；AV07 出图册前必须先修，否则拿不到统计专题的正式渲染。
+3. 按压高亮仍是 `accent` @12%（批 1 遗留 7 处），本批未动：它属 AV05/AV06 的交界，但与图表读数无关，建议在 AV08 一次改完。
+4. `accentFocus`、`accentPressed` 仍是零调用的重复表达（批 1 遗留）。
+5. 卡片形态没有做「进入动画」（§11 明确不要），也没有阴影/描边——本会话临时渲染过 `overview-normal-light-{100,200}`，确认卡片是纯底色 + 光晕、200% 下内容纵向堆叠且无横向溢出（未归档）。
+6. 真机、真实站点/地图、性能、双端隔离构建仍是独立外部 gate，本批不改变其状态。
+
+### 下一批入口
+
+批 3 = AV07 + AV08 + AV09：
+
+- **AV07 渲染图册**：先修 `owner_statistics_render_test.dart` 的过时 ChoiceChip 点击（见上「未完成」第 2 条），再按 320/360/390 × 浅/深 × 100%/200% 重出四主 Tab + 两类详情。量图时注意：`getRect(MileafHero)` 在卡片形态下是**外框**（整行宽），要量里面的 `Material`。
+- **AV08 文档同步**：`visual-system-a.md` §4 hero 形态、§9.8 默认外观、§14 第 1 条；`appearance-v2.md` Spec 需改三处——§8 的「系列次色 `accent` 50%」改成 `azure600` 并补实测、§6.3 的「上下各 12」与「纵向 20」按本记录第 1/3 条对齐、§2.2 补 `heroLight`/`accentSoftLight`（批 1 遗留）。
+- **AV09 双轴审查**：重点看 ①形态判据是否被任何页面绕过 ②卡片纵向节奏是否需要统一成 12 ③`seriesSecondary` 这一处 AV06 取舍要不要保留。
