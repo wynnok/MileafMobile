@@ -500,10 +500,14 @@ void main() {
       if (request.url.path.endsWith('/summary')) {
         summaries++;
         // 站点声明 max-age 时两个页面共用同一个缓存键。
-        return http.Response(initial(request).body, 200, headers: {
-          'content-type': 'application/json; charset=utf-8',
-          'cache-control': 'max-age=30',
-        });
+        return http.Response(
+          initial(request).body,
+          200,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'max-age=30',
+          },
+        );
       }
       return expansionResponse(request);
     });
@@ -521,10 +525,14 @@ void main() {
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/summary')) {
         summaries++;
-        return http.Response(initial(request).body, 200, headers: {
-          'content-type': 'application/json; charset=utf-8',
-          'cache-control': 'max-age=30',
-        });
+        return http.Response(
+          initial(request).body,
+          200,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'max-age=30',
+          },
+        );
       }
       return expansionResponse(request);
     });
@@ -535,11 +543,7 @@ void main() {
     final before = summaries;
     await tester.fling(find.byType(ListView).first, const Offset(0, 350), 1200);
     await tester.pumpAndSettle();
-    expect(
-      summaries,
-      greaterThan(before),
-      reason: '下拉刷新必须绕过 max-age 重读车辆状态',
-    );
+    expect(summaries, greaterThan(before), reason: '下拉刷新必须绕过 max-age 重读车辆状态');
   });
 
   testWidgets('充电统计使用配对有效均价而非旧口径', (tester) async {

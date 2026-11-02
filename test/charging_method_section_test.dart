@@ -143,8 +143,14 @@ void main() {
     );
     await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
     final ac = find.byKey(const ValueKey('charging-method-column-AC'));
-    expect(find.descendant(of: ac, matching: find.textContaining('kWh')), findsWidgets);
-    expect(find.descendant(of: ac, matching: find.textContaining('120')), findsWidgets);
+    expect(
+      find.descendant(of: ac, matching: find.textContaining('kWh')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: ac, matching: find.textContaining('120')),
+      findsWidgets,
+    );
     // 320 宽下「每日补能」图头仍会横向溢出（既有问题，不在本票范围）；这里只
     // 清掉它，本区块自身不溢出。
     tester.takeException();

@@ -249,7 +249,18 @@ void main() {
         MileafSpace.s40,
         MileafSpace.s56,
       };
-      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 28.0, 32.0, 40.0, 56.0});
+      expect(spacing, {
+        4.0,
+        8.0,
+        12.0,
+        16.0,
+        20.0,
+        24.0,
+        28.0,
+        32.0,
+        40.0,
+        56.0,
+      });
       expect(MileafSpace.section % 4, 0);
       expect(MileafSpace.touch, 44);
       expect(MileafSpace.navHeight, 64);
@@ -357,7 +368,10 @@ void main() {
       );
       final mid = dark.lerp(light, .5);
       // Without `accentStrong` in `lerp` the 200ms theme switch would jump.
-      expect(mid.accentStrong, Color.lerp(dark.accentStrong, light.accentStrong, .5));
+      expect(
+        mid.accentStrong,
+        Color.lerp(dark.accentStrong, light.accentStrong, .5),
+      );
       expect(mid.accentStrong, isNot(dark.accentStrong));
       expect(mid.accentStrong, isNot(light.accentStrong));
     });
@@ -366,10 +380,7 @@ void main() {
       expect(MileafSpace.cardInset, 12);
       expect(MileafSpace.cardPad, 16);
       // Spec §5.2: light sheet shadow is neutral 10% graphite, not warm grey.
-      expect(
-        MileafElevation.sheetLight.single.color,
-        const Color(0x1A0E1319),
-      );
+      expect(MileafElevation.sheetLight.single.color, const Color(0x1A0E1319));
       expect(MileafElevation.sheetLight.single.blurRadius, 40);
       expect(MileafElevation.sheetLight.single.offset, const Offset(0, 12));
     });
@@ -425,7 +436,10 @@ void main() {
         MaterialApp(
           theme: mileafTheme(Brightness.dark),
           home: const Scaffold(
-            body: Text('320 km 1,198.6 行笺', style: TextStyle(fontFamily: 'Inter')),
+            body: Text(
+              '320 km 1,198.6 行笺',
+              style: TextStyle(fontFamily: 'Inter'),
+            ),
           ),
         ),
       );
@@ -482,11 +496,7 @@ void main() {
                 body: Wrap(
                   children: [
                     for (final name in MileafIconName.values)
-                      MileafIcon(
-                        name,
-                        size: size,
-                        semanticLabel: name.name,
-                      ),
+                      MileafIcon(name, size: size, semanticLabel: name.name),
                   ],
                 ),
               ),

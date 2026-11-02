@@ -100,10 +100,7 @@ class MileafCategoryBars extends StatelessWidget {
             ),
           ),
         if (note != null)
-          Text(
-            note!,
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
+          Text(note!, style: type.micro.copyWith(color: colors.textMuted)),
       ],
     );
   }

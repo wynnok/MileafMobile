@@ -43,64 +43,65 @@ const scenarios = <String>['normal', 'empty', 'missing'];
 /// the no-records copy); `mustNot` proves the state is real — an empty or
 /// missing render may never show the normal snapshot's numbers, and a normal
 /// render may never show the empty copy.
-const markers = <String, Map<String, ({List<String> must, List<String> mustNot})>>{
-  'overview': {
-    'normal': (must: ['本月 · 驾驶里程', '1,198.6'], mustNot: []),
-    'empty': (must: ['本月 · 驾驶里程', '0.0'], mustNot: ['1,198.6']),
-    'missing': (must: ['—'], mustNot: ['320']),
-  },
-  'drives': {
-    'normal': (must: ['出行节奏', '32.9'], mustNot: ['这段时间还没有行程']),
-    'empty': (must: ['这段时间还没有行程', '0.0'], mustNot: ['32.9']),
-    'missing': (must: ['—'], mustNot: ['32.9']),
-  },
-  'charging': {
-    'normal': (must: ['已知充电费用', '¥186.4'], mustNot: ['这段时间还没有充电记录']),
-    'empty': (must: ['—', '费用有记录 0 / 0 次'], mustNot: ['¥186.4']),
-    'missing': (must: ['—'], mustNot: ['¥186.4']),
-  },
-  'statistics': {
-    'normal': (must: ['里程走势', '1,198.6'], mustNot: []),
-    'empty': (must: ['—'], mustNot: ['1,198.6']),
-    'missing': (must: ['—'], mustNot: ['158']),
-  },
-  'drive-detail': {
-    'normal': (must: ['净电耗', '32.9'], mustNot: ['无采样数据']),
-    'empty': (must: ['32.9'], mustNot: ['速度读数']),
-    'missing': (must: ['重试行程明细'], mustNot: ['32.9']),
-  },
-  'charge-detail': {
-    'normal': (must: ['充电曲线', '46.8'], mustNot: ['此充电没有序列采样']),
-    'empty': (must: ['此充电没有序列采样'], mustNot: ['服务端采样 1']),
-    'missing': (must: ['重试充电曲线', '46.8'], mustNot: []),
-  },
-  'topic-rhythm': {
-    'normal': (must: ['这段时间的用车节奏', '活跃'], mustNot: ['区间内无已完成行程']),
-    'empty': (must: ['区间内无已完成行程'], mustNot: ['活跃 22']),
-    'missing': (must: ['—'], mustNot: []),
-  },
-  'topic-energy': {
-    'normal': (must: ['温度下的用车能耗', '210'], mustNot: ['区间内无已完成行程']),
-    'empty': (must: ['区间内无已完成行程'], mustNot: ['210']),
-    'missing': (must: ['—'], mustNot: ['210']),
-  },
-  'topic-charging': {
-    'normal': (must: ['补能账目', '¥186.4'], mustNot: ['还没有充电记录']),
-    'empty': (must: ['还没有充电记录'], mustNot: ['¥186.4', '0 / 0 次']),
-    'missing': (must: ['—'], mustNot: ['¥186.4']),
-  },
-  'topic-range': {
-    'normal': (must: ['满电等效额定续航', '432.0'], mustNot: ['观察窗口内无充电记录']),
-    'empty': (must: ['观察窗口内无充电记录'], mustNot: ['432.0']),
-    'missing': (must: ['—'], mustNot: ['432.0']),
-  },
-  'topic-parking': {
-    'normal': (must: ['停放SOC变化', '-2.0'], mustNot: ['分桶SOC变化缺失，不补零']),
-    'empty': (must: ['暂无有效窗口'], mustNot: ['分桶SOC变化缺失，不补零']),
-    // 汇总仍保留（-2.0 pp 是真实聚合），只有分桶读数未知。
-    'missing': (must: ['分桶SOC变化缺失，不补零'], mustNot: []),
-  },
-};
+const markers =
+    <String, Map<String, ({List<String> must, List<String> mustNot})>>{
+      'overview': {
+        'normal': (must: ['本月 · 驾驶里程', '1,198.6'], mustNot: []),
+        'empty': (must: ['本月 · 驾驶里程', '0.0'], mustNot: ['1,198.6']),
+        'missing': (must: ['—'], mustNot: ['320']),
+      },
+      'drives': {
+        'normal': (must: ['出行节奏', '32.9'], mustNot: ['这段时间还没有行程']),
+        'empty': (must: ['这段时间还没有行程', '0.0'], mustNot: ['32.9']),
+        'missing': (must: ['—'], mustNot: ['32.9']),
+      },
+      'charging': {
+        'normal': (must: ['已知充电费用', '¥186.4'], mustNot: ['这段时间还没有充电记录']),
+        'empty': (must: ['—', '费用有记录 0 / 0 次'], mustNot: ['¥186.4']),
+        'missing': (must: ['—'], mustNot: ['¥186.4']),
+      },
+      'statistics': {
+        'normal': (must: ['里程走势', '1,198.6'], mustNot: []),
+        'empty': (must: ['—'], mustNot: ['1,198.6']),
+        'missing': (must: ['—'], mustNot: ['158']),
+      },
+      'drive-detail': {
+        'normal': (must: ['净电耗', '32.9'], mustNot: ['无采样数据']),
+        'empty': (must: ['32.9'], mustNot: ['速度读数']),
+        'missing': (must: ['重试行程明细'], mustNot: ['32.9']),
+      },
+      'charge-detail': {
+        'normal': (must: ['充电曲线', '46.8'], mustNot: ['此充电没有序列采样']),
+        'empty': (must: ['此充电没有序列采样'], mustNot: ['服务端采样 1']),
+        'missing': (must: ['重试充电曲线', '46.8'], mustNot: []),
+      },
+      'topic-rhythm': {
+        'normal': (must: ['这段时间的用车节奏', '活跃'], mustNot: ['区间内无已完成行程']),
+        'empty': (must: ['区间内无已完成行程'], mustNot: ['活跃 22']),
+        'missing': (must: ['—'], mustNot: []),
+      },
+      'topic-energy': {
+        'normal': (must: ['温度下的用车能耗', '210'], mustNot: ['区间内无已完成行程']),
+        'empty': (must: ['区间内无已完成行程'], mustNot: ['210']),
+        'missing': (must: ['—'], mustNot: ['210']),
+      },
+      'topic-charging': {
+        'normal': (must: ['补能账目', '¥186.4'], mustNot: ['还没有充电记录']),
+        'empty': (must: ['还没有充电记录'], mustNot: ['¥186.4', '0 / 0 次']),
+        'missing': (must: ['—'], mustNot: ['¥186.4']),
+      },
+      'topic-range': {
+        'normal': (must: ['满电等效额定续航', '432.0'], mustNot: ['观察窗口内无充电记录']),
+        'empty': (must: ['观察窗口内无充电记录'], mustNot: ['432.0']),
+        'missing': (must: ['—'], mustNot: ['432.0']),
+      },
+      'topic-parking': {
+        'normal': (must: ['停放SOC变化', '-2.0'], mustNot: ['分桶SOC变化缺失，不补零']),
+        'empty': (must: ['暂无有效窗口'], mustNot: ['分桶SOC变化缺失，不补零']),
+        // 汇总仍保留（-2.0 pp 是真实聚合），只有分桶读数未知。
+        'missing': (must: ['分桶SOC变化缺失，不补零'], mustNot: []),
+      },
+    };
 
 class _Appearance implements AppearancePreferenceStore {
   _Appearance(this.value);
@@ -151,7 +152,11 @@ void main() {
     Future<void> save(String name) =>
         saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
 
-    Future<void> pumpApp(String key, String scenario, Brightness brightness) async {
+    Future<void> pumpApp(
+      String key,
+      String scenario,
+      Brightness brightness,
+    ) async {
       final appearance = AppearanceController(
         _Appearance(brightness == Brightness.dark ? 'dark' : 'light'),
       );

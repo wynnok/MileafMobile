@@ -117,9 +117,7 @@ class _ArcCenter extends StatelessWidget {
         text: TextSpan(
           text: valueText,
           style: style,
-          children: [
-            if (unit) TextSpan(text: ' %', style: unitStyle),
-          ],
+          children: [if (unit) TextSpan(text: ' %', style: unitStyle)],
         ),
         textDirection: TextDirection.ltr,
         textScaler: scaler,
@@ -144,9 +142,7 @@ class _ArcCenter extends StatelessWidget {
           TextSpan(
             text: valueText,
             style: style,
-            children: [
-              if (withUnit) TextSpan(text: ' %', style: unitStyle),
-            ],
+            children: [if (withUnit) TextSpan(text: ' %', style: unitStyle)],
           ),
           textAlign: TextAlign.center,
         ),
@@ -155,11 +151,7 @@ class _ArcCenter extends StatelessWidget {
         if (!withUnit && level != null)
           Text('%', textAlign: TextAlign.center, style: unitStyle),
         if (show) ...[
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: unitStyle,
-          ),
+          Text(label, textAlign: TextAlign.center, style: unitStyle),
         ],
       ],
     );
@@ -203,7 +195,13 @@ class _BatteryArcPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round;
-    canvas.drawArc(rect, -math.pi / 2 + lower / 100 * math.pi * 2, sweep, false, arcPaint);
+    canvas.drawArc(
+      rect,
+      -math.pi / 2 + lower / 100 * math.pi * 2,
+      sweep,
+      false,
+      arcPaint,
+    );
   }
 
   @override

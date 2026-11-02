@@ -496,9 +496,8 @@ class _OverviewPageState extends State<OverviewPage>
         '${local.minute.toString().padLeft(2, '0')}';
   }
 
-  String number(num? value, String unit, {int decimals = 0}) => value == null
-      ? '—'
-      : '${grouped(value, decimals: decimals)} $unit';
+  String number(num? value, String unit, {int decimals = 0}) =>
+      value == null ? '—' : '${grouped(value, decimals: decimals)} $unit';
 
   String get _zone => workspace.calendar?.identifier ?? 'UTC';
 
@@ -512,8 +511,7 @@ class _OverviewPageState extends State<OverviewPage>
   bool get _stale {
     final at = data?.freshness.lastPositionAt;
     if (at == null) return true;
-    return workspace.session.now().difference(at) >
-        const Duration(minutes: 10);
+    return workspace.session.now().difference(at) > const Duration(minutes: 10);
   }
 
   String get _stateLabel => switch (data?.state?.value) {
@@ -582,7 +580,9 @@ class _OverviewPageState extends State<OverviewPage>
     final arc = BatteryArc(
       level: d.battery?.level,
       onHero: true,
-      size: large ? MileafBatteryMetrics.largeTextSize : MileafBatteryMetrics.size,
+      size: large
+          ? MileafBatteryMetrics.largeTextSize
+          : MileafBatteryMetrics.size,
     );
     final today = d.period.today;
     final stats = large
@@ -828,7 +828,9 @@ class _OverviewPageState extends State<OverviewPage>
     if (window == null) return '近 7 天';
     final calendar = workspace.calendar!;
     final first = calendar.local(window.from);
-    final last = calendar.local(window.to.subtract(const Duration(microseconds: 1)));
+    final last = calendar.local(
+      window.to.subtract(const Duration(microseconds: 1)),
+    );
     return '${first.month}/${first.day} — ${last.month}/${last.day}';
   }
 
@@ -883,9 +885,7 @@ class _OverviewPageState extends State<OverviewPage>
     final value = driving?.totals.distanceKm;
     final parts = value == null ? '—' : grouped(value, decimals: 1);
     final drives = driving?.totals.drives;
-    final kicker = period == OverviewPeriod.month
-        ? '本月 · 驾驶里程'
-        : '近7天 · 驾驶里程';
+    final kicker = period == OverviewPeriod.month ? '本月 · 驾驶里程' : '近7天 · 驾驶里程';
     final semantic =
         '${period == OverviewPeriod.month ? '本月' : '近7天'}驾驶里程 '
         '$parts km，${drives ?? '—'} 趟';
@@ -932,7 +932,9 @@ class _OverviewPageState extends State<OverviewPage>
     final calendar = workspace.calendar;
     if (window == null || calendar == null) return null;
     final first = calendar.local(window.from);
-    final last = calendar.local(window.to.subtract(const Duration(microseconds: 1)));
+    final last = calendar.local(
+      window.to.subtract(const Duration(microseconds: 1)),
+    );
     String two(int value) => value.toString().padLeft(2, '0');
     return '${two(first.month)}.${two(first.day)} — '
         '${two(last.month)}.${two(last.day)}';
@@ -948,15 +950,16 @@ class _OverviewPageState extends State<OverviewPage>
     }
     final paired = enhancedDriving(results['driving']);
     return [
-      for (final (index, b) in (driving?.buckets ?? <stats.DrivingBucket>[])
-          .indexed)
+      for (final (index, b)
+          in (driving?.buckets ?? <stats.DrivingBucket>[]).indexed)
         switch (metric) {
-          _Metric.net => pairedAvailable
-              ? paired?.buckets
-                    .elementAtOrNull(index)
-                    ?.netConsumptionPaired
-                    .valueWhKm
-              : b.consumptionWhKmNet,
+          _Metric.net =>
+            pairedAvailable
+                ? paired?.buckets
+                      .elementAtOrNull(index)
+                      ?.netConsumptionPaired
+                      .valueWhKm
+                : b.consumptionWhKmNet,
           _Metric.energy => b.energyKwh,
           _ => b.distanceKm,
         },
@@ -973,12 +976,13 @@ class _OverviewPageState extends State<OverviewPage>
     return [
       for (final (index, b) in prior.buckets.indexed)
         switch (metric) {
-          _Metric.net => pairedAvailable
-              ? pairedPrior?.buckets
-                    .elementAtOrNull(index)
-                    ?.netConsumptionPaired
-                    .valueWhKm
-              : b.consumptionWhKmNet,
+          _Metric.net =>
+            pairedAvailable
+                ? pairedPrior?.buckets
+                      .elementAtOrNull(index)
+                      ?.netConsumptionPaired
+                      .valueWhKm
+                : b.consumptionWhKmNet,
           _Metric.energy => b.energyKwh,
           _ => b.distanceKm,
         },
@@ -1004,28 +1008,29 @@ class _OverviewPageState extends State<OverviewPage>
         (values.lastIndexWhere((v) => v != null && v > 0) < 0
             ? 0
             : values.lastIndexWhere((v) => v != null && v > 0));
-    final evidence = isCharging ? ranges['charging']?.current : ranges['driving']?.current;
+    final evidence = isCharging
+        ? ranges['charging']?.current
+        : ranges['driving']?.current;
     String readout(int index) {
       final value = index < values.length ? values[index] : null;
       final stamp = tickLabelAt(times, index);
       return switch (metric) {
-        _Metric.cost =>
-          '$stamp · ${widget.currency.amountValue(value)}',
-        _Metric.net => value == null
-            ? '$stamp · —'
-            : '$stamp · ${value.toStringAsFixed(0)} Wh/km',
-        _ => value == null
-            ? '$stamp · —'
-            : '$stamp · ${value.toStringAsFixed(1)} $unit',
+        _Metric.cost => '$stamp · ${widget.currency.amountValue(value)}',
+        _Metric.net =>
+          value == null
+              ? '$stamp · —'
+              : '$stamp · ${value.toStringAsFixed(0)} Wh/km',
+        _ =>
+          value == null
+              ? '$stamp · —'
+              : '$stamp · ${value.toStringAsFixed(1)} $unit',
       };
     }
 
     return TimeSeriesChart(
       key: chartKey,
       plotKey: plotKey,
-      title: metric == _Metric.net && pairedAvailable
-          ? '配对净电耗趋势 · 估算'
-          : title,
+      title: metric == _Metric.net && pairedAvailable ? '配对净电耗趋势 · 估算' : title,
       unit: unit,
       times: times,
       semanticsLabel: '$title图表',
@@ -1200,7 +1205,9 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   Widget _continueSection() {
-    if (widget.onInsight == null || range == null) return const SizedBox.shrink();
+    if (widget.onInsight == null || range == null) {
+      return const SizedBox.shrink();
+    }
     void open(String topic) => widget.onInsight!.call(topic, range!.selection);
     Widget row({
       required String title,
@@ -1296,10 +1303,7 @@ class _OverviewPageState extends State<OverviewPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SectionHeader(
-              title: title,
-              action: action,
-            ),
+            SectionHeader(title: title, action: action),
             const SizedBox(height: MileafSpace.s4),
             ...children,
           ],
@@ -1443,17 +1447,12 @@ class _OverviewPageState extends State<OverviewPage>
             '${timestamp(pairedRange?.current.from)} 至 ${timestamp(pairedRange?.current.to)}',
           ),
           if (pairedRange?.previous case final p?)
-            _techRow(
-              '基期区间',
-              '${timestamp(p.from)} 至 ${timestamp(p.to)}',
-            ),
+            _techRow('基期区间', '${timestamp(p.from)} 至 ${timestamp(p.to)}'),
           _techRow('归期时区', _zone),
           const SizedBox(height: MileafSpace.s12),
           Text(
             '同车、同一时区、同一本地截止时刻。净电耗基于续航差和车辆效率估算，部分能量样本可能缺失；只描述数值差异，不推断原因。基期为零或缺失时不输出比较结论。',
-            style: context.type.micro.copyWith(
-              color: context.colors.textMuted,
-            ),
+            style: context.type.micro.copyWith(color: context.colors.textMuted),
           ),
         ],
       ),
@@ -1484,17 +1483,17 @@ class _OverviewPageState extends State<OverviewPage>
       _techRow(
         '配对估算净电耗',
         '${number(value?.valueWhKm, 'Wh/km')} · '
-        '${value?.eligibleDrives ?? '—'}趟有效',
+            '${value?.eligibleDrives ?? '—'}趟有效',
       ),
       _techRow(
         '记录驾驶时长',
         '${number(current?.totals.drivingCoverage.durationKnownMin, '分钟')} · '
-        '${current?.totals.drivingCoverage.durationKnownDrives ?? '—'}趟有记录',
+            '${current?.totals.drivingCoverage.durationKnownDrives ?? '—'}趟有记录',
       ),
       _techRow(
         '有效里程',
         '${number(value?.denominatorDistanceKm, 'km', decimals: 1)} '
-        '（全里程 ${number(driving?.totals.distanceKm, 'km', decimals: 1)}）',
+            '（全里程 ${number(driving?.totals.distanceKm, 'km', decimals: 1)}）',
       ),
       Text(
         valid
@@ -1531,12 +1530,9 @@ class _OverviewPageState extends State<OverviewPage>
             _techRow(
               '参照',
               '${timestamp(prior.query.from)}—${timestamp(prior.query.to)} · '
-              '${number(prior.totals.netConsumptionPaired.valueWhKm, 'Wh/km')}；生成 ${timestamp(prior.asOf)}',
+                  '${number(prior.totals.netConsumptionPaired.valueWhKm, 'Wh/km')}；生成 ${timestamp(prior.asOf)}',
             ),
-          _techRow(
-            '归期时区',
-            '$_zone；两个资源分别生成，非同时快照',
-          ),
+          _techRow('归期时区', '$_zone；两个资源分别生成，非同时快照'),
         ],
       ),
     ]);
@@ -1555,10 +1551,7 @@ class _OverviewPageState extends State<OverviewPage>
           '净电耗 · 估算',
           number(driving!.totals.consumptionWhKmNet, 'Wh/km'),
         ),
-        _techRow(
-          '毛电耗',
-          number(driving!.totals.consumptionWhKmGross, 'Wh/km'),
-        ),
+        _techRow('毛电耗', number(driving!.totals.consumptionWhKmGross, 'Wh/km')),
         Text(
           '毛电耗为区间充入电池能量÷驾驶里程，受补能时点影响，不是网侧电耗；净毛差额不代表停车损耗。净电耗与驾驶消耗按续航差和车辆效率估算。',
           style: context.type.micro.copyWith(color: context.colors.textMuted),
@@ -1591,7 +1584,8 @@ class _OverviewPageState extends State<OverviewPage>
         ),
       ],
       action: TextButton(
-        onPressed: () => widget.onStatistics?.call('charging', range!.selection),
+        onPressed: () =>
+            widget.onStatistics?.call('charging', range!.selection),
         child: const Text('充电统计'),
       ),
     );

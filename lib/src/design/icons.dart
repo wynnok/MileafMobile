@@ -130,47 +130,19 @@ class _MileafIconPainter extends CustomPainter {
       case MileafIconName.route:
         path
           ..moveTo(x(5.7), y(19.2))
-          ..cubicTo(
-            x(5.7),
-            y(15.1),
-            x(9.3),
-            y(15.5),
-            x(11.5),
-            y(12.4),
-          )
-          ..cubicTo(
-            x(13.7),
-            y(9.3),
-            x(15.7),
-            y(9.2),
-            x(17.9),
-            y(5.8),
-          );
+          ..cubicTo(x(5.7), y(15.1), x(9.3), y(15.5), x(11.5), y(12.4))
+          ..cubicTo(x(13.7), y(9.3), x(15.7), y(9.2), x(17.9), y(5.8));
         filled.addAll([(at(5.7, 19.2), 1.2), (at(17.9, 5.8), 1.2)]);
       case MileafIconName.mapPin:
         path
           ..moveTo(x(12), y(21.2))
-          ..cubicTo(
-            x(8.2),
-            y(16.4),
-            x(5.6),
-            y(13.3),
-            x(5.6),
-            y(9.6),
-          )
+          ..cubicTo(x(8.2), y(16.4), x(5.6), y(13.3), x(5.6), y(9.6))
           ..arcToPoint(
             at(18.4, 9.6),
             radius: Radius.circular(x(6.4)),
             clockwise: true,
           )
-          ..cubicTo(
-            x(18.4),
-            y(13.3),
-            x(15.8),
-            y(16.4),
-            x(12),
-            y(21.2),
-          )
+          ..cubicTo(x(18.4), y(13.3), x(15.8), y(16.4), x(12), y(21.2))
           ..close()
           ..addOval(Rect.fromCircle(center: at(12, 9.6), radius: x(2.2)));
       case MileafIconName.battery:

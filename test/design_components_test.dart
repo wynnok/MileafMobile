@@ -233,7 +233,10 @@ void main() {
           selected: true,
         ),
       );
-      expect(tester.getSize(find.byType(InkWell)).height, greaterThanOrEqualTo(44));
+      expect(
+        tester.getSize(find.byType(InkWell)).height,
+        greaterThanOrEqualTo(44),
+      );
       await tester.tap(find.byType(MetricBlock));
       expect(taps, 1);
       expect(
@@ -353,16 +356,8 @@ void main() {
           tester,
           Column(
             children: [
-              MileafButton(
-                label: '验证并连接',
-                kind: kind,
-                onPressed: () => taps++,
-              ),
-              MileafButton(
-                label: '不可用',
-                kind: kind,
-                onPressed: null,
-              ),
+              MileafButton(label: '验证并连接', kind: kind, onPressed: () => taps++),
+              MileafButton(label: '不可用', kind: kind, onPressed: null),
               MileafButton(
                 label: '保存中',
                 kind: kind,
@@ -424,10 +419,7 @@ void main() {
         () => tester.binding.platformDispatcher
             .clearAccessibilityFeaturesTestValue(),
       );
-      await pumpComponent(
-        tester,
-        const StateView(kind: StateViewKind.loading),
-      );
+      await pumpComponent(tester, const StateView(kind: StateViewKind.loading));
       await tester.pumpAndSettle();
       expect(find.byType(SkeletonBlock), findsNWidgets(3));
       expect(tester.takeException(), isNull);
@@ -448,9 +440,7 @@ void main() {
       expect(chartStemIndices([1, 0, null, 2, 0.0, 3]), [0, 3, 5]);
     });
 
-    final times = [
-      for (var i = 0; i < 5; i++) DateTime(2026, 10, 1 + i),
-    ];
+    final times = [for (var i = 0; i < 5; i++) DateTime(2026, 10, 1 + i)];
 
     testWidgets('点按按时间定位，读数与语义同步', (tester) async {
       final semantics = tester.ensureSemantics();
@@ -474,8 +464,10 @@ void main() {
         ),
       );
       expect(find.bySemanticsLabel(RegExp('10月1日至5日每日里程')), findsOneWidget);
-      expect(tester.getSize(find.byType(CustomPaint).last).height,
-          greaterThanOrEqualTo(44));
+      expect(
+        tester.getSize(find.byType(CustomPaint).last).height,
+        greaterThanOrEqualTo(44),
+      );
       final plot = tester.getRect(find.byType(CustomPaint).last);
       await tester.tapAt(Offset(plot.right - 2, plot.center.dy));
       await tester.pumpAndSettle();
@@ -621,10 +613,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       await pumpComponent(
         tester,
-        const MicroSpark(
-          values: [1, null, 3, 0, 5],
-          semanticsLabel: '能耗微趋势',
-        ),
+        const MicroSpark(values: [1, null, 3, 0, 5], semanticsLabel: '能耗微趋势'),
       );
       expect(find.bySemanticsLabel('能耗微趋势'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -658,10 +647,7 @@ void main() {
         tester,
         const BatteryArc(level: 82, start: 18, label: '到达电量'),
       );
-      expect(
-        find.bySemanticsLabel('电量区间 18% 至 82%，尺度0至100%'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('电量区间 18% 至 82%，尺度0至100%'), findsOneWidget);
       semantics.dispose();
     });
 

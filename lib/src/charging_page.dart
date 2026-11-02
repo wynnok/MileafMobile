@@ -817,8 +817,7 @@ class _ChargingPageState extends State<ChargingPage>
     ]);
   }
 
-  String number(num? v, String unit) =>
-      v == null ? '—' : '${decimal(v)} $unit';
+  String number(num? v, String unit) => v == null ? '—' : '${decimal(v)} $unit';
   String recordDay(DateTime value) {
     final local = workspace.calendar!.local(value);
     return '${local.year}年${local.month}月${local.day}日';
@@ -1162,7 +1161,10 @@ class _ChargingPageState extends State<ChargingPage>
         children: [
           const SectionHeader(title: '我的补能方式'),
           const SizedBox(height: MileafSpace.s8),
-          Text(reading.conclusion, style: type.body.copyWith(color: colors.text)),
+          Text(
+            reading.conclusion,
+            style: type.body.copyWith(color: colors.text),
+          ),
           const SizedBox(height: MileafSpace.s16),
           _supplyRing(reading),
           if (reading.categories.isNotEmpty) ...[
@@ -1217,8 +1219,18 @@ class _ChargingPageState extends State<ChargingPage>
       semanticsLabel: '查看 $label 充电记录',
     );
     final rows = <Widget>[
-      legend('AC', '${decimal(reading.acShare * 100)}%', colors.seriesPrimary, 'ac'),
-      legend('DC', '${decimal(reading.dcShare * 100)}%', colors.seriesSecondary, 'dc'),
+      legend(
+        'AC',
+        '${decimal(reading.acShare * 100)}%',
+        colors.seriesPrimary,
+        'ac',
+      ),
+      legend(
+        'DC',
+        '${decimal(reading.dcShare * 100)}%',
+        colors.seriesSecondary,
+        'dc',
+      ),
     ];
     if (MileafLayout.largeText(context)) {
       return Column(
@@ -1236,10 +1248,7 @@ class _ChargingPageState extends State<ChargingPage>
         ring,
         const SizedBox(width: MileafSpace.s24),
         Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: rows,
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: rows),
         ),
       ],
     );

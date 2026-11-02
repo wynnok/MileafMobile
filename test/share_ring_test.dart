@@ -13,10 +13,7 @@ const _dc = Color(0xFF3A7F63);
 void main() {
   group('shareRingArcs', () {
     test('两段按能量占比切分，缺口对称扣除', () {
-      final arcs = shareRingArcs(
-        fractions: const [.7, .3],
-        radius: 46,
-      );
+      final arcs = shareRingArcs(fractions: const [.7, .3], radius: 46);
       expect(arcs.map((arc) => arc.$1), [0, 1]);
       final pad = (3 / 46) / 2;
       for (final (index, _, sweep) in arcs) {

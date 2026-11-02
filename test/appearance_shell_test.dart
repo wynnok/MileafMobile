@@ -64,9 +64,7 @@ Future<AppearanceController> pumpShell(
   double textScale = 1,
 }) async {
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
-  addTearDown(
-    () => tester.platformDispatcher.clearTextScaleFactorTestValue(),
-  );
+  addTearDown(() => tester.platformDispatcher.clearTextScaleFactorTestValue());
   final controller =
       appearance ?? AppearanceController(MemoryAppearanceStore());
   final store = MemorySessionStore()
@@ -243,10 +241,7 @@ void main() {
       );
     }
     await tester.tap(
-      find.descendant(
-        of: find.byType(MileafNavBar),
-        matching: find.text('行程'),
-      ),
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
     );
     await tester.pumpAndSettle();
     expect(find.text('行程'), findsWidgets);

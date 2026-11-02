@@ -101,7 +101,8 @@ class _MileafShareRingState extends State<MileafShareRing>
     if (MileafLayout.reduceMotion(context)) {
       _sweep.value = 1;
       _change.value = 1;
-    } else if (_sweep.status == AnimationStatus.dismissed && _sweep.value == 0) {
+    } else if (_sweep.status == AnimationStatus.dismissed &&
+        _sweep.value == 0) {
       _sweep.forward();
     }
   }
@@ -130,7 +131,9 @@ class _MileafShareRingState extends State<MileafShareRing>
             (i) => i < values.length ? values[i] : 0,
           );
     final from = align(_from);
-    return [for (var i = 0; i < _to.length; i++) from[i] + (_to[i] - from[i]) * t];
+    return [
+      for (var i = 0; i < _to.length; i++) from[i] + (_to[i] - from[i]) * t,
+    ];
   }
 
   @override
@@ -155,13 +158,14 @@ class _MileafShareRingState extends State<MileafShareRing>
     return MileafShareRingMetrics.diameter;
   }
 
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final size = _resolveSize(context);
     final available =
-        size - MileafShareRingMetrics.stroke * 2 - MileafShareRingMetrics.centerPad;
+        size -
+        MileafShareRingMetrics.stroke * 2 -
+        MileafShareRingMetrics.centerPad;
     return ExcludeSemantics(
       child: SizedBox.square(
         dimension: size,
@@ -194,7 +198,8 @@ class _MileafShareRingState extends State<MileafShareRing>
     // Never shrink a number: when even the bare value does not fit, the centre
     // is dropped and the legend carries the share (Spec §5.3).
     final unitFits =
-        unit != null && number + _measure(context, ' $unit', unitStyle) <= available;
+        unit != null &&
+        number + _measure(context, ' $unit', unitStyle) <= available;
     return numberFits
         ? Column(
             mainAxisSize: MainAxisSize.min,
@@ -371,10 +376,16 @@ class _ShareRingLegendRowState extends State<ShareRingLegendRow> {
           Container(
             width: MileafShareRingMetrics.dot,
             height: MileafShareRingMetrics.dot,
-            decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: widget.color,
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: MileafSpace.inline10),
-          Text(widget.label, style: type.body.copyWith(color: colors.textMuted)),
+          Text(
+            widget.label,
+            style: type.body.copyWith(color: colors.textMuted),
+          ),
           const Spacer(),
           Text(
             widget.share,

@@ -57,7 +57,8 @@ class _StatisticsEntryState extends State<StatisticsPage> {
         'energy': (c) =>
             StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
         'charging': (context) => StatisticsChargingPage(context: context),
-        'usage': (c) => StatisticsUsagePage(source: c, onRecord: widget.onDrive),
+        'usage': (c) =>
+            StatisticsUsagePage(source: c, onRecord: widget.onDrive),
         'range': (context) => RangeObservationPage(context: context),
         'parking': (context) => ParkingObservationPage(context: context),
       },
@@ -377,10 +378,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       builder: (context, _) => RefreshIndicator(
         onRefresh: () => load(force: true),
         child: ListView(
-          padding: MileafLayout.pagePadding(
-            context,
-            top: MileafSpace.s12,
-          ),
+          padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             Row(
@@ -513,7 +511,8 @@ class _StatisticsViewState extends State<_StatisticsView>
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => driving.index = index),
-        readout: (index) => '$title读数 '
+        readout: (index) =>
+            '$title读数 '
             '${index < values.length ? number(values[index], unit, decimals: decimals) : '—'}',
         emptyMessage: '区间内无趋势数据',
       ),
@@ -653,7 +652,8 @@ class _StatisticsViewState extends State<_StatisticsView>
     ];
     final point = charging.clampedIndex(times.length);
     // 没有一条记录带电量就是未知；真实 0 保留 0。
-    final energyMissing = richer != null && richer.totals.energyKnownSessions == 0;
+    final energyMissing =
+        richer != null && richer.totals.energyKnownSessions == 0;
     final energy = energyMissing ? null : totals.energyAddedKwh;
     return [
       Padding(
@@ -775,11 +775,7 @@ class _StatisticsViewState extends State<_StatisticsView>
               : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
           style: context.type.body.copyWith(color: context.colors.text),
         ),
-        _amountLine(
-          '有效网侧均价',
-          richer.totals.unitCostGrid.value,
-          perKwh: true,
-        ),
+        _amountLine('有效网侧均价', richer.totals.unitCostGrid.value, perKwh: true),
       ],
       const SizedBox(height: MileafSpace.s12),
       Text(
@@ -967,6 +963,5 @@ class _Sampling {
   int index = 0;
 
   /// 0 for an empty bucket list, otherwise the index inside `0..length-1`.
-  int clampedIndex(int length) =>
-      length <= 0 ? 0 : index.clamp(0, length - 1);
+  int clampedIndex(int length) => length <= 0 ? 0 : index.clamp(0, length - 1);
 }

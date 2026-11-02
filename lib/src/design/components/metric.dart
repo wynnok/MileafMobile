@@ -73,10 +73,7 @@ class MileafNumber extends StatelessWidget {
                 style: numberStyle,
                 children: [
                   if (resolvedUnit != null)
-                    TextSpan(
-                      text: ' $resolvedUnit',
-                      style: unitStyle,
-                    ),
+                    TextSpan(text: ' $resolvedUnit', style: unitStyle),
                 ],
               ),
               textDirection: TextDirection.ltr,
@@ -97,10 +94,11 @@ class MileafNumber extends StatelessWidget {
           }
           chosen = numberStyle;
         }
-        final numberStyle = chosen ?? _tiers(context).last.copyWith(
-          color: numberColor,
-        );
-        final align = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+        final numberStyle =
+            chosen ?? _tiers(context).last.copyWith(color: numberColor);
+        final align = alignEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start;
         final textAlign = alignEnd ? TextAlign.end : TextAlign.start;
         if (singleLine) {
           return Text.rich(

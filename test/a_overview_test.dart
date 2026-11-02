@@ -125,11 +125,7 @@ void main() {
     await openOverview(tester);
     final value = tester.getRect(find.textContaining('1,198.6'));
     final chartTitle = tester.getRect(find.text('每日里程'));
-    expect(
-      chartTitle.top - value.bottom,
-      lessThan(160),
-      reason: '本月块不应留下整块空白',
-    );
+    expect(chartTitle.top - value.bottom, lessThan(160), reason: '本月块不应留下整块空白');
     expect(find.textContaining('净电耗 158 Wh/km · 已知费用 ¥186.4'), findsOneWidget);
     expect(find.textContaining('8/9 次'), findsOneWidget);
   });
@@ -193,7 +189,8 @@ void main() {
         mode == MileafAppearance.dark ? colors.heroText : colors.text,
       );
       expect(
-        Theme.of(tester.element(find.byType(MileafHero))).scaffoldBackgroundColor,
+        Theme.of(tester.element(find.byType(MileafHero)))
+            .scaffoldBackgroundColor,
         colors.canvas,
       );
       expect(tester.takeException(), isNull);
@@ -235,11 +232,7 @@ void main() {
                 greaterThanOrEqualTo(MileafSpace.cardInset),
                 reason: '品牌行与卡片之间至少留 12',
               );
-              expect(
-                bar.top,
-                0,
-                reason: '品牌行自己承担状态栏 inset（测试环境状态栏为 0）',
-              );
+              expect(bar.top, 0, reason: '品牌行自己承担状态栏 inset（测试环境状态栏为 0）');
             } else {
               expect(box.top, 0, reason: '满幅 hero 贴上边');
               expect(bar.top, box.top, reason: '品牌行是 hero 的第一个子块');

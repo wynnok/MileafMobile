@@ -25,10 +25,7 @@ void main() {
     );
     seen.clear();
     await tester.tap(
-      find.descendant(
-        of: find.byType(MileafNavBar),
-        matching: find.text('统计'),
-      ),
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
     expect(
@@ -160,10 +157,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     await tester.tap(
-      find.descendant(
-        of: find.byType(MileafNavBar),
-        matching: find.text('统计'),
-      ),
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('驾驶里程'), findsWidgets);

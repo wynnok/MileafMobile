@@ -22,7 +22,8 @@ abstract final class MileafLayout {
       context.colors.heroAsCard ? MileafSpace.cardPad : pageInset(context);
 
   static bool largeText(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(MileafBreakpoints.largeTextReference) >=
+      MediaQuery.textScalerOf(context)
+          .scale(MileafBreakpoints.largeTextReference) >=
       MileafBreakpoints.largeTextThreshold;
 
   static bool reduceMotion(BuildContext context) =>
@@ -59,12 +60,8 @@ abstract final class MileafLayout {
     BuildContext context, {
     double top = 0,
     double bottom = MileafSpace.s24,
-  }) => EdgeInsets.fromLTRB(
-    pageInset(context),
-    top,
-    pageInset(context),
-    bottom,
-  );
+  }) =>
+      EdgeInsets.fromLTRB(pageInset(context), top, pageInset(context), bottom);
 }
 
 /// Centres content at 560 logical pixels on tablets; never a second column.

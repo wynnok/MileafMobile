@@ -238,14 +238,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
           key: ValueKey('statistics:$selected:$statisticsEntry'),
           workspace: workspace,
         ),
-        _ => Center(
-          child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付'),
-        ),
+        _ => Center(child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付')),
       };
       return Scaffold(
         body: Column(
           children: [
-            if (workspace.notice != null) _NoticeBanner(text: workspace.notice!),
+            if (workspace.notice != null)
+              _NoticeBanner(text: workspace.notice!),
             Expanded(child: page),
           ],
         ),
@@ -395,7 +394,9 @@ class _VehicleSheet extends StatelessWidget {
                                               : MileafType.weightRegular,
                                         ),
                                       ),
-                                      const SizedBox(height: MileafSpace.inline2),
+                                      const SizedBox(
+                                        height: MileafSpace.inline2,
+                                      ),
                                       Text(
                                         '车辆 ID ${vehicle.id}',
                                         style: type.micro,

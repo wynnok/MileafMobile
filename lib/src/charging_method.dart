@@ -59,7 +59,8 @@ class ChargingMethodReading {
         ? ChargingMethodState.empty
         : totals.energyKnownSessions == 0
         ? ChargingMethodState.missing
-        : (totals.acEnergyKwh + totals.dcEnergyKwh + totals.unknownEnergyKwh) <= 0
+        : (totals.acEnergyKwh + totals.dcEnergyKwh + totals.unknownEnergyKwh) <=
+              0
         ? ChargingMethodState.zero
         : ChargingMethodState.normal;
     // 没有一条记录带电量时，分类能量在语义上并不存在；即使字段里残留数字也

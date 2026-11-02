@@ -62,7 +62,10 @@ ThemeData mileafTheme(Brightness brightness) {
     fontFamilyFallback: MileafType.fallback,
     textTheme: type.materialTheme(colors),
     extensions: [colors, type],
-    iconTheme: IconThemeData(color: colors.textMuted, size: MileafIconMetrics.header),
+    iconTheme: IconThemeData(
+      color: colors.textMuted,
+      size: MileafIconMetrics.header,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: colors.canvas,
       foregroundColor: colors.text,
@@ -81,11 +84,7 @@ ThemeData mileafTheme(Brightness brightness) {
         side: BorderSide(color: colors.line),
       ),
     ),
-    dividerTheme: DividerThemeData(
-      color: colors.line,
-      thickness: 1,
-      space: 1,
-    ),
+    dividerTheme: DividerThemeData(color: colors.line, thickness: 1, space: 1),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colors.surface,
@@ -202,8 +201,9 @@ ThemeData mileafTheme(Brightness brightness) {
     ),
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.selected) ? colors.accent : colors.textFaint,
+        (states) => states.contains(WidgetState.selected)
+            ? colors.accent
+            : colors.textFaint,
       ),
     ),
     textButtonTheme: TextButtonThemeData(

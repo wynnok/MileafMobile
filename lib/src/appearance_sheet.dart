@@ -66,10 +66,7 @@ class _AppearanceSheetState extends State<_AppearanceSheet> {
               const SizedBox(height: MileafSpace.s20),
               Text('外观', style: type.title),
               const SizedBox(height: MileafSpace.s4),
-              Text(
-                '默认跟随系统。切换后立即生效，并保存在本机。',
-                style: type.micro,
-              ),
+              Text('默认跟随系统。切换后立即生效，并保存在本机。', style: type.micro),
               const SizedBox(height: MileafSpace.s12),
               for (final mode in MileafAppearance.values)
                 _AppearanceRow(

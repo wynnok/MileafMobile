@@ -28,14 +28,8 @@ const markers = <String, ({List<String> must, List<String> mustNot})>{
     must: ['我的补能方式', 'AC 与 DC 接近', '55.14%', '118 kWh'],
     mustNot: ['还没有充电记录', '分类能量未记录'],
   ),
-  'empty': (
-    must: ['我的补能方式', '还没有充电记录'],
-    mustNot: ['AC 与 DC 接近', '55.14%'],
-  ),
-  'missing': (
-    must: ['我的补能方式', '分类能量未记录'],
-    mustNot: ['AC 与 DC 接近', '118 kWh'],
-  ),
+  'empty': (must: ['我的补能方式', '还没有充电记录'], mustNot: ['AC 与 DC 接近', '55.14%']),
+  'missing': (must: ['我的补能方式', '分类能量未记录'], mustNot: ['AC 与 DC 接近', '118 kWh']),
 };
 
 class _Appearance implements AppearancePreferenceStore {
@@ -67,9 +61,7 @@ void main() {
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
 
-  testWidgets('补能方式 × normal/empty/missing × 浅深 × 100/200%', (
-    tester,
-  ) async {
+  testWidgets('补能方式 × normal/empty/missing × 浅深 × 100/200%', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {

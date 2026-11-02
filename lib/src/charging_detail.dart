@@ -251,10 +251,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     'gap_or_ambiguous' => '采样间隔或电量变化不足以确认',
     _ => '数据不足',
   };
-  Widget _inset(Widget child) => Padding(
-    padding: MileafLayout.pageHorizontal(context),
-    child: child,
-  );
+  Widget _inset(Widget child) =>
+      Padding(padding: MileafLayout.pageHorizontal(context), child: child);
 
   Widget _section({required Widget child}) {
     final colors = context.colors;
@@ -550,33 +548,33 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   tilePadding: EdgeInsets.zero,
                   title: const Text('过程数据说明'),
                   children: [
-                  if (expandedDetail?.processMetrics case final process?)
-                    _section(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('原始功率峰值 ${number(process.powerMaxKw, 'kW')}'),
-                          Text(
-                            '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
-                          ),
-                          Text(
-                            '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
-                          ),
-                          for (final window in process.socWindows)
+                    if (expandedDetail?.processMetrics case final process?)
+                      _section(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('原始功率峰值 ${number(process.powerMaxKw, 'kW')}'),
                             Text(
-                              !d.isActive &&
-                                      window.status == 'available' &&
-                                      window.elapsedSeconds != null
-                                  ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
-                                  : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
+                              '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
                             ),
-                          const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
-                        ],
+                            Text(
+                              '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
+                            ),
+                            for (final window in process.socWindows)
+                              Text(
+                                !d.isActive &&
+                                        window.status == 'available' &&
+                                        window.elapsedSeconds != null
+                                    ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
+                                    : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
+                              ),
+                            const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
+                          ],
+                        ),
                       ),
-                    ),
-                  if (expandedDetail != null &&
-                      expandedDetail!.processMetrics == null)
-                    const Text('原始充电过程指标暂不可用。'),
+                    if (expandedDetail != null &&
+                        expandedDetail!.processMetrics == null)
+                      const Text('原始充电过程指标暂不可用。'),
                   ],
                 ),
               ),
@@ -633,12 +631,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                             ? '理想续航 ${number(extra.startIdealRangeKm, 'km')} → ${number(extra.endIdealRangeKm, 'km')}'
                             : '理想续航未受站点支持',
                       ),
-                      Text(
-                        '充电器品牌 ${extra.charger?.fastChargerBrand ?? '—'}',
-                      ),
-                      Text(
-                        '充电器类型 ${extra.charger?.fastChargerType ?? '—'}',
-                      ),
+                      Text('充电器品牌 ${extra.charger?.fastChargerBrand ?? '—'}'),
+                      Text('充电器类型 ${extra.charger?.fastChargerType ?? '—'}'),
                       Text('充电线 ${extra.charger?.connChargeCable ?? '—'}'),
                       if (extra.charger?.sourceSampleAt != null)
                         Text('充电器记录时间 ${time(extra.charger!.sourceSampleAt)}'),

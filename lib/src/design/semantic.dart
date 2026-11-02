@@ -165,9 +165,8 @@ class MileafColors extends ThemeExtension<MileafColors> {
   Color get focusRing => accent.withValues(alpha: .6);
 
   /// 4% (dark) / 6% (light) press overlay on content rows.
-  Color get pressOverlay => isDark
-      ? MileafPalette.pressOverlayDark
-      : MileafPalette.pressOverlayLight;
+  Color get pressOverlay =>
+      isDark ? MileafPalette.pressOverlayDark : MileafPalette.pressOverlayLight;
 
   @override
   MileafColors copyWith({
@@ -256,7 +255,8 @@ class MileafColors extends ThemeExtension<MileafColors> {
       nav: mix(nav, other.nav),
       scrim: mix(scrim, other.scrim),
       skeleton: mix(skeleton, other.skeleton),
-      sheetShadow: BoxShadow.lerpList(sheetShadow, other.sheetShadow, t) ?? const [],
+      sheetShadow:
+          BoxShadow.lerpList(sheetShadow, other.sheetShadow, t) ?? const [],
     );
   }
 }
@@ -269,7 +269,5 @@ extension MileafColorsContext on BuildContext {
 /// CIELAB L\* of an opaque colour; only the hero form rule needs it (§6.1).
 double _lStar(Color color) {
   final y = color.computeLuminance();
-  return y > 0.008856
-      ? 116 * math.pow(y, 1 / 3).toDouble() - 16
-      : 903.3 * y;
+  return y > 0.008856 ? 116 * math.pow(y, 1 / 3).toDouble() - 16 : 903.3 * y;
 }

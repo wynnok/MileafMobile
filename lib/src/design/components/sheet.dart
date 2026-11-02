@@ -71,9 +71,7 @@ class MileafSheetFrame extends StatelessWidget {
                 const SizedBox(height: MileafSpace.s8),
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(title, style: context.type.title),
-                    ),
+                    Expanded(child: Text(title, style: context.type.title)),
                     if (onClose != null)
                       MileafIconButton(
                         icon: MileafIconName.close,
@@ -85,9 +83,7 @@ class MileafSheetFrame extends StatelessWidget {
                 Flexible(
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: MileafSpace.s8,
-                      ),
+                      padding: const EdgeInsets.only(bottom: MileafSpace.s8),
                       child: child,
                     ),
                   ),

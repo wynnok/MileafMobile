@@ -79,7 +79,11 @@ void main() {
     expect(map.height, 240, reason: '200% 地图高度仍为 240');
     expect(copy.top, greaterThanOrEqualTo(map.top));
     expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
-    expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: '按钮不超出地图、不被裁切');
+    expect(
+      button.bottom,
+      lessThanOrEqualTo(map.bottom),
+      reason: '按钮不超出地图、不被裁切',
+    );
     expect(find.textContaining('设备/网络信息'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

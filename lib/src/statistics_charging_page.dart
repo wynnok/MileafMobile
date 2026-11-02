@@ -331,9 +331,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
     final type = context.type;
     final known = rich?.costKnownSessions ?? 0;
     // 没有一条记录带费用时显示 `—`：没有记录不等于花了 0 元（Spec §9.5）。
-    final cost = known == 0
-        ? '—'
-        : scope.currency.amountValue(totals.cost);
+    final cost = known == 0 ? '—' : scope.currency.amountValue(totals.cost);
     final coverage = totals.sessions == 0
         ? 0.0
         : (known / totals.sessions).clamp(0.0, 1.0);

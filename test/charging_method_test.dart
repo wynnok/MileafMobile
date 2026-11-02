@@ -100,7 +100,9 @@ void main() {
     });
 
     test('只有未知能量：补能类型未知，圆心留空', () {
-      final reading = ChargingMethodReading.from(metrics(ac: 0, dc: 0, unknown: 9));
+      final reading = ChargingMethodReading.from(
+        metrics(ac: 0, dc: 0, unknown: 9),
+      );
       expect(reading.conclusion, '补能类型未知');
       expect(reading.centerValue, isNull);
       expect(reading.centerLabel, isNull);

@@ -62,7 +62,8 @@ class StateView extends StatelessWidget {
         ? colors.heroText
         : colors.text;
     final messageColor = onHero ? colors.heroMuted : colors.textMuted;
-    final glyph = icon ??
+    final glyph =
+        icon ??
         (kind == StateViewKind.error
             ? MileafIconName.info
             : MileafIconName.route);
@@ -91,10 +92,7 @@ class StateView extends StatelessWidget {
           ],
           if (onAction != null && actionLabel != null) ...[
             const SizedBox(height: MileafSpace.s12),
-            TextButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],
       ),
@@ -157,10 +155,7 @@ class InlineBanner extends StatelessWidget {
             ),
           ),
           if (onAction != null && actionLabel != null)
-            TextButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
         ],
       ),
     );

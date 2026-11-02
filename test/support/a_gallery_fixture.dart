@@ -23,141 +23,141 @@ import 'c_fixture.dart';
 ///
 /// Every response is contract-valid: the pages decode the published DTOs
 /// before rendering, so a fixture that drifts is caught by the render run.
-MockClient aGalleryClient({String scenario = 'normal'}) =>
-    MockClient((request) async {
-      final url = request.url;
-      final path = url.path;
-      final query = url.queryParameters;
+MockClient aGalleryClient({String scenario = 'normal'}) => MockClient((
+  request,
+) async {
+  final url = request.url;
+  final path = url.path;
+  final query = url.queryParameters;
 
-      if (path.endsWith('/vehicles')) return _ok(cVehicles());
-      if (path.endsWith('/meta')) return _ok(cMeta());
-      if (path.endsWith('/summary')) {
-        return _ok(switch (scenario) {
-          'empty' => cEmptySummaryWithHistory(),
-          'missing' => cMissingSummary(),
-          _ => cSummary(),
-        });
-      }
-
-      // 行程详情：missing 时走明细 503，整页失败态 + 重试。
-      if (path.endsWith('/drives/17/series')) {
-        return _ok(scenario == 'empty' ? cEmptyDriveSeries() : cDriveSeries());
-      }
-      if (path.endsWith('/drives/17')) {
-        return switch (scenario) {
-          'missing' => _fail(),
-          'empty' => _ok(cHistoryDriveDetail()),
-          _ => _ok(cDriveDetail()),
-        };
-      }
-
-      // 充电详情：missing 时走系列 503，结果保留、曲线重试。
-      if (path.endsWith('/charging-sessions/9/series')) {
-        if (scenario == 'missing') return _fail();
-        return _ok(scenario == 'empty' ? cEmptyChargeSeries() : cChargeSeries());
-      }
-      if (path.endsWith('/charging-sessions/9')) {
-        return _ok(
-          scenario == 'empty' ? cHistoryChargeDetail() : cChargeDetailBody(),
-        );
-      }
-
-      if (path.endsWith('/charging-locations')) {
-        return _ok(_locations(request, scenario));
-      }
-
-      if (path.contains('/charging-sessions')) {
-        final body = jsonDecode(expansionResponse(request).body)
-            as Map<String, dynamic>;
-        if (scenario == 'empty') {
-          body['items'] = <Object>[];
-          body['next_cursor'] = null;
-          return _ok(body);
-        }
-        final items = [
-          for (final item in (body['items'] as List).cast<Map>())
-            if (item['is_active'] != true) Map<String, dynamic>.from(item),
-        ];
-        if (items.isNotEmpty) {
-          items.first.addAll({
-            'energy_added_kwh': cChargeDetail.energyKwh,
-            'start_soc': cChargeDetail.startSoc,
-            'end_soc': cChargeDetail.endSoc,
-            'cost': cChargeDetail.cost,
-            'duration_min': cChargeDetail.durationMin,
-            'is_dc': true,
-          });
-        }
-        body['items'] = items;
-        return _ok(body);
-      }
-
-      if (path.endsWith('/driving-analysis')) {
-        final view = query['view'];
-        if (view == 'conditions') {
-          return _ok(switch (scenario) {
-            'empty' => cEmptyConditions(),
-            'missing' => cMissingConditions(),
-            _ => conditionsFixture(),
-          });
-        }
-        if (view == 'calendar') return _ok(cCalendar(url));
-        return _ok(switch (scenario) {
-          'empty' => cEmptyUsage(),
-          'missing' => cMissingUsage(),
-          _ => cUsage(),
-        });
-      }
-
-      if (path.endsWith('/range-observations')) {
-        return _ok(
-          rangeResponse(
-            months: int.tryParse(query['months'] ?? '') ?? 6,
-            empty: scenario == 'empty',
-            missing: scenario == 'missing',
-          ),
-        );
-      }
-
-      if (path.endsWith('/parking-observations')) {
-        return _ok(
-          parkingResponse(
-            url,
-            empty: scenario == 'empty',
-            missing: scenario == 'missing',
-          ),
-        );
-      }
-
-      if (path.endsWith('/stats')) {
-        if (query['kind'] == 'charging') {
-          return _ok(switch (scenario) {
-            'empty' => cEmptyChargingV2(),
-            'missing' => cMissingChargingV2(),
-            _ => cChargingStatsV2(),
-          });
-        }
-        // Any window that starts in late September is the 30-day drives period.
-        final drivesWindow = (query['from'] ?? '').startsWith('2026-09-2');
-        return _ok(switch (scenario) {
-          'empty' => cEmptyDriving(url),
-          'missing' => drivesWindow
-              ? cMissingDrivesStats(url)
-              : cMissingDriving(url),
-          _ => drivesWindow ? cDrivesStats(url) : cDriving(url),
-        });
-      }
-
-      if (path.endsWith('/drives')) {
-        return _ok(switch (scenario) {
-          'empty' => cEmptyDrives(),
-          'missing' => cMissingDrives(),
-          _ => cDrives(),
-        });
-      }
-
-      return http.Response('{}', 404);
+  if (path.endsWith('/vehicles')) return _ok(cVehicles());
+  if (path.endsWith('/meta')) return _ok(cMeta());
+  if (path.endsWith('/summary')) {
+    return _ok(switch (scenario) {
+      'empty' => cEmptySummaryWithHistory(),
+      'missing' => cMissingSummary(),
+      _ => cSummary(),
     });
+  }
+
+  // 行程详情：missing 时走明细 503，整页失败态 + 重试。
+  if (path.endsWith('/drives/17/series')) {
+    return _ok(scenario == 'empty' ? cEmptyDriveSeries() : cDriveSeries());
+  }
+  if (path.endsWith('/drives/17')) {
+    return switch (scenario) {
+      'missing' => _fail(),
+      'empty' => _ok(cHistoryDriveDetail()),
+      _ => _ok(cDriveDetail()),
+    };
+  }
+
+  // 充电详情：missing 时走系列 503，结果保留、曲线重试。
+  if (path.endsWith('/charging-sessions/9/series')) {
+    if (scenario == 'missing') return _fail();
+    return _ok(scenario == 'empty' ? cEmptyChargeSeries() : cChargeSeries());
+  }
+  if (path.endsWith('/charging-sessions/9')) {
+    return _ok(
+      scenario == 'empty' ? cHistoryChargeDetail() : cChargeDetailBody(),
+    );
+  }
+
+  if (path.endsWith('/charging-locations')) {
+    return _ok(_locations(request, scenario));
+  }
+
+  if (path.contains('/charging-sessions')) {
+    final body =
+        jsonDecode(expansionResponse(request).body) as Map<String, dynamic>;
+    if (scenario == 'empty') {
+      body['items'] = <Object>[];
+      body['next_cursor'] = null;
+      return _ok(body);
+    }
+    final items = [
+      for (final item in (body['items'] as List).cast<Map>())
+        if (item['is_active'] != true) Map<String, dynamic>.from(item),
+    ];
+    if (items.isNotEmpty) {
+      items.first.addAll({
+        'energy_added_kwh': cChargeDetail.energyKwh,
+        'start_soc': cChargeDetail.startSoc,
+        'end_soc': cChargeDetail.endSoc,
+        'cost': cChargeDetail.cost,
+        'duration_min': cChargeDetail.durationMin,
+        'is_dc': true,
+      });
+    }
+    body['items'] = items;
+    return _ok(body);
+  }
+
+  if (path.endsWith('/driving-analysis')) {
+    final view = query['view'];
+    if (view == 'conditions') {
+      return _ok(switch (scenario) {
+        'empty' => cEmptyConditions(),
+        'missing' => cMissingConditions(),
+        _ => conditionsFixture(),
+      });
+    }
+    if (view == 'calendar') return _ok(cCalendar(url));
+    return _ok(switch (scenario) {
+      'empty' => cEmptyUsage(),
+      'missing' => cMissingUsage(),
+      _ => cUsage(),
+    });
+  }
+
+  if (path.endsWith('/range-observations')) {
+    return _ok(
+      rangeResponse(
+        months: int.tryParse(query['months'] ?? '') ?? 6,
+        empty: scenario == 'empty',
+        missing: scenario == 'missing',
+      ),
+    );
+  }
+
+  if (path.endsWith('/parking-observations')) {
+    return _ok(
+      parkingResponse(
+        url,
+        empty: scenario == 'empty',
+        missing: scenario == 'missing',
+      ),
+    );
+  }
+
+  if (path.endsWith('/stats')) {
+    if (query['kind'] == 'charging') {
+      return _ok(switch (scenario) {
+        'empty' => cEmptyChargingV2(),
+        'missing' => cMissingChargingV2(),
+        _ => cChargingStatsV2(),
+      });
+    }
+    // Any window that starts in late September is the 30-day drives period.
+    final drivesWindow = (query['from'] ?? '').startsWith('2026-09-2');
+    return _ok(switch (scenario) {
+      'empty' => cEmptyDriving(url),
+      'missing' =>
+        drivesWindow ? cMissingDrivesStats(url) : cMissingDriving(url),
+      _ => drivesWindow ? cDrivesStats(url) : cDriving(url),
+    });
+  }
+
+  if (path.endsWith('/drives')) {
+    return _ok(switch (scenario) {
+      'empty' => cEmptyDrives(),
+      'missing' => cMissingDrives(),
+      _ => cDrives(),
+    });
+  }
+
+  return http.Response('{}', 404);
+});
 
 http.Response _ok(Object body) => http.Response(
   jsonEncode(body),

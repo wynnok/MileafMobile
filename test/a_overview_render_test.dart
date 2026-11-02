@@ -54,10 +54,7 @@ MockClient sampleClient(String scenario) => MockClient((request) async {
       final period = body['period'] as Map;
       body['period'] = {
         ...period,
-        'today': {
-          ...(period['today'] as Map),
-          'energy_kwh': null,
-        },
+        'today': {...(period['today'] as Map), 'energy_kwh': null},
       };
       body['last_drive'] = null;
     }
@@ -78,8 +75,7 @@ MockClient sampleClient(String scenario) => MockClient((request) async {
     final to = DateTime.parse(request.url.queryParameters['to']!);
     if (to.month == 9) {
       for (final bucket in (body['buckets'] as List).cast<Map>()) {
-        bucket['distance_km'] =
-            (bucket['distance_km'] as num).toDouble() * .92;
+        bucket['distance_km'] = (bucket['distance_km'] as num).toDouble() * .92;
       }
       final totals = body['totals'] as Map;
       totals['distance_km'] = (totals['distance_km'] as num).toDouble() * .92;
@@ -167,7 +163,7 @@ void main() {
             tester,
             find.byKey(boundary),
             '$output/overview-$scenario-${brightness.name}-'
-                '${scale == 1 ? '100' : '200'}.png',
+            '${scale == 1 ? '100' : '200'}.png',
           );
           expect(
             find.byType(BatteryArc),

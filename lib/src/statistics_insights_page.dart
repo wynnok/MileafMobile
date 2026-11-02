@@ -191,7 +191,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             body: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MileafSpace.s20,
+                  ),
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     title: Text(() {
@@ -1139,8 +1141,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           MetricBlock(
             label: '能量有效里程',
             value: enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm
-                    ?.toStringAsFixed(1),
-            unit: enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm == null
+                ?.toStringAsFixed(1),
+            unit:
+                enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm == null
                 ? null
                 : 'km',
             note: '与全里程分开核对',

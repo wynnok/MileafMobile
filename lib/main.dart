@@ -123,9 +123,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
             MediaQuery.platformBrightnessOf(context) == Brightness.dark,
         };
         return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: (dark
-                  ? SystemUiOverlayStyle.light
-                  : SystemUiOverlayStyle.dark)
+          value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
               .copyWith(
                 statusBarColor: Colors.transparent,
                 systemNavigationBarColor: Colors.transparent,

@@ -108,12 +108,7 @@ class _NavItem extends StatelessWidget {
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
-            if (active)
-              Container(
-                width: 18,
-                height: 2,
-                color: colors.accent,
-              ),
+            if (active) Container(width: 18, height: 2, color: colors.accent),
             ExcludeSemantics(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

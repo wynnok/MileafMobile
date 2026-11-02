@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture, custom, tapDateAction;
+
 import 'package:mileaf/src/design/components/components.dart';
 
 import 'charging_test.dart' show MemoryCurrency, app;

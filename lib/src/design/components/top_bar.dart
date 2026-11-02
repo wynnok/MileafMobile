@@ -56,8 +56,7 @@ class MileafTopBar extends StatelessWidget {
               style: type.title.copyWith(
                 fontSize: MileafBrand.wordSize,
                 height: 1.1,
-                letterSpacing:
-                    MileafBrand.wordTracking * MileafBrand.wordSize,
+                letterSpacing: MileafBrand.wordTracking * MileafBrand.wordSize,
                 color: foreground,
               ),
             ),
@@ -79,8 +78,9 @@ class MileafTopBar extends StatelessWidget {
                       child: InkWell(
                         onTap: onVehicle,
                         borderRadius: MileafRadius.smAll,
-                        highlightColor: (onHero ? colors.accentHero : colors.accent)
-                            .withValues(alpha: .12),
+                        highlightColor:
+                            (onHero ? colors.accentHero : colors.accent)
+                                .withValues(alpha: .12),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: MileafSpace.s4,

@@ -155,6 +155,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
     final local = calendar.local(parsed);
     return '${local.year}/${local.month}/${local.day}';
   }
+
   String change(Map? x) =>
       '${n(x?['soc_change_pp'])} pp · ${n(x?['soc_change_pp_per_24h'])} pp/24h';
   Widget states(Map row) {
@@ -274,7 +275,9 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                 ),
               ),
             ),
-            Text('${stamp(rows[selected]['bucket_start'])} · ${change(rows[selected])}'),
+            Text(
+              '${stamp(rows[selected]['bucket_start'])} · ${change(rows[selected])}',
+            ),
             Text(
               '有效 ${rows[selected]['valid_windows']} · 观测 ${n(rows[selected]['observed_hours'])} h',
             ),

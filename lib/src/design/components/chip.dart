@@ -100,10 +100,7 @@ class _StatusChipState extends State<StatusChip> {
                   foregroundDecoration: _focused
                       ? BoxDecoration(
                           borderRadius: MileafRadius.fullAll,
-                          border: Border.all(
-                            color: colors.focusRing,
-                            width: 2,
-                          ),
+                          border: Border.all(color: colors.focusRing, width: 2),
                         )
                       : null,
                   child: chip,

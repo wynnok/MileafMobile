@@ -43,8 +43,7 @@ class SocIntervalBar extends StatelessWidget {
     return Semantics(
       container: true,
       excludeSemantics: true,
-      label:
-          '电量区间，出发 ${_spoken(start)}，到达 ${_spoken(end)}，尺度 0 至 100%',
+      label: '电量区间，出发 ${_spoken(start)}，到达 ${_spoken(end)}，尺度 0 至 100%',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

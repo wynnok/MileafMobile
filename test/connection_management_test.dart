@@ -32,6 +32,7 @@ MemorySessionStore saved() => MemorySessionStore()
     'token': 'old-token',
     'expires_at': '2099-01-01T00:00:00Z',
   });
+
 /// VA02: the vehicle list refresh lives inside the vehicle sheet.
 Future<void> refreshVehicles(WidgetTester tester, String current) async {
   await tester.tap(find.text(current).first);

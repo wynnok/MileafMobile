@@ -104,7 +104,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('数据说明与更多'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.textContaining('AC 120.00 kWh'), 150);
+      await tester.scrollUntilVisible(
+        find.textContaining('AC 120.00 kWh'),
+        150,
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('AC 120.00 kWh'), findsOneWidget);
       expect(find.textContaining('未知 —'), findsOneWidget);

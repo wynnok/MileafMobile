@@ -27,7 +27,8 @@ class MapFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final content = child ??
+    final content =
+        child ??
         fallback ??
         ColoredBox(
           color: colors.surface,

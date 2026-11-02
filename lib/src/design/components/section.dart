@@ -49,10 +49,7 @@ class SectionHeader extends StatelessWidget {
               spacing: MileafSpace.s12,
               runSpacing: MileafSpace.s4,
               crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                ?rangeWidget,
-                ?action,
-              ],
+              children: [?rangeWidget, ?action],
             ),
           ],
         ],
@@ -63,10 +60,7 @@ class SectionHeader extends StatelessWidget {
       children: [
         Expanded(child: titleWidget),
         ?rangeWidget,
-        if (action != null) ...[
-          const SizedBox(width: MileafSpace.s8),
-          action!,
-        ],
+        if (action != null) ...[const SizedBox(width: MileafSpace.s8), action!],
       ],
     );
   }
