@@ -61,6 +61,12 @@ class _MileafButtonState extends State<MileafButton> {
         null,
       ),
     };
+    // Spec §7.2: primary and ghost highlight with `accentSoft`; the outlined
+    // secondary highlights with the neutral `pressOverlay` (an accent tint on
+    // a transparent outline button reads as a second accent colour).
+    final highlight = kind == MileafButtonKind.secondary
+        ? colors.pressOverlay
+        : colors.accentSoft;
     final child = Row(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -101,7 +107,7 @@ class _MileafButtonState extends State<MileafButton> {
           child: InkWell(
             onTap: enabled ? onPressed : null,
             borderRadius: MileafRadius.smAll,
-            highlightColor: colors.accent.withValues(alpha: .12),
+            highlightColor: highlight,
             child: Container(
               constraints: const BoxConstraints(minHeight: MileafSpace.touch),
               padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),

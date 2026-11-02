@@ -979,3 +979,36 @@ iOS 的 MapKit 只是无 key 时的过渡，不是同一供应商；Android key 
 ### Ticket impact
 
 - 0 新票；本增量为本地实现，决定见 [ADR 0005](../adr/0005-active-charging-evidence.md)。
+
+## 2026-11-02 外观 v2 增量：电光蓝、中性底与默认跟随系统
+
+> 只改颜色、外观默认值与 hero 形态；版面范式、字号阶梯、间距档位、圆角体系、动效、组件语义与数据口径不变。决定见 [ADR 0006](../adr/0006-appearance-and-accent.md)，规格见 [外观 v2 Spec](appearance-v2.md)，票面见 [AV01–AV09](appearance-v2-tickets.md)。
+
+### Problem Statement
+
+A「夜航」的玉绿强调色与暖米纸面在正式渲染里发绿、发暖：浅色底 `#F1F0EB` 与 hero 里的薄荷绿形成两套色调，图表参照线用土黄 `#8A5A1F`/`#D8B27C` 时与强调色争注意力；深色底 `#070908` 偏绿黑，和“夜色航图”的中性预期不符。2026-11-02 用户确认换色方向：强调色改电光蓝，中性底去绿去暖，外观默认改为跟随系统，浅色 hero 改为卡片形态。
+
+### Solution
+
+- 色板：强调色 `azure`（浅 `#2688F5` / 深 `#64A8FF`），一个 tint 两种强度——`accent` 供图形（≥3:1）、`accentStrong` 供文字与实心填充（≥4.5:1），深色两者合并；中性底改 `paper50/paper0`（`#F4F5F7`/`#FFFFFF`）与 `slate` 系（`#0A0B0D`/`#06090E`/`#12161C`/`#191E25`）；参照改中性 `steel`；删除 `jade/stone/sand/clay/ink` primitive 与 `heroOnLight`。
+- 外观默认：`ThemeMode.system`，顺序固定「跟随系统 / 浅色 / 深色」，已保存偏好优先；无保存值时按平台亮度解析，不先深后浅。
+- hero 形态由 `ΔL*(hero, canvas)` 推导（>20 卡片、≤20 满幅）：浅色卡片外距 12、圆角 20、无描边无阴影，卡内横向 16（内容距屏幕边 28）；深色满幅行为不变。浅色概览的 top bar 回到纸面，状态栏图标随纸面取深色。
+- 图表：系列次色由 `accent` 50% 改 `azure600`（原值合成后浅 1.78 / 深 2.78，不到 3:1），零基线改 `line`，热力格 9px 日期改深墨。
+- 新增两个中性阴影/几何 token：`MileafSpace.cardInset = 12`、`cardPad = 16`；`MileafElevation.sheetLight` 改中性 `10% 石墨`。
+
+### Testing Decisions
+
+- `design_tokens_test.dart`：对比度按新色板全量重算（深 17.87/7.87/5.59/8.05/6.80/10.77/7.75，浅 17.10/5.38/4.65/3.25/5.41/4.99/4.60/4.90），新增明度阶、hero 形态阈值（20 L\* 上下界）、图表系列与网格对比度断言。
+- `appearance_shell_test.dart`：默认 `system`、平台亮度切换跟随、已存偏好优先；`a_overview_test.dart`：2 模式 × 320/360/390 × 100/200% 的形态与品牌行归属矩阵；`design_components_test.dart`：卡片形态 12/20、无 `SystemUiOverlayStyle` 覆盖。
+- 全量 `tool/flutterw test --no-pub` 423 通过 / 23 跳过；`analyze` 0 issue；`dart format --set-exit-if-changed` 0 changed。
+- 正式渲染：`test/a_gallery_render_test.dart` 输出到 [appearance-v2-renders](../implementation/appearance-v2-renders/README.md)，11 页 × 3 态 × 浅深 × 100/200% 共 132 张，另有 24 张与 `a-renders` 同机位的旧/新对照。
+
+### Out of Scope
+
+- 不改接口、数据语义、请求数量与只读边界；不改 `MileafServer/`、`teslamate/`。
+- 不改版面结构、字号阶梯、间距档位、圆角体系、图表几何、交互与 `Semantics`。
+- 真机截图、真实站点/地图、性能与双端隔离构建仍为独立外部 gate，不因本增量通过而关闭。
+
+### Ticket impact
+
+- 0 新 GitHub issue；本地票 AV01–AV09（三批）实施，审查结论见 [appearance-v2-review](../implementation/appearance-v2-review.md)。

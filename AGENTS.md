@@ -43,3 +43,5 @@ See `docs/agents/domain.md`.
 - 2026-11-01 用户确认 A「夜航」为当前视觉方向，并按 VA01–VA14 顺序实施；正式 Flutter 页面、共享组件、实际渲染与可达性证据见 `docs/implementation/a-renders/` 与 `docs/implementation/a-accessibility.md`，决定见 `docs/adr/0003-visual-direction-a.md`。VA01–VA14 代码与自动化在 `codex/mileaf-v1` 本地提交；C10/C「数据拼贴」文档与渲染仅作历史证据。真机、真实站点/地图、性能与双端隔离构建仍为独立外部 gate，不因 A 实施而关闭。
 
 - 2026-11-02 用户明确授权把 `codex/mileaf-v1` 合并进 `main` 并推送到 `origin/main`（GitHub `wynnok/MileafMobile`）；本次推送覆盖 v1 已实施的全部提交，不重写共享历史、不改 `MileafServer/` 与 `teslamate/`。该授权只针对本次：后续任何推送、部署或上架仍需逐次确认；推送不解除真机、真实站点/地图、性能、双端隔离构建等外部 gate，也不关闭相关票。
+
+- 2026-11-02 外观 v2（AV01–AV09，三批）本地完成，取代 A 的配色与默认外观：强调色由玉绿改电光蓝（`accent` 供图形、`accentStrong` 供文字），中性底去绿去暖（浅 `#F4F5F7`/`#FFFFFF`、深 `#0A0B0D`），外观默认改跟随系统（顺序 跟随系统/浅色/深色），浅色 hero 改 12 外距 + 20 圆角卡片、深色仍满幅。版面范式、字号阶梯、间距档位、圆角体系与数据口径不变；实现与证据见 `docs/implementation/appearance-v2.md`、`docs/implementation/appearance-v2-renders/`、`docs/implementation/appearance-v2-review.md`，决定见 `docs/adr/0006-appearance-and-accent.md`。本次不推送，外部 gate 与相关票状态不变。

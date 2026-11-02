@@ -65,8 +65,8 @@ class _MileafIconButtonState extends State<MileafIconButton> {
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: widget.onPressed,
-                  highlightColor: colors.accent.withValues(alpha: .12),
-                  splashColor: colors.accent.withValues(alpha: .12),
+                  highlightColor: colors.accentSoft,
+                  splashColor: colors.accentSoft,
                   child: Center(
                     child: MileafIcon(
                       widget.icon,

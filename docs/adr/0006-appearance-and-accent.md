@@ -111,6 +111,7 @@ Apple 的做法不是把颜色调暗，而是**分层**：`systemTeal`/`systemBl
 - `reference`：暖砂 → 石墨（浅 `#5F6B78` / 深 `#8E99A6`），虚线仍保留。"参照/基线"用中性色是数据可视化的通行做法，暖砂的复古账本感是"老气"的第二来源。
 - `warning`：浅 `#B45309` / 深 `#FFB020`；`error`：浅 `#CE271B` / 深 `#FF7A70`。两者仍是语义色，只出现在状态与校验，不做装饰、不参与系列配色。
 - 数据系列仍只有一条色阶：`accent` → `accent` 50% → `textFaint`（[semantic.dart:130-133](../../lib/src/design/semantic.dart#L130-L133) 的 `seriesPrimary/Secondary/Neutral` 保持不变）。不引入第二强调色。
+  - **2026-11-02 实施修正（D5.1）**：`accent` 50% 合成后对白卡只有 1.78、对深色 surface 2.78，达不到 Spec §13「主/次系列 ≥3:1」，因此 `seriesSecondary` 定为 `azure600`（浅 `#0B62C4` 对白卡 5.90、对深 surface 3.07）。色阶仍是「一条色阶、无第二强调色」，但次系列的取值不再等于「主色 50% 透明」。代价：浅色下次系列（`#0B62C4`）与 `reference`（`#5F6B78`）明度比仅 1.08，靠色相区分，能否被误读为参照**待用户确认**（见 [外观 v2 双轴审查](../implementation/appearance-v2-review.md)）。
 
 ### D6 品牌符号跟随 accent
 

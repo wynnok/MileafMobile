@@ -370,7 +370,7 @@ class _VehicleSheet extends StatelessWidget {
                         label: vehicleName(vehicle),
                         child: InkWell(
                           onTap: () => Navigator.pop(context, vehicle.id),
-                          highlightColor: colors.accent.withValues(alpha: .12),
+                          highlightColor: colors.accentSoft,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(
                               minHeight: MileafSpace.rowMin,

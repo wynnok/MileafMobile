@@ -113,7 +113,7 @@ class _AppearanceRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: MileafRadius.smAll,
-        highlightColor: colors.accent.withValues(alpha: .12),
+        highlightColor: colors.accentSoft,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
           child: Row(

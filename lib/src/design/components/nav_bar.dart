@@ -103,8 +103,8 @@ class _NavItem extends StatelessWidget {
       label: item.label,
       child: InkWell(
         onTap: onTap,
-        highlightColor: colors.accent.withValues(alpha: .12),
-        splashColor: colors.accent.withValues(alpha: .12),
+        highlightColor: colors.accentSoft,
+        splashColor: colors.accentSoft,
         child: Stack(
           alignment: Alignment.topCenter,
           children: [

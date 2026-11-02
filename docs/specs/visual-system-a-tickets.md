@@ -1,7 +1,7 @@
 # 行笺视觉系统 A：实施 Ticket 计划
 
 - 日期：2026-11-01
-- 状态：proposed（待用户确认）
+- 状态：已按 VA01–VA14 实施（2026-11-01）；**配色与默认外观条款已于 2026-11-02 被外观 v2 修订**（[ADR 0006](../adr/0006-appearance-and-accent.md)、[外观 v2 票面](appearance-v2-tickets.md)）。本文件中「深色默认」「玉绿」「暖米底」等表述属当时的实施计划记录，**不作为现行规定**；现行色板与默认外观见 [Spec 外观 v2](appearance-v2.md)。
 - 依据：[Spec v1](visual-system-a.md)、[ADR 0003](../adr/0003-visual-direction-a.md)
 - 本地 ID：`VA01–VA14`。确认后按 `docs/agents/issue-tracker.md` 映射到 GitHub；**本轮不直接创建或关闭 issue**。
 - 实施边界：不新增 API、不改数据口径、不改 `MileafServer/`/`teslamate/`、不做车辆控制/多站点；真机、真实站点、地图许可/坐标、性能、双端隔离构建仍是外部 gate。

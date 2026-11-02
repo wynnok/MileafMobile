@@ -2,7 +2,8 @@
 
 - 日期：2026-11-01
 - 状态：accepted（2026-11-01 用户确认）
-- 关系：实现 [ADR 0003](../adr/0003-visual-direction-a.md)；取代 C「数据拼贴」的版面与视觉规范；数据口径、API、只读边界和外部待验范围不变。
+- **2026-11-02 由外观 v2 修订**：§2.4 对比度表、§4 hero 形态、§9.8 默认外观、§14 第 1 条已按 [ADR 0006](../adr/0006-appearance-and-accent.md) 与 [Spec 外观 v2](appearance-v2.md) 改写（电光蓝强调色、中性底、默认跟随系统、浅色 hero 卡片）。其余章节（版面范式、字号阶梯、间距档位、圆角、动效、图标、图表几何、四 Tab 分工、状态语义）继续有效。
+- 关系：实现 [ADR 0003](../adr/0003-visual-direction-a.md)（其配色与默认外观部分已被 ADR 0006 修订）；取代 C「数据拼贴」的版面与视觉规范；数据口径、API、只读边界和外部待验范围不变。
 - 交付对象：Flutter 实现、设计评审、render test 与代码评审。
 - 证据：方向评审 [direction-review-v2.md](../product/direction-review-v2.md)、[并排图](../prototypes/directions-v2/renders/compare-dark.png)、[锁定标识](../prototypes/directions-v2/renders/chosen-brand.png)。
 
@@ -20,6 +21,8 @@
 6. **状态必须被设计**：正常、加载、空、部分缺失、过期、失败、进行中都有明确视觉，不靠临时文案。
 
 ## 2. 颜色
+
+> 2026-11-02：本节 §2.1–§2.3 的玉绿/暖石/暖砂色板已被外观 v2 取代，现行色值与命名见 [Spec 外观 v2 §2–§3](appearance-v2.md) 与 [ADR 0006](../adr/0006-appearance-and-accent.md)；实际实现为 `lib/src/design/tokens.dart` / `semantic.dart`。以下三张表保留为 A 首版历史对照，**不作为现行规定**。§2.4 的对比度已按新色板重算。
 
 ### 2.1 primitive
 
@@ -104,35 +107,42 @@
 
 ### 2.4 对比度
 
-实测（WCAG 2.1）：
+实测（WCAG 2.1，2026-11-02 按外观 v2 色板重算；对应断言见 [design_tokens_test.dart:58-109](../../test/design_tokens_test.dart#L58-L109)）：
 
 | 组合 | 对比度 | 结论 |
 | --- | --- | --- |
-| 深色 text / canvas | 18.16 | AA/AAA |
-| 深色 muted / canvas | 6.59 | AA |
-| 深色 faint / canvas | 5.07 | AA |
-| 深色 accent / canvas | 12.03 | AA |
-| 深色 reference / canvas | 10.06 | AA |
-| 深色 warning / canvas | 9.17 | AA |
-| 深色 error / canvas | 7.59 | AA |
-| textOnAccent / accent | 11.64 | AA |
-| 浅色 text / canvas | 16.00 | AA/AAA |
-| 浅色 muted / canvas | 4.94 | AA |
-| 浅色 faint / canvas | 4.59 | AA |
-| 浅色 accent / canvas | 5.64 | AA |
-| 浅色 reference / canvas | 5.17 | AA |
-| 浅色 warning / canvas | 6.54 | AA |
-| 浅色 error / canvas | 5.10 | AA |
-| 浅色 textOnAccent / accent | 6.10 | AA |
-| heroText / hero（浅色 hero） | 16.22 | AA/AAA |
-| heroMuted / hero | 8.49–9.57 | AA |
-| heroFaint / hero | 5.36 | AA |
+| 深色 text / canvas | 17.87 | AA/AAA |
+| 深色 muted / canvas | 7.87 | AA |
+| 深色 faint / canvas | 5.59 | AA |
+| 深色 accent / canvas（图形） | 8.05 | AA |
+| 深色 accentStrong / canvas（文字） | 8.05 | AA |
+| 深色 reference / canvas | 6.80 | AA |
+| 深色 warning / canvas | 10.77 | AA |
+| 深色 error / canvas | 7.75 | AA |
+| textOnAccent / accent | 8.05 | AA |
+| 浅色 text / canvas | 17.10 | AA/AAA |
+| 浅色 muted / canvas | 5.38 | AA |
+| 浅色 faint / canvas | 4.65 | AA |
+| 浅色 accent / canvas（图形） | 3.25 | 仅图形（≥3:1），不可写文字 |
+| 浅色 accentStrong / canvas（文字） | 5.41 | AA |
+| 浅色 reference / canvas | 4.99 | AA |
+| 浅色 warning / canvas | 4.60 | AA |
+| 浅色 error / canvas | 4.90 | AA |
+| textOnAccent / accentStrong | 5.90 | AA |
+| heroText / hero（浅色卡片 hero） | 17.90 | AA/AAA |
+| heroMuted / hero | 9.34 | AA |
+| heroFaint / hero | 6.55 | AA |
+| accentHero / hero | 8.06 | AA |
+| heroText / hero（深色满幅 hero） | 18.10 | AA/AAA |
+| heroMuted / hero（深色） | 9.45 | AA |
+| heroFaint / hero（深色） | 6.63 | AA |
 
 规则：
 
-- 低于 4.5:1 的颜色只能用于非文本装饰（1px 线、面积填充、禁用态），不得承载信息。
-- 比较不靠红绿判断好坏；正向用 accent，参照用砂色虚线 + 文字。
-- 充电 AC/DC/未知：主色、主色 50% 透明、中性灰；不新增第二强调色。
+- 文本对 ≥4.5:1、图形对 ≥3:1；不达标的颜色只能用于非文本装饰（1px 线、面积填充、禁用态），不得承载信息。
+- 一个 tint 两种强度：图形用 `accent`、文字与实心填充用 `accentStrong`；深色两者同值。浅色 `accent` 3.25:1，写文字必须用 `accentStrong`。
+- 比较不靠红绿判断好坏；正向用 `accent`，参照用中性灰（深 `#8E99A6` / 浅 `#5F6B78`）虚线 + 文字。
+- 充电 AC/DC/未知：主系列 `accent`、次系列 `seriesSecondary`（`azure600`）、未知 `textFaint`；不新增第二强调色。
 - 状态色只用于状态，不用于数据系列。
 
 ## 3. 字体
@@ -191,7 +201,10 @@ flutter:
 - 页面左右：320–359 用 20；360–389 用 20；≥390 用 24；≥600 内容最大 560 居中。
 - 段间距：28；段内：16–20；行间距：12–14；行内：6/8/10。
 - 列表行最小高度 56；可点区域 ≥44；底部导航 64，内容底部留 84。
-- hero：左右 20；上 16；下 18；车况主数到状态行 14；hero 到下一段 28。
+- hero：形态由 `ΔL*(hero, canvas)` 推导（外观 v2 §6.1：>20 卡片、≤20 满幅）。
+  - 满幅（深色）：左右 20；上 16（+ 状态栏）；下 18；无圆角、贴屏幕左右与顶部。
+  - 卡片（浅色）：左右外距 12、圆角 20、无描边无阴影；卡内横向 16、内容距屏幕边 28（所有宽度一致）。纵向沿用各页原档位（概览卡片与品牌行相距 12，即品牌行自身下内边距）。
+  - 两种形态共用：车况主数到状态行 14；hero 到下一段 28。
 - 图表：高度 104–160；图头到绘图区 8；绘图区到读数 6。
 - 不使用 6px/10px 等不在 token 内的值。
 
@@ -456,7 +469,8 @@ flutter:
 ### 9.8 连接 / 登录 / 设置
 
 - 用同一 token；表单输入 radius 12，label 10，错误 12 + error 色；主按钮一屏一个。
-- 设置行用 DataRow；外观设置：深色/浅色/跟随系统，默认深色。
+- 设置行用 DataRow；外观设置：跟随系统 / 浅色 / 深色（顺序固定、默认项置顶），**默认跟随系统**并持久化；无保存值时按平台亮度解析，不先深后浅。
+- 说明文案「默认跟随系统。切换后立即生效，并保存在本机。」；选中行文字 `accentStrong`、勾选图标 `accent`。
 - 启动/登录页可以有品牌 Mark + 字标，但不使用 hero 光晕堆叠。
 
 ## 10. 响应式与 200%
@@ -561,7 +575,7 @@ flutter:
 
 ## 14. 验收清单
 
-- [ ] 深色默认；设置可切浅色/跟随系统；浅色仍保留深色 hero。
+- [x] 默认跟随系统（无保存值时按平台亮度解析，已保存偏好优先）；设置可切浅色/深色；浅色仍保留深色 hero（卡片形态，外距 12／圆角 20）。
 - [ ] 每页最多一个深色锚点；没有彩色 tile 网格。
 - [ ] 页面文件无裸色/裸字号/裸圆角；全部走 token。
 - [ ] Inter 三字重随包；中文 fallback 在双端可读；所有数字 tabular。
@@ -588,3 +602,4 @@ flutter:
 ## 16. 变更记录
 
 - 2026-11-01：首版；基于 ADR 0003、方向 A、P1 玉绿、03 M 径；对比度修正浅色 muted/faint。
+- 2026-11-02：外观 v2 修订（[ADR 0006](../adr/0006-appearance-and-accent.md)）；§2.4 对比度表按电光蓝 + 中性底重算，§4 hero 分满幅/卡片两形态，§9.8 默认外观改跟随系统，§14 第 1 条同步。版面、字号、间距档位、圆角、动效不变。

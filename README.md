@@ -25,7 +25,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 | [API 能力与差异](docs/product/api-capabilities.md) | 当前后端实际能支撑什么，哪些不能假设 |
 | [需求澄清与实施交接](docs/product/to-spec-readiness.md) | 本轮纠偏如何进入既有 Spec/工单，下一阶段应交付什么 |
 
-以上为与正式 Spec 配套的产品与体验基线；A「夜航」正式页面的浅深色/大字体实际渲染由 `test/a_gallery_render_test.dart` 生成，输出到 `docs/implementation/a-renders/gallery/`。C 的渲染与逐页对照仅作历史证据。最终双端体验仍需相应外部证据。
+以上为与正式 Spec 配套的产品与体验基线；A「夜航」正式页面的浅深色/大字体实际渲染由 `test/a_gallery_render_test.dart` 生成。**2026-11-02 起现行图册是外观 v2 版**（电光蓝强调、中性底、默认跟随系统、浅色 hero 卡片），输出到 [docs/implementation/appearance-v2-renders/](docs/implementation/appearance-v2-renders/README.md)；`docs/implementation/a-renders/` 是玉绿版的同机位旧图，仅作对照与历史证据。C 的渲染与逐页对照同样仅作历史证据。最终双端体验仍需相应外部证据。
 正式需求与依赖关系以 [GitHub Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 及其子任务为准。
 
 ## 工作约定

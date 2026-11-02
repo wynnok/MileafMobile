@@ -132,6 +132,13 @@ void main() {
       ThemeMode.system,
     );
     expect(
+      tester
+          .widget<MaterialApp>(find.byType(MaterialApp))
+          .themeAnimationDuration,
+      const Duration(milliseconds: 200),
+      reason: 'Spec §11：主题切换 200ms，accentStrong 参与插值',
+    );
+    expect(
       Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
       Brightness.light,
       reason: '测试平台亮度默认浅色，首帧即为浅色，不先深后浅',
@@ -154,6 +161,43 @@ void main() {
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
       ThemeMode.light,
+    );
+  });
+
+  testWidgets('冷启动首帧即为主题亮度，不先深后浅', (tester) async {
+    // §13 第 2 条：`restore()` 在 `runApp` 之前完成，所以第一帧（未 settle）
+    // 就必须解析成平台亮度，而不是先渲染深色再被 `restore` 翻过来。
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final controller = AppearanceController(MemoryAppearanceStore());
+    await controller.restore();
+    final store = MemorySessionStore()
+      ..value = jsonEncode({
+        'site': 'https://example.com/prefix',
+        'token': 'test',
+        'expires_at': '2099-01-01T00:00:00Z',
+      });
+    await tester.pumpWidget(
+      MileafApp(
+        client: shellClient(),
+        appearance: controller,
+        sessionStore: store,
+        trustStore: MemoryTrustStore(),
+        vehiclePreferences: MemoryVehiclePreferences(),
+        now: () => DateTime.utc(2026, 10, 26, 10, 40),
+        calendar: () async => CalendarContext('Asia/Shanghai'),
+      ),
+    );
+    Brightness? firstFrame;
+    for (final theme in tester.widgetList<Theme>(find.byType(Theme))) {
+      firstFrame = theme.data.brightness;
+      break;
+    }
+    expect(firstFrame, Brightness.dark, reason: '首帧必须直接是深色，不能先浅后深');
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
+      Brightness.dark,
     );
   });
 

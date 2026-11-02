@@ -78,9 +78,9 @@ class MileafTopBar extends StatelessWidget {
                       child: InkWell(
                         onTap: onVehicle,
                         borderRadius: MileafRadius.smAll,
-                        highlightColor:
-                            (onHero ? colors.accentHero : colors.accent)
-                                .withValues(alpha: .12),
+                        highlightColor: onHero
+                            ? colors.accentHero.withValues(alpha: .12)
+                            : colors.accentSoft,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: MileafSpace.s4,

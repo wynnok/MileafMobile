@@ -188,3 +188,86 @@ AV02、AV03、AV06：hero 卡片形态、概览头部归属、图表颜色复核
 - **AV07 渲染图册**：先修 `owner_statistics_render_test.dart` 的过时 ChoiceChip 点击（见上「未完成」第 2 条），再按 320/360/390 × 浅/深 × 100%/200% 重出四主 Tab + 两类详情。量图时注意：`getRect(MileafHero)` 在卡片形态下是**外框**（整行宽），要量里面的 `Material`。
 - **AV08 文档同步**：`visual-system-a.md` §4 hero 形态、§9.8 默认外观、§14 第 1 条；`appearance-v2.md` Spec 需改三处——§8 的「系列次色 `accent` 50%」改成 `azure600` 并补实测、§6.3 的「上下各 12」与「纵向 20」按本记录第 1/3 条对齐、§2.2 补 `heroLight`/`accentSoftLight`（批 1 遗留）。
 - **AV09 双轴审查**：重点看 ①形态判据是否被任何页面绕过 ②卡片纵向节奏是否需要统一成 12 ③`seriesSecondary` 这一处 AV06 取舍要不要保留。
+
+## 批 3 记录（2026-11-02）
+
+### 范围
+
+AV07 渲染图册、AV08 文档同步、AV09 双轴审查。**本批不改设计、不改配色、不改版面**：`lib/` 的改动只有审查修复（按压高亮的 token 归属）与注释，色值一个没动。
+
+### AV07 渲染图册
+
+沿用既有 opt-in 入口 `test/a_gallery_render_test.dart`（**没有新增渲染测试文件**），输出到 [appearance-v2-renders](appearance-v2-renders/README.md)：
+
+```sh
+./tool/flutterw test --no-pub test/a_gallery_render_test.dart \
+  --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/appearance-v2-renders/gallery \
+  '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
+# 00:28 +1: All tests passed!
+```
+
+- **132 张** `gallery/`：11 页（四主 Tab + 两类详情 + 五个专题）× normal/empty/missing × 浅/深 × 100/200%，360×800 逻辑像素、PNG 720×1600。票面要求的「四主 Tab + 两类详情 × 浅/深 × 100/200% × normal」= 24 张，是其中的子集。
+- **24 张** `compare/`：与 `docs/implementation/a-renders/gallery/` 同名同机位左右拼接（左 A 玉绿、右外观 v2），覆盖 6 页 × 浅/深 × 100/200% normal。
+- 指纹：PNG `17ac0e76…e3`（132 张互不相同，66 对浅/深与 66 对 100/200% 全部不同）；源码 `65dd739e…89`（86 文件）。
+
+自查（详见图册 README）：
+
+| 项 | 结果 |
+| --- | --- |
+| 旧色板残留（`#F1F0EB`、`#FAF9F5`、`#E9E7E0`、`#8A5A1F`、`#D8B27C`、`#1C6B4F`、`#74DDA8`、`#050806`、`#070908`、`#0E120F`、`#121613`、`#9FB9AA`） | 132 张逐像素 **0 命中** |
+| 新底色 | 浅色主导 `#F4F5F7`（64）/`#070B11`（2）；深色主导 `#0A0B0D`（63）/`#06090E`（3） |
+| 深色「绿黑→冷黑」 | 全图集「绿偏像素」**0**（0.0%）；深色画布 R10/G11/B13 冷偏，旧画布 `#070908` 是 G>B>R |
+| 浅色 hero 卡片 | 图上量得左右外距 24px＝**12**、圆角过渡 39≈**20**（概览 100/200%、充电、统计、充电详情一致）；深色概览外距 0＝**满幅** |
+| 横向溢出/裁切 | 每张保存前 `expect(takeException(), isNull)`，132 张无溢出异常；每张还断言该态标记文本在屏（空态不得出现 normal 数字，反之亦然） |
+
+### AV08 文档同步
+
+| 文件 | 改了什么 |
+| --- | --- |
+| `docs/specs/visual-system-a.md` | 文首加「2026-11-02 由外观 v2 修订」指令行；§2 加头注（§2.1–§2.3 色板为历史对照，不作现行规定）；§2.4 对比度表整表按新色板重算并加「文字 4.5 / 图形 3.0」与「浅色 accent 只可做图形」规则；§4 hero 拆满幅/卡片两形态；§9.8 默认外观改跟随系统 + 选项顺序与文案；§14 第 1 条勾选并改写；§16 补变更记录 |
+| `docs/specs/visual-system-a-tickets.md` | 状态行改为「已实施 + 2026-11-02 被外观 v2 修订」，并注明本文件的「深色默认／玉绿」属当时计划记录 |
+| `docs/specs/mobile-v1.md` | 追加「2026-11-02 外观 v2 增量」段（Problem / Solution / Testing Decisions / Out of Scope / Ticket impact） |
+| `docs/adr/0003-visual-direction-a.md` | 状态行注明配色与默认外观被 ADR 0006 修订；§2「明暗」加行内修订说明（原文保留） |
+| `docs/adr/0006-appearance-and-accent.md` | D5 增加 **D5.1** 实施修正：`seriesSecondary` 由「`accent` 50%」改 `azure600` 及理由与代价 |
+| `docs/specs/appearance-v2.md` | 状态行改「已确认并实施」；§2.2 补 `heroLight`／`accentSoftLight` 命名（批 1 遗留）；§2.3 `seriesSecondary` 单列「改值（实施修正）」；§6.3 纵向 12/20 按实现校正并说明光晕半径是短边比例；§8 系列次色改 `azure600` 并补实测与代价；§13 验收清单逐条勾选，两条标 `[~]` 写明只做到哪一步 |
+| `README.md` | 现行图册指向 `appearance-v2-renders/`，`a-renders/` 标明为玉绿版同机位旧图 |
+| `AGENTS.md` | 追加 2026-11-02 外观 v2 决定与证据入口（历史评审段未动） |
+| `docs/implementation/appearance-v2.md` | 本节 + 批 1/批 2 的入口保持不变 |
+| `docs/implementation/appearance-v2-renders/README.md`、`docs/implementation/appearance-v2-review.md` | 新增 |
+
+`grep` 复查：`README.md`／`AGENTS.md` 内没有把「深色默认」「玉绿」当现行规定的表述（命中的都是带日期的历史决定或本次修订说明）。
+
+### AV09 双轴审查
+
+固定点 `0b6ae57`，标准轴与规格轴两个子代理并行。结论与逐条处置见 [appearance-v2-review.md](appearance-v2-review.md)。摘要：
+
+- **明确问题 8 条，全部已修**：①8 处按压高亮仍是 `accent` 12%（§7.2/§7.4/§3.4 要求 `accentSoft`，`button` 的 secondary 用 `pressOverlay`）②§13「强调色文字用 `accentStrong`」缺 widget 断言 ③冷启动缺首帧断言 ④`themeAnimationDuration` 未断言 ⑤4 处链接指向不存在的审查文件 ⑥Spec §2.3 与 §8 关于 `seriesSecondary` 自相矛盾、ADR D5 未同步 ⑦ADR 0003 §2 仍把「默认深色」写成规则 ⑧光晕注释与实现不符（短边 vs 宽度）。
+- **待确认 3 条（未改，只记录）**：①`heroAsCard` 读插值色，200ms 切换末段会翻转一次（两种形态结构不同，消除它需要让形态本身参与动画，属 §11 禁止项）②浅色 `seriesSecondary #0B62C4` 与 `reference #5F6B78` 明度比 1.08、深色次系列比主色更暗（AV06 的取舍，需用户裁决）③热力格最强格按 `isDark` 选墨色（语义层没有「accent 填充上的墨色」这一项）。
+- 修复后：`analyze` 0 issue、`format` 0 changed、`test` **427 通过 / 23 跳过**（批 2 是 423，本轮 +4）。
+
+### 命令与实测数字
+
+```sh
+./tool/flutterw analyze --no-pub
+# No issues found! (12.9s)
+
+./tool/flutterw dart format --output=none --set-exit-if-changed lib test
+# Formatted 159 files (0 changed) in 0.77 seconds.  → exit 0
+
+./tool/flutterw test --no-pub
+# 00:49 +427 ~23: All tests passed!
+```
+
+### 未完成 / 已知问题
+
+1. **图册只到 360 宽**。320/390 的形态与内容宽由 `a_overview_test` 的 12 条矩阵守（264/304/334），但没有归档渲染图；7 处 hero 里只有概览与充电详情有几何断言，其余靠 360×100/200% 无溢出异常兜底（Spec §13 已标 `[~]`）。
+2. **`test/owner_statistics_render_test.dart` 仍然过时**（批 2 记录的既有问题）：它点的是已被替换的五个 ChoiceChip。本轮用的是 `a_gallery_render_test.dart`，不受影响；修它属另一张票。
+3. **`heroAsCard` 在主题切换动画中的一次翻转**（审查待确认 ①）：已写进 `semantic.dart` 的注释。
+4. **AV06 的次系列取舍未定**（审查待确认 ②）：浅色次系列与参照线明度比 1.08，靠色相区分。要彻底解决需要用户决定「保住 3:1」还是「保住淡次系列」。
+5. **批次边界内的遗留**：`accentFocus`／`accentPressed` 仍是零调用的重复表达；`mileafHeroPadding` 的卡片分支只服务设计画廊渲染。
+6. 真机、真实站点/地图、性能、双端隔离构建仍是独立外部 gate，本批不改变其状态；渲染图不是真机或真实站点证据。
+
+### 下一批
+
+AV01–AV09 三批已全部完成，外观 v2 无后续批次。后续候选只有上列「未完成/已知问题」：修复过时的统计渲染入口、让 hero 形态在切换动画里平滑、裁决次系列取色。
+

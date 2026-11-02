@@ -86,9 +86,11 @@ class MileafHero extends StatelessWidget {
         ),
       );
     }
-    // Card: same 18% peak with the radius taken from the card width. The centre
-    // is the spec ratio (w×1.02, −h×0.15) expressed in the card's own
-    // fractional coordinates, so it needs no built-time height.
+    // Card: same 18% peak; Flutter resolves a fractional radius against the
+    // box's **short side**, so 0.95 reads as ≈0.95×height here, not 0.95×width
+    // as §6.3's "半径 ≈ w×0.95" says. The centre is the spec ratio
+    // (w×1.02, −h×0.15) expressed in the card's own fractional coordinates, so
+    // it needs no built-time height.
     return Positioned.fill(
       child: IgnorePointer(
         child: DecoratedBox(
@@ -109,6 +111,11 @@ class MileafHero extends StatelessWidget {
 ///
 /// Full bleed keeps the status-bar inset; the card form drops it (the paper
 /// owns the status bar) and uses the card's 16 / 20 box instead.
+///
+/// This is the **default card box**, used by the design gallery to render a
+/// spec-shaped hero. Real pages pass their own vertical padding through
+/// `MileafHero` (overview keeps `s4` / `heroBottom`), so the 20 below is not a
+/// promise that every page's hero is 20 tall inside.
 EdgeInsets mileafHeroPadding(BuildContext context) {
   if (context.colors.heroAsCard) {
     return const EdgeInsets.fromLTRB(

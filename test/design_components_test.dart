@@ -739,4 +739,72 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  group('强调色分层：文字 accentStrong、图形 accent（Spec §1 R3、§7.2、§13）', () {
+    for (final brightness in Brightness.values) {
+      testWidgets('${brightness.name}：可读文字一律 accentStrong', (tester) async {
+        final colors = brightness == Brightness.dark
+            ? const MileafColors.dark()
+            : const MileafColors.light();
+        await pumpComponent(
+          tester,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MileafNavBar(index: 0, onSelected: (_) {}),
+              const SizedBox(height: 12),
+              StatusChip(label: '本月', selected: true, onTap: () {}),
+              const SizedBox(height: 12),
+              MileafButton(
+                label: '全部指标',
+                kind: MileafButtonKind.ghost,
+                onPressed: () {},
+              ),
+              const SizedBox(height: 12),
+              MileafButton(
+                label: '取消',
+                kind: MileafButtonKind.secondary,
+                onPressed: () {},
+              ),
+              const SizedBox(height: 12),
+              MileafButton(label: '保存', onPressed: () {}),
+            ],
+          ),
+          brightness: brightness,
+        );
+
+        Color? textColor(String label) =>
+            tester.widget<Text>(find.text(label)).style?.color;
+        expect(textColor('概览'), colors.accentStrong, reason: '选中导航标签是文字');
+        expect(textColor('行程'), colors.textFaint, reason: '未选导航标签');
+        expect(textColor('本月'), colors.accentStrong, reason: '选中 chip 标签是文字');
+        expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');
+        expect(textColor('取消'), colors.text, reason: 'secondary 用正文色');
+        expect(textColor('保存'), colors.textOnAccent, reason: '实心按钮文字');
+
+        // §7.2 按压：primary/ghost → accentSoft；secondary → pressOverlay。
+        Color? highlight(String label) => tester
+            .widget<InkWell>(
+              find
+                  .ancestor(
+                    of: find.text(label),
+                    matching: find.byType(InkWell),
+                  )
+                  .first,
+            )
+            .highlightColor;
+        expect(highlight('全部指标'), colors.accentSoft);
+        expect(highlight('保存'), colors.accentSoft);
+        expect(highlight('取消'), colors.pressOverlay);
+        expect(highlight('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
+      });
+    }
+
+    test('深色把两层强调色合并（§1 R3）', () {
+      const dark = MileafColors.dark();
+      const light = MileafColors.light();
+      expect(dark.accentStrong, dark.accent);
+      expect(light.accentStrong, isNot(light.accent));
+    });
+  });
 }

@@ -159,6 +159,13 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// than 20 L\* away from the canvas is a card on that canvas, otherwise it is
   /// the same continuous material. Current values: dark Δ0.61 → full bleed,
   /// light Δ93.58 → card.
+  ///
+  /// Known transient: during the 200ms appearance swap `MileafColors.lerp`
+  /// feeds interpolated hero/canvas here, so the form flips once, late in the
+  /// animation, when ΔL\* crosses 20. Any switch between two structurally
+  /// different hero forms flips once; moving or removing the flip would need
+  /// the form itself animated (Spec §11 forbids hero entry animation, and
+  /// batch 2 was scoped to no structural change).
   bool get heroAsCard => (_lStar(hero) - _lStar(canvas)).abs() > 20;
 
   /// Focus ring is the only 2px accent stroke.

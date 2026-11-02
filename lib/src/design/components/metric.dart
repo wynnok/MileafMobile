@@ -240,7 +240,7 @@ class MetricBlock extends StatelessWidget {
               child: InkWell(
                 onTap: onTap,
                 borderRadius: MileafRadius.smAll,
-                highlightColor: colors.accent.withValues(alpha: .12),
+                highlightColor: colors.accentSoft,
                 child: Padding(
                   padding: const EdgeInsets.all(MileafSpace.s8),
                   child: content,

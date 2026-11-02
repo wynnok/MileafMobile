@@ -95,7 +95,7 @@ class _StatusChipState extends State<StatusChip> {
               child: InkWell(
                 onTap: enabled ? widget.onTap : null,
                 customBorder: const StadiumBorder(),
-                highlightColor: colors.accent.withValues(alpha: .12),
+                highlightColor: colors.accentSoft,
                 child: Container(
                   foregroundDecoration: _focused
                       ? BoxDecoration(

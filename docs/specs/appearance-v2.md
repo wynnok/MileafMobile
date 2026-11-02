@@ -1,7 +1,7 @@
 # 外观 v2 设计规格（Spec）
 
 - 日期：2026-11-02
-- 状态：待确认（确认后产出 Ticket 并进入实施）
+- 状态：已确认并实施（AV01–AV09 分三批，2026-11-02 本地完成；证据见 [实施记录](../implementation/appearance-v2.md)、[渲染图册](../implementation/appearance-v2-renders/README.md)、[双轴审查](../implementation/appearance-v2-review.md)）
 - 上游：[ADR 0006](../adr/0006-appearance-and-accent.md)（已 accepted）
 - 替代范围：`docs/specs/visual-system-a.md` 的 §2（配色）、§4（hero 形态）、§9.8（外观设置）、§14 第 1 条验收。**其余章节（版面范式、字号阶梯、间距档位、圆角、动效、图标、图表几何、四 Tab 分工、状态语义）继续有效。**
 - 不涉及：接口、数据语义、地图 provider、原生依赖、真机/外部待验 gate。
@@ -38,6 +38,10 @@ MileafPalette（primitive，只有 raw hex）
 | `steel500/300` | 参照（浅 / 深） | `#5F6B78` / `#8E99A6` |
 | `amber500/400` | warning（浅 / 深） | `#B45309` / `#FFB020` |
 | `red600/400` | error（浅 / 深） | `#CE271B` / `#FF7A70` |
+| `heroLight` | 浅色 hero 底（§3.2） | `#070B11` |
+| `accentSoftLight` | 浅色选中 chip 底 / 按压高亮（§3.2） | `#DCEBFD` |
+
+> 最后两行是实施时补登记的：§3.2 给了值，本表原先没给名字。`heroLight` 不复用 `slate1000`（后者是深色 hero），`accentSoftLight` 与 `accentSoftDark`（`#64A8FF` 16%）分别对应两种亮度。
 
 **删除**：`jade300/350/500/550/700/800/900`、`stone0/50/100/Raised/Soft`、`sand300/500/700`、`clay400/600`、`ink0/500/600/700/750/900`、`heroOnLight`。引用它们的断言（[design_tokens_test.dart:177-187](../../test/design_tokens_test.dart#L177-L187)、[:81](../../test/design_tokens_test.dart#L81)）同步改写。
 
@@ -47,7 +51,8 @@ MileafPalette（primitive，只有 raw hex）
 | --- | --- |
 | 新增 | `accentStrong`（浅 `#0B62C4` / 深 `#64A8FF`，替换原 `accentText` 概念） |
 | 改值 | `canvas`、`hero`、`surface`、`surfaceRaised`、`text`、`textMuted`、`textFaint`、`accent`、`accentSoft`、`accentHero`、`reference`、`warning`、`error`、`line`、`lineStrong`、`scrim`、`skeleton`、`sheetShadow`、`heroText`、`heroMuted`、`heroFaint` |
-| 不变 | `isDark`、`pressOverlay` 的语义、`focusRing` 的语义（accent 60%）、`seriesPrimary/seriesSecondary/seriesNeutral` |
+| 改值（实施修正） | `seriesSecondary`：原「`accent` 50%」合成后浅 1.78 / 深 2.78，不满足 §13 的图形 3:1，改为 `azure600`（理由与实测见 §8 末段、ADR 0006 D5.1） |
+| 不变 | `isDark`、`pressOverlay` 的语义、`focusRing` 的语义（accent 60%）、`seriesPrimary/seriesNeutral` |
 | 必须补进 `lerp` | `accentStrong`（否则主题切换时文字色不会过渡） |
 
 ## 3. 色板
@@ -193,11 +198,11 @@ MileafPalette（primitive，只有 raw hex）
 
 ### 6.3 卡片形态（浅色）
 
-- 外框：左右 `cardInset(12)`，上下各 12（概览在 top bar 之下 12；其它页与相邻区块 12）。
+- 外框：左右 `cardInset(12)`；**纵向不额外加 12**（实施修正）：概览的品牌行自带 12 下内边距，卡片与它正好相距 12；其它页 hero 与相邻区块沿用页面原有纵向档位（16/20/28），给组件加纵向外边距会把概览变成 24、并挪动其它页既有节奏。
 - 圆角 `lg(20)`，四角一致；**无描边、无阴影**（深色卡片自带体量，不需要边）。
 - 光晕同上（`accentHero` 18%），因卡片变窄，峰值保持不变、半径按卡片宽度计算。
-- **不再声明 `SystemUiOverlayStyle`**：状态栏上方是纸面，前景由页面按 canvas 亮度决定（浅色 → 深色图标）。这是 [hero.dart:52-56](../../lib/src/design/components/hero.dart#L52-L56) 必须改的一处。
-- 内部横向 padding 固定 `cardPad(16)`，纵向 20；内容距屏幕边 28，卡片留白 12（所有宽度一致）。
+- **不再声明 `SystemUiOverlayStyle`**：状态栏上方是纸面，前景由页面按 canvas 亮度决定（浅色 → 深色图标）。这是 [hero.dart](../../lib/src/design/components/hero.dart) 必须改的一处。
+- 内部横向 padding 固定 `cardPad(16)`；内容距屏幕边 28，卡片留白 12（所有宽度一致）。**纵向内边距沿用各调用点原值**（§6.3 的「纵向 20」只对充电费用与两个统计 hero 字面成立，概览保持原有 `s4`/`heroBottom 18`，因为 AV02 明确不改 hero 内部排版）。
 - 该横向 padding 由新增的 `MileafLayout.heroInset(context)` 统一给出（卡片形态 → `cardPad`，满幅 → `pageInset`）；7 处 hero 调用点把 `MileafLayout.pageInset(context)` 换成它，不各自判断形态。
 
 ### 6.4 顶部归属
@@ -284,7 +289,7 @@ MileafPalette（primitive，只有 raw hex）
 | 元素 | 深色 | 浅色 |
 | --- | --- | --- |
 | 系列主色 | `accent` | `accent` |
-| 系列次色 | `accent` 50% | `accent` 50% |
+| 系列次色 | `seriesSecondary` = `azure600` | 同（实施修正，见下） |
 | 中性/未知 | `textFaint` | `textFaint` |
 | 参照虚线 | `reference`，`[4,4]` | 同 |
 | 网格/坐标基线 | `line` | `line` |
@@ -293,6 +298,8 @@ MileafPalette（primitive，只有 raw hex）
 | 面积渐变 | `accent` 16% → 0 | 同 |
 | hero 内系列 | `accentHero` | 同 |
 | hero 内网格 | `heroText` 12% | 同 |
+
+**系列次色（2026-11-02 实施修正）**：原定 `accent` 50% 合成后对白卡只有 1.78、对深色 surface 2.78，达不到 §13「主/次系列 ≥3:1」；改为 `azure600` `#0B62C4`（对白卡 5.90、对深色 surface 3.07，深色主/次相差 2.41、浅色 1.66）。代价是浅色 DC 段由淡蓝变深蓝，且浅色下与 `reference` 石墨的明度接近（1.07），靠色相区分。
 
 线的粗细、面积透明度、柱宽、stem、y 轴 3 刻度等几何全部沿用 `MileafChartMetrics`，本次不改。
 
@@ -343,16 +350,18 @@ MileafPalette（primitive，只有 raw hex）
 
 ## 13. 验收清单
 
-- [ ] 首启（无保存值）为跟随系统；系统深色 → 深色、系统浅色 → 浅色；已存偏好优先。
-- [ ] 冷启动无"先深后浅"闪色。
-- [ ] 外观 sheet 顺序为 跟随系统 / 浅色 / 深色，文案为「默认跟随系统…」。
-- [ ] 浅色 hero 为 12 外边距 + 20 圆角卡片；深色 hero 仍满幅；同一页面不混用两种形态。
-- [ ] 浅色概览的 top bar 在纸面，状态栏图标为深色且清晰；深色概览的 top bar 在 hero 内、图标为浅色。
-- [ ] 浅色画布 `#F4F5F7`、卡片 `#FFFFFF`；浅色截图里不再出现暖米底与土黄线条。
-- [ ] 所有强调色文字用 `accentStrong`；浅色下不存在 3.25:1 的蓝色文字。
-- [ ] 对比度测试全绿：文本 ≥4.5、图形 ≥3.0、明度阶满足 §3.3（ADR）。
-- [ ] 7 处 hero 调用在浅色下均为卡片，无横向溢出（含 320 宽与 200%）。
-- [ ] 主题切换有 200ms 颜色过渡，`accentStrong` 也参与过渡。
-- [ ] 图表系列、参照、当前点、hero 内图表在两种模式下都可读。
-- [ ] `lib/` 内除 tokens/semantic 外仍零 `Color(0x...)`。
-- [ ] 四主 Tab + 两类详情 × 浅/深 × 100/200% 正式 Flutter 渲染全部重出并归档。
+2026-11-02 三批完成后逐条核对；证据见 [实施记录](../implementation/appearance-v2.md)、[渲染图册](../implementation/appearance-v2-renders/README.md) 与 [双轴审查](../implementation/appearance-v2-review.md)。
+
+- [x] 首启（无保存值）为跟随系统；系统深色 → 深色、系统浅色 → 浅色；已存偏好优先。（`appearance_shell_test`）
+- [x] 冷启动无"先深后浅"闪色。（`appearance_shell_test`「冷启动首帧即为主题亮度」）
+- [x] 外观 sheet 顺序为 跟随系统 / 浅色 / 深色，文案为「默认跟随系统…」。（`appearance_shell_test`）
+- [x] 浅色 hero 为 12 外边距 + 20 圆角卡片；深色 hero 仍满幅；同一页面不混用两种形态。（`design_components_test`、`a_overview_test`、图册量测）
+- [x] 浅色概览的 top bar 在纸面，状态栏图标为深色且清晰；深色概览的 top bar 在 hero 内、图标为浅色。（`a_overview_test`、`design_components_test`）
+- [x] 浅色画布 `#F4F5F7`、卡片 `#FFFFFF`；浅色截图里不再出现暖米底与土黄线条。（132 张渲染逐像素 0 命中）
+- [x] 所有强调色文字用 `accentStrong`；浅色下不存在 3.25:1 的蓝色文字。（`design_components_test`「强调色分层」，2026-11-02 补）
+- [x] 对比度测试全绿：文本 ≥4.5、图形 ≥3.0、明度阶满足 §3.3（ADR）。（`design_tokens_test`）
+- [~] 7 处 hero 调用在浅色下均为卡片，无横向溢出（含 320 宽与 200%）。**部分**：7 处均在 360 宽 100/200% 渲染且无溢出异常；几何断言只覆盖概览（320/360/390 × 100/200%）与充电详情；320 宽未逐页断言。
+- [x] 主题切换有 200ms 颜色过渡，`accentStrong` 也参与过渡。（`design_tokens_test` 插值 + `appearance_shell_test` 的 `themeAnimationDuration`）
+- [~] 图表系列、参照、当前点、hero 内图表在两种模式下都可读。**部分**：系列/次系列/参照/网格的对比度有断言，当前点为实心 4 + 8 光晕的几何断言；「可读」的最终判断靠图册目视。
+- [x] `lib/` 内除 tokens/semantic 外仍零 `Color(0x...)`。（`grep` 0 命中）
+- [x] 四主 Tab + 两类详情 × 浅/深 × 100/200% 正式 Flutter 渲染全部重出并归档。（[图册](../implementation/appearance-v2-renders/README.md) 132 张）
