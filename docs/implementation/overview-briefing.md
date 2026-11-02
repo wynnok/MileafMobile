@@ -1,6 +1,6 @@
 # A「用车简报」实施与验证
 
-2026-10-27；实施基线为 `4fc2ad63acc6037bde17f3524106a7eaed1ce8cf`，当前集成分支 `codex/mileaf-v1`。用户已明确选择概览扩展 A，仅实施现有 API 支持范围。Spec #1 和概览工单 #8 增量更新，无重复工单、无依赖边修改。正式 [Flutter 渲染图册](overview-briefing-renders/index.html)和[源码/图像校验清单](overview-briefing-renders/manifest.json)记录本次候选。
+2026-10-27；实施基线为 `4fc2ad63acc6037bde17f3524106a7eaed1ce8cf`，当前集成分支 `codex/mileaf-v1`。用户已明确选择概览扩展 A，仅实施现有 API 支持范围。Spec #1 和概览工单 #8 增量更新，无重复工单、无依赖边修改。正式 Flutter 渲染图册（已归档）和源码/图像校验清单（已归档）记录本次候选。
 
 ## 已交付
 

@@ -261,7 +261,7 @@ AV07 渲染图册、AV08 文档同步、AV09 双轴审查。**本批不改设计
 ### 未完成 / 已知问题
 
 1. **图册只到 360 宽**。320/390 的形态与内容宽由 `a_overview_test` 的 12 条矩阵守（264/304/334），但没有归档渲染图；7 处 hero 里只有概览与充电详情有几何断言，其余靠 360×100/200% 无溢出异常兜底（Spec §13 已标 `[~]`）。
-2. **`test/owner_statistics_render_test.dart` 仍然过时**（批 2 记录的既有问题）：它点的是已被替换的五个 ChoiceChip。本轮用的是 `a_gallery_render_test.dart`，不受影响；修它属另一张票。
+2. **`test/owner_statistics_render_test.dart` 的过时问题已随清理消失**：它点的是已被替换的五个 ChoiceChip，本轮用的是 `a_gallery_render_test.dart`，不受影响。2026-11-02 的历史图册归档把该文件连同 16 个按代划分的渲染入口一并删除，见 [render-archive.md](render-archive.md)。
 3. **`heroAsCard` 在主题切换动画中的一次翻转**（审查待确认 ①）：已写进 `semantic.dart` 的注释。
 4. **AV06 的次系列取舍未定**（审查待确认 ②）：浅色次系列与参照线明度比 1.08，靠色相区分。要彻底解决需要用户决定「保住 3:1」还是「保住淡次系列」。
 5. **批次边界内的遗留**：`accentFocus`／`accentPressed` 仍是零调用的重复表达；`mileafHeroPadding` 的卡片分支只服务设计画廊渲染。

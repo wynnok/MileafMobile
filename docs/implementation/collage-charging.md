@@ -11,7 +11,7 @@
 - `tool/flutterw analyze`：无问题。
 - `collage_charging_render_test.dart`：360×800、正常/空统计/缺失统计、浅深色、100%/200%，36 张正式 Flutter 渲染；每次导出检查 Flutter 异常，无 overflow。空统计图不绘制全零趋势。
 
-图册位于 [charging/](collage-renders/charging/)，`home-` 为首屏，`evidence-` 为分类区域，`records-` 为地点/最近记录区域。图册使用受控合成 HTTP 响应，空/缺失状态重点覆盖统计摘要；地点数据沿用独立地点响应，不用列表页推导。
+图册位于 `collage-renders/charging/`（已归档），`home-` 为首屏，`evidence-` 为分类区域，`records-` 为地点/最近记录区域。图册使用受控合成 HTTP 响应，空/缺失状态重点覆盖统计摘要；地点数据沿用独立地点响应，不用列表页推导。
 
 复现：设置 `MILEAF_FLUTTER_SDK` 指向已存在的项目 SDK，执行：
 

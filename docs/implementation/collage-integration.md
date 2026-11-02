@@ -34,7 +34,7 @@
 - 独立端点：上式追加 `test/collage_trace_test.dart`。VM service 必须开启；未开启时不能声称实际 Timeline 验证通过。
 - C 图册使用各 `collage*_render_test.dart`，传 `MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/<章节目录>` 与 `MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf`；目录与命令见各 collage 切片实施记录。
 
-[provenance.json](collage-renders/provenance.json) 记录来源提交、全部 lib/test 源文件、清单/锁文件、字体和280图片的 SHA256；原工作区未提交 Spec/ADR/prototype/style 只读计算指纹，未复制或覆盖用户设计文件。集成基线在交付前复核仍为4471729。双轴 code-review 由 merger 在合并后统一执行，本记录不提前宣称审查通过。
+`collage-renders/provenance.json`（已归档） 记录来源提交、全部 lib/test 源文件、清单/锁文件、字体和280图片的 SHA256；原工作区未提交 Spec/ADR/prototype/style 只读计算指纹，未复制或覆盖用户设计文件。集成基线在交付前复核仍为4471729。双轴 code-review 由 merger 在合并后统一执行，本记录不提前宣称审查通过。
 
 ## 本轮双轴审查与修复
 

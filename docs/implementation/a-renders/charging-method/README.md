@@ -1,7 +1,7 @@
 # 补能方式构成环渲染（CM06）
 
 - 日期：2026-11-01
-- 依据：[设计规格](../../specs/charging-method-share-ring.md)、[ADR 0004](../../adr/0004-charging-method-visual.md)
+- 依据：[设计规格](../../../specs/charging-method-share-ring.md)、[ADR 0004](../../../adr/0004-charging-method-visual.md)
 - 生成入口：`test/a_charging_method_render_test.dart`（opt-in；未设置 `MILEAF_RENDER_OUTPUT` 时跳过）
 - 复现：
 

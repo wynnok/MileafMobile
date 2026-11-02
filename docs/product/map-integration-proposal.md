@@ -340,4 +340,4 @@ C 的既有测试缝是 App + 可控 HTTP；高德原生网络无法由该缝驱
 - [高德 Maven 11.3.100](https://repo1.maven.org/maven2/com/amap/api/3dmap-location-search/)
 - [Android 16KB 页面大小](https://developer.android.com/guide/practices/page-sizes)
 - [amap_map（备选，不首选）](https://pub.dev/packages/amap_map)
-- 现有实现：[map_candidate.dart](../../lib/src/map_candidate.dart)、[map-candidate.md](../implementation/map-candidate.md)
+- 现有实现（提案时）：`lib/src/map_candidate.dart` 已随高德接入删除，当前实现见 [amap-map.md](../implementation/amap-map.md) 与 [map-candidate.md](../implementation/map-candidate.md)

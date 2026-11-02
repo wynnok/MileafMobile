@@ -1,6 +1,6 @@
 # 行程扩展方案：从记录列表到出行回顾
 
-2026-10-27 更新：用户已确认 A「出行回顾」及顺序1的现有 API 范围，正式Flutter、本地自动化、渲染、隔离双端构建与审查已完成，见[实施记录](../implementation/drives-expansion.md)及[正式图册](../implementation/drives-expansion-renders/index.html)。GitHub Spec #1 和工单 #9、#10、#11 已增量同步，外部待验和原生依赖保留。下文原型及顺序2–4能力仍属设计参考和后续候选。
+2026-10-27 更新：用户已确认 A「出行回顾」及顺序1的现有 API 范围，正式Flutter、本地自动化、渲染、隔离双端构建与审查已完成，见[实施记录](../implementation/drives-expansion.md)及正式图册（已归档）。GitHub Spec #1 和工单 #9、#10、#11 已增量同步，外部待验和原生依赖保留。下文原型及顺序2–4能力仍属设计参考和后续候选。
 
 ## 产品判断
 

@@ -8,7 +8,7 @@
 
 C「数据拼贴」已于 2026-10-31 通过 C10。C 证明了“一页一个主角、结论先行、图表优先”的方向成立，但正式渲染暴露的是**工艺与系统**问题，不是数据或结构问题：
 
-- 深色是 `ColorScheme.fromSeed` 补出来的；mint `#1E3B2C`、sand `#3B3120` 发浊，hero `#06140F` 与页面底 `#09140F` 几乎同色（[visual_theme.dart](../../lib/src/visual_theme.dart)、[collage.dart](../../lib/src/collage.dart)）。
+- 深色是 `ColorScheme.fromSeed` 补出来的；mint `#1E3B2C`、sand `#3B3120` 发浊，hero `#06140F` 与页面底 `#09140F` 几乎同色（当时为 `lib/src/visual_theme.dart`、`lib/src/collage.dart`，已按本文要求随 token 化删除，现为 `lib/src/design/theme.dart`）。
 - 没有 token 体系：9–48px 字号、8–22px 圆角、重复硬编码色散落在页面里；`collage.dart` 只抽象了 4 种表面。
 - 可被截图放大的硬伤：[overview_page.dart:717](../../lib/src/overview_page.dart#L717) 输出“326880 分钟前”；`_monthBento()` 的 `stretch` 造成本月 tile 整块留白；费用“72（币种未知）”换行；AppBar 与页内两个刷新入口；tabular figures 只在少数数字上生效。
 
@@ -140,7 +140,7 @@ C「数据拼贴」已于 2026-10-31 通过 C10。C 证明了“一页一个主�
 - `lib/src/design/motion.dart`
 - `lib/src/design/components/*`
 
-现有 [visual_theme.dart](../../lib/src/visual_theme.dart) 与 [collage.dart](../../lib/src/collage.dart) 在新页面迁移完成后删除；页面文件不得再出现裸 `Color(0x...)`、裸 `fontSize`、裸 `EdgeInsets` 作为视觉决策。代码评审以“页面是否只消费 token/组件”为检查项。
+原 `lib/src/visual_theme.dart` 与 `lib/src/collage.dart` 已随 token 化删除（现由 `lib/src/design/theme.dart`、`lib/src/design/semantic.dart` 与 `lib/src/design/components/*` 承担）；页面文件不得再出现裸 `Color(0x...)`、裸 `fontSize`、裸 `EdgeInsets` 作为视觉决策。代码评审以“页面是否只消费 token/组件”为检查项。
 
 ### 11. 状态与可达性
 
@@ -186,5 +186,5 @@ C「数据拼贴」已于 2026-10-31 通过 C10。C 证明了“一页一个主�
 - 三组强调色：[palettes.png](../prototypes/directions-v2/renders/palettes.png)
 - 三个符号：[marks.png](../prototypes/directions-v2/renders/marks.png)
 - 锁定标识：[chosen-brand.png](../prototypes/directions-v2/renders/chosen-brand.png)
-- 当前 C 正式渲染：[collage-renders](../implementation/collage-renders/overview/overview-normal-light-100.png)
+- 当前 C 正式渲染：`../implementation/collage-renders/overview/overview-normal-light-100.png`（已归档）
 - 评审原型：[directions-v2](../prototypes/directions-v2/README.md)

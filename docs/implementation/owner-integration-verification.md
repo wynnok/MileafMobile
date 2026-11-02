@@ -45,7 +45,7 @@
 - `6464d39`：概览4项App＋HTTP状态验证与72张正式渲染，无概览产品逻辑重写；merger以`236969e`合入。
 - `373a868`、`36bda89`、`803c27e`：默认统计入口修复、主题字体继承和200%温度标签边界，及正式状态渲染；实现分支同步集成后以`7b5c6c9`交付，merger以`23ee92d`合入。
 - 只改4个产品Dart文件，未改接口或计算公式。新测试沿已确认App＋可控HTTP缝；新增既有状态验证没有伪造red/green，入口实际缺陷有先红后绿记录。
-- [概览分票矩阵](owner-overview-verification.md)、[统计分票矩阵](owner-statistics-verification.md)、[总图册入口](owner-integration-renders/index.html)。概览图册已在最终集成产品源码重新生成并刷新指纹；统计图册的输入源码与当前一致。普通行程/充电也在集成后重新渲染。
+- [概览分票矩阵](owner-overview-verification.md)、[统计分票矩阵](owner-statistics-verification.md)、总图册入口（已归档）。概览图册已在最终集成产品源码重新生成并刷新指纹；统计图册的输入源码与当前一致。普通行程/充电也在集成后重新渲染。
 
 ## 最终执行
 

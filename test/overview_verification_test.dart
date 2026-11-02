@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
 import 'overview_visualization_test.dart';
-import 'overview_state_render_test.dart' show stateDriving;
+import 'support/overview_state_fixture.dart';
 import 'support/statistics_insights_fixture.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 # 行程扩展 · 产品方案与原型
 
-2026-10-27 更新：用户已确认 A「出行回顾」顺序1的现有API范围，并完成正式Flutter本地实施与验证，见[实施记录](../../implementation/drives-expansion.md)及[正式图册](../../implementation/drives-expansion-renders/index.html)。本目录继续保存合成评审原型，B/C及扩展能力为设计参考；不修改后端。
+2026-10-27 更新：用户已确认 A「出行回顾」顺序1的现有API范围，并完成正式Flutter本地实施与验证，见[实施记录](../../implementation/drives-expansion.md)及正式图册（已归档）。本目录继续保存合成评审原型，B/C及扩展能力为设计参考；不修改后端。
 
 产品判断、指标覆盖与分期见[完整方案](../../product/drives-expansion-proposal.md)。Mobile原型基线 `bfb39a8`；冻结契约Server `146cb3b9a16af3d632b04ed8d197d0f2243d9b71`；只读参考Server `72710ff6ea5ee2805ed4a9fdea2854b384a44147`、TeslaMate `6bf3d55e4242cf9c55d1dd334b18e35c9ff59d9f`。原型primary source保存在本地 `codex/drives-expansion-prototype` 的 `7e32322`，正式页面不调用原型脚本；未推送。
 

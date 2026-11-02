@@ -4,7 +4,7 @@
 
 沿用用户已选的 A「湖畔」视觉。本次 A/B/C 是三种首页信息组织方式，**不是重新选择视觉主题**。已选 A「用车简报」为正式实施骨架，B/C 仅保留原型来源。
 
-原型primary source为本地分支 `codex/overview-briefing-prototype` 的 `0be1e8cf60d796dd810ed08059c3f01c482ecc69`，入口为该提交中的 `docs/prototypes/overview-expansion/README.md`，工作文件仍保留本地。原型数字为固定合成样例，时间基准为2026-10-26 18:40 Asia/Shanghai，与本次文档日期不同。最新[正式Flutter图册](../implementation/overview-briefing-renders/index.html)与原型证据分别保存。
+原型primary source为本地分支 `codex/overview-briefing-prototype` 的 `0be1e8cf60d796dd810ed08059c3f01c482ecc69`，入口为该提交中的 `docs/prototypes/overview-expansion/README.md`，工作文件仍保留本地。原型数字为固定合成样例，时间基准为2026-10-26 18:40 Asia/Shanghai，与本次文档日期不同。最新正式Flutter图册（已归档）与原型证据分别保存。
 
 ## 产品判断
 

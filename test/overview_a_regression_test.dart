@@ -7,7 +7,7 @@ import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/currency.dart';
 import 'package:mileaf/src/workspace.dart';
 
-import 'c_gallery_render_test.dart' show cGalleryClient;
+import 'support/c_gallery_client.dart';
 import 'support/c_fixture.dart' show cNow, cSite;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';

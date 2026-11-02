@@ -15,7 +15,7 @@
 
 - 默认入口行为在修复前失败于本月未选中；修复后本月选中，当前驾驶查询恢复本地月初，参照仍独立读取（不把最后一个参照请求误当本期）。
 - owner及statistics_insights/usage/conditions/range/parking/charging七组定向回归44项通过。最终温度图标签空间调整后另执行条件+owner回归9项通过。最终全App回归由根集成执行，不把44当全套。
-- `tool/flutterw analyze --no-pub lib test`无诊断。正式Flutter渲染360×800，浅深色及100%/200%，正常/edge/failure共116张，见[图册](owner-statistics-renders/index.html)与[指纹](owner-statistics-renders/provenance.json)。
+- `tool/flutterw analyze --no-pub lib test`无诊断。正式Flutter渲染360×800，浅深色及100%/200%，正常/edge/failure共116张，见图册（已归档）与指纹（已归档）。
 - edge场景为usage无已完成行程、温度原样稀疏分组、续航稀疏/末月缺失、停放无有效窗口；failure为条件专题503，其余专题仍可切换阅读。不是所有资源的全排列失败测试；这些由既有行为回归补充。
 - 本轮渲染使用受控合成HTTP和本地CJK字体，不调用真实站点或设备，不把图册作为真实数据/用户审美验收。
 

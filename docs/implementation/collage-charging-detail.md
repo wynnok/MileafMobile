@@ -20,7 +20,7 @@
 MILEAF_FLUTTER_SDK=/Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile/.tooling/flutter tool/flutterw test --no-pub test/collage_charging_detail_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/collage-renders/charging-detail '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Hiragino Sans GB.ttc'
 ```
 
-图册：[`collage-renders/charging-detail/`](collage-renders/charging-detail/)。`empty` 指详情存在但序列为空；`missing` 指 SOC、能量、费用和时长未知，独立成功曲线仍可读。
+图册：`collage-renders/charging-detail/`（已归档）。`empty` 指详情存在但序列为空；`missing` 指 SOC、能量、费用和时长未知，独立成功曲线仍可读。
 
 ## 待验与边界
 

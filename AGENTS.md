@@ -45,3 +45,5 @@ See `docs/agents/domain.md`.
 - 2026-11-02 用户明确授权把 `codex/mileaf-v1` 合并进 `main` 并推送到 `origin/main`（GitHub `wynnok/MileafMobile`）；本次推送覆盖 v1 已实施的全部提交，不重写共享历史、不改 `MileafServer/` 与 `teslamate/`。该授权只针对本次：后续任何推送、部署或上架仍需逐次确认；推送不解除真机、真实站点/地图、性能、双端隔离构建等外部 gate，也不关闭相关票。
 
 - 2026-11-02 外观 v2（AV01–AV09，三批）本地完成，取代 A 的配色与默认外观：强调色由玉绿改电光蓝（`accent` 供图形、`accentStrong` 供文字），中性底去绿去暖（浅 `#F4F5F7`/`#FFFFFF`、深 `#0A0B0D`），外观默认改跟随系统（顺序 跟随系统/浅色/深色），浅色 hero 改 12 外距 + 20 圆角卡片、深色仍满幅。版面范式、字号阶梯、间距档位、圆角体系与数据口径不变；实现与证据见 `docs/implementation/appearance-v2.md`、`docs/implementation/appearance-v2-renders/`、`docs/implementation/appearance-v2-review.md`，决定见 `docs/adr/0006-appearance-and-accent.md`。本次不推送，外部 gate 与相关票状态不变。
+
+- 2026-11-02 仓库清理（用户授权）：以外观 v2 为基准归档历史图册——删除 C、湖畔、owner 复验与三次扩展的 10 个图册共 701 张图 / 96.4 MiB，另删 17 个只服务于已归档图册的渲染入口（`collage_*_render_test.dart` 等），被复用的夹具移入 `test/support/`。只保留外观 v2 与 A 两代图册；图像仍在提交 `725ceda`，说明与恢复方式见 `docs/implementation/render-archive.md`。未重写历史，`.git` 体积不变；后续换代按「当前一代 + 上一代对照」归档，不再平行堆图册。
