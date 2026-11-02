@@ -524,7 +524,13 @@ class _OverviewPageState extends State<OverviewPage>
     _ => '状态未知',
   };
 
+  /// The brand row belongs to the hero only in the full-bleed (dark) form.
+  ///
+  /// Once the hero is a card, the status bar sits over paper and the row moves
+  /// out of the hero as a sibling above it (Spec §6.4); the hero adds no top
+  /// inset of its own in that form.
   Widget _topInset() {
+    if (context.colors.heroAsCard) return const SizedBox.shrink();
     if (widget.topBar != null) return widget.topBar!;
     return Padding(
       padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
@@ -627,9 +633,9 @@ class _OverviewPageState extends State<OverviewPage>
           _topInset(),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              MileafLayout.pageInset(context),
+              MileafLayout.heroInset(context),
               MileafSpace.s4,
-              MileafLayout.pageInset(context),
+              MileafLayout.heroInset(context),
               MileafSpace.heroBottom,
             ),
             child: Column(
@@ -706,9 +712,9 @@ class _OverviewPageState extends State<OverviewPage>
         _topInset(),
         Padding(
           padding: EdgeInsets.fromLTRB(
-            MileafLayout.pageInset(context),
+            MileafLayout.heroInset(context),
             MileafSpace.s4,
-            MileafLayout.pageInset(context),
+            MileafLayout.heroInset(context),
             MileafSpace.heroBottom,
           ),
           child: Column(
@@ -1660,6 +1666,11 @@ class _OverviewPageState extends State<OverviewPage>
         );
       }
       final inset = MileafLayout.pageInset(context);
+      final topBar = widget.topBar;
+      // Card form: the brand row is a sibling on paper, so the status bar never
+      // sits over the hero; the row's own 12 bottom padding is the gap to the
+      // card (Spec §6.4). Full bleed keeps it inside the hero.
+      final barOnPaper = context.colors.heroAsCard ? topBar : null;
       return RefreshIndicator(
         key: viewportKey,
         onRefresh: () => load(force: true),
@@ -1667,6 +1678,7 @@ class _OverviewPageState extends State<OverviewPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            ?barOnPaper,
             if (data != null)
               _hero(data!)
             else if (loading)

@@ -455,7 +455,12 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
               child: Text(
                 '${local.month}/${local.day}',
                 style: type.micro.copyWith(
-                  color: high ? colors.textOnAccent : colors.text,
+                  // The strongest cell stays a mid blue in both modes, so its
+                  // 9px label is always dark ink: white would be 2.45:1 on
+                  // paper and 4.11:1 on the dark surface (AV06).
+                  color: high && colors.isDark
+                      ? colors.textOnAccent
+                      : colors.text,
                 ),
               ),
             ),

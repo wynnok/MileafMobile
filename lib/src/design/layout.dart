@@ -12,6 +12,15 @@ abstract final class MileafLayout {
       ? MileafSpace.s24
       : MileafSpace.s20;
 
+  /// Horizontal inset for content that sits inside a hero (Spec §6.3).
+  ///
+  /// A card hero is already 12 away from the screen edge and keeps a fixed
+  /// 16 inside, so its content lands 28 from the edge at every width; a
+  /// full-bleed hero keeps the page inset. The form comes from the palette
+  /// ([MileafColors.heroAsCard]); call sites never decide it themselves.
+  static double heroInset(BuildContext context) =>
+      context.colors.heroAsCard ? MileafSpace.cardPad : pageInset(context);
+
   static bool largeText(BuildContext context) =>
       MediaQuery.textScalerOf(context).scale(MileafBreakpoints.largeTextReference) >=
       MileafBreakpoints.largeTextThreshold;

@@ -784,9 +784,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       semanticLabel: '里程走势，本期与参照',
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          MileafLayout.pageInset(context),
+          MileafLayout.heroInset(context),
           MileafSpace.s20,
-          MileafLayout.pageInset(context),
+          MileafLayout.heroInset(context),
           MileafSpace.s20,
         ),
         child: TimeSeriesChart(

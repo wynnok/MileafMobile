@@ -323,8 +323,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                           primary: onHero ? colors.accentHero : colors.accent,
                           reference: colors.reference,
                           axis: faint,
-                          baseline: (onHero ? colors.heroText : colors.text)
-                              .withValues(alpha: .18),
+                          // Spec §8: the only horizontal grid line is the zero
+                          // baseline — `line` on paper, heroText 12% on a hero.
+                          baseline: onHero
+                              ? colors.heroText.withValues(alpha: .12)
+                              : colors.line,
                           scaler: MediaQuery.textScalerOf(context),
                           showYAxis: widget.showYAxis,
                           showXAxis: widget.showXAxis,

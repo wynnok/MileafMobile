@@ -31,7 +31,7 @@ void main() {
     expect(find.text('40% → 70%'), findsOneWidget);
   });
 
-  testWidgets('A 充电详情电池弧 hero 全出血，其余内容保留页边距', (tester) async {
+  testWidgets('A 充电详情电池弧 hero 浅色为 12 外边距卡片，其余内容保留页边距', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -52,11 +52,21 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    final hero = tester.getRect(find.byType(MileafHero));
-    expect(hero.left, 0);
-    expect(hero.right, 360, reason: '电池弧 hero 铺满左右边缘');
+    // 旧断言是 hero.left == 0 / right == 360，编码的是「hero 永远全出血」这个被
+    // ADR 0006 D4 推翻的决定。浅色（本测试的默认外观）下 hero 是卡片，量可见
+    // 卡片而不是 MileafHero 的外框——后者天然仍有整行宽。
+    final card = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(MileafHero),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(card.left, 12, reason: '卡片左右各 12 外边距');
+    expect(card.right, 348);
     final title = tester.getRect(find.text('电量区间'));
-    expect(title.left, greaterThanOrEqualTo(20), reason: 'hero 内容仍在页边距内');
+    expect(title.left, 28, reason: 'hero 内容距屏幕边 12 + 16');
     final results = tester.getRect(find.text('充入电池 20 kWh'));
     expect(results.left, greaterThanOrEqualTo(20), reason: '结果区保留页边距');
     expect(tester.takeException(), isNull);

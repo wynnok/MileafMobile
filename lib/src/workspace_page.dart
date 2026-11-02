@@ -197,7 +197,9 @@ class _WorkspacePageState extends State<WorkspacePage> {
           key: ValueKey('$selected:${workspace.revision}'),
           workspace: workspace,
           currency: currency,
-          topBar: topBar(onHero: true),
+          // The brand row rides the hero only while the hero is full bleed;
+          // once it is a card the row stays on paper (Spec §6.4).
+          topBar: topBar(onHero: !context.colors.heroAsCard),
           onStatistics: (kind, selection) => setState(() {
             statisticsTopic = null;
             statisticsKind = kind == 'charging' ? 1 : 0;

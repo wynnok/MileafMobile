@@ -854,7 +854,7 @@ class _ChargingPageState extends State<ChargingPage>
     final total = stats.totals;
     final colors = context.colors;
     final type = context.type;
-    final inset = MileafLayout.pageInset(context);
+    final inset = MileafLayout.heroInset(context);
     // 无一条记录带费用时，0 不是「花了 ¥0」而是「未知」（Spec §9.5 空态）。
     final cost = total.cost == null || total.costKnownSessions == 0
         ? '—'

@@ -132,6 +132,97 @@ void main() {
       );
     });
 
+    test('hero 形态只由 hero 与画布的明度差推导（Spec §6.1）', () {
+      const dark = MileafColors.dark();
+      const light = MileafColors.light();
+      // Current values: dark ΔL*0.61 → full bleed, light Δ93.58 → card.
+      expect(dark.heroAsCard, isFalse, reason: '深色 hero 是同一块连续材质');
+      expect(light.heroAsCard, isTrue, reason: '浅色 hero 与纸面差 93 L*，必须是卡片');
+      expect(
+        (lightness(light.hero) - lightness(light.canvas)).abs(),
+        greaterThan(20),
+      );
+      expect(
+        (lightness(dark.hero) - lightness(dark.canvas)).abs(),
+        lessThanOrEqualTo(20),
+      );
+      // The threshold itself, not just today's two palettes: #2C2C2C is Δ15
+      // from the light hero (full bleed), #474747 is Δ27 (card).
+      const near = Color(0xFF2C2C2C), far = Color(0xFF474747);
+      expect(light.copyWith(canvas: near).heroAsCard, isFalse);
+      expect(light.copyWith(canvas: far).heroAsCard, isTrue);
+    });
+
+    test('图表系列、参照与当前点在两种底色上都可读（Spec §8 / AV06）', () {
+      for (final colors in const [MileafColors.dark(), MileafColors.light()]) {
+        final mode = colors.isDark ? '深色' : '浅色';
+        for (final (name, background) in [
+          ('canvas', colors.canvas),
+          ('surface', colors.surface),
+        ]) {
+          expect(
+            contrast(colors.seriesPrimary, background),
+            greaterThanOrEqualTo(3),
+            reason: '$mode 主系列在 $name 上未达图形 3:1',
+          );
+          expect(
+            contrast(colors.seriesSecondary, background),
+            greaterThanOrEqualTo(3),
+            reason: '$mode 次系列在 $name 上未达图形 3:1（accent 50% 只有 1.8/2.8）',
+          );
+          expect(
+            contrast(colors.reference, background),
+            greaterThanOrEqualTo(3),
+            reason: '$mode 参照线在 $name 上未达图形 3:1',
+          );
+          expect(
+            contrast(colors.seriesNeutral, background),
+            greaterThanOrEqualTo(3),
+            reason: '$mode 中性序列在 $name 上未达图形 3:1',
+          );
+          expect(
+            contrast(colors.textFaint, background),
+            greaterThanOrEqualTo(4.5),
+            reason: '$mode 轴标签在 $name 上未达文本 4.5:1',
+          );
+        }
+        // 主/次系列不能合并成一个读法。
+        expect(
+          contrast(colors.seriesPrimary, colors.seriesSecondary),
+          greaterThanOrEqualTo(1.4),
+          reason: '$mode 主次系列明度几乎相同',
+        );
+        // hero 内图表：accentHero 系列 + heroFaint 轴标签。
+        expect(
+          contrast(colors.accentHero, colors.hero),
+          greaterThanOrEqualTo(3),
+          reason: '$mode hero 内系列在 hero 上未达图形 3:1',
+        );
+        expect(
+          contrast(colors.heroFaint, colors.hero),
+          greaterThanOrEqualTo(4.5),
+          reason: '$mode hero 内轴标签未达文本 4.5:1',
+        );
+      }
+    });
+
+    test('热力格 9px 标签在两种模式的高亮格上仍达 4.5', () {
+      // 使用页把「≥100 km」画成 accent 72% 的格子，格内是 9px 文字。
+      for (final colors in const [MileafColors.dark(), MileafColors.light()]) {
+        final mode = colors.isDark ? '深色' : '浅色';
+        final cell = Color.alphaBlend(
+          colors.accent.withValues(alpha: .72),
+          colors.surface,
+        );
+        final ink = colors.isDark ? colors.textOnAccent : colors.text;
+        expect(
+          contrast(ink, cell),
+          greaterThanOrEqualTo(4.5),
+          reason: '$mode 最强热力格上的 9px 日期未达 4.5:1',
+        );
+      }
+    });
+
     test('比较与状态不靠红绿，线只用于非文本装饰', () {
       const dark = MileafColors.dark();
       final reference = contrast(dark.reference, dark.canvas);

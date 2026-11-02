@@ -399,9 +399,9 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     '电量区间 ${d.startSoc ?? '未知'}% 至 ${d.endSoc ?? '未知'}%',
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    MileafLayout.pageInset(context),
+                    MileafLayout.heroInset(context),
                     MileafSpace.s20,
-                    MileafLayout.pageInset(context),
+                    MileafLayout.heroInset(context),
                     MileafSpace.s20,
                   ),
                   child: Column(

@@ -7,8 +7,8 @@ import '../typography.dart';
 /// One bar per energy category (AC / DC / 未知) scaled to the largest one.
 ///
 /// Use for per-category comparison inside a table-like block; the single
-/// segmented share bar is [MileafCompositionBar]. One accent plus a 50 % step
-/// and a neutral, never a second accent colour (Spec §2.4).
+/// segmented share bar is [MileafCompositionBar]. One accent, one darker step
+/// of the same hue and a neutral, never a second accent colour (Spec §8).
 class MileafCategoryBars extends StatelessWidget {
   const MileafCategoryBars({super.key, required this.values, this.note});
 
@@ -16,12 +16,15 @@ class MileafCategoryBars extends StatelessWidget {
   final List<(String, num?)> values;
   final String? note;
 
+  /// Same three steps as [MileafCompositionBar]: primary, secondary, neutral.
+  /// Delegating to the series tokens keeps the pair readable on a white card
+  /// and on the dark surface (Spec §8, AV06).
   Color _bar(BuildContext context, int index) {
     final colors = context.colors;
     return switch (index % 3) {
-      0 => colors.accent,
-      1 => colors.accent.withValues(alpha: .5),
-      _ => colors.textFaint,
+      0 => colors.seriesPrimary,
+      1 => colors.seriesSecondary,
+      _ => colors.seriesNeutral,
     };
   }
 

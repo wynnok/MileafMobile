@@ -358,9 +358,9 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
           semanticLabel: '有效窗口SOC变化 ${n(t?['soc_change_pp'])} 个百分点',
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              MileafLayout.pageInset(context),
+              MileafLayout.heroInset(context),
               MileafSpace.s20,
-              MileafLayout.pageInset(context),
+              MileafLayout.heroInset(context),
               MileafSpace.s20,
             ),
             child: Column(

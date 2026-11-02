@@ -5,6 +5,7 @@ import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
+import 'package:mileaf/src/design/tokens.dart';
 
 Future<void> pumpComponent(
   WidgetTester tester,
@@ -80,6 +81,93 @@ void main() {
       );
       expect(material.color, const MileafColors.light().hero);
       expect(material.color, isNot(const MileafColors.light().canvas));
+    });
+
+    testWidgets('浅色 hero 是 12 外边距、20 圆角、无描边无阴影的卡片', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
+        brightness: Brightness.light,
+      );
+      final hero = tester.getRect(find.byType(MileafHero));
+      final cardFinder = find
+          .descendant(
+            of: find.byType(MileafHero),
+            matching: find.byType(Material),
+          )
+          .first;
+      final card = tester.getRect(cardFinder);
+      final material = tester.widget<Material>(cardFinder);
+      expect(card.left - hero.left, MileafSpace.cardInset);
+      expect(hero.right - card.right, MileafSpace.cardInset);
+      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
+      expect(material.shape, isNull);
+      expect(material.elevation, 0, reason: '卡片 hero 只有底色，不加阴影');
+      expect(material.color, const MileafColors.light().hero);
+    });
+
+    testWidgets('浅色卡片 hero 不接管状态栏（页面级 AnnotatedRegion 负责）', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
+        brightness: Brightness.light,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(MileafHero),
+          matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
+        ),
+        findsNothing,
+        reason: '卡片上方是纸面，状态栏前景由 main.dart 的页面级 region 决定',
+      );
+    });
+
+    testWidgets('深色 hero 仍满幅贴边且声明浅色状态栏图标', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafHero(child: SizedBox(height: 200, child: Text('320 km'))),
+      );
+      final hero = tester.getRect(find.byType(MileafHero));
+      final cardFinder = find
+          .descendant(
+            of: find.byType(MileafHero),
+            matching: find.byType(Material),
+          )
+          .first;
+      expect(tester.getRect(cardFinder), hero, reason: '满幅形态没有外边距');
+      expect(tester.widget<Material>(cardFinder).borderRadius, isNull);
+      final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+        find
+            .descendant(
+              of: find.byType(MileafHero),
+              matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
+            )
+            .first,
+      );
+      expect(region.value.statusBarIconBrightness, Brightness.light);
+    });
+
+    testWidgets('浅色卡片 hero 在 320 宽与 200% 下不横向溢出', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafHero(
+          child: Padding(
+            padding: EdgeInsets.all(MileafSpace.cardPad),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('续航估算 320 km · 电量 68%'),
+                Text('在线 · 3 分钟前'),
+                SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+        brightness: Brightness.light,
+        width: 320,
+        scale: 2,
+      );
+      expect(tester.takeException(), isNull);
     });
   });
 

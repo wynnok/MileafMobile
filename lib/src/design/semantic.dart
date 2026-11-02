@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -142,10 +144,22 @@ class MileafColors extends ThemeExtension<MileafColors> {
             : const MileafColors.light());
   }
 
-  /// AC / DC / unknown: primary, 50% primary, neutral. No second accent.
+  /// AC / DC / unknown: primary, a second step of the same hue, neutral.
+  ///
+  /// Only one accent colour exists. The second series used to be `accent` at
+  /// 50 %, which composites to 1.8:1 over paper and 2.8:1 over the dark
+  /// surface — below the 3:1 graphics floor in both modes (AV06). `azure600`
+  /// keeps a single hue while measuring 5.4:1 on paper and 3.1:1 on the dark
+  /// surface, and 1.7/2.4:1 away from the primary so the pair never merges.
   Color get seriesPrimary => accent;
-  Color get seriesSecondary => accent.withValues(alpha: .5);
+  Color get seriesSecondary => MileafPalette.azure600;
   Color get seriesNeutral => textFaint;
+
+  /// Hero form is derived, never passed in (Spec §6.1): a hero that sits more
+  /// than 20 L\* away from the canvas is a card on that canvas, otherwise it is
+  /// the same continuous material. Current values: dark Δ0.61 → full bleed,
+  /// light Δ93.58 → card.
+  bool get heroAsCard => (_lStar(hero) - _lStar(canvas)).abs() > 20;
 
   /// Focus ring is the only 2px accent stroke.
   Color get focusRing => accent.withValues(alpha: .6);
@@ -250,4 +264,12 @@ class MileafColors extends ThemeExtension<MileafColors> {
 extension MileafColorsContext on BuildContext {
   /// Shorthand for the semantic palette: `context.colors.accent`.
   MileafColors get colors => MileafColors.of(this);
+}
+
+/// CIELAB L\* of an opaque colour; only the hero form rule needs it (§6.1).
+double _lStar(Color color) {
+  final y = color.computeLuminance();
+  return y > 0.008856
+      ? 116 * math.pow(y, 1 / 3).toDouble() - 16
+      : 903.3 * y;
 }
