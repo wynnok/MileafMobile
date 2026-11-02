@@ -67,7 +67,7 @@ class _AppearanceSheetState extends State<_AppearanceSheet> {
               Text('外观', style: type.title),
               const SizedBox(height: MileafSpace.s4),
               Text(
-                '默认深色。切换后立即生效，并保存在本机。',
+                '默认跟随系统。切换后立即生效，并保存在本机。',
                 style: type.micro,
               ),
               const SizedBox(height: MileafSpace.s12),
@@ -125,7 +125,7 @@ class _AppearanceRow extends StatelessWidget {
                 child: Text(
                   mode.label,
                   style: type.body.copyWith(
-                    color: selected ? colors.accent : colors.text,
+                    color: selected ? colors.accentStrong : colors.text,
                     fontWeight: selected
                         ? MileafType.weightSemiBold
                         : MileafType.weightRegular,

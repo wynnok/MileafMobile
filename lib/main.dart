@@ -110,6 +110,9 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: mileafTheme(Brightness.light),
       darkTheme: mileafTheme(Brightness.dark),
+      // Following the system is the default. `themeMode` decides the theme and
+      // `system` resolves to the platform brightness, which is exactly what the
+      // status bar icons below are derived from, so the two cannot disagree.
       themeMode: appearance.themeMode,
       themeAnimationDuration: const Duration(milliseconds: 200),
       builder: (context, child) {

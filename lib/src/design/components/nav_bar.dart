@@ -94,7 +94,9 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final color = active ? colors.accent : colors.textFaint;
+    // Icon keeps `accent`; the label is text and takes `accentStrong` (§7.3).
+    final iconColor = active ? colors.accent : colors.textFaint;
+    final labelColor = active ? colors.accentStrong : colors.textFaint;
     return Semantics(
       button: true,
       selected: active,
@@ -120,14 +122,14 @@ class _NavItem extends StatelessWidget {
                   MileafIcon(
                     item.icon,
                     size: MileafIconMetrics.nav,
-                    color: color,
+                    color: iconColor,
                   ),
                   const SizedBox(height: MileafSpace.s4),
                   Text(
                     item.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: labelStyle.copyWith(color: color),
+                    style: labelStyle.copyWith(color: labelColor),
                   ),
                 ],
               ),

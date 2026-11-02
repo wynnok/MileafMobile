@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'tokens.dart';
 
-/// Semantic colour layer for A「夜航」.
+/// Semantic colour layer for「行笺」appearance v2.
 ///
 /// Pages consume these tokens (or the components built on them); they never
-/// reference primitive hex values directly.
+/// reference primitive hex values directly. Every colour is neutral except the
+/// accent, which has two strengths: [accent] for graphics (≥3:1) and
+/// [accentStrong] for text and solid fills (≥4.5:1).
 @immutable
 class MileafColors extends ThemeExtension<MileafColors> {
   const MileafColors({
@@ -19,6 +21,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
     required this.textFaint,
     required this.textOnAccent,
     required this.accent,
+    required this.accentStrong,
     required this.accentPressed,
     required this.accentSoft,
     required this.accentHero,
@@ -36,57 +39,60 @@ class MileafColors extends ThemeExtension<MileafColors> {
     required this.sheetShadow,
   });
 
-  /// Dark is the default and the design baseline.
+  /// Dark: neutral cold black, one accent for graphics and text.
   const MileafColors.dark()
     : isDark = true,
-      canvas = MileafPalette.canvasDark,
-      hero = MileafPalette.jade900,
-      surface = MileafPalette.surfaceDark,
-      surfaceRaised = MileafPalette.surfaceRaisedDark,
-      text = MileafPalette.ink0,
-      textMuted = MileafPalette.ink500,
-      textFaint = MileafPalette.ink600,
-      textOnAccent = MileafPalette.jadeOn,
-      accent = MileafPalette.jade300,
-      accentPressed = MileafPalette.jade350,
+      canvas = MileafPalette.slate950,
+      hero = MileafPalette.slate1000,
+      surface = MileafPalette.slate900,
+      surfaceRaised = MileafPalette.slate850,
+      text = MileafPalette.mist0,
+      textMuted = MileafPalette.mist500,
+      textFaint = MileafPalette.mist600,
+      textOnAccent = MileafPalette.slate950,
+      accent = MileafPalette.azure300,
+      accentStrong = MileafPalette.azure300,
+      accentPressed = MileafPalette.azure300,
       accentSoft = MileafPalette.accentSoftDark,
-      accentHero = MileafPalette.jade300,
-      reference = MileafPalette.sand300,
+      accentHero = MileafPalette.azure300,
+      reference = MileafPalette.steel300,
       warning = MileafPalette.amber400,
-      error = MileafPalette.clay400,
+      error = MileafPalette.red400,
       line = MileafPalette.lineDark,
       lineStrong = MileafPalette.lineStrongDark,
-      heroText = MileafPalette.ink0,
-      heroMuted = MileafPalette.heroMuted,
-      heroFaint = MileafPalette.heroFaint,
+      heroText = MileafPalette.mist0,
+      heroMuted = MileafPalette.mist400,
+      heroFaint = MileafPalette.mist550,
       nav = MileafPalette.navDark,
       scrim = MileafPalette.scrimDark,
       skeleton = MileafPalette.skeletonDark,
       sheetShadow = MileafElevation.sheetDark;
 
-  /// Light is not an inversion: the car hero stays dark.
+  /// Light is not an inversion: the hero keeps its dark anchor, the paper
+  /// is cool grey rather than warm paper.
   const MileafColors.light()
     : isDark = false,
-      canvas = MileafPalette.stone50,
-      hero = MileafPalette.jade800,
-      surface = MileafPalette.stone0,
-      surfaceRaised = MileafPalette.stoneRaised,
-      text = MileafPalette.ink900,
-      textMuted = MileafPalette.ink700,
-      textFaint = MileafPalette.ink750,
-      textOnAccent = MileafPalette.stone0,
-      accent = MileafPalette.jade500,
-      accentPressed = MileafPalette.jade550,
-      accentSoft = MileafPalette.stoneSoft,
-      accentHero = MileafPalette.jade300,
-      reference = MileafPalette.sand500,
-      warning = MileafPalette.sand700,
-      error = MileafPalette.clay600,
+      canvas = MileafPalette.paper50,
+      hero = MileafPalette.heroLight,
+      surface = MileafPalette.paper0,
+      surfaceRaised = MileafPalette.paper0,
+      text = MileafPalette.graphite900,
+      textMuted = MileafPalette.graphite600,
+      textFaint = MileafPalette.graphite500,
+      textOnAccent = MileafPalette.paper0,
+      accent = MileafPalette.azure500,
+      accentStrong = MileafPalette.azure600,
+      accentPressed = MileafPalette.azure600,
+      accentSoft = MileafPalette.accentSoftLight,
+      accentHero = MileafPalette.azure300,
+      reference = MileafPalette.steel500,
+      warning = MileafPalette.amber500,
+      error = MileafPalette.red600,
       line = MileafPalette.lineLight,
       lineStrong = MileafPalette.lineStrongLight,
-      heroText = MileafPalette.ink0,
-      heroMuted = MileafPalette.heroMuted,
-      heroFaint = MileafPalette.heroFaint,
+      heroText = MileafPalette.mist0,
+      heroMuted = MileafPalette.mist400,
+      heroFaint = MileafPalette.mist550,
       nav = MileafPalette.navLight,
       scrim = MileafPalette.scrimLight,
       skeleton = MileafPalette.skeletonLight,
@@ -101,8 +107,17 @@ class MileafColors extends ThemeExtension<MileafColors> {
   final Color textMuted;
   final Color textFaint;
   final Color textOnAccent;
+
+  /// Graphics only: chart lines, progress, indicators, icons, switches.
   final Color accent;
+
+  /// Text and solid fills: links, selected labels, primary button fill.
+  final Color accentStrong;
+
+  /// Pressed accent. Unused since §7.2 routes press feedback to `accentSoft`;
+  /// kept only so this batch does not change the token surface (AV08 may drop it).
   final Color accentPressed;
+
   final Color accentSoft;
   final Color accentHero;
   final Color reference;
@@ -135,9 +150,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// Focus ring is the only 2px accent stroke.
   Color get focusRing => accent.withValues(alpha: .6);
 
-  /// 4% press overlay on content rows.
-  Color get pressOverlay =>
-      isDark ? MileafPalette.pressOverlay : text.withValues(alpha: .06);
+  /// 4% (dark) / 6% (light) press overlay on content rows.
+  Color get pressOverlay => isDark
+      ? MileafPalette.pressOverlayDark
+      : MileafPalette.pressOverlayLight;
 
   @override
   MileafColors copyWith({
@@ -151,6 +167,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
     Color? textFaint,
     Color? textOnAccent,
     Color? accent,
+    Color? accentStrong,
     Color? accentPressed,
     Color? accentSoft,
     Color? accentHero,
@@ -177,6 +194,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
     textFaint: textFaint ?? this.textFaint,
     textOnAccent: textOnAccent ?? this.textOnAccent,
     accent: accent ?? this.accent,
+    accentStrong: accentStrong ?? this.accentStrong,
     accentPressed: accentPressed ?? this.accentPressed,
     accentSoft: accentSoft ?? this.accentSoft,
     accentHero: accentHero ?? this.accentHero,
@@ -209,6 +227,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
       textFaint: mix(textFaint, other.textFaint),
       textOnAccent: mix(textOnAccent, other.textOnAccent),
       accent: mix(accent, other.accent),
+      accentStrong: mix(accentStrong, other.accentStrong),
       accentPressed: mix(accentPressed, other.accentPressed),
       accentSoft: mix(accentSoft, other.accentSoft),
       accentHero: mix(accentHero, other.accentHero),

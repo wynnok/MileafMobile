@@ -27,59 +27,109 @@ double contrast(Color foreground, Color background) {
   return (high + .05) / (low + .05);
 }
 
+/// CIELAB lightness (0–100): the only scale the §3.3 lightness steps use.
+double lightness(Color color) {
+  final y = _luminance(color);
+  final f = y > 216 / 24389
+      ? math.pow(y, 1 / 3).toDouble()
+      : (24389 / 27 * y + 16) / 116;
+  return 116 * f - 16;
+}
+
+/// `minimum` is 4.5 for text and 3.0 for graphics (Spec §1 R3).
 void _expectContrast(
   String name,
   Color foreground,
   Color background,
-  double expected,
-) {
+  double expected, {
+  double minimum = 4.5,
+}) {
   final value = contrast(foreground, background);
   expect(
     value,
     closeTo(expected, .06),
-    reason: '$name 对比度应与 Spec §2.4 一致（实测 $value）',
+    reason: '$name 对比度应与 Spec §3 一致（实测 $value）',
   );
-  expect(value, greaterThanOrEqualTo(4.5), reason: '$name 未达 WCAG AA');
+  expect(value, greaterThanOrEqualTo(minimum), reason: '$name 未达 WCAG 阈值');
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  group('Spec §2.4 对比度', () {
+  group('Spec §3 对比度', () {
     test('深色语义色', () {
       const c = MileafColors.dark();
-      _expectContrast('text/canvas', c.text, c.canvas, 18.16);
-      _expectContrast('muted/canvas', c.textMuted, c.canvas, 6.59);
-      _expectContrast('faint/canvas', c.textFaint, c.canvas, 5.07);
-      _expectContrast('accent/canvas', c.accent, c.canvas, 12.03);
-      _expectContrast('reference/canvas', c.reference, c.canvas, 10.06);
-      _expectContrast('warning/canvas', c.warning, c.canvas, 9.17);
-      _expectContrast('error/canvas', c.error, c.canvas, 7.59);
-      _expectContrast('textOnAccent/accent', c.textOnAccent, c.accent, 11.64);
+      _expectContrast('text/canvas', c.text, c.canvas, 17.87);
+      _expectContrast('muted/canvas', c.textMuted, c.canvas, 7.87);
+      _expectContrast('faint/canvas', c.textFaint, c.canvas, 5.59);
+      // Dark merges graphic and text accents: #64A8FF is 8.05:1 on canvas.
+      _expectContrast('accent/canvas', c.accent, c.canvas, 8.05, minimum: 3);
+      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 8.05);
+      _expectContrast('reference/canvas', c.reference, c.canvas, 6.80);
+      _expectContrast('warning/canvas', c.warning, c.canvas, 10.77);
+      _expectContrast('error/canvas', c.error, c.canvas, 7.75);
+      _expectContrast('textOnAccent/accent', c.textOnAccent, c.accent, 8.05);
     });
 
     test('浅色语义色', () {
       const c = MileafColors.light();
-      _expectContrast('text/canvas', c.text, c.canvas, 16.00);
-      _expectContrast('muted/canvas', c.textMuted, c.canvas, 4.94);
-      _expectContrast('faint/canvas', c.textFaint, c.canvas, 4.59);
-      _expectContrast('accent/canvas', c.accent, c.canvas, 5.64);
-      _expectContrast('reference/canvas', c.reference, c.canvas, 5.17);
-      _expectContrast('warning/canvas', c.warning, c.canvas, 6.54);
-      _expectContrast('error/canvas', c.error, c.canvas, 5.10);
-      _expectContrast('textOnAccent/accent', c.textOnAccent, c.accent, 6.10);
+      _expectContrast('text/canvas', c.text, c.canvas, 17.10);
+      _expectContrast('muted/canvas', c.textMuted, c.canvas, 5.38);
+      _expectContrast('faint/canvas', c.textFaint, c.canvas, 4.65);
+      // The graphic accent is allowed below AA for text: it is a 3:1 mark.
+      _expectContrast('accent/canvas', c.accent, c.canvas, 3.25, minimum: 3);
+      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 5.41);
+      _expectContrast('reference/canvas', c.reference, c.canvas, 4.99);
+      _expectContrast('warning/canvas', c.warning, c.canvas, 4.60);
+      _expectContrast('error/canvas', c.error, c.canvas, 4.90);
+      _expectContrast(
+        'textOnAccent/accentStrong',
+        c.textOnAccent,
+        c.accentStrong,
+        5.90,
+      );
     });
 
     test('浅色模式仍保留深色 hero', () {
       const c = MileafColors.light();
       expect(c.hero, isNot(c.canvas));
-      _expectContrast('heroText/hero', c.heroText, c.hero, 16.22);
-      expect(
-        contrast(c.heroMuted, c.hero),
-        inInclusiveRange(8.4, 9.7),
+      _expectContrast('heroText/hero', c.heroText, c.hero, 17.90);
+      _expectContrast('heroMuted/hero', c.heroMuted, c.hero, 9.34);
+      _expectContrast('heroFaint/hero', c.heroFaint, c.hero, 6.55);
+      _expectContrast(
+        'accentHero/hero',
+        c.accentHero,
+        c.hero,
+        8.06,
+        minimum: 3,
       );
-      expect(contrast(c.heroFaint, c.hero), greaterThanOrEqualTo(4.5));
-      _expectContrast('heroText/darkHero', c.heroText, MileafPalette.jade900, 18.29);
-      _expectContrast('heroFaint/darkHero', c.heroFaint, MileafPalette.jade900, 5.36);
+      const dark = MileafColors.dark();
+      _expectContrast('heroText/darkHero', dark.heroText, dark.hero, 18.10);
+      _expectContrast('heroMuted/darkHero', dark.heroMuted, dark.hero, 9.45);
+      _expectContrast('heroFaint/darkHero', dark.heroFaint, dark.hero, 6.63);
+    });
+
+    test('明度阶：面读得出，浅色 hero 是锚点，深色 hero 是连续材质', () {
+      const dark = MileafColors.dark();
+      const light = MileafColors.light();
+      expect(
+        lightness(light.surface) - lightness(light.canvas),
+        greaterThanOrEqualTo(3),
+        reason: '浅色 canvas→surface 必须读得出「面」',
+      );
+      expect(
+        lightness(light.canvas) - lightness(light.hero),
+        greaterThanOrEqualTo(80),
+        reason: '浅色 hero 必须仍是深色锚点',
+      );
+      expect(
+        lightness(dark.surface) - lightness(dark.canvas),
+        greaterThanOrEqualTo(3),
+      );
+      expect(
+        (lightness(dark.canvas) - lightness(dark.hero)).abs(),
+        lessThanOrEqualTo(2),
+        reason: '深色 hero 与画布是同一块连续材质',
+      );
     });
 
     test('比较与状态不靠红绿，线只用于非文本装饰', () {
@@ -174,19 +224,66 @@ void main() {
       }
     });
 
-    test('浅色 hero 与页面底色不同，深色默认使用 hero 锚点', () {
+    test('语义色取自 v2 primitive，两模式 hero 与 canvas 分离', () {
       const dark = MileafColors.dark();
       const light = MileafColors.light();
-      expect(dark.hero, MileafPalette.jade900);
-      expect(light.hero, MileafPalette.jade800);
-      expect(dark.canvas, MileafPalette.canvasDark);
-      expect(light.canvas, MileafPalette.stone50);
-      expect(light.accent, MileafPalette.jade500);
-      expect(light.accentHero, MileafPalette.jade300);
-      expect(dark.accent, MileafPalette.jade300);
+      expect(dark.hero, MileafPalette.slate1000);
+      expect(dark.canvas, MileafPalette.slate950);
+      expect(light.hero, MileafPalette.heroLight);
+      expect(light.canvas, MileafPalette.paper50);
+      expect(light.surface, MileafPalette.paper0);
+      expect(light.accent, MileafPalette.azure500);
+      expect(light.accentStrong, MileafPalette.azure600);
+      expect(light.accentHero, MileafPalette.azure300);
+      expect(dark.accent, MileafPalette.azure300);
+      // Dark merges the two accent strengths by design (Spec §1 R3).
+      expect(dark.accentStrong, dark.accent);
     });
 
-    test('主题挂载语义与字号扩展，且默认深色底', () {
+    test('线条与叠加层的透明度与 Spec §3 一致', () {
+      // Alpha is the only thing these tokens carry; a wrong percentage is a
+      // whole-page layering error that contrast maths cannot catch.
+      int pct(Color color) => (color.a * 100).round();
+      const dark = MileafColors.dark();
+      const light = MileafColors.light();
+      expect([pct(dark.line), pct(dark.lineStrong)], [9, 14]);
+      expect([pct(light.line), pct(light.lineStrong)], [10, 16]);
+      expect([pct(dark.nav), pct(light.nav)], [88, 92]);
+      expect([pct(dark.scrim), pct(light.scrim)], [50, 35]);
+      expect([pct(dark.skeleton), pct(light.skeleton)], [7, 6]);
+      expect([pct(dark.accentSoft)], [16]);
+      expect(light.accentSoft, MileafPalette.accentSoftLight);
+      expect([pct(dark.pressOverlay), pct(light.pressOverlay)], [4, 6]);
+      expect(pct(dark.focusRing), 60);
+    });
+
+    test('accentStrong 参与 copyWith 与主题插值', () {
+      const dark = MileafColors.dark();
+      const light = MileafColors.light();
+      expect(
+        light.copyWith(accentStrong: dark.accentStrong).accentStrong,
+        dark.accentStrong,
+      );
+      final mid = dark.lerp(light, .5);
+      // Without `accentStrong` in `lerp` the 200ms theme switch would jump.
+      expect(mid.accentStrong, Color.lerp(dark.accentStrong, light.accentStrong, .5));
+      expect(mid.accentStrong, isNot(dark.accentStrong));
+      expect(mid.accentStrong, isNot(light.accentStrong));
+    });
+
+    test('hero 卡片几何与中性浅色阴影已就位', () {
+      expect(MileafSpace.cardInset, 12);
+      expect(MileafSpace.cardPad, 16);
+      // Spec §5.2: light sheet shadow is neutral 10% graphite, not warm grey.
+      expect(
+        MileafElevation.sheetLight.single.color,
+        const Color(0x1A0E1319),
+      );
+      expect(MileafElevation.sheetLight.single.blurRadius, 40);
+      expect(MileafElevation.sheetLight.single.offset, const Offset(0, 12));
+    });
+
+    test('主题挂载语义与字号扩展，两种亮度都挂 canvas 底', () {
       final dark = mileafTheme(Brightness.dark);
       expect(dark.scaffoldBackgroundColor, const MileafColors.dark().canvas);
       expect(dark.extension<MileafColors>(), isA<MileafColors>());

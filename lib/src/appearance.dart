@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Dark is the default; light and system are equal choices.
+/// Following the system is the default; light and dark are explicit choices.
+///
+/// Declaration order is the display order in the appearance sheet:
+/// system / light / dark, default first.
 enum MileafAppearance {
-  dark('深色'),
+  system('跟随系统'),
   light('浅色'),
-  system('跟随系统');
+  dark('深色');
 
   const MileafAppearance(this.label);
   final String label;
@@ -42,7 +45,7 @@ class AppearanceController extends ChangeNotifier {
   AppearanceController(this.store);
   final AppearancePreferenceStore store;
 
-  MileafAppearance _mode = MileafAppearance.dark;
+  MileafAppearance _mode = MileafAppearance.system;
   bool _restoring = false;
   bool _restored = false;
   bool _disposed = false;
@@ -50,9 +53,9 @@ class AppearanceController extends ChangeNotifier {
   MileafAppearance get mode => _mode;
   bool get restored => _restored;
   ThemeMode get themeMode => _mode.themeMode;
-  bool get isDark => _mode == MileafAppearance.dark;
 
-  /// Reads the saved mode once; failures keep the dark default.
+  /// Reads the saved mode once; a missing, unknown or unreadable value keeps
+  /// the system default rather than forcing either brightness.
   Future<void> restore() async {
     if (_restoring || _restored) return;
     _restoring = true;
@@ -63,7 +66,7 @@ class AppearanceController extends ChangeNotifier {
           .firstOrNull;
       if (parsed != null) _mode = parsed;
     } catch (_) {
-      // Keep the design default rather than blocking the app on preferences.
+      // Keep the system default rather than blocking the app on preferences.
     } finally {
       _restoring = false;
       _restored = true;

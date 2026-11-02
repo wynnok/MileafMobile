@@ -34,23 +34,25 @@ class _StatusChipState extends State<StatusChip> {
     final type = context.type;
     final selected = widget.selected;
     final enabled = widget.enabled && widget.onTap != null;
+    // Selected label and stroke are text / edge signals: `accentStrong` on the
+    // paper, hero text with an `accentHero` stroke on the dark hero (§7.1).
+    final onHero = widget.onHero;
+    final selectedTint = colors.heroText.withValues(alpha: .12);
+    final idleTint = colors.heroText.withValues(alpha: .04);
     final background = selected
-        ? colors.accentSoft
-        : widget.onHero
-        ? colors.heroText.withValues(alpha: .04)
-        : Colors.transparent;
+        ? (onHero ? selectedTint : colors.accentSoft)
+        : (onHero ? idleTint : Colors.transparent);
     final border = selected
-        ? colors.accent
-        : widget.onHero
-        ? colors.heroText.withValues(alpha: .16)
-        : colors.line;
-    final foreground = !widget.enabled
-        ? colors.textFaint.withValues(alpha: .38)
-        : selected
-        ? colors.accent
-        : widget.onHero
-        ? colors.heroMuted
-        : colors.textMuted;
+        ? (onHero ? colors.accentHero : colors.accentStrong)
+        : (onHero ? colors.heroText.withValues(alpha: .16) : colors.line);
+    final Color foreground;
+    if (!widget.enabled) {
+      foreground = colors.textFaint.withValues(alpha: .38);
+    } else if (selected) {
+      foreground = onHero ? colors.heroText : colors.accentStrong;
+    } else {
+      foreground = onHero ? colors.heroMuted : colors.textMuted;
+    }
     final chip = Container(
       constraints: const BoxConstraints(minHeight: MileafSpace.chipHeight),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),

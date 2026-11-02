@@ -1,63 +1,72 @@
 import 'package:flutter/material.dart';
 
-/// Primitive palette for the A「夜航」visual system.
+/// Primitive palette for the「行笺」appearance v2 system (ADR 0006, Spec §2.2).
 ///
 /// Raw colour values are only allowed here (and in [MileafElevation]); pages
 /// and components consume the semantic tokens in `semantic.dart`.
+///
+/// Neutrals stay neutral (slate / paper / mist / graphite); the brand colour is
+/// a signal only and comes in two strengths: `azure500` for graphics and
+/// `azure600` for text and solid fills.
 abstract final class MileafPalette {
   const MileafPalette._();
 
-  static const jade300 = Color(0xFF74DDA8);
-  static const jade500 = Color(0xFF1C6B4F);
-  static const jade350 = Color(0xFF5BC792);
-  static const jade550 = Color(0xFF14503B);
-  static const jade700 = Color(0xFF0C3326);
-  static const jade800 = Color(0xFF081B14);
-  static const jade900 = Color(0xFF050806);
-  static const jadeOn = Color(0xFF071009);
+  /// 电光蓝：图形（500）/ 文字与实心（600）/ hero 图形（300）。
+  static const azure300 = Color(0xFF64A8FF);
+  static const azure500 = Color(0xFF2688F5);
+  static const azure600 = Color(0xFF0B62C4);
 
-  static const canvasDark = Color(0xFF070908);
-  static const surfaceDark = Color(0xFF0E120F);
-  static const surfaceRaisedDark = Color(0xFF131814);
+  /// 深色中性：hero / canvas / surface / surfaceRaised。
+  static const slate1000 = Color(0xFF06090E);
+  static const slate950 = Color(0xFF0A0B0D);
+  static const slate900 = Color(0xFF12161C);
+  static const slate850 = Color(0xFF191E25);
 
-  static const stone0 = Color(0xFFFAF9F5);
-  static const stone50 = Color(0xFFF1F0EB);
-  static const stone100 = Color(0xFFE9E7E0);
-  static const stoneRaised = Color(0xFFFFFFFF);
-  static const stoneSoft = Color(0xFFDCEBE2);
+  /// 浅色中性：canvas / surface。
+  static const paper50 = Color(0xFFF4F5F7);
+  static const paper0 = Color(0xFFFFFFFF);
 
-  static const ink0 = Color(0xFFF2F5F0);
-  static const ink500 = Color(0xFF8C978E);
-  static const ink600 = Color(0xFF78837B);
-  static const ink700 = Color(0xFF5F6A62);
-  static const ink750 = Color(0xFF646F67);
-  static const ink900 = Color(0xFF121613);
+  /// 深色正文与 hero 内三级文字。
+  static const mist0 = Color(0xFFF2F4F7);
+  static const mist400 = Color(0xFFA7B4C2);
+  static const mist500 = Color(0xFF9AA5B1);
+  static const mist550 = Color(0xFF8A96A4);
+  static const mist600 = Color(0xFF7E8A96);
 
-  static const sand300 = Color(0xFFD8B27C);
-  static const sand500 = Color(0xFF8A5A1F);
-  static const sand700 = Color(0xFF7A4A12);
-  static const amber400 = Color(0xFFE0A45E);
-  static const clay400 = Color(0xFFD98C7A);
-  static const clay600 = Color(0xFF9E4E3D);
+  /// 浅色正文。
+  static const graphite900 = Color(0xFF0E1319);
+  static const graphite600 = Color(0xFF5A6672);
+  static const graphite500 = Color(0xFF63707C);
 
-  static const heroMuted = Color(0xFF9FB9AA);
-  static const heroFaint = Color(0xFF6F8A7A);
-  static const heroOnLight = Color(0xFF081B14);
+  /// 参照/基线，两模式都是中性石墨。
+  static const steel500 = Color(0xFF5F6B78);
+  static const steel300 = Color(0xFF8E99A6);
+
+  /// 状态色：warning / error，只出现在状态与校验。
+  static const amber500 = Color(0xFFB45309);
+  static const amber400 = Color(0xFFFFB020);
+  static const red600 = Color(0xFFCE271B);
+  static const red400 = Color(0xFFFF7A70);
+
+  /// 浅色 hero 锚点。Spec §2.2 的 slate 档位只覆盖深色，浅色 hero 是独立取值。
+  static const heroLight = Color(0xFF070B11);
 
   /// Alpha-based lines and overlays; kept here so pages never mix their own.
-  static const lineDark = Color(0x17F2F5F0); // 242,245,240 · 9%
-  static const lineStrongDark = Color(0x24F2F5F0); // 14%
-  static const lineLight = Color(0x1C121613); // 18,22,19 · 11%
-  static const lineStrongLight = Color(0x2E121613); // 18%
-  static const navDark = Color(0xE6080B09); // 8,11,9 · 90%
-  static const navLight = Color(0xF0FAF9F5); // 94%
+  static const lineDark = Color(0x17F2F4F7); // 242,244,247 · 9%
+  static const lineStrongDark = Color(0x24F2F4F7); // 14%
+  static const lineLight = Color(0x1A0E1319); // 14,19,25 · 10%
+  static const lineStrongLight = Color(0x290E1319); // 16%
+  static const navDark = Color(0xE00A0B0D); // 10,11,13 · 88%
+  static const navLight = Color(0xEBFFFFFF); // 92%
   static const scrimDark = Color(0x80000000); // 50%
-  static const scrimLight = Color(0x59121613); // 35%
-  static const skeletonDark = Color(0x12F2F5F0); // 7%
-  static const skeletonLight = Color(0x0F121613); // 6%
-  static const accentSoftDark = Color(0x1F74DDA8); // 12%
-  static const pressOverlay = Color(0x0AF2F5F0); // 4%
-  static const accentFocus = Color(0x9974DDA8); // 60%
+  static const scrimLight = Color(0x590E1319); // 35%
+  static const skeletonDark = Color(0x12F2F4F7); // 7%
+  static const skeletonLight = Color(0x0F0E1319); // 6%
+  static const accentSoftDark = Color(0x2964A8FF); // 100,168,255 · 16%
+  static const accentSoftLight = Color(0xFFDCEBFD);
+  static const pressOverlayDark = Color(0x0AF2F4F7); // 4%
+  static const pressOverlayLight = Color(0x0F0E1319); // 6%
+  static const accentFocus = Color(0x9964A8FF); // 60%
 }
 
 /// 4px base spacing. Named steps are the only values pages may use.
@@ -91,6 +100,10 @@ abstract final class MileafSpace {
   static const chipHeight = 34.0;
   static const chartHeight = 140.0;
   static const chartHeightWide = 148.0;
+
+  /// hero card geometry (Spec §5.1): card outer margin and fixed inner pad.
+  static const cardInset = 12.0;
+  static const cardPad = 16.0;
 }
 
 abstract final class MileafRadius {
@@ -132,7 +145,7 @@ abstract final class MileafElevation {
   ];
   static const sheetLight = [
     BoxShadow(
-      color: Color(0x24141614), // 20,22,20 · 14%
+      color: Color(0x1A0E1319), // 14,19,25 · 10%
       offset: Offset(0, 12),
       blurRadius: 40,
     ),

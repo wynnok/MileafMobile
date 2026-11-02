@@ -386,7 +386,7 @@ class _VehicleSheet extends StatelessWidget {
                                         vehicleName(vehicle),
                                         style: type.body.copyWith(
                                           color: vehicle.id == selectedId
-                                              ? colors.accent
+                                              ? colors.accentStrong
                                               : colors.text,
                                           fontWeight: vehicle.id == selectedId
                                               ? MileafType.weightSemiBold

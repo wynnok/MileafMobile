@@ -4,10 +4,12 @@ import 'semantic.dart';
 import 'tokens.dart';
 import 'typography.dart';
 
-/// Builds the A「夜航」theme for one brightness.
+/// Builds the「行笺」appearance v2 theme for one brightness.
 ///
-/// Dark is the product default; light is an equal partner that keeps the dark
-/// car hero. Pages never build colours or text styles themselves.
+/// Neither brightness is the product default: the appearance follows the
+/// system until the user picks one (ADR 0006). Both keep a dark hero anchor.
+/// Text-class accents use `accentStrong` (≥4.5:1); graphics keep `accent`
+/// (≥3:1). Pages never build colours or text styles themselves.
 ThemeData mileafTheme(Brightness brightness) {
   final colors = brightness == Brightness.dark
       ? const MileafColors.dark()
@@ -92,7 +94,7 @@ ThemeData mileafTheme(Brightness brightness) {
         vertical: MileafSpace.s12,
       ),
       labelStyle: type.label,
-      floatingLabelStyle: type.label.copyWith(color: colors.accent),
+      floatingLabelStyle: type.label.copyWith(color: colors.accentStrong),
       hintStyle: type.body.copyWith(color: colors.textFaint),
       errorStyle: type.body.copyWith(
         fontSize: MileafType.detailSize,
@@ -142,7 +144,7 @@ ThemeData mileafTheme(Brightness brightness) {
     snackBarTheme: SnackBarThemeData(
       backgroundColor: colors.surfaceRaised,
       contentTextStyle: type.body,
-      actionTextColor: colors.accent,
+      actionTextColor: colors.accentStrong,
       behavior: SnackBarBehavior.floating,
       elevation: 0,
       shape: const RoundedRectangleBorder(
@@ -206,7 +208,7 @@ ThemeData mileafTheme(Brightness brightness) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: colors.accent,
+        foregroundColor: colors.accentStrong,
         textStyle: type.label.copyWith(
           fontSize: MileafType.bodySize,
           letterSpacing: 0,
@@ -225,7 +227,7 @@ ThemeData mileafTheme(Brightness brightness) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: colors.accent,
+        backgroundColor: colors.accentStrong,
         foregroundColor: colors.textOnAccent,
         disabledBackgroundColor: colors.line,
         disabledForegroundColor: colors.textFaint,
@@ -258,7 +260,7 @@ ThemeData mileafTheme(Brightness brightness) {
       side: BorderSide(color: colors.line),
       shape: const StadiumBorder(),
       labelStyle: type.label,
-      secondaryLabelStyle: type.label.copyWith(color: colors.accent),
+      secondaryLabelStyle: type.label.copyWith(color: colors.accentStrong),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       showCheckmark: false,
     ),

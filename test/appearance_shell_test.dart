@@ -92,11 +92,11 @@ Future<AppearanceController> pumpShell(
 
 void main() {
   group('外观控制器', () {
-    test('默认深色，保存后恢复', () async {
+    test('默认跟随系统，保存后恢复', () async {
       final store = MemoryAppearanceStore();
       final controller = AppearanceController(store);
-      expect(controller.mode, MileafAppearance.dark);
-      expect(controller.themeMode, ThemeMode.dark);
+      expect(controller.mode, MileafAppearance.system);
+      expect(controller.themeMode, ThemeMode.system);
       await controller.select(MileafAppearance.light);
       expect(store.value, 'light');
 
@@ -106,32 +106,37 @@ void main() {
       expect(restored.themeMode, ThemeMode.light);
     });
 
-    test('未知值保留深色，写入失败回滚', () async {
+    test('未知值回退跟随系统，写入失败回滚', () async {
       final store = MemoryAppearanceStore()..value = 'sepia';
       final controller = AppearanceController(store);
       await controller.restore();
-      expect(controller.mode, MileafAppearance.dark);
+      expect(controller.mode, MileafAppearance.system);
+      expect(controller.themeMode, ThemeMode.system);
 
       store.failWrites = true;
       await expectLater(
         controller.select(MileafAppearance.light),
         throwsA(isA<StateError>()),
       );
-      expect(controller.mode, MileafAppearance.dark);
+      expect(controller.mode, MileafAppearance.system);
     });
   });
 
-  testWidgets('冷启动默认深色，切换浅色即时生效并重启保持', (tester) async {
+  testWidgets('冷启动跟随系统，切换浅色即时生效并重启保持', (tester) async {
+    // No saved preference: `main()` restores before `runApp`, so the first
+    // frame is the system theme rather than a dark frame that flips later.
     final store = MemoryAppearanceStore();
     final first = AppearanceController(store);
+    await first.restore();
     await pumpShell(tester, appearance: first);
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
-      ThemeMode.dark,
+      ThemeMode.system,
     );
     expect(
       Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
-      Brightness.dark,
+      Brightness.light,
+      reason: '测试平台亮度默认浅色，首帧即为浅色，不先深后浅',
     );
 
     await first.select(MileafAppearance.light);
@@ -151,6 +156,54 @@ void main() {
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
       ThemeMode.light,
+    );
+  });
+
+  testWidgets('system 下平台亮度切换后 Theme.brightness 跟随', (tester) async {
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    final store = MemoryAppearanceStore();
+    final controller = AppearanceController(store);
+    await pumpShell(tester, appearance: controller);
+
+    expect(controller.mode, MileafAppearance.system);
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+      ThemeMode.system,
+    );
+    expect(
+      Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
+      Brightness.dark,
+    );
+
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
+      Brightness.light,
+    );
+    expect(store.value, isNull, reason: '跟随系统不写入本机偏好');
+
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
+      Brightness.dark,
+    );
+  });
+
+  testWidgets('已保存的偏好优先于系统亮度', (tester) async {
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    final store = MemoryAppearanceStore()..value = 'light';
+    final controller = AppearanceController(store);
+    await controller.restore();
+    await pumpShell(tester, appearance: controller);
+    expect(controller.mode, MileafAppearance.light);
+    expect(
+      Theme.of(tester.element(find.byType(MileafNavBar))).brightness,
+      Brightness.light,
+      reason: '已存偏好不被系统深色覆盖',
     );
   });
 
@@ -230,12 +283,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('连接与本地访问'), findsOneWidget);
     expect(find.text('外观'), findsOneWidget);
-    expect(find.text('深色'), findsOneWidget);
+    expect(find.text('跟随系统'), findsOneWidget, reason: '默认项即当前值');
 
     await tester.tap(find.text('外观'));
     await tester.pumpAndSettle();
-    expect(find.text('跟随系统'), findsOneWidget);
-    await tester.tap(find.text('浅色'));
+    final sheet = find.byType(BottomSheet);
+    for (final label in ['跟随系统', '浅色', '深色']) {
+      expect(
+        find.descendant(of: sheet, matching: find.text(label)),
+        findsOneWidget,
+      );
+    }
+    // 顺序固定为 跟随系统 / 浅色 / 深色，默认项置顶。
+    final tops = [
+      for (final label in ['跟随系统', '浅色', '深色'])
+        tester
+            .getTopLeft(find.descendant(of: sheet, matching: find.text(label)))
+            .dy,
+    ];
+    expect(tops[0], lessThan(tops[1]));
+    expect(tops[1], lessThan(tops[2]));
+    expect(find.text('默认跟随系统。切换后立即生效，并保存在本机。'), findsOneWidget);
+
+    await tester.tap(find.descendant(of: sheet, matching: find.text('浅色')));
     await tester.pumpAndSettle();
     expect(controller.mode, MileafAppearance.light);
     expect(store.value, 'light');
@@ -244,5 +314,6 @@ void main() {
       ThemeMode.light,
     );
     expect(find.text('跟随系统'), findsNothing);
+    expect(find.text('浅色'), findsOneWidget);
   });
 }

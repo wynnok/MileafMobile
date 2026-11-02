@@ -46,7 +46,7 @@ class _MileafButtonState extends State<MileafButton> {
     final enabled = onPressed != null && !loading;
     final (background, foreground, border) = switch (kind) {
       MileafButtonKind.primary => (
-        enabled || loading ? colors.accent : colors.line,
+        enabled || loading ? colors.accentStrong : colors.line,
         enabled || loading ? colors.textOnAccent : colors.textFaint,
         null,
       ),
@@ -57,7 +57,7 @@ class _MileafButtonState extends State<MileafButton> {
       ),
       MileafButtonKind.ghost => (
         Colors.transparent,
-        enabled || loading ? colors.accent : colors.textFaint,
+        enabled || loading ? colors.accentStrong : colors.textFaint,
         null,
       ),
     };

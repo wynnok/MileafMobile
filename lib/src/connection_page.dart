@@ -231,7 +231,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
                           _message!,
                           style: context.type.body.copyWith(
                             color: _healthySite != null
-                                ? context.colors.accent
+                                ? context.colors.accentStrong
                                 : context.colors.error,
                           ),
                         ),
