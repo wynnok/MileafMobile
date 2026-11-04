@@ -295,6 +295,9 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
           }
           error = recovery ? '仍无法确认补录结果，请稍后查询' : '暂时无法读取本次充电，请重试';
         });
+        if (failure is BusinessFailure && failure.status == 404) {
+          await workspace.refreshChargingCosts(owner, vehicle);
+        }
       }
     }
   }
@@ -345,6 +348,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
           terminal = true;
           error = '该充电记录已不可用';
         });
+        await workspace.refreshChargingCosts(owner, vehicle);
         return;
       }
       if (response.statusCode == 409) {

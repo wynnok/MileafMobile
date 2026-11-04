@@ -257,4 +257,4 @@
 | CE13 | 完成§11正式渲染、读屏语义和减少动态效果检查；与当前外观v2对照，无多余费用hero、彩色卡片或第二强调色 |
 | CE14 | 完成静态检查、相关定向测试、最终全量测试与双轴审查；真实写入/生产权限/推送部署和其他外部gate单独记录 |
 
-建议测试边界为 App可见操作＋可控HTTP，在 [实施 Ticket](missing-charging-cost-entry-tickets.md) 审核时确认；本规格本身不表示测试或图册已经完成。Ticket 确认前不发布工单、不改产品代码；实施完成按 implement 在当前分支本地提交，不推送。
+App可见操作＋可控HTTP与正式Flutter渲染/语义两项测试边界已随[实施 Ticket](missing-charging-cost-entry-tickets.md)确认。当前代码、自动化与图册证据见[实施记录](../implementation/charging-cost-entry.md)；按implement在当前分支本地提交，不发布工单、不推送，视觉结论与外部gate仍独立待验。

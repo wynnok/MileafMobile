@@ -106,6 +106,6 @@ TeslaMate 的费用缺失会让车主无法完整回顾补能支出。采用列�
 
 ## 后续交付与验证边界
 
-下游 [Spec：缺失充电费用补录](../specs/missing-charging-cost-entry.md) 待用户审核，Spec 审核后才拆 Ticket；此时不修改产品代码、不发布 GitHub 工单。Spec 提供浅深模式、缺失/免费/进行中、键盘与 200% 字号、提交及异常状态的精确规则；正式 Flutter 渲染供视觉审核，不能用原型替代。
+下游 [Spec：缺失充电费用补录](../specs/missing-charging-cost-entry.md) 与 [Ticket](../specs/missing-charging-cost-entry-tickets.md) 均已于2026-11-04逐份确认，代码与本地验证见[实施记录](../implementation/charging-cost-entry.md)；不发布GitHub工单。Spec 提供浅深模式、缺失/免费/进行中、键盘与 200% 字号、提交及异常状态的精确规则；正式 Flutter 渲染供视觉审核，不能用原型替代。
 
 实施阶段拟以 App 可见操作 + 可控 HTTP 为测试边界，覆盖双入口一致性、十进制与预估、重复提交、身份切换、409/未知结果恢复及跨页刷新；测试边界在 Ticket 确认时一并确认。按 implement 执行静态检查、定向测试、最终全量测试、双轴审查和当前分支本地提交。真实站点写入、生产权限调整、推送/部署均不由本 ADR 授权；真机、真实地图、性能与双端隔离构建仍独立验收。

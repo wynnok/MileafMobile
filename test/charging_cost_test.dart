@@ -16,6 +16,7 @@ class CostSite {
   bool active = false, failRead = false;
   bool failStats = false;
   bool twoPages = false;
+  bool missing = false;
   final reads = <http.Request>[];
   int detailVehicle = 1;
   String place = '湖畔超级充电站';
@@ -39,15 +40,16 @@ class CostSite {
       final second = request.url.queryParameters['cursor'] == 'page2';
       return detail.response({
         'items': [
-          {
-            ...detail.fixture('charging-detail'),
-            'id': second ? 2 : 1,
-            'cost': second ? 0 : cost,
-            'energy_added_kwh': added,
-            'energy_used_kwh': used,
-            'is_active': active,
-            'ended_at': active ? null : '2026-01-05T09:00:00Z',
-          },
+          if (!missing)
+            {
+              ...detail.fixture('charging-detail'),
+              'id': second ? 2 : 1,
+              'cost': second ? 0 : cost,
+              'energy_added_kwh': added,
+              'energy_used_kwh': used,
+              'is_active': active,
+              'ended_at': active ? null : '2026-01-05T09:00:00Z',
+            },
         ],
         'next_cursor': twoPages && !second ? 'page2' : null,
       });
@@ -64,6 +66,7 @@ class CostSite {
       });
     }
     if (path.endsWith('/charging-sessions/1')) {
+      if (missing) return http.Response('', 404);
       if (failRead) return http.Response('', 503);
       return detail.response({
         ...detail.fixture('charging-detail'),
@@ -118,7 +121,11 @@ Future<void> pumpCostApp(
 }
 
 Future<void> openCostSheet(WidgetTester tester) async {
-  await tester.scrollUntilVisible(find.text('补录费用').hitTestable(), 150);
+  await tester.scrollUntilVisible(
+    find.text('补录费用').hitTestable(),
+    150,
+    scrollable: find.byType(Scrollable).last,
+  );
   await tester.tap(find.text('补录费用').hitTestable());
   await tester.pumpAndSettle();
 }
@@ -131,6 +138,24 @@ Future<void> tapCostAction(WidgetTester tester, String label) async {
 }
 
 void main() {
+  testWidgets('补录返回404会刷新列表，关闭后不保留已失效记录', (tester) async {
+    final site = CostSite();
+    site.patch = (_) async {
+      site.missing = true;
+      return http.Response('', 404);
+    };
+    await pumpCostApp(tester, site);
+    await tester.tap(find.text('充电').last);
+    await tester.pumpAndSettle();
+    await openCostSheet(tester);
+    await tester.enterText(find.byType(TextField), '1.25');
+    await tapCostAction(tester, '确认补录');
+    expect(find.text('该充电记录已不可用'), findsOneWidget);
+    await tapCostAction(tester, '关闭');
+    expect(find.text('充电 #1 · 查看详情'), findsNothing);
+    expect(find.text('补录费用'), findsNothing);
+    expect(site.writes, hasLength(1));
+  });
   testWidgets('补录后保留已加载的多页范围，并重新读取后续页', (tester) async {
     final site = CostSite()..twoPages = true;
     await pumpCostApp(tester, site);

@@ -68,11 +68,11 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
   }
 
   Future<bool> refreshCost() async {
-    await load(force: true);
+    await load(force: true, waitForLocations: true);
     return error == null && locationsError == null;
   }
 
-  Future<void> load({bool force = false}) async {
+  Future<void> load({bool force = false, bool waitForLocations = false}) async {
     final workspace = scope.workspace, owner = scope.workspace.session.current;
     final vehicle = workspace.selectedId, key = identity(scope);
     if (owner == null || vehicle == null) return;
@@ -102,7 +102,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
     }
     if (!valid()) return;
     expandedAvailable = available;
-    if (available) unawaited(loadLocations(force: force));
+    final locationsRead = available ? loadLocations(force: force) : null;
+    if (!waitForLocations && locationsRead != null) unawaited(locationsRead);
     try {
       final query = scope.window.query('charging', workspace.calendar!);
       if (available) query['time_basis'] = 'ended_at';
@@ -132,6 +133,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
         );
       }
     } finally {
+      if (waitForLocations && locationsRead != null) await locationsRead;
       if (valid()) setState(() => loading = false);
     }
   }

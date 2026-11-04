@@ -326,6 +326,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               ),
       );
       if (item != '费用 ${widget.currency.amountValue(d.cost)}' ||
+          unavailable ||
+          ownershipMismatch ||
           !costSupported ||
           !canFillChargingCost(
             cost: d.cost,
