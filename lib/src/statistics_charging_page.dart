@@ -40,6 +40,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
   @override
   void initState() {
     super.initState();
+    scope.workspace.addCostReader(refreshCost);
     load();
   }
 
@@ -60,9 +61,15 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
 
   @override
   void dispose() {
+    scope.workspace.removeCostReader(refreshCost);
     sequence++;
     locationSequence++;
     super.dispose();
+  }
+
+  Future<bool> refreshCost() async {
+    await load(force: true);
+    return error == null && locationsError == null;
   }
 
   Future<void> load({bool force = false}) async {

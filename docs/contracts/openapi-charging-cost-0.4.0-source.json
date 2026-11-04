@@ -1,0 +1,8 @@
+{
+  "serverCommit": "63ad86a1690f20d51d721f790af6fb521c541d92",
+  "serverVersion": "0.4.0",
+  "source": "MileafServer/docs/api/openapi-0.4.0.json",
+  "sourceSha256": "4bbcf334929b1ec409f36405badf352f5c5c497edf962dff019445d032ebd50d",
+  "sha256": "18fd2f622fe92dfae44eb74e21a6a52829e4435506cafb99ba3463e346b80aa6",
+  "note": "Only charging cost PATCH and referenced schemas frozen from local artifact. No service started or database accessed. Backend real PostgreSQL integration remains unverified."
+}

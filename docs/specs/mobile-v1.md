@@ -1012,3 +1012,12 @@ A「夜航」的玉绿强调色与暖米纸面在正式渲染里发绿、发暖�
 ### Ticket impact
 
 - 0 新 GitHub issue；本地票 AV01–AV09（三批）实施，审查结论见 [appearance-v2-review](../implementation/appearance-v2-review.md)。
+
+
+## 2026-11-04 增量：缺失充电费用补录
+
+用户逐份确认 [ADR 0007](../adr/0007-missing-charging-cost-entry.md)、[设计与接口规格](missing-charging-cost-entry.md)、[CET01–CET07](missing-charging-cost-entry-tickets.md)及 App＋可控HTTP、正式Flutter渲染/语义两项测试边界。此前业务只读约束仅增加一个例外：Server 0.4.0 经管理员显式开启后，从充电列表/详情共用底部表单，输入本次单价补录已结束且费用为null的记录；已有费用含0不覆盖、单价不持久保存，不增加车辆控制或其他写入。
+
+沿用外观v2的电光蓝与夜航版式，未知币种按原账本填写，未开启按403反馈；结果不明先查询，费用变更刷新相关页面并保留筛选/分页上下文。精确尺寸、状态与CE01–CE14验收以增量Spec为准，映射与代码/自动化/图册证据见[实施记录](../implementation/charging-cost-entry.md)。
+
+本地实施授权为当前main本地提交，不推送、不部署、不调整生产权限、不访问真实数据库、不关闭外部待验票。历史章节中的完全只读表述在上述有限范围内修订，其他范围/指标/地图/外部gate保持原约束；本地渲染和测试不表示真机、真实站点写入、地图、性能或双端隔离构建已通过。

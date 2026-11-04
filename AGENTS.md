@@ -9,7 +9,7 @@
 - 2026-10-25 测试/seed/性能准备只使用新建的本地隔离测试库；禁止读取或继承现有生产连接配置，禁止向生产库装载数据、执行 DDL 或清理。此边界不影响 App 用户正常通过只读 API 展示业务数据。
 - 已确认首版范围：单站点、多车辆；车辆切换、概览、行程列表与详情、充电列表与详情、统计，以及连接与登录。
 - 2026-10-25 用户重申核心展示目标：以移动端体验为中心，美观、直观地尽可能展示 TeslaMate 数据；参考 Grafana 指标，不要求逐项相同或迁移桌面布局。图表/地图/关键数字是概览、详情和统计的主要内容，不以字段清单或逐桶文字替代。实施前先交付代表页面可视方案，按 `docs/product/visualization-requirements.md` V01–V08、A01–A06 及修订 Spec T17–T18 验收；当前数据闭环、测试及构建通过不代表新展示要求通过。
-- 不实现车辆控制、Tesla 凭据接入、多车对比或秒级刷新。业务数据只读，站点认证除外。
+- 不实现车辆控制、Tesla 凭据接入、多车对比或秒级刷新。业务数据默认只读；唯一业务写入例外为显式启用后的缺失充电费用补录（ADR 0007），站点认证另属接入流程。
 - 2026-10-26 用户已选择 A「湖畔」并要求完成实施；当前正式 Flutter 页面、图表及验证见 `docs/implementation/lake-visualization.md`，视觉决定见 `docs/product/lake-visual-design.md`。A 的版面/视觉验收已于 2026-10-30 由 C「数据拼贴」取代，湖畔配色保留。不要再次按“尚待选择原型”停止；外部待验和未推送边界继续有效。
 - 2026-10-27 用户已确认概览扩展 A「用车简报」，仅实施现有 API 支持范围；增量同步 Spec #1/#8，不重复建票。方案见 `docs/product/overview-expansion-proposal.md`，正式实施和验证见 `docs/implementation/overview-briefing.md`；电量历史/停放变化/费用覆盖/长期续航及动态排序仍为后续候选，不修改后端。授权按 implement 完成测试、审查和当前分支本地提交，不推送或提前关闭外部待验。
 - 2026-10-27 用户已确认行程扩展 A「出行回顾」及方案顺序1，并批准紧凑节奏区/真实滚动调整；正式实现与本地测试、图册、双端隔离构建及审查见 `docs/implementation/drives-expansion.md`。Spec #1/#9/#10/#11 已增量同步；顺序2–4及新后端能力保持候选，不重复建票、不推送或提前关闭外部待验。授权当前 `codex/mileaf-v1` 本地提交，不再停在等待选择原型。
@@ -47,3 +47,5 @@ See `docs/agents/domain.md`.
 - 2026-11-02 外观 v2（AV01–AV09，三批）本地完成，取代 A 的配色与默认外观：强调色由玉绿改电光蓝（`accent` 供图形、`accentStrong` 供文字），中性底去绿去暖（浅 `#F4F5F7`/`#FFFFFF`、深 `#0A0B0D`），外观默认改跟随系统（顺序 跟随系统/浅色/深色），浅色 hero 改 12 外距 + 20 圆角卡片、深色仍满幅。版面范式、字号阶梯、间距档位、圆角体系与数据口径不变；实现与证据见 `docs/implementation/appearance-v2.md`、`docs/implementation/appearance-v2-renders/`、`docs/implementation/appearance-v2-review.md`，决定见 `docs/adr/0006-appearance-and-accent.md`。本次不推送，外部 gate 与相关票状态不变。
 
 - 2026-11-02 仓库清理（用户授权）：以外观 v2 为基准归档历史图册——删除 C、湖畔、owner 复验与三次扩展的 10 个图册共 701 张图 / 96.4 MiB，另删 17 个只服务于已归档图册的渲染入口（`collage_*_render_test.dart` 等），被复用的夹具移入 `test/support/`。只保留外观 v2 与 A 两代图册；图像仍在提交 `725ceda`，说明与恢复方式见 `docs/implementation/render-archive.md`。未重写历史，`.git` 体积不变；后续换代按「当前一代 + 上一代对照」归档，不再平行堆图册。
+
+- 2026-11-04 用户逐份确认 ADR 0007、充电费用补录 Spec 与 CET01–CET07，授权按 App＋可控HTTP和正式Flutter渲染/语义边界实施，并在当前 `main` 本地提交、不推送。双入口共用底部表单，只补录已结束且cost为null的记录；0元不可覆盖，单价不保存。后端0.4.0无写入能力开关查询，未启用按403反馈；未知币种允许按原账本填写。实现与证据见 `docs/implementation/charging-cost-entry.md`，外部gate不因本地实施而关闭。

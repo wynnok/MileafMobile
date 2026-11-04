@@ -141,15 +141,25 @@ class _OverviewPageState extends State<OverviewPage>
   @override
   void initState() {
     super.initState();
+    workspace.addCostReader(refreshCost);
     WidgetsBinding.instance.addObserver(this);
     load();
   }
 
   @override
   void dispose() {
+    workspace.removeCostReader(refreshCost);
     sequence++;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<bool> refreshCost() async {
+    await Future.wait([
+      loadSummary(force: true),
+      loadStats('charging', force: true, requestedRange: range),
+    ]);
+    return error == null && !errors.containsKey('charging');
   }
 
   bool get readable =>

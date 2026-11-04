@@ -81,6 +81,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   void initState() {
     super.initState();
     revision = workspace.revision;
+    workspace.addCostReader(refreshCost);
     topic = widget.initialTopic;
     WidgetsBinding.instance.addObserver(this);
     load();
@@ -88,9 +89,24 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   @override
   void dispose() {
+    workspace.removeCostReader(refreshCost);
     sequence++;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<bool> refreshCost() async {
+    final owner = workspace.session.current,
+        vehicle = workspace.selectedId,
+        cal = workspace.calendar;
+    if (topic != 'overview' ||
+        owner == null ||
+        vehicle == null ||
+        cal == null) {
+      return true;
+    }
+    await loadCharging(owner, vehicle, cal, true);
+    return chargingError == null;
   }
 
   @override

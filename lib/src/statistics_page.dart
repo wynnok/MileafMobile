@@ -185,6 +185,7 @@ class _StatisticsViewState extends State<_StatisticsView>
   @override
   void initState() {
     super.initState();
+    workspace.addCostReader(refreshCost);
     WidgetsBinding.instance.addObserver(this);
     if (widget.active) load();
   }
@@ -204,9 +205,16 @@ class _StatisticsViewState extends State<_StatisticsView>
 
   @override
   void dispose() {
+    workspace.removeCostReader(refreshCost);
     sequence++;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<bool> refreshCost() async {
+    if (widget.kind != 'charging') return true;
+    await load(force: true);
+    return error == null;
   }
 
   @override

@@ -1,5 +1,11 @@
 # 行笺移动端：API 能力与差异
 
+## 2026-11-04：有限充电费用补录
+
+在原读取契约之外，新增冻结 [OpenAPI 0.4.0 费用切片](../contracts/openapi-charging-cost-0.4.0.json)及[来源元数据](../contracts/openapi-charging-cost-0.4.0-source.json)。`PATCH /v1/charging-sessions/{id}/cost` 沿用Bearer，接收十进制字符串`unit_price`，仅补录已结束且cost为null的记录，按两类电量较大可用值计算总费用。0元不属于缺失，已有费用不可覆盖；单价不持久保存、不提供币种字段。
+
+单价0–999999、最多6位小数；成功返回session_id和字符串unit_price/billing_energy_kwh/cost。默认关闭且meta不声明开关，移动端按稳定版本≥0.4.0显示符合条件的入口；403提示联系管理员，409/结果未确认先重读详情。客户端主动失效相关缓存并刷新费用页面。该能力不扩大到其他写入；真实数据库验证、站点部署和写权限仍需独立验证。见[Spec](../specs/missing-charging-cost-entry.md)与[实施记录](../implementation/charging-cost-entry.md)。
+
 2026-10-25 补充：以下 2026-10-22 源码核验保留历史属性；当前实施契约为固定 Server `146cb3b9a16af3d632b04ed8d197d0f2243d9b71` 的 [OpenAPI](../contracts/openapi-v1.json)及[来源元数据](../contracts/openapi-v1-source.json)。已接入的客户端能力见实施记录，不能继续把下文“尚未实施”的历史描述当作当前状态。
 
 ## 本轮可视化澄清

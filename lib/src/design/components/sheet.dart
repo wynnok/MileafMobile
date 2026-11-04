@@ -30,11 +30,15 @@ class MileafSheetFrame extends StatelessWidget {
     required this.title,
     required this.child,
     this.onClose,
+    this.closeEnabled = true,
+    this.closeLabel = '关闭',
   });
 
   final String title;
   final Widget child;
   final VoidCallback? onClose;
+  final bool closeEnabled;
+  final String closeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +47,7 @@ class MileafSheetFrame extends StatelessWidget {
       top: false,
       child: Align(
         alignment: Alignment.bottomCenter,
+        heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
             maxWidth: MileafBreakpoints.sheetMax,
@@ -75,8 +80,8 @@ class MileafSheetFrame extends StatelessWidget {
                     if (onClose != null)
                       MileafIconButton(
                         icon: MileafIconName.close,
-                        tooltip: '关闭',
-                        onPressed: onClose,
+                        tooltip: closeLabel,
+                        onPressed: closeEnabled ? onClose : null,
                       ),
                   ],
                 ),

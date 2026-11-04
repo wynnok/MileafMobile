@@ -318,6 +318,8 @@ class SessionController extends ChangeNotifier {
   Future<http.Response> request(
     SiteSession session,
     String path, {
+    String method = 'GET',
+    String? body,
     Map<String, String> query = const {},
     Map<String, String> headers = const {},
   }) async {
@@ -328,10 +330,11 @@ class SessionController extends ChangeNotifier {
     }
     final response = await api.request(
       session.site,
-      'GET',
+      method,
       path,
       headers: {...headers, 'authorization': 'Bearer ${session.token}'},
       query: query,
+      body: body,
     );
     if (response.statusCode == 401 && isCurrent(session)) {
       await invalidate(session);

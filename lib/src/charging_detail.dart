@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'charging_cost.dart';
 
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -74,6 +75,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       leaving = false,
       ownershipMismatch = false;
   int detailSequence = 0, seriesSequence = 0;
+  bool costSupported = false;
+  bool costSheetOpen = false;
   bool get current =>
       mounted &&
       workspace.session.isCurrent(owner) &&
@@ -82,9 +85,37 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   void initState() {
     super.initState();
     workspace.addListener(changed);
+    workspace.addCostReader(refreshCost);
     WidgetsBinding.instance.addObserver(this);
     loadDetail();
     loadSeries();
+    loadCostCapability();
+  }
+
+  Future<void> loadCostCapability() async {
+    try {
+      final meta = await workspace.cache.get(owner, 'meta');
+      if (current) {
+        setState(
+          () => costSupported = supportsChargingCost(meta.body['version']),
+        );
+      }
+    } catch (_) {
+      // Older or unreachable sites remain fully readable.
+    }
+  }
+
+  Future<void> fillCost() async {
+    if (costSheetOpen || !current) return;
+    costSheetOpen = true;
+    await showChargingCostSheet(context, workspace, widget.currency, widget.id);
+    costSheetOpen = false;
+  }
+
+  Future<bool> refreshCost() async {
+    if (!current) return true;
+    await loadDetail(force: true, refreshSeries: false);
+    return detailError == null;
   }
 
   @override
@@ -92,6 +123,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     detailSequence++;
     seriesSequence++;
     workspace.removeListener(changed);
+    workspace.removeCostReader(refreshCost);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -130,7 +162,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           : error is ApiFailure
           ? error.message
           : '读取失败，请重试'}${snapshot ? '；保留上次快照' : ''}';
-  Future<void> loadDetail({bool force = false}) async {
+  Future<void> loadDetail({
+    bool force = false,
+    bool refreshSeries = true,
+  }) async {
     if (!current) return;
     final attempt = ++detailSequence;
     setState(() {
@@ -162,7 +197,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
         unavailable = false;
         ownershipMismatch = false;
       });
-      if (additional != null) loadSeries(extended: true);
+      if (additional != null && refreshSeries) loadSeries(extended: true);
     } catch (error) {
       if (current && attempt == detailSequence) {
         setState(() {
@@ -280,6 +315,44 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       '时长 ${number(d.durationMin, '分钟')}',
     ];
     final large = MileafLayout.largeText(context);
+    Widget resultItem(String item) {
+      final text = Text(
+        item,
+        style: large
+            ? type.title.copyWith(color: colors.text)
+            : type.body.copyWith(
+                color: colors.text,
+                fontWeight: MileafType.weightSemiBold,
+              ),
+      );
+      if (item != '费用 ${widget.currency.amountValue(d.cost)}' ||
+          !costSupported ||
+          !canFillChargingCost(
+            cost: d.cost,
+            active: d.isActive,
+            endedAt: d.endedAt,
+            added: d.energyAddedKwh,
+            used: d.energyUsedKwh,
+          )) {
+        return text;
+      }
+      final action = ChargingCostAction(
+        onPressed: fillCost,
+        identityLabel:
+            '${d.location.displayName ?? '未知地点'} ${time(d.startedAt)} 充电 #${d.id}',
+      );
+      return large
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [text, action],
+            )
+          : Wrap(
+              spacing: MileafSpace.s8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [text, action],
+            );
+    }
+
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -297,10 +370,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                 for (final item in items)
                   Padding(
                     padding: const EdgeInsets.only(bottom: MileafSpace.s12),
-                    child: Text(
-                      item,
-                      style: type.title.copyWith(color: colors.text),
-                    ),
+                    child: resultItem(item),
                   ),
               ],
             )
@@ -308,16 +378,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             Wrap(
               spacing: MileafSpace.s16,
               runSpacing: MileafSpace.s8,
-              children: [
-                for (final item in items)
-                  Text(
-                    item,
-                    style: type.body.copyWith(
-                      color: colors.text,
-                      fontWeight: MileafType.weightSemiBold,
-                    ),
-                  ),
-              ],
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [for (final item in items) resultItem(item)],
             ),
           const SizedBox(height: MileafSpace.section),
         ],
@@ -662,7 +724,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                     Text(
                       '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
                     ),
-                    const Text('历史结果只读；— 表示缺失，不代表零。'),
+                    const Text('历史数据按站点记录展示；— 表示缺失，不代表零。'),
                   ],
                 ),
               ),
@@ -1250,8 +1312,8 @@ class _ChargingCurveState extends State<ChargingCurve> {
             style: context.type.micro.copyWith(color: context.colors.textMuted),
           ),
         if (points.isNotEmpty)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
             children: [
               TextButton(
                 onPressed: selected > 0

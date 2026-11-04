@@ -94,6 +94,20 @@ class BusinessCache {
     _attempts.clear();
   }
 
+  /// Remove affected snapshots and their in-flight validators together.
+  void invalidateChargingCosts(int vehicle) {
+    bool affected(String key) {
+      final path = key.split('|')[2];
+      return path.startsWith('charging-sessions/') ||
+          path.startsWith('vehicles/$vehicle/charging-') ||
+          path == 'vehicles/$vehicle/stats' ||
+          path == 'vehicles/$vehicle/summary';
+    }
+
+    _entries.removeWhere((key, _) => affected(key));
+    _attempts.removeWhere((key, _) => affected(key));
+  }
+
   void clear() {
     clearSnapshots();
     _retryUntil = null;
@@ -241,6 +255,30 @@ class VehicleWorkspace extends ChangeNotifier {
   final VehiclePreferenceStore preferences;
   final Future<CalendarContext> Function() readCalendar;
   final BusinessCache cache;
+  final _costReaders = <Future<bool> Function()>{};
+  void addCostReader(Future<bool> Function() reader) =>
+      _costReaders.add(reader);
+  void removeCostReader(Future<bool> Function() reader) =>
+      _costReaders.remove(reader);
+
+  /// A fee change is data refresh, never a vehicle/session revision.
+  Future<bool> refreshChargingCosts(SiteSession owner, int vehicle) async {
+    if (_disposed || !session.isCurrent(owner) || selectedId != vehicle) {
+      return false;
+    }
+    cache.invalidateChargingCosts(vehicle);
+    final results = await Future.wait(
+      _costReaders.toList().map((reader) async {
+        try {
+          return await reader();
+        } catch (_) {
+          return false;
+        }
+      }),
+    );
+    return results.every((result) => result);
+  }
+
   CalendarContext? calendar;
   int? selectedId;
   String? notice;
@@ -318,6 +356,7 @@ class VehicleWorkspace extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     session.removeListener(_sessionChanged);
+    _costReaders.clear();
     cache.clear();
     super.dispose();
   }

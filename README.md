@@ -6,7 +6,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
 **当前状态：版面与视觉已按用户 2026-11-01 确认的 A「夜航」方向完成 VA01–VA14 实施；代码、自动化与实际 Flutter 渲染已验证，真机/真实站点/地图/性能等外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [A 视觉系统 Spec](docs/specs/visual-system-a.md)、[A 视觉方向 ADR](docs/adr/0003-visual-direction-a.md)、[A 渲染索引](docs/implementation/a-renders/gallery/README.md) 与 [可达性审计](docs/implementation/a-accessibility.md)。C「数据拼贴」的页面、渲染与 C10 验收记录保留为历史证据，不再作为当前视觉依据。
 
-本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据只读，使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
+本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据默认只读；Server 0.4.0 起，管理员显式启用后，可在 App 按本次单价补录已结束且费用缺失的充电，不覆盖已有费用、不保存默认单价。见[补录规格](docs/specs/missing-charging-cost-entry.md)与[实施证据](docs/implementation/charging-cost-entry.md)。使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
 双端构建已通过进程沙箱验证，iOS 使用用户批准的项目级 CocoaPods。
 原生构建必须使用带探针的 `tool/flutterw`，不要绕过保护直接调用全局 Flutter 或 Gradle。

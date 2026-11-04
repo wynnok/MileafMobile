@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'charging_cost.dart';
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -60,11 +61,13 @@ class _ChargingPageState extends State<ChargingPage>
   String? next, error;
   bool loading = false, loaded = false, failedMore = false;
   int revision = 0;
+  int loadedPages = 0;
   int sequence = 0;
   int statsSequence = 0, capabilitySequence = 0;
   int locationSequence = 0, activeSequence = 0;
   int vehicleStateSequence = 0;
   bool expandedAvailable = false, statsLoading = false;
+  bool costSupported = false, costSheetOpen = false;
   bool recordsOnly = false;
   bool capabilityChecked = false;
   bool locationsLoading = false;
@@ -97,6 +100,7 @@ class _ChargingPageState extends State<ChargingPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     workspace.addListener(contextChanged);
+    workspace.addCostReader(refreshCost);
     revision = workspace.revision;
     interval();
     final entry = widget.initialEntry;
@@ -125,6 +129,7 @@ class _ChargingPageState extends State<ChargingPage>
     next = null;
     loaded = false;
     expandedAvailable = false;
+    costSupported = false;
     recordsOnly = false;
     capabilityChecked = false;
     expandedStats = null;
@@ -177,6 +182,7 @@ class _ChargingPageState extends State<ChargingPage>
     search.dispose();
     scroll.dispose();
     workspace.removeListener(contextChanged);
+    workspace.removeCostReader(refreshCost);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -190,11 +196,13 @@ class _ChargingPageState extends State<ChargingPage>
     if (owner == null || vehicle == null) return;
     final attempt = ++capabilitySequence;
     var available = expandedAvailable;
+    var costAvailable = costSupported;
     var recognized = capabilityChecked;
     String? failure;
     try {
       final meta = await workspace.cache.get(owner, 'meta', force: force);
       final version = meta.body['version'];
+      costAvailable = supportsChargingCost(version);
       final capability = meta.body['charging_experience'];
       final parts = version is String
           ? RegExp(r'^(\d+)\.(\d+)\.(\d+)$').firstMatch(version)
@@ -218,6 +226,7 @@ class _ChargingPageState extends State<ChargingPage>
     final changed = available != expandedAvailable;
     setState(() {
       expandedAvailable = available;
+      costSupported = costAvailable;
       capabilityChecked = recognized;
       capabilityError = failure;
     });
@@ -643,13 +652,26 @@ class _ChargingPageState extends State<ChargingPage>
     ]);
   }
 
-  Future<void> load({bool more = false, bool force = false}) async {
+  Future<bool> refreshCost() async {
+    await Future.wait([
+      load(force: true, preservePages: true),
+      loadStats(force: true),
+      if (expandedAvailable) loadLocations(force: true),
+    ]);
+    return error == null && statsError == null && locationError == null;
+  }
+
+  Future<void> load({
+    bool more = false,
+    bool force = false,
+    bool preservePages = false,
+  }) async {
     if (widget.initialEntry != null && !expandedAvailable) {
       await loadCapability(force: force);
       return;
     }
     if (more && (loading || next == null)) return;
-    if (!more && force) {
+    if (!more && force && !preservePages) {
       next = null;
     }
     if (!from.isBefore(to)) {
@@ -670,18 +692,32 @@ class _ChargingPageState extends State<ChargingPage>
       failedMore = more;
     });
     try {
-      final value = await workspace.cache.get(
-        session,
-        'vehicles/$id/charging-sessions',
-        query: listQuery(cursor: cursor),
-        force: force,
-      );
-      final decoded = dto.ChargingSessionPage.fromJson(value.body);
-      final matched = expandedAvailable
-          ? expanded.ChargingSessionPage.fromJson(value.body).matchedSessions
-          : null;
-      final page = decoded.items;
-      final following = decoded.nextCursor;
+      final page = <dto.ChargingSession>[];
+      String? following = cursor;
+      int? matched;
+      var pages = 0;
+      final targetPages = preservePages
+          ? loadedPages.clamp(1, loadedPages + 1)
+          : 1;
+      final visited = <String?>{};
+      do {
+        if (!visited.add(following)) {
+          throw const FormatException('Repeated cursor');
+        }
+        final value = await workspace.cache.get(
+          session,
+          'vehicles/$id/charging-sessions',
+          query: listQuery(cursor: following),
+          force: force,
+        );
+        final decoded = dto.ChargingSessionPage.fromJson(value.body);
+        matched = expandedAvailable
+            ? expanded.ChargingSessionPage.fromJson(value.body).matchedSessions
+            : null;
+        page.addAll(decoded.items);
+        following = decoded.nextCursor;
+        pages++;
+      } while (preservePages && pages < targetPages && following != null);
       if (!mounted ||
           attempt != sequence ||
           !workspace.session.isCurrent(session) ||
@@ -695,6 +731,7 @@ class _ChargingPageState extends State<ChargingPage>
           if (ids.add(v.id)) items.add(v);
         }
         next = following;
+        loadedPages = more ? loadedPages + pages : pages;
         matchedSessions = matched;
         if (more && following != null && following == cursor) {
           error = '分页游标未前进，已保留现有充电，请刷新或手动重试';
@@ -1735,9 +1772,47 @@ class _ChargingPageState extends State<ChargingPage>
               '电网侧 ${number(value.energyUsedKwh, 'kWh')}',
               style: type.micro.copyWith(color: colors.textMuted),
             ),
-            Text(
-              '费用 $amount${note == null ? '' : ' · $note'}',
-              style: type.micro.copyWith(color: colors.textMuted),
+            Wrap(
+              spacing: MileafSpace.s8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '费用 $amount${note == null ? '' : ' · $note'}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                if (costSupported &&
+                    canFillChargingCost(
+                      cost: value.cost,
+                      active: value.isActive,
+                      endedAt: value.endedAt,
+                      added: value.energyAddedKwh,
+                      used: value.energyUsedKwh,
+                    ))
+                  SizedBox(
+                    width: MileafLayout.largeText(context)
+                        ? double.infinity
+                        : null,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: 1,
+                      child: ChargingCostAction(
+                        identityLabel:
+                            '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
+                        onPressed: () async {
+                          if (costSheetOpen) return;
+                          costSheetOpen = true;
+                          await showChargingCostSheet(
+                            context,
+                            workspace,
+                            widget.currency,
+                            value.id,
+                          );
+                          costSheetOpen = false;
+                        },
+                      ),
+                    ),
+                  ),
+              ],
             ),
             Text(
               '时长 ${number(value.durationMin, '分钟')}',
