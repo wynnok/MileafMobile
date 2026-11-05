@@ -143,3 +143,6 @@ app.*.symbols
 # Local map credentials
 /config/*.local.env
 /ios/Flutter/AMap.local.xcconfig
+
+# Creator/promo workspace (renders, deps, scratch); intentionally untracked in full
+/creator/
