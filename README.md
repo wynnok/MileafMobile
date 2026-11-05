@@ -4,16 +4,14 @@
 通过独立部署的 Mileaf Server API，以图表、地图和关键数字尽可能展示车况记录、行程、充电和统计。
 Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 
-**当前状态：版面与视觉已按用户 2026-11-01 确认的 A「夜航」方向完成 VA01–VA14 实施；代码、自动化与实际 Flutter 渲染已验证，真机/真实站点/地图/性能等外部验收仍待完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [A 视觉系统 Spec](docs/specs/visual-system-a.md)、[A 视觉方向 ADR](docs/adr/0003-visual-direction-a.md)、[A 渲染索引](docs/implementation/a-renders/gallery/README.md) 与 [可达性审计](docs/implementation/a-accessibility.md)。C「数据拼贴」的页面、渲染与 C10 验收记录保留为历史证据，不再作为当前视觉依据。
+**当前状态：版面与视觉已按 A「夜航」方向完成 VA01–VA14 实施，并于 2026-11-02 由外观 v2 更新配色与默认外观（现行外观）。代码、自动化与实际 Flutter 渲染已验证并集成到 `main`；真机、真实站点、地图底图与设备性能等外部验收仍未完成。** 正式范围以 [Spec #1](https://github.com/wynnok/MileafMobile/issues/1) 为准。见 [A 视觉系统 Spec](docs/specs/visual-system-a.md)、[A 视觉方向 ADR](docs/adr/0003-visual-direction-a.md)、[A 渲染索引](docs/implementation/a-renders/gallery/README.md) 与 [可达性审计](docs/implementation/a-accessibility.md)。C「数据拼贴」的页面、渲染与 C10 验收记录保留为历史证据，不再作为当前视觉依据。
 
-本地集成分支为 `codex/mileaf-v1`：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据默认只读；Server 0.4.0 起，管理员显式启用后，可在 App 按本次单价补录已结束且费用缺失的充电，不覆盖已有费用、不保存默认单价。见[补录规格](docs/specs/missing-charging-cost-entry.md)与[实施证据](docs/implementation/charging-cost-entry.md)。使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
+已集成到 `main`（原 `codex/mileaf-v1` 已合并并推送）：连接与显式初始化、登录/会话、车辆切换、概览、行程和充电列表/详情/采样曲线、驾驶与充电统计、站点币种及连接管理。业务数据默认只读；Server 0.4.0 起，管理员显式启用后，可在 App 按本次单价补录已结束且费用缺失的充电，不覆盖已有费用、不保存默认单价。见[补录规格](docs/specs/missing-charging-cost-entry.md)与[实施证据](docs/implementation/charging-cost-entry.md)。使用固定 Mileaf Server OpenAPI 生成客户端 DTO。
 
 双端构建已通过进程沙箱验证，iOS 使用用户批准的项目级 CocoaPods。
 原生构建必须使用带探针的 `tool/flutterw`，不要绕过保护直接调用全局 Flutter 或 Gradle。
 设备 run/install/drive 仍返回 78；构建证据见[隔离记录](docs/implementation/build-isolation.md)。
-真机等外部验收未齐的 Ticket 保持开放，候选合入不等于整票验收通过。
-
-用户同时批准先推进后续代码和自动化测试，外部验收保持待验且不提前关闭相关 Ticket。
+功能票按「代码与自动化完成即结项」口径关闭（2026-11-04）；仍待外部条件的验收集中在三张票：[#11](https://github.com/wynnok/MileafMobile/issues/11) 真实底图、[#16](https://github.com/wynnok/MileafMobile/issues/16) 设备性能、[#17](https://github.com/wynnok/MileafMobile/issues/17) 整机与真实站点/Grafana 复核。功能票关闭不等于外部验收通过。
 
 ## 阅读顺序
 
@@ -57,4 +55,17 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 - [安全网络候选与待验项](docs/implementation/network-security.md)
 - [地图候选与未满足条件](docs/implementation/map-candidate.md)
 
-源码只在本地分支提交，未推送、部署或上架，也未修改外部后端仓库。
+源码已推送到 [GitHub `wynnok/MileafMobile`](https://github.com/wynnok/MileafMobile) 的 `main`；未部署、未上架，也未修改外部后端仓库（`MileafServer/`、`teslamate/` 仅作只读参考）。
+
+## 许可证
+
+本项目以 **GNU Affero General Public License v3.0（AGPL-3.0）** 发布，许可证全文见 [LICENSE](LICENSE)。
+
+Copyright (c) 2026 wynnok
+
+选择 AGPL-3.0 是为了与同生态的 Mileaf Server 及上游 TeslaMate 保持一致：分发修改版、或修改后通过网络向他人提供服务时，同样需要提供对应源码。
+
+分发前需自行确认两件事：
+
+- 中国大陆底图由高德地图 SDK 提供，其使用条款独立于本项目许可证。
+- AGPL/GPL 与 iOS App Store 的分发条款长期存在争议；若要上架 App Store，需要单独处理这一冲突。
