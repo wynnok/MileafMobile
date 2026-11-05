@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>行笺 · 锁定标识</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #F0EFEA; color: #171A18; font-family: -apple-system, "PingFang SC", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 34px 46px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #CFCEC7; padding-bottom: 18px; }
+  .eyebrow { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: #7B817A; margin-bottom: 7px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 500; letter-spacing: -.03em; }
+  header p { margin: 0; font-size: 10.5px; color: #6E746D; }
+  .grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 22px; margin-top: 24px; }
+  .panel { border: 1px solid #D8D6CF; border-radius: 18px; background: #FAF9F5; padding: 20px; }
+  .panel h2 { margin: 0 0 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #7B817A; font-weight: 500; }
+  .hero-dark { background: radial-gradient(70% 90% at 75% 15%, rgba(116,221,168,.17), transparent 68%), #071009; border-radius: 14px; padding: 30px 26px; color: #F2F5F0; }
+  .hero-light { background: #F1F0EB; border: 1px solid #DEDCD4; border-radius: 14px; padding: 30px 26px; color: #121613; }
+  .lockup { display: flex; align-items: center; gap: 12px; }
+  .lockup .cn { font-size: 22px; font-weight: 600; letter-spacing: .32em; }
+  .lockup .en { font-size: 8px; letter-spacing: .28em; color: #8A948D; align-self: flex-end; margin-bottom: 4px; }
+  .hero-dark .lockup .en { color: #8FB5A1; }
+  .lockup svg { color: #74DDA8; }
+  .hero-light .lockup svg { color: #1C6B4F; }
+  .sub { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); font-size: 9.5px; line-height: 1.7; color: #9FB9AA; }
+  .hero-light .sub { border-color: #DEDCD4; color: #6E746D; }
+  .icons { display: flex; gap: 14px; margin-top: 14px; }
+  .appicon { width: 112px; height: 112px; border-radius: 26px; display: grid; place-items: center; }
+  .appicon.dark { background: linear-gradient(155deg, #102A1D, #050806 72%); color: #74DDA8; box-shadow: 0 10px 24px rgba(7,16,9,.16); }
+  .appicon.light { background: #F1F0EB; color: #1C6B4F; border: 1px solid #DEDCD4; }
+  .scale { display: flex; align-items: flex-end; gap: 18px; margin-top: 4px; }
+  .scale figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .scale figcaption { font-size: 8px; color: #7B817A; font-family: "SF Mono", Menlo, monospace; }
+  .swatches { display: flex; gap: 8px; margin-top: 14px; }
+  .sw { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(0,0,0,.08); }
+  .swatches span { font-size: 8px; color: #7B817A; font-family: "SF Mono", Menlo, monospace; align-self: center; }
+  .note { margin-top: 20px; border-top: 1px solid #CFCEC7; padding-top: 13px; font-size: 9.5px; line-height: 1.75; color: #6E746D; }
+  .note b { color: #2B302B; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Mileaf / Identity lockup / 2026.11</div>
+      <h1>M 径 · 一条路，收在目的地。</h1>
+    </div>
+    <p>已选符号概念 03；这是锁定用法，不是完整 VI。</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Lockup / dark & light</h2>
+      <div class="hero-dark">
+        <div class="lockup">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg>
+          <span class="cn">行笺</span><span class="en">MILEAF</span>
+        </div>
+        <p class="sub">深色主底：玉绿 #74DDA8 单色。M 由折线写成，右腿延伸为路线，实心圆点是目的地。</p>
+      </div>
+      <div class="hero-light" style="margin-top:12px">
+        <div class="lockup">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg>
+          <span class="cn">行笺</span><span class="en">MILEAF</span>
+        </div>
+        <p class="sub">浅色纸底：深湖绿 #1C6B4F 单色；字标与符号同色，不描边、不渐变。</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>App icon</h2>
+      <div class="icons">
+        <div class="appicon dark">
+          <svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div class="appicon light">
+          <svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg>
+        </div>
+      </div>
+      <h2 style="margin-top:22px">Scale</h2>
+      <div class="scale">
+        <figure><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C6B4F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg><figcaption>18</figcaption></figure>
+        <figure><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1C6B4F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg><figcaption>24</figcaption></figure>
+        <figure><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C6B4F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20V4.4l6.7 7.5 5.9-7.5V20"/><path d="M16.2 20c1.1-3.1 2.4-5.3 4-7"/><circle cx="20.6" cy="12.2" r="1.35" fill="currentColor" stroke="none"/></svg><figcaption>32</figcaption></figure>
+      </div>
+    </section>
+  </div>
+
+  <div class="panel" style="margin-top:22px">
+    <h2>Color</h2>
+    <div class="swatches">
+      <i class="sw" style="background:#74DDA8"></i><span>#74DDA8</span>
+      <i class="sw" style="background:#1C6B4F"></i><span>#1C6B4F</span>
+      <i class="sw" style="background:#070908"></i><span>#070908</span>
+      <i class="sw" style="background:#F1F0EB"></i><span>#F1F0EB</span>
+      <i class="sw" style="background:#D8B27C"></i><span>#D8B27C</span>
+    </div>
+    <p class="note"><b>边界</b>：符号只在 18/24/32/58px 验证；未做启动图、商店素材、动态标识、深色模式自动描边。符号必须单色可用，不允许渐变、阴影或第二色。字标「行笺」与 MILEAF 的最终字距在 Spec 锁定。</p>
+  </div>
+</div>
+</body>
+</html>

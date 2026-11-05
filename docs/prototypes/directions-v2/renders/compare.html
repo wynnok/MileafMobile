@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>行笺 · 方向评审 v2 · 并排</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #17191B; color: #E8EAE7; font-family: -apple-system, "PingFang SC", sans-serif; }
+  .wrap { padding: 26px 30px 30px; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  .head h1 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
+  .head span { font-size: 10px; letter-spacing: .12em; color: #7E8982; text-transform: uppercase; }
+  .row { display: grid; grid-template-columns: repeat(3, 360px); gap: 26px; }
+  figure { margin: 0; }
+  figcaption { display: flex; align-items: baseline; gap: 8px; padding: 0 2px 9px; }
+  figcaption b { font-size: 12px; font-weight: 600; }
+  figcaption span { font-size: 9.5px; color: #7E8982; }
+  img { display: block; width: 360px; height: 800px; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><h1>同一组车主数据，三种阅读顺序。</h1><span>Mileaf / Directions v2 / 2026.11</span></div>
+  <div class="row">
+    <figure><figcaption><b>A · 夜航</b><span>先看车，再看这个月</span></figcaption><img src="A-overview-dark.png" alt="A 夜航概览"></figure>
+    <figure><figcaption><b>B · 仪表</b><span>先读仪表，再读记录</span></figcaption><img src="B-overview-dark.png" alt="B 仪表概览"></figure>
+    <figure><figcaption><b>C · 夜读</b><span>先读这个月，再回到车</span></figcaption><img src="C-overview-dark.png" alt="C 夜读概览"></figure>
+  </div>
+</div>
+</body>
+</html>

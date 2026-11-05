@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>行笺 · 方向评审 v2 · 图册</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #F0EFEA; color: #171A18; font-family: -apple-system, "PingFang SC", sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 44px 36px 70px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; border-bottom: 1px solid #CFCEC7; padding-bottom: 22px; }
+  h1 { margin: 0; font-size: 30px; font-weight: 500; letter-spacing: -.03em; }
+  header p { max-width: 540px; margin: 0; font-size: 12px; line-height: 1.7; color: #61665F; }
+  .eyebrow { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: #7B817A; margin-bottom: 8px; }
+  .legend { display: flex; gap: 18px; margin: 18px 0 30px; font-size: 10px; color: #6D736C; }
+  .legend b { color: #171A18; font-weight: 600; }
+  section { margin-top: 34px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; border-top: 1px solid #CFCEC7; padding-top: 16px; margin-bottom: 16px; }
+  .section-head h2 { margin: 0; font-size: 20px; font-weight: 500; }
+  .section-head span { font-size: 10px; color: #777D76; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  figure { margin: 0; }
+  figcaption { display: flex; justify-content: space-between; padding: 7px 2px 0; font-size: 9px; color: #70766F; }
+  figcaption b { font-weight: 600; color: #2B302B; }
+  img { display: block; width: 100%; height: auto; border-radius: 16px; box-shadow: 0 8px 26px rgba(20, 22, 20, .10); background: #0B0907; }
+  .pair { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .note { margin-top: 34px; padding-top: 16px; border-top: 1px solid #CFCEC7; font-size: 10.5px; line-height: 1.8; color: #6B716A; }
+  a { color: #2E6B52; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Mileaf / Directions v2 / 2026.11</div>
+      <h1>同一组车主数据，三种阅读顺序。</h1>
+    </div>
+    <p>固定合成数据，360 × 800 逻辑视口，Chrome headless 实际渲染。三套方向不是换色稿：A 用深色车况主屏建立锚点，B 用仪表刻度与等宽数字建立精度，C 用衬线、纸感与账簿建立品牌。所有图仅用于方向评审，未修改 Flutter 页面。</p>
+  </header>
+  <div class="legend"><span><b>深色</b> 主基线</span><span><b>浅色</b> 白天等价主题</span><span><b>固定样例</b> 2026-10-26 18:40 · 68% / 320 km</span></div>
+
+  <section>
+    <div class="section-head"><h2>A · 夜航</h2><span>一块夜里的仪表玻璃，其余退成纸面。</span></div>
+    <div class="grid">
+      <figure><img src="A-overview-dark.png" alt="A 概览"><figcaption><b>概览</b><span>首屏</span></figcaption></figure>
+      <figure><img src="A-statistics-dark.png" alt="A 统计"><figcaption><b>统计</b><span>结论 + 主图</span></figcaption></figure>
+      <figure><img src="A-drives-dark.png" alt="A 行程"><figcaption><b>行程</b><span>期间 + 节奏</span></figcaption></figure>
+      <figure><img src="A-drive-dark.png" alt="A 行程详情"><figcaption><b>行程详情</b><span>地图优先</span></figcaption></figure>
+      <figure><img src="A-charging-dark.png" alt="A 充电"><figcaption><b>充电</b><span>费用 + 覆盖</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>B · 仪表</h2><span>像读一块精密仪表，每个数字都有刻度。</span></div>
+    <div class="grid">
+      <figure><img src="B-overview-dark.png" alt="B 概览"><figcaption><b>概览</b><span>首屏</span></figcaption></figure>
+      <figure><img src="B-statistics-dark.png" alt="B 统计"><figcaption><b>统计</b><span>结论 + 主图</span></figcaption></figure>
+      <figure><img src="B-drives-dark.png" alt="B 行程"><figcaption><b>行程</b><span>期间 + 节奏</span></figcaption></figure>
+      <figure><img src="B-drive-dark.png" alt="B 行程详情"><figcaption><b>行程详情</b><span>地图 + 过程</span></figcaption></figure>
+      <figure><img src="B-charging-dark.png" alt="B 充电"><figcaption><b>充电</b><span>费用 + 覆盖</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>C · 夜读</h2><span>把一个月写成一段夜读：大字、留白、纸感。</span></div>
+    <div class="grid">
+      <figure><img src="C-overview-dark.png" alt="C 概览"><figcaption><b>概览</b><span>首屏</span></figcaption></figure>
+      <figure><img src="C-statistics-dark.png" alt="C 统计"><figcaption><b>统计</b><span>结论 + 主图</span></figcaption></figure>
+      <figure><img src="C-drives-dark.png" alt="C 行程"><figcaption><b>行程</b><span>期间 + 节奏</span></figcaption></figure>
+      <figure><img src="C-drive-dark.png" alt="C 行程详情"><figcaption><b>行程详情</b><span>地图 + 过程</span></figcaption></figure>
+      <figure><img src="C-charging-dark.png" alt="C 充电"><figcaption><b>充电</b><span>费用 + 覆盖</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>浅色对照</h2><span>只抽概览与统计；完整浅色矩阵在方向确认后进入 Spec。</span></div>
+    <div class="pair">
+      <figure><img src="A-overview-light.png" alt="A 概览浅色"><figcaption><b>A 概览</b><span>浅色</span></figcaption></figure>
+      <figure><img src="A-statistics-light.png" alt="A 统计浅色"><figcaption><b>A 统计</b><span>浅色</span></figcaption></figure>
+      <figure><img src="B-overview-light.png" alt="B 概览浅色"><figcaption><b>B 概览</b><span>浅色</span></figcaption></figure>
+      <figure><img src="B-statistics-light.png" alt="B 统计浅色"><figcaption><b>B 统计</b><span>浅色</span></figcaption></figure>
+      <figure><img src="C-overview-light.png" alt="C 概览浅色"><figcaption><b>C 概览</b><span>浅色</span></figcaption></figure>
+      <figure><img src="C-statistics-light.png" alt="C 统计浅色"><figcaption><b>C 统计</b><span>浅色</span></figcaption></figure>
+    </div>
+  </section>
+
+  <p class="note">评审边界：固定合成数据；无 API、无持久化、无外部字体/图片/地图瓦片。截图是浏览器级方向验证，不是正式 Flutter 渲染、真机、真实站点、地图许可/坐标或性能验收。交互评审入口：<a href="../index.html">../index.html</a>；并排图：<a href="compare-dark.png">compare-dark.png</a>。</p>
+</div>
+</body>
+</html>

@@ -51,3 +51,5 @@ See `docs/agents/domain.md`.
 - 2026-11-04 用户逐份确认 ADR 0007、充电费用补录 Spec 与 CET01–CET07，授权按 App＋可控HTTP和正式Flutter渲染/语义边界实施，并在当前 `main` 本地提交、不推送。双入口共用底部表单，只补录已结束且cost为null的记录；0元不可覆盖，单价不保存。后端0.4.0无写入能力开关查询，未启用按403反馈；未知币种允许按原账本填写。实现与证据见 `docs/implementation/charging-cost-entry.md`，外部gate不因本地实施而关闭。
 
 - 2026-11-04 GitHub 追踪收口（用户确认口径 A，取代此前"外部待验票不关闭"的绝对表述）：v1 全部功能切片的代码与自动化已确认在 `main`（`b3281e8`）完成——`tool/flutterw analyze` 无诊断、`tool/flutterw test` 455 通过 / 6 跳过 / 0 失败，据此把已完成票结项关闭。#3–#10、#12–#15、#18–#21 共 16 张各自发布中文结项评论（已交付／证据路径／仍未验证的外部条件）后以 completed 关闭，只新增评论、未改任何票正文。追踪面只保留 #1（Spec 与路线图）、#11（真实底图外部验收）、#16（设备性能采样）、#17（整机／真实站点／Grafana 验收），依赖链收敛为 `#11 → #16 → #17`。今后按"代码与自动化完成即结项关闭，残余外部条件集中到 #17（地图归 #11、性能归 #16）"执行；本条目不解除任何外部 gate，只是改变其承载票。本次未推送、未改仓库可见性。
+
+- 2026-11-05 开源准备（用户确认）：`creator/` 创作与宣传视频工作区整体不纳入版本库，`.gitignore` 改为 `/creator/` 覆盖全部子目录；`docs/product/direction-review-v2.md` 与 `docs/prototypes/directions-v2/`、`docs/prototypes/overview-expansion/`、`docs/prototypes/visual-refresh/` 三组评审原型改为纳入版本库——它们已被 ADR 0001、`docs/specs/mobile-v1.md` 等已跟踪文档引用，提交后公开仓库不再有死链。既有实施记录中"原型未跟踪、不纳入提交"的措辞属于当时事实，不回溯改写。

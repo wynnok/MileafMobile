@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>行笺 · 三组强调色</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #15171A; color: #E9EBE7; font-family: -apple-system, "PingFang SC", sans-serif; }
+  .wrap { padding: 26px 30px 34px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .head h1 { margin: 0; font-size: 19px; font-weight: 500; }
+  .head span { font-size: 9.5px; letter-spacing: .14em; color: #7E8982; text-transform: uppercase; }
+  .sub { margin: 0 0 18px; font-size: 11px; color: #8A948D; }
+  .row { display: grid; grid-template-columns: repeat(3, 360px); gap: 26px; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .label { display: flex; justify-content: space-between; align-items: baseline; }
+  .label b { font-size: 13px; font-weight: 600; }
+  .label span { font-size: 9.5px; color: #7E8982; }
+  .swatches { display: flex; gap: 6px; align-items: center; }
+  .sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255,255,255,.12); }
+  .swatches em { font-style: normal; font-size: 9px; color: #7E8982; font-family: "SF Mono", Menlo, monospace; }
+  img { display: block; width: 360px; height: 800px; border-radius: 24px; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+  .note { margin-top: 22px; max-width: 900px; font-size: 10.5px; line-height: 1.75; color: #8A948D; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><h1>同一套 A 版面，三组强调色。</h1><span>Mileaf / A · Night Run / Palette study</span></div>
+  <p class="sub">只换强调色与 hero 光晕；背景、排版、图表语法不变。上：深色；下：浅色。</p>
+  <div class="row">
+    <div class="col">
+      <div class="label"><b>P1 · 玉绿</b><span>推荐 · 冷静、有生长感</span></div>
+      <div class="swatches"><i class="sw" style="background:#74DDA8"></i><em>#74DDA8</em><i class="sw" style="background:#1C6B4F"></i><em>#1C6B4F</em></div>
+      <img src="palette-jade-dark.png" alt="玉绿深色">
+      <img src="palette-jade-light.png" alt="玉绿浅色">
+    </div>
+    <div class="col">
+      <div class="label"><b>P2 · 青绿</b><span>更冷、更科技</span></div>
+      <div class="swatches"><i class="sw" style="background:#6FE0D2"></i><em>#6FE0D2</em><i class="sw" style="background:#0F6B63"></i><em>#0F6B63</em></div>
+      <img src="palette-teal-dark.png" alt="青绿深色">
+      <img src="palette-teal-light.png" alt="青绿浅色">
+    </div>
+    <div class="col">
+      <div class="label"><b>P3 · 苔绿</b><span>更暖、更户外</span></div>
+      <div class="swatches"><i class="sw" style="background:#B7D98E"></i><em>#B7D98E</em><i class="sw" style="background:#4F6B2F"></i><em>#4F6B2F</em></div>
+      <img src="palette-moss-dark.png" alt="苔绿深色">
+      <img src="palette-moss-light.png" alt="苔绿浅色">
+    </div>
+  </div>
+  <p class="note">P1 与参照砂色区分最清楚；P2 最锐利但偏青，容易和状态色混淆；P3 与参照砂色过近，比较线和主系列会打架。三者都未改变语义色（费用/参照）与背景层。</p>
+</div>
+</body>
+</html>

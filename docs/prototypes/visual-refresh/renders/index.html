@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>行笺视觉重构 · 图册</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#1b2a20;background:#e9efe6}
+    body{margin:0}
+    header{max-width:1320px;margin:0 auto;padding:48px 28px 22px}
+    .eyebrow{font-size:10px;letter-spacing:2px;color:#738376;text-transform:uppercase}
+    h1{font-size:32px;font-weight:600;letter-spacing:-1px;margin:10px 0 8px}
+    header p{max-width:760px;font-size:12px;line-height:1.9;color:#66776b}
+    header a{color:#2f7d58}
+    main{max-width:1320px;margin:0 auto;padding:0 28px 70px}
+    section{margin-top:38px}
+    .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid #ccd9c9;padding-bottom:9px}
+    h2{font-size:17px;font-weight:600;margin:0;letter-spacing:-.2px}
+    .section-head span{font-size:10px;color:#7b8b7c}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px;margin-top:16px}
+    figure{margin:0}
+    .shot{border-radius:18px;overflow:hidden;background:#d8e2d5;box-shadow:0 12px 28px rgba(30,55,38,.09)}
+    .shot img{display:block;width:100%;height:auto}
+    figcaption{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:9px;line-height:1.5;color:#687a6b}
+    figcaption b{color:#283d2e;font-weight:600}
+    .wide{grid-column:span 3}
+    .wide .shot img{width:100%}
+    @media(max-width:900px){.wide{grid-column:span 1}header{padding-top:28px}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Mileaf / Visual refresh / 2026.10.30</p>
+    <h1>行笺视觉重构 · 图册</h1>
+    <p>三套信息层级方向，同一组固定合成数据。A「仪表舱」为推荐；B「行笺志」与 C「数据拼贴」用于比较阅读顺序，不是三套换色。所有图为 Chrome headless 实际渲染的 360×800 逻辑视口，输出 720×1600。交互评审入口：<a href="../index.html">../index.html</a>，并排图见 <a href="compare-light.png">compare-light.png</a>。</p>
+  </header>
+  <main>
+    <section>
+      <div class="section-head"><h2>三套方向并排</h2><span>首屏 · 浅色</span></div>
+      <div class="grid">
+        <figure class="wide"><div class="shot"><img loading="lazy" src="compare-light.png" alt="A/B/C 首屏并排"></div><figcaption><b>A 仪表舱 / B 行笺志 / C 数据拼贴</b><span>同一组数据，三种阅读顺序</span></figcaption></figure>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>A · 仪表舱 · 推荐</h2><span>深色车况主屏 → 本月主数 → 证据图 → 最近记录</span></div>
+      <div class="grid">
+        <figure><div class="shot"><img loading="lazy" src="A-overview-light.png" alt="A 概览浅色"></div><figcaption><b>A / 概览</b><span>浅色</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-overview-dark.png" alt="A 概览深色"></div><figcaption><b>A / 概览</b><span>深色</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-drives-light.png" alt="A 行程"></div><figcaption><b>A / 行程</b><span>期间 + 节奏 + 记录</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-charging-light.png" alt="A 充电"></div><figcaption><b>A / 充电</b><span>费用、覆盖、结构</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-stats-light.png" alt="A 统计"></div><figcaption><b>A / 统计</b><span>结论 + 参照主图</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-topic-rhythm-light.png" alt="A 统计专题"></div><figcaption><b>A / 统计专题</b><span>日历热图与节奏</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-drive-detail-light.png" alt="A 行程详情"></div><figcaption><b>A / 行程详情</b><span>地图 → 结果 → 曲线</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-charge-detail-light.png" alt="A 充电详情"></div><figcaption><b>A / 充电详情</b><span>SOC → 功率</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-overview-200.png" alt="A 概览 200%"></div><figcaption><b>A / 200%</b><span>排版检查</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-overview-empty.png" alt="A 空数据"></div><figcaption><b>A / 空数据</b><span>不用零值画趋势</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="A-sheet.png" alt="A 说明层"></div><figcaption><b>A / 说明层</b><span>比较口径</span></figcaption></figure>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>B · 行笺志</h2><span>纸面、衬线、时间线、账单；弱化卡片</span></div>
+      <div class="grid">
+        <figure><div class="shot"><img loading="lazy" src="B-overview-light.png" alt="B 概览"></div><figcaption><b>B / 概览</b><span>纸面标题</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-drives-light.png" alt="B 行程"></div><figcaption><b>B / 行程</b><span>行迹</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-charging-light.png" alt="B 充电"></div><figcaption><b>B / 充电</b><span>补能账</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-stats-light.png" alt="B 统计"></div><figcaption><b>B / 统计</b><span>编辑式章节</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-stats-dark.png" alt="B 统计深色"></div><figcaption><b>B / 统计</b><span>深色</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-drive-detail-light.png" alt="B 行程详情"></div><figcaption><b>B / 行程详情</b><span>地图图版</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="B-charge-detail-light.png" alt="B 充电详情"></div><figcaption><b>B / 充电详情</b><span>账单</span></figcaption></figure>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>C · 数据拼贴</h2><span>大小色块、一个最大 tile、满幅图</span></div>
+      <div class="grid">
+        <figure><div class="shot"><img loading="lazy" src="C-overview-light.png" alt="C 概览"></div><figcaption><b>C / 概览</b><span>浅色</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-overview-dark.png" alt="C 概览深色"></div><figcaption><b>C / 概览</b><span>深色</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-drives-light.png" alt="C 行程"></div><figcaption><b>C / 行程</b><span>期间 tile</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-charging-light.png" alt="C 充电"></div><figcaption><b>C / 充电</b><span>费用 tile</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-stats-light.png" alt="C 统计"></div><figcaption><b>C / 统计</b><span>章节 tile</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-drive-detail-light.png" alt="C 行程详情"></div><figcaption><b>C / 行程详情</b><span>地图 tile</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-charge-detail-light.png" alt="C 充电详情"></div><figcaption><b>C / 充电详情</b><span>SOC tile</span></figcaption></figure>
+        <figure><div class="shot"><img loading="lazy" src="C-overview-200.png" alt="C 概览 200%"></div><figcaption><b>C / 200%</b><span>单列</span></figcaption></figure>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
