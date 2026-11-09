@@ -335,6 +335,172 @@ void main() {
       expect(find.textContaining('46.8'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('destructive 只改标题色，语义标签仍含标题', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpComponent(
+        tester,
+        MileafDataRow(title: '清除已保存的 Key', destructive: true, onTap: () {}),
+      );
+      expect(
+        tester.widget<Text>(find.text('清除已保存的 Key')).style?.color,
+        const MileafColors.dark().error,
+      );
+      expect(find.bySemanticsLabel(RegExp('清除已保存的 Key')), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('默认非 destructive 行标题仍是正文色', (tester) async {
+      await pumpComponent(tester, MileafDataRow(title: '底图授权', onTap: () {}));
+      expect(
+        tester.widget<Text>(find.text('底图授权')).style?.color,
+        const MileafColors.dark().text,
+      );
+    });
+  });
+
+  group('MileafCopyRow', () {
+    testWidgets('默认态：标签、可选择值与 44×44 复制按钮', (tester) async {
+      var copies = 0;
+      String? payload;
+      await pumpComponent(
+        tester,
+        MileafCopyRow(
+          label: '高德控制台链接',
+          value: 'console.amap.com/dev/key/app',
+          copyText: 'https://console.amap.com/dev/key/app',
+          onCopy: (text) {
+            copies++;
+            payload = text;
+          },
+        ),
+      );
+      expect(find.text('高德控制台链接'), findsOneWidget);
+      expect(find.byType(SelectableText), findsOneWidget);
+      expect(find.text('console.amap.com/dev/key/app'), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(MileafCopyRow)).height,
+        greaterThanOrEqualTo(MileafSpace.rowMin),
+      );
+      final button = find.byTooltip('复制高德控制台链接');
+      expect(button, findsOneWidget);
+      expect(tester.getSize(button), const Size.square(MileafSpace.touch));
+      await tester.tap(button);
+      expect(copies, 1);
+      // copyText 可以不同于显示值：显示短域名，复制完整 URL。
+      expect(payload, 'https://console.amap.com/dev/key/app');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('按压态用 accentSoft 水波，常态图标是 textMuted', (tester) async {
+      await pumpComponent(
+        tester,
+        MileafCopyRow(label: '包名', value: 'app.mileaf.example', onCopy: (_) {}),
+      );
+      const colors = MileafColors.dark();
+      expect(
+        tester
+            .widget<InkWell>(
+              find
+                  .descendant(
+                    of: find.byType(MileafIconButton),
+                    matching: find.byType(InkWell),
+                  )
+                  .first,
+            )
+            .highlightColor,
+        colors.accentSoft,
+      );
+      expect(
+        tester
+            .widget<MileafIcon>(
+              find
+                  .descendant(
+                    of: find.byType(MileafIconButton),
+                    matching: find.byType(MileafIcon),
+                  )
+                  .first,
+            )
+            .color,
+        colors.textMuted,
+      );
+    });
+
+    testWidgets('禁用态不可复制，图标退到 38% textFaint', (tester) async {
+      var copies = 0;
+      await pumpComponent(
+        tester,
+        MileafCopyRow(
+          label: '高德控制台链接',
+          value: 'console.amap.com/dev/key/app',
+          enabled: false,
+          onCopy: (_) => copies++,
+        ),
+      );
+      await tester.tap(find.byTooltip('复制高德控制台链接'));
+      expect(copies, 0);
+      expect(
+        tester
+            .widget<MileafIcon>(
+              find
+                  .descendant(
+                    of: find.byType(MileafIconButton),
+                    matching: find.byType(MileafIcon),
+                  )
+                  .first,
+            )
+            .color,
+        const MileafColors.dark().textFaint.withValues(alpha: .38),
+      );
+      expect(find.text('console.amap.com/dev/key/app'), findsOneWidget);
+    });
+
+    testWidgets('键盘焦点落在复制按钮并出现 2px focusRing', (tester) async {
+      await pumpComponent(
+        tester,
+        MileafCopyRow(label: '包名', value: 'app.mileaf.example', onCopy: (_) {}),
+      );
+      const colors = MileafColors.dark();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final border =
+          (tester
+                          .widget<DecoratedBox>(
+                            find
+                                .descendant(
+                                  of: find.byType(MileafIconButton),
+                                  matching: find.byType(DecoratedBox),
+                                )
+                                .first,
+                          )
+                          .decoration
+                      as BoxDecoration)
+                  .border
+              as Border;
+      expect(border.top.color, colors.focusRing);
+      expect(border.top.width, 2);
+    });
+
+    testWidgets('200% 时标签、值、按钮竖向堆叠且不溢出', (tester) async {
+      await pumpComponent(
+        tester,
+        MileafCopyRow(
+          label: '签名 SHA-1',
+          value: List.filled(20, 'AB').join(':'),
+          onCopy: (_) {},
+        ),
+        width: 320,
+        scale: 2,
+      );
+      final value = find.text(List.filled(20, 'AB').join(':'));
+      final button = find.byTooltip('复制签名 SHA-1');
+      expect(
+        tester.getTopLeft(button).dy,
+        greaterThan(tester.getBottomLeft(value).dy),
+      );
+      expect(tester.getTopLeft(button).dx, lessThan(80));
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('StatusChip / 按钮', () {

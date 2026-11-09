@@ -4,6 +4,7 @@ export 'charts.dart';
 export 'chip.dart';
 export 'chip_row.dart';
 export 'composition_bar.dart';
+export 'copy_row.dart';
 export 'category_bars.dart';
 export 'data_row.dart';
 export 'hero.dart';

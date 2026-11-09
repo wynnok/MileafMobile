@@ -25,6 +25,7 @@ class MileafDataRow extends StatefulWidget {
     this.enabled = true,
     this.topLine = false,
     this.bottomLine = false,
+    this.destructive = false,
     this.semanticLabel,
   });
 
@@ -40,6 +41,11 @@ class MileafDataRow extends StatefulWidget {
   final bool enabled;
   final bool topLine;
   final bool bottomLine;
+
+  /// Destructive rows (for example「清除已保存的 Key」) take the existing
+  /// `error` token for the title. The wording still carries the meaning, so
+  /// colour is never the only signal (appearance v2 Spec §3.4).
+  final bool destructive;
   final String? semanticLabel;
 
   @override
@@ -55,7 +61,11 @@ class _MileafDataRowState extends State<MileafDataRow> {
     final type = context.type;
     final enabled = widget.enabled && widget.onTap != null;
     final showChevron = widget.showChevron && enabled;
-    final titleColor = widget.enabled ? colors.text : colors.textFaint;
+    final titleColor = widget.destructive
+        ? (enabled ? colors.error : colors.textFaint)
+        : widget.enabled
+        ? colors.text
+        : colors.textFaint;
     final metaColor = widget.enabled ? colors.textMuted : colors.textFaint;
     final large = MileafLayout.largeText(context);
     final leading = widget.icon == null

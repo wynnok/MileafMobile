@@ -51,6 +51,7 @@ void main() {
         'saved',
         'restart',
         'help',
+        'privacy',
         'large',
         'keyboard',
       ]) {
@@ -88,7 +89,20 @@ void main() {
         if (state == 'help') {
           await tester.tap(find.text('如何申请 Key'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('如何申请 Key'));
+          await Scrollable.ensureVisible(
+            tester.element(find.byTooltip('复制高德控制台链接')),
+            alignment: 1,
+          );
+          await tester.pumpAndSettle();
+        }
+        if (state == 'privacy') {
+          await tester.ensureVisible(find.text('数据使用说明'));
+          await tester.tap(find.text('数据使用说明'));
+          await tester.pumpAndSettle();
+          await Scrollable.ensureVisible(
+            tester.element(find.byTooltip('复制隐私政策链接')),
+            alignment: 1,
+          );
           await tester.pumpAndSettle();
         }
         if (state == 'keyboard') {

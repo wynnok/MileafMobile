@@ -25,6 +25,7 @@ enum MileafIconName {
   info,
   close,
   check,
+  copy,
 }
 
 class MileafIcon extends StatelessWidget {
@@ -230,6 +231,21 @@ class _MileafIconPainter extends CustomPainter {
           ..moveTo(x(4.6), y(12.4))
           ..lineTo(x(9.6), y(17.4))
           ..lineTo(x(19.4), y(6.6));
+      case MileafIconName.copy:
+        // Two offset sheets on the 24 grid: the back one offset right/down.
+        path
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(x(8.5), y(8.5), x(9), y(9)),
+              Radius.circular(x(2)),
+            ),
+          )
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(x(6.5), y(6.5), x(9), y(9)),
+              Radius.circular(x(2)),
+            ),
+          );
     }
     canvas.drawPath(path, paint);
     final fill = Paint()..color = color;

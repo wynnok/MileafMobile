@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/icons.dart';
+import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
+import 'package:mileaf/src/design/tokens.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/map/map_panel.dart';
@@ -15,6 +18,37 @@ class IosTestBinding extends MapBinding {
   @override
   String get platformLabel => 'iOS';
 }
+
+/// Records `Clipboard.setData` payloads; returns a reader for the last value.
+String? Function() mockClipboard() {
+  final copied = <String?>[null];
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied[0] = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null),
+  );
+  return () => copied[0];
+}
+
+/// Chevron rotation owned by the page, located through its disclosure title so
+/// the assertion survives an extra fold.
+double chevronTurns(WidgetTester tester, String title) => tester
+    .widget<AnimatedRotation>(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(title),
+          matching: find.byType(ExpansionTile),
+        ),
+        matching: find.byType(AnimatedRotation),
+      ),
+    )
+    .turns;
 
 void main() {
   testWidgets('未配置不创建 SDK，速写入口可进入同一设置页，保存后可用', (tester) async {
@@ -54,7 +88,11 @@ void main() {
     await tester.tap(find.text('保存 Key'));
     await tester.pumpAndSettle();
     expect(find.text('已保存'), findsOneWidget);
-    expect(find.text('更换 Key'), findsOneWidget);
+    // 已保存态换成一条 Key 摘要行，不再有整宽「更换 Key」按钮。
+    expect(find.text('更换 Key'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Android 地图 Key'), findsOneWidget);
+    expect(find.text('•••• aaaa'), findsOneWidget);
     expect(find.text('a' * 32), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -72,19 +110,8 @@ void main() {
   testWidgets('安装包信息延迟读取，显示平台绑定信息并可复制', (tester) async {
     final keys = MapKeyController(TestKeyStore());
     await keys.restore();
+    final copied = mockClipboard();
     var reads = 0;
-    String? copied;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-          if (call.method == 'Clipboard.setData') {
-            copied = (call.arguments as Map)['text'] as String;
-          }
-          return null;
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, null),
-    );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(MapBinding.channel, (call) async {
           expect(call.method, 'getBinding');
@@ -106,16 +133,114 @@ void main() {
       ),
     );
     expect(reads, 0);
+    // 两个折叠区默认收起：绑定值、控制台与政策链接都不可见。
+    expect(find.text('app.mileaf.example'), findsNothing);
+    expect(find.byTooltip('复制包名'), findsNothing);
+    expect(chevronTurns(tester, '如何申请 Key'), .25);
+    expect(chevronTurns(tester, '数据使用说明'), .25);
+    expect(
+      tester.getSize(
+        find.descendant(
+          of: find.byType(AnimatedRotation).first,
+          matching: find.byType(MileafIcon),
+        ),
+      ),
+      Size.square(MileafIconMetrics.inline),
+    );
     await tester.ensureVisible(find.text('如何申请 Key'));
     await tester.tap(find.text('如何申请 Key'));
     await tester.pumpAndSettle();
     expect(reads, 1);
+    // 展开后 chevron 翻 180°，绑定信息成为标签 + 值 + 复制按钮的行。
+    expect(chevronTurns(tester, '如何申请 Key'), .75);
+    expect(chevronTurns(tester, '数据使用说明'), .25);
+    expect(find.text('登录高德开放平台，创建应用并添加 Key。'), findsOneWidget);
     expect(find.text('app.mileaf.example'), findsOneWidget);
     expect(find.text('00:11:22'), findsOneWidget);
-    await tester.ensureVisible(find.text('复制包名'));
-    await tester.tap(find.text('复制包名'));
+    await tester.ensureVisible(find.byTooltip('复制包名'));
+    await tester.tap(find.byTooltip('复制包名'));
     await tester.pumpAndSettle();
-    expect(copied, 'app.mileaf.example');
+    expect(copied(), 'app.mileaf.example');
+    expect(find.text('包名已复制'), findsOneWidget);
+    await tester.ensureVisible(find.byTooltip('复制签名 SHA-1'));
+    await tester.tap(find.byTooltip('复制签名 SHA-1'));
+    await tester.pumpAndSettle();
+    expect(copied(), '00:11:22');
+    // 控制台行显示短域名，复制仍是完整 URL。
+    expect(find.text('console.amap.com/dev/key/app'), findsOneWidget);
+    await tester.ensureVisible(find.byTooltip('复制高德控制台链接'));
+    await tester.tap(find.byTooltip('复制高德控制台链接'));
+    await tester.pumpAndSettle();
+    expect(copied(), 'https://console.amap.com/dev/key/app');
+  });
+
+  testWidgets('已保存态：Key 行进入编辑，破坏行为 error 细线行', (tester) async {
+    final keys = await configuredMapKeys();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.light),
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '高德地图',
+          keys: keys,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    const colors = MileafColors.light();
+    expect(find.text('Android 地图 Key'), findsOneWidget);
+    expect(find.text('•••• aaaa'), findsOneWidget);
+    expect(find.text('更换 Key'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    // R2：已保存折叠态只剩状态图标一个强调色对象。
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(TextButton), findsNothing);
+    // 破坏操作是独立 error 细线行，文案仍在。
+    expect(
+      tester.widget<Text>(find.text('清除已保存的 Key')).style?.color,
+      colors.error,
+    );
+    await tester.tap(find.text('Android 地图 Key'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    await tester.tap(find.text('取消更换'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Android 地图 Key'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('隐私详情默认收起，展开后可复制完整政策链接', (tester) async {
+    final keys = await configuredMapKeys();
+    final copied = mockClipboard();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.light),
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '高德地图',
+          keys: keys,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('数据使用说明'), findsOneWidget);
+    expect(find.text('重新启用地图'), findsOneWidget);
+    expect(find.text('当前未允许加载底图'), findsOneWidget);
+    expect(find.byTooltip('复制隐私政策链接'), findsNothing);
+    await tester.ensureVisible(find.text('数据使用说明'));
+    await tester.tap(find.text('数据使用说明'));
+    await tester.pumpAndSettle();
+    expect(chevronTurns(tester, '数据使用说明'), .75);
+    // 供应商说明随详情展开，冻结的隐私语义不丢失。
+    expect(find.textContaining('底图由高德地图提供'), findsOneWidget);
+    expect(find.text('https://lbs.amap.com/pages/privacy/'), findsOneWidget);
+    await tester.ensureVisible(find.byTooltip('复制隐私政策链接'));
+    await tester.tap(find.byTooltip('复制隐私政策链接'));
+    await tester.pumpAndSettle();
+    expect(copied(), 'https://lbs.amap.com/pages/privacy/');
+    expect(find.text('隐私政策链接已复制'), findsOneWidget);
   });
 
   testWidgets('窄屏大字号下表单、申请帮助及隐私均可滚动访问', (tester) async {
@@ -148,6 +273,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('窄屏大字号的已保存态不溢出，Key 行与破坏行都可读', (tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    final keys = await configuredMapKeys();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.dark),
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '高德地图',
+          keys: keys,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Android 地图 Key'), findsOneWidget);
+    expect(find.text('•••• aaaa'), findsOneWidget);
+    await tester.ensureVisible(find.text('清除已保存的 Key'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('iOS 保存失败保留输入，可原地重试并清除', (tester) async {
     final store = TestKeyStore()..fail = true;
     final keys = MapKeyController(store);

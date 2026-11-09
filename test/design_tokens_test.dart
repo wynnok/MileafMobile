@@ -481,8 +481,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('15 个关键图标在 16/20/24 都可绘制', (tester) async {
-      expect(MileafIconName.values.length, 15);
+    testWidgets('16 个关键图标在 16/20/24 都可绘制', (tester) async {
+      expect(MileafIconName.values.length, 16);
       for (final brightness in Brightness.values) {
         for (final size in [
           MileafIconMetrics.inline,
