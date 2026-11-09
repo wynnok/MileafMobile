@@ -409,7 +409,8 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('服务版本与兼容性'));
+    await tester.scrollUntilVisible(find.text('服务信息'), 180);
+    await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.textContaining('未声明已测兼容'), findsOneWidget);
     expect(find.text('schema 检查正常'), findsOneWidget);
@@ -464,7 +465,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('服务版本与兼容性'));
+    await tester.scrollUntilVisible(find.text('服务信息'), 180);
+    await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.text('Mileaf Server 0.1.0'), findsOneWidget);
     expired = true;

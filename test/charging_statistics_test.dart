@@ -355,7 +355,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('设置'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('站点币种'));
+      await tester.tap(find.text('币种'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('USD'));
       await tester.pumpAndSettle();

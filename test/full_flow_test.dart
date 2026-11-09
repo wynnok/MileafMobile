@@ -141,10 +141,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('服务版本与兼容性'));
+    await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Mileaf Server'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('站点连接'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('退出此设备'));
     await tester.tap(find.text('退出此设备'));

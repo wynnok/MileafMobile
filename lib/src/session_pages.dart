@@ -9,7 +9,6 @@ import 'design/typography.dart';
 import 'session.dart';
 import 'setup_page.dart';
 import 'connection_page.dart';
-import 'connection_management.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.session});
@@ -124,8 +123,13 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class VehiclePage extends StatelessWidget {
-  const VehiclePage({super.key, required this.session});
+  const VehiclePage({
+    super.key,
+    required this.session,
+    required this.onSettings,
+  });
   final SessionController session;
+  final VoidCallback onSettings;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -134,7 +138,7 @@ class VehiclePage extends StatelessWidget {
         IconButton(
           tooltip: '设置',
           icon: const Icon(Icons.settings),
-          onPressed: () => openConnectionManagement(context, session),
+          onPressed: onSettings,
         ),
         IconButton(
           onPressed: session.loading ? null : session.loadVehicles,

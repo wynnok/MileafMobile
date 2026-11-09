@@ -44,9 +44,22 @@ Future<void> refreshVehicles(WidgetTester tester, String current) async {
 Future<void> openSettings(WidgetTester tester) async {
   await tester.tap(find.byTooltip('设置'));
   await tester.pumpAndSettle();
+  await tester.tap(find.text('站点连接'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> backToWorkspace(WidgetTester tester) async {
+  await tester.tap(find.byType(BackButton));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byType(BackButton));
+  await tester.pumpAndSettle();
 }
 
 Future<void> replace(WidgetTester tester, String site) async {
+  if (find.byType(TextFormField).evaluate().isEmpty) {
+    await tester.tap(find.text('更换连接'));
+    await tester.pumpAndSettle();
+  }
   await tester.enterText(find.widgetWithText(TextFormField, '服务根地址'), site);
   await tester.enterText(
     find.widgetWithText(TextFormField, '站点访问口令'),
@@ -102,7 +115,7 @@ void main() {
     await openSettings(tester);
     await replace(tester, 'https://new.example/prefix');
     expect(find.textContaining('口令错误'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
+    await backToWorkspace(tester);
     await tester.pumpAndSettle();
     expect(find.text('旧站点车辆'), findsOneWidget);
     rejected = false;
@@ -171,6 +184,7 @@ void main() {
         await refreshVehicles(tester, '旧代次车辆');
         await openSettings(tester);
         await tester.tap(find.text('重新登录当前站点'));
+        await tester.pumpAndSettle();
         await replace(tester, 'https://$target/prefix');
         expect(find.text('新代次车辆'), findsOneWidget);
         late.complete(
@@ -210,6 +224,7 @@ void main() {
         delayed = true;
         await refreshVehicles(tester, '旧车辆');
         await openSettings(tester);
+        await tester.ensureVisible(find.text('退出此设备'));
         await tester.tap(find.text('退出此设备'));
         await tester.pumpAndSettle();
         expect(find.text('站点访问口令'), findsOneWidget);
@@ -261,6 +276,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openSettings(tester);
+    await tester.tap(find.text('更换连接'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, '服务根地址'),
       'https://new.example',
@@ -271,9 +288,10 @@ void main() {
     );
     await tester.tap(find.text('验证并替换连接'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(BackButton));
+    await backToWorkspace(tester);
     await tester.pumpAndSettle();
     await openSettings(tester);
+    await tester.ensureVisible(find.text('退出此设备'));
     await tester.tap(find.text('退出此设备'));
     await tester.pumpAndSettle();
     login.complete(
@@ -318,6 +336,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openSettings(tester);
+    await tester.ensureVisible(find.text('退出此设备'));
     await tester.tap(find.text('退出此设备'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('编辑服务地址'));
@@ -361,7 +380,7 @@ void main() {
     await openSettings(tester);
     await replace(tester, 'http://private.example:8080/b');
     expect(find.textContaining('请先确认此站点'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
+    await backToWorkspace(tester);
     await tester.pumpAndSettle();
     expect(find.text('原连接'), findsOneWidget);
   });
@@ -400,7 +419,7 @@ void main() {
     await openSettings(tester);
     await replace(tester, 'https://new.example');
     expect(find.textContaining('暂不可用'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
+    await backToWorkspace(tester);
     await tester.pumpAndSettle();
     expect(find.text('原连接车辆'), findsOneWidget);
     vehicleStatus = 200;
@@ -408,14 +427,16 @@ void main() {
     await openSettings(tester);
     await replace(tester, 'https://new.example');
     expect(find.textContaining('安全保存'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
+    await backToWorkspace(tester);
     await tester.pumpAndSettle();
     expect(find.text('原连接车辆'), findsOneWidget);
     await openSettings(tester);
+    await tester.ensureVisible(find.text('退出此设备'));
     await tester.tap(find.text('退出此设备'));
     await tester.pumpAndSettle();
     expect(find.textContaining('清理失败'), findsOneWidget);
     store.fail = false;
+    await tester.ensureVisible(find.text('退出此设备'));
     await tester.tap(find.text('退出此设备'));
     await tester.pumpAndSettle();
     await tester.pumpWidget(

@@ -21,11 +21,6 @@ import 'overview_contract.g.dart' as dto;
 import 'performance_trace.dart';
 import 'statistics_period.dart';
 import 'overview_period.dart';
-import 'map/map_consent.dart';
-import 'map/map_panel.dart';
-import 'map/map_privacy_page.dart';
-import 'map/map_key.dart';
-import 'map/map_platform.dart';
 import 'workspace.dart';
 import 'session.dart' show SiteSession;
 
@@ -1746,15 +1741,8 @@ class _OverviewPageState extends State<OverviewPage>
 }
 
 class MetaPage extends StatefulWidget {
-  const MetaPage({
-    super.key,
-    required this.workspace,
-    this.mapConsent,
-    this.mapPlatform,
-  });
+  const MetaPage({super.key, required this.workspace});
   final VehicleWorkspace workspace;
-  final MapConsentController? mapConsent;
-  final MapPlatform? mapPlatform;
   @override
   State<MetaPage> createState() => _MetaPageState();
 }
@@ -1815,46 +1803,68 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('设置与服务')),
-    body: ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        if (data == null && error == null) const LinearProgressIndicator(),
-        if (error != null) ...[
-          Text(error!),
-          TextButton(
-            onPressed: () {
-              setState(() => error = null);
-              load();
-            },
-            child: const Text('重试'),
-          ),
-        ],
-        if (data case final d?) ...[
-          Text('Mileaf Server ${d.version}'),
-          Text('TeslaMate schema ${d.teslamateSchemaVersion ?? '未知'}'),
-          Text(d.tested ? '此版本在服务端已测兼容范围' : '此版本未声明已测兼容；这不代表 schema 不兼容'),
-          Text(d.schemaOk ? 'schema 检查正常' : 'schema 检查未通过'),
-          const Text('数值使用公制；源单位不进行二次换算'),
-        ],
-        if (widget.mapConsent != null)
-          MileafDataRow(
-            title: '地图',
-            meta: MapKeyScope.maybeOf(context)?.status ?? '底图供应商、同意与撤销',
-            icon: MileafIconName.mapPin,
-            showChevron: true,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => MapPrivacyPage(
-                  consent: widget.mapConsent!,
-                  providerName:
-                      (widget.mapPlatform ?? defaultMapPlatform()).providerName,
+    appBar: AppBar(title: const Text('服务信息')),
+    body: SafeArea(
+      child: MileafContent(
+        child: ListView(
+          padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
+          children: [
+            if (data == null && error == null) const MileafProgressLine(),
+            if (error != null) ...[
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  error!,
+                  style: context.type.body.copyWith(
+                    color: context.colors.error,
+                  ),
                 ),
               ),
-            ),
-          ),
-      ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() => error = null);
+                    load();
+                  },
+                  child: const Text('重试'),
+                ),
+              ),
+            ],
+            if (data case final d?) ...[
+              Text('Mileaf Server ${d.version}', style: context.type.title),
+              const SizedBox(height: MileafSpace.s8),
+              Text('当前连接的服务版本', style: context.type.label),
+              const SizedBox(height: MileafSpace.section),
+              MileafDataRow(
+                title: 'TeslaMate schema',
+                meta: d.teslamateSchemaVersion?.toString() ?? '未知',
+                topLine: true,
+                bottomLine: true,
+              ),
+              MileafDataRow(
+                title: '兼容范围',
+                meta: d.tested ? '此版本在服务端已测兼容范围' : '此版本未声明已测兼容；这不代表 schema 不兼容',
+                bottomLine: true,
+              ),
+              MileafDataRow(
+                title: 'Schema 检查',
+                meta: d.schemaOk ? 'schema 检查正常' : 'schema 检查未通过',
+                bottomLine: true,
+              ),
+              const SizedBox(height: MileafSpace.section),
+              Text('数据说明', style: context.type.label),
+              const SizedBox(height: MileafSpace.s8),
+              Text(
+                '数值使用公制；源单位不进行二次换算',
+                style: context.type.body.copyWith(
+                  color: context.colors.textMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     ),
   );
 }

@@ -9,6 +9,7 @@ import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/workspace.dart';
+import 'package:mileaf/src/map/map_key.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -62,6 +63,7 @@ Future<AppearanceController> pumpShell(
   AppearanceController? appearance,
   List<Uri>? calls,
   double textScale = 1,
+  MapKeyController? mapKeys,
 }) async {
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(() => tester.platformDispatcher.clearTextScaleFactorTestValue());
@@ -76,6 +78,7 @@ Future<AppearanceController> pumpShell(
   await tester.pumpWidget(
     MileafApp(
       client: shellClient(calls: calls),
+      mapKeys: mapKeys,
       appearance: controller,
       sessionStore: store,
       trustStore: MemoryTrustStore(),
@@ -320,7 +323,7 @@ void main() {
     await pumpShell(tester, appearance: controller);
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    expect(find.text('连接与本地访问'), findsOneWidget);
+    expect(find.text('设置'), findsOneWidget);
     expect(find.text('外观'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget, reason: '默认项即当前值');
 

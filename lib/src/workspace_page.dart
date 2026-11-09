@@ -15,7 +15,7 @@ import 'charging_detail.dart';
 import 'currency.dart';
 import 'session_pages.dart';
 import 'overview_page.dart';
-import 'connection_management.dart';
+import 'settings_page.dart';
 import 'workspace.dart';
 import 'map/map_consent.dart';
 import 'map/map_platform.dart';
@@ -93,20 +93,16 @@ class _WorkspacePageState extends State<WorkspacePage> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => ConnectionManagementPage(
+        builder: (_) => SettingsPage(
           session: widget.session,
           appearance: widget.appearance,
-          onCurrency: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-              builder: (_) => CurrencyPage(settings: currency),
-            ),
-          ),
+          currency: currency,
+          mapConsent: widget.mapConsent,
+          mapPlatform: widget.mapPlatform,
           onServiceInformation: () => Navigator.push(
             context,
             MaterialPageRoute<void>(
-              builder: (_) =>
-                  MetaPage(workspace: workspace, mapConsent: widget.mapConsent),
+              builder: (_) => MetaPage(workspace: workspace),
             ),
           ),
         ),
@@ -166,7 +162,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
     listenable: workspace,
     builder: (context, _) {
       if (widget.session.vehicles.isEmpty) {
-        return VehiclePage(session: widget.session);
+        return VehiclePage(session: widget.session, onSettings: openSettings);
       }
       final selected = workspace.selectedId;
       if (selected == null) {

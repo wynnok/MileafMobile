@@ -120,7 +120,9 @@ class _MileafDataRowState extends State<MileafDataRow> {
         ],
       ],
     );
-    final body = large
+    // Navigation rows keep a trailing arrow even at large text sizes. Only
+    // rows with a separate value or badge need to stack their trailing data.
+    final body = large && (value != null || widget.badge != null)
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
