@@ -67,7 +67,7 @@ sandbox_args=(-D "HOST_ANDROID_SDK=$host_android_sdk"
 /usr/bin/sandbox-exec "${sandbox_args[@]}" -D "LEGACY_SETTINGS=$legacy_fixture" /bin/sh -c 'exec /usr/bin/ruby "$@"' probe \
   "$project_root/tool/build-sandbox-probe.rb" "$legacy_fixture" "$host_probe" "$probe_dir/project-write" \
   || fail_closed 'sandbox preflight did not prove isolation'
-printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.0\nflutter.versionCode=1\n' \
+printf 'sdk.dir=%s\nflutter.sdk=%s\nflutter.versionName=0.1.1\nflutter.versionCode=2\n' \
   "$project_android_sdk" "$flutter_sdk" > "$project_root/android/local.properties"
 set +e
 if [[ "${1:-}" == android ]]; then
