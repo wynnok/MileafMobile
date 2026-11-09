@@ -53,7 +53,9 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 - [充电详情和采样](docs/implementation/charging-detail.md)
 - [驾驶与充电统计](docs/implementation/statistics.md)
 - [安全网络候选与待验项](docs/implementation/network-security.md)
-- [地图候选与未满足条件](docs/implementation/map-candidate.md)
+- [地图 Key 申请教程](docs/tutorial/amap-key-application.md)
+- [地图 Key 设置教程](docs/tutorial/amap-key-settings.md)
+- [地图接入与外部验收](docs/implementation/amap-map.md)
 
 源码已推送到 [GitHub `wynnok/MileafMobile`](https://github.com/wynnok/MileafMobile) 的 `main`；未部署、未上架，也未修改外部后端仓库（`MileafServer/`、`teslamate/` 仅作只读参考）。
 

@@ -289,6 +289,18 @@ void main() {
       expect(taps, 1);
     });
 
+    testWidgets('仅标题的导航行仍显示 chevron', (tester) async {
+      await pumpComponent(
+        tester,
+        MileafDataRow(title: '地图', showChevron: true, onTap: () {}),
+      );
+      expect(find.byType(MileafIcon), findsOneWidget);
+      expect(
+        tester.widget<MileafIcon>(find.byType(MileafIcon)).name,
+        MileafIconName.chevron,
+      );
+    });
+
     testWidgets('不可导航行不加 chevron，禁用行不响应', (tester) async {
       var taps = 0;
       await pumpComponent(

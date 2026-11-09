@@ -1,5 +1,7 @@
 # 地图双端接入实现（Android AMap + iOS AMap）
 
+> 2026-11-09 更新。地图 Key 已改为用户在 App 内填写并仅存本机，见 [ADR 0008](../adr/0008-user-amap-key.md) 与 [实施记录](user-amap-key.md)。下文构建期 Key 注入与命令保留为历史记录。当前操作见 [申请教程](../tutorial/amap-key-application.md) 和 [设置教程](../tutorial/amap-key-settings.md)。
+
 日期：2026-10-31。状态：本地实现与自动化/构建验证完成；双端真实底图、真机与坐标校准仍待外部验证。
 本文件记录代码事实，不替代 #4/#11 的外部验收。
 

@@ -7,9 +7,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/map/map_consent.dart';
+import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/map/map_platform.dart';
 
 import 'support/fake_map_platform.dart';
+import 'support/map_key_fixture.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
@@ -32,10 +34,12 @@ Widget app(
   MemoryCurrency? currency,
   MapConsentController? mapConsent,
   MapPlatform? mapPlatform,
+  MapKeyController? mapKeys,
 }) => MileafApp(
   client: client,
   mapConsent: mapConsent,
   mapPlatform: mapPlatform,
+  mapKeys: mapKeys,
   trustStore: MemoryTrustStore(),
   sessionStore: MemorySessionStore()
     ..value = jsonEncode({
@@ -119,8 +123,10 @@ void main() {
       final fake = FakeMapPlatform();
       final consent = MapConsentController();
       await consent.grant('高德地图');
+      final keys = await configuredMapKeys();
+      addTearDown(keys.dispose);
       await tester.pumpWidget(
-        app(client, mapConsent: consent, mapPlatform: fake),
+        app(client, mapConsent: consent, mapPlatform: fake, mapKeys: keys),
       );
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);

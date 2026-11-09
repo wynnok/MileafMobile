@@ -12,6 +12,8 @@ import 'amap_ios_platform.dart';
 import 'map_consent.dart';
 import 'map_consent_sheet.dart';
 import 'map_platform.dart';
+import 'map_key.dart';
+import 'map_privacy_page.dart';
 import 'map_scene.dart';
 import 'sketch_platform.dart';
 
@@ -21,7 +23,15 @@ MapPlatform defaultMapPlatform() {
   return const SketchPlatform();
 }
 
-enum _MapStatus { consent, unsupported, empty, loading, ready, failed }
+enum _MapStatus {
+  configuration,
+  consent,
+  unsupported,
+  empty,
+  loading,
+  ready,
+  failed,
+}
 
 class MapPanel extends StatefulWidget {
   const MapPanel({
@@ -61,6 +71,21 @@ class _MapPanelState extends State<MapPanel> {
   int _generation = 0;
   int? _trial;
   String? _approval;
+  MapKeyController? _keys;
+  String? _keyStamp;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _keys = MapKeyScope.maybeOf(context);
+    final stamp = _keys == null
+        ? null
+        : "${_keys!.loaded}|${_keys!.readFailed}|${_keys!.effectiveKey}";
+    if (stamp != _keyStamp) {
+      _keyStamp = stamp;
+      _reset();
+    }
+  }
 
   @override
   void initState() {
@@ -98,6 +123,7 @@ class _MapPanelState extends State<MapPanel> {
 
   _MapStatus _initialStatus() {
     if (widget.scene.isEmpty) return _MapStatus.empty;
+    if (_keys != null && !_keys!.available) return _MapStatus.configuration;
     if (!widget.consent.isGrantedFor(_platform.providerName)) {
       return _MapStatus.consent;
     }
@@ -117,6 +143,10 @@ class _MapPanelState extends State<MapPanel> {
 
   void _consentChanged() {
     if (!mounted) return;
+    if (_keys != null && !_keys!.available) {
+      _reset();
+      return;
+    }
     if (!widget.consent.isGrantedFor(_platform.providerName)) {
       _timer?.cancel();
       setState(() => _status = _MapStatus.consent);
@@ -152,19 +182,16 @@ class _MapPanelState extends State<MapPanel> {
   }
 
   void _failed(MapFailure failure) {
-    if (!mounted || _status == _MapStatus.failed) return;
+    if (!mounted ||
+        (_status != _MapStatus.loading && _status != _MapStatus.ready)) {
+      return;
+    }
     _timer?.cancel();
     PerformanceTrace.mark(PerformancePoint.mapFailed, trial: _trial);
     setState(() => _status = _MapStatus.failed);
   }
 
-  void _retry() {
-    setState(() {
-      _status = _MapStatus.loading;
-      _generation++;
-    });
-    _arm();
-  }
+  void _retry() => _reset();
 
   @override
   void dispose() {
@@ -208,6 +235,8 @@ class _MapPanelState extends State<MapPanel> {
                   bottom: MileafSpace.s12,
                   child: _consentCard(context),
                 ),
+              if (_status == _MapStatus.configuration)
+                _configurationPanel(context),
               if (_status == _MapStatus.unsupported) _unsupportedPanel(context),
               if (_status == _MapStatus.failed) _failurePanel(context),
             ],
@@ -231,21 +260,29 @@ class _MapPanelState extends State<MapPanel> {
             ),
           ),
         );
+      case _MapStatus.configuration:
       case _MapStatus.consent:
       case _MapStatus.unsupported:
       case _MapStatus.failed:
         return RouteSketch(scene: widget.scene);
       case _MapStatus.loading:
       case _MapStatus.ready:
+        final generation = _generation;
         final map = KeyedSubtree(
           key: ValueKey(_generation),
           child: _platform.build(
             widget.scene,
             MapCallbacks(
-              onLoaded: _loaded,
-              onFailed: _failed,
+              onLoaded: () {
+                if (generation == _generation) _loaded();
+              },
+              onFailed: (failure) {
+                if (generation == _generation) _failed(failure);
+              },
               onApprovalNumber: (value) {
-                if (mounted) setState(() => _approval = value);
+                if (mounted && generation == _generation) {
+                  setState(() => _approval = value);
+                }
               },
             ),
             _controller,
@@ -422,6 +459,39 @@ class _MapPanelState extends State<MapPanel> {
     );
   }
 
+  void _openConfiguration(BuildContext context) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => MapPrivacyPage(
+            consent: widget.consent,
+            providerName: _platform.providerName,
+          ),
+        ),
+      );
+
+  Widget _configurationPanel(BuildContext context) => Positioned(
+    left: MileafSpace.s12,
+    right: MileafSpace.s12,
+    bottom: MileafSpace.s12,
+    child: _card(
+      context,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _keys!.readFailed ? '地图配置读取失败 · 路线速写' : '配置地图 Key 后可加载底图',
+            style: context.type.body,
+          ),
+          TextButton(
+            onPressed: () => _openConfiguration(context),
+            child: const Text('配置地图'),
+          ),
+        ],
+      ),
+    ),
+  );
+
   Widget _failurePanel(BuildContext context) {
     final type = context.type;
     return Positioned(
@@ -430,15 +500,24 @@ class _MapPanelState extends State<MapPanel> {
       bottom: MileafSpace.s12,
       child: _card(
         context,
-        Row(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                '地图暂不可用 · 其他记录仍可阅读',
-                style: type.body.copyWith(color: context.colors.textMuted),
-              ),
+            Text(
+              '地图暂不可用 · 其他记录仍可阅读',
+              style: type.body.copyWith(color: context.colors.textMuted),
             ),
-            TextButton(onPressed: _retry, child: const Text('重试底图')),
+            Wrap(
+              children: [
+                TextButton(onPressed: _retry, child: const Text('重试底图')),
+                if (_keys != null)
+                  TextButton(
+                    onPressed: () => _openConfiguration(context),
+                    child: const Text('地图设置'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

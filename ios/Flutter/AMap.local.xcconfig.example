@@ -1,3 +1,3 @@
-// Copy to AMap.local.xcconfig (gitignored), fill locally, never commit.
-// The iOS platform key must be bound to Bundle ID app.mileaf.mileaf.
-MILEAF_AMAP_IOS_KEY =
+// Legacy build-time key configuration, superseded by ADR 0008.
+// Configure a personal map key in the app.
+// See docs/tutorial/amap-key-settings.md.

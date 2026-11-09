@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
+import 'package:mileaf/src/map/map_key.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -23,8 +24,13 @@ http.Response response(Object body, {Map<String, String> headers = const {}}) =>
       200,
       headers: {'content-type': 'application/json; charset=utf-8', ...headers},
     );
-Widget app(http.Client client, {MemoryCurrency? currency}) => MileafApp(
+Widget app(
+  http.Client client, {
+  MemoryCurrency? currency,
+  MapKeyController? mapKeys,
+}) => MileafApp(
   client: client,
+  mapKeys: mapKeys,
   trustStore: MemoryTrustStore(),
   sessionStore: MemorySessionStore()
     ..value = jsonEncode({

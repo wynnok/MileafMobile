@@ -22,6 +22,19 @@ import UIKit
 /// view only maps a GCJ-02 scene onto MAMapKit overlays and camera.
 public final class AmapIosPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
+    let configuration = FlutterMethodChannel(name: "mileaf/map_configuration", binaryMessenger: registrar.messenger())
+    configuration.setMethodCallHandler { call, result in
+      if call.method == "getProcessKey" {
+        result(AmapIosPlatformView.processKey)
+        return
+      }
+      guard call.method == "getBinding" else { result(FlutterMethodNotImplemented); return }
+      guard let identifier = Bundle.main.bundleIdentifier else {
+        result(FlutterError(code: "binding_unavailable", message: "Application identity unavailable", details: nil))
+        return
+      }
+      result(["Bundle ID": identifier])
+    }
     let factory = AmapIosViewFactory(messenger: registrar.messenger())
     registrar.register(factory, withId: "app.mileaf/amap_ios")
   }
@@ -53,6 +66,7 @@ final class AmapIosViewFactory: NSObject, FlutterPlatformViewFactory {
 }
 
 final class AmapIosPlatformView: NSObject, FlutterPlatformView, MAMapViewDelegate {
+  fileprivate static var processKey: String?
   private let channel: FlutterMethodChannel
   private var mapView: MAMapView?
   private var placeholder: UIView?
@@ -87,20 +101,28 @@ final class AmapIosPlatformView: NSObject, FlutterPlatformView, MAMapViewDelegat
       fail(code: "consent_required")
       return
     }
-    guard let apiKey = MileafAMapConfiguration.apiKey else {
+    let apiKey = (args["apiKey"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    guard !apiKey.isEmpty else {
       fail(code: "api_key_missing")
       return
     }
 
+    guard Self.processKey == nil || Self.processKey == apiKey else {
+      fail(code: "restart_required")
+      return
+    }
+    MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
+    MAMapView.updatePrivacyAgree(.didAgree)
     let services = AMapServices.shared()
     guard let services else {
       fail(code: "amap_services_unavailable")
       return
     }
     services.enableHTTPS = true
-    services.apiKey = apiKey
-    MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
-    MAMapView.updatePrivacyAgree(.didAgree)
+    if Self.processKey == nil {
+      services.apiKey = apiKey
+      Self.processKey = apiKey
+    }
 
     let map = MAMapView(frame: frame)
     map.delegate = self
@@ -125,15 +147,6 @@ final class AmapIosPlatformView: NSObject, FlutterPlatformView, MAMapViewDelegat
 
   func view() -> UIView {
     mapView ?? placeholder ?? UIView()
-  }
-
-  private enum MileafAMapConfiguration {
-    static var apiKey: String? {
-      let raw = Bundle.main.object(forInfoDictionaryKey: "MileafAMapIosKey") as? String
-      let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-      guard !value.isEmpty, !value.hasPrefix("$(") else { return nil }
-      return value
-    }
   }
 
   private func fail(code: String) {

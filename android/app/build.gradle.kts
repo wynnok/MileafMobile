@@ -27,8 +27,6 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["amapApiKey"] =
-            System.getenv("MILEAF_AMAP_ANDROID_KEY") ?: ""
     }
 
     signingConfigs {

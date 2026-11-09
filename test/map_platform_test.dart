@@ -268,6 +268,7 @@ void main() {
     await consent.grant('高德地图');
     await tester.pumpWidget(
       MaterialApp(
+        theme: mileafTheme(Brightness.dark),
         home: MapPrivacyPage(consent: consent, providerName: '高德地图'),
       ),
     );
@@ -282,6 +283,7 @@ void main() {
   testWidgets('路线示意不冒充 Apple 地图隐私', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: mileafTheme(Brightness.dark),
         home: MapPrivacyPage(
           consent: MapConsentController(),
           providerName: '路线示意',

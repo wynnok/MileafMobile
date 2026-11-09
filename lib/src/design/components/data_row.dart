@@ -54,6 +54,7 @@ class _MileafDataRowState extends State<MileafDataRow> {
     final colors = context.colors;
     final type = context.type;
     final enabled = widget.enabled && widget.onTap != null;
+    final showChevron = widget.showChevron && enabled;
     final titleColor = widget.enabled ? colors.text : colors.textFaint;
     final metaColor = widget.enabled ? colors.textMuted : colors.textFaint;
     final large = MileafLayout.largeText(context);
@@ -109,7 +110,7 @@ class _MileafDataRowState extends State<MileafDataRow> {
           const SizedBox(width: MileafSpace.s8),
         ],
         ?value,
-        if (widget.showChevron && widget.onTap != null) ...[
+        if (showChevron) ...[
           const SizedBox(width: MileafSpace.s4),
           MileafIcon(
             MileafIconName.chevron,
@@ -129,7 +130,7 @@ class _MileafDataRowState extends State<MileafDataRow> {
                 const SizedBox(height: MileafSpace.s8),
               ],
               titleBlock,
-              if (value != null || widget.badge != null) ...[
+              if (value != null || widget.badge != null || (showChevron)) ...[
                 const SizedBox(height: MileafSpace.s8),
                 Align(alignment: Alignment.centerLeft, child: trailing),
               ],
@@ -143,7 +144,7 @@ class _MileafDataRowState extends State<MileafDataRow> {
                 const SizedBox(width: MileafSpace.s12),
               ],
               Expanded(child: titleBlock),
-              if (value != null || widget.badge != null) ...[
+              if (value != null || widget.badge != null || (showChevron)) ...[
                 const SizedBox(width: MileafSpace.s12),
                 trailing,
               ],

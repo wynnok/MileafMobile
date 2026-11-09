@@ -15,6 +15,7 @@ import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_platform.dart';
 
 import 'support/session_store.dart';
+import 'support/map_key_fixture.dart';
 import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
 
@@ -35,6 +36,8 @@ Future<void> openDrives(
   Future<CalendarContext> Function()? calendar,
   Future<http.Response> Function(http.Request)? statsHandler,
 }) async {
+  final keys = await configuredMapKeys();
+  addTearDown(keys.dispose);
   final store = MemorySessionStore()
     ..value = jsonEncode({
       'site': 'https://example.com/prefix',
@@ -64,6 +67,7 @@ Future<void> openDrives(
       }),
       sessionStore: store,
       mapConsent: mapConsent,
+      mapKeys: keys,
       mapPlatform: mapPlatform,
       trustStore: MemoryTrustStore(),
       vehiclePreferences: MemoryVehiclePreferences(),

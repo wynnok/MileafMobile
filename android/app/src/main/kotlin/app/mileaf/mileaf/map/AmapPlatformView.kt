@@ -35,6 +35,10 @@ class AmapPlatformView(
     private val lifecycleOwner: LifecycleOwner,
     private val params: Map<*, *>,
 ) : PlatformView, MethodChannel.MethodCallHandler, DefaultLifecycleObserver {
+    companion object {
+        internal var processKey: String? = null
+    }
+
     private val channel = MethodChannel(messenger, "mileaf/amap_$viewId")
     private var mapView: TextureMapView? = null
     private var amap: AMap? = null
@@ -52,8 +56,15 @@ class AmapPlatformView(
         lifecycleOwner.lifecycle.addObserver(this)
         try {
             require(params["consent"] == true) { "consent required" }
+            val key = (params["apiKey"] as? String)?.trim()
+            require(!key.isNullOrEmpty()) { "api key required" }
+            require(processKey == null || processKey == key) { "restart required" }
             MapsInitializer.updatePrivacyShow(context, true, true)
             MapsInitializer.updatePrivacyAgree(context, true)
+            if (processKey == null) {
+                MapsInitializer.setApiKey(key)
+                processKey = key
+            }
             val view = TextureMapView(context)
             view.onCreate(null)
             mapCreated = true

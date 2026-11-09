@@ -4,6 +4,7 @@ import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/map/map_panel.dart';
 
+import 'support/map_key_fixture.dart';
 import 'charging_detail_test.dart' show app, fixture, initial, response;
 
 void main() {
@@ -117,7 +118,9 @@ void main() {
       }
       return initial(request);
     });
-    await tester.pumpWidget(app(client));
+    final mapKeys = await configuredMapKeys();
+    addTearDown(mapKeys.dispose);
+    await tester.pumpWidget(app(client, mapKeys: mapKeys));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());

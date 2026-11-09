@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'amap_scene_wire.dart';
 import 'map_platform.dart';
+import 'map_key.dart';
 import 'map_scene.dart';
 
 class AmapAndroidPlatform implements MapPlatform {
@@ -119,6 +120,7 @@ class _AmapAndroidViewState extends State<_AmapAndroidView> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final creation = AmapSceneWire.creationParams(widget.scene, colors);
+    creation['apiKey'] = MapKeyScope.maybeOf(context)?.keyForMap();
     _sentSceneSignature = AmapSceneWire.signature(widget.scene);
     _sentSelected = AmapSceneWire.selectedSignature(widget.scene);
     return AndroidView(
