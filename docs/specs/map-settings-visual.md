@@ -1,7 +1,7 @@
 # 地图设置页视觉规格（Spec）
 
 - 日期：2026-11-09
-- 状态：confirmed（用户于 2026-11-09 确认，含 ADR 0010 D5 的框架事实修正）
+- 状态：confirmed（用户于 2026-11-09 确认，含 ADR 0010 D5 的框架事实修正；§14 为实施期追加确认的修正）
 - 依据：[ADR 0010](../adr/0010-map-settings-visual.md)、[ADR 0003](../adr/0003-visual-direction-a.md)、[ADR 0006](../adr/0006-appearance-and-accent.md)、[视觉系统 Spec](visual-system-a.md)、[外观 v2 Spec](appearance-v2.md)、[自备高德地图 Key Spec](user-amap-key.md)。
 - 范围：只含 `MapPrivacyPage` 呈现层与三处 additive 共享改动；不改数据、状态机、原生通道、双端入口、全局主题。
 
@@ -112,7 +112,7 @@ AppBar「地图」(title 18/22/600)
 | 状态 | 视觉 | 行为 |
 | --- | --- | --- |
 | 默认 | 24px `mapPin` `accent` + `status` body/600 `text` + micro「保存在本机 · 所有车辆与站点共用」 | 只读 |
-| 待重启 | 状态与短说明用 `warning`；一句「重新启动后生效 · 本次运行仍用原 Key」 | `restartRequired` 驱动 |
+| 待重启 | 状态（`body`/600）与短说明（`micro`）都用 `warning`；短说明「本次运行仍用原 Key」（重启指令由 `status` 承载，不再重复，见 §14） | `restartRequired` 驱动 |
 | 读取中 | `MileafProgressLine` 2px | 停用编辑 |
 | 读取失败 | `error` 状态文字 + 「重试读取配置」 | `keys.restore()`，成功后恢复表单 |
 | 保存 / 清除中 | busy 停用重复提交与返回 | `PopScope` 不变 |
@@ -165,7 +165,7 @@ AppBar「地图」(title 18/22/600)
 | 现有文案（出处） | 新文案 | 层级 |
 | --- | --- | --- |
 | 「使用你自己的高德地图 Key 加载底图。配置保存在当前设备，所有车辆与站点共用。」（[map_privacy_page.dart:195](../../lib/src/map/map_privacy_page.dart#L195)） | 「保存在本机 · 所有车辆与站点共用」 | micro |
-| 两条重启长句（[L201–204](../../lib/src/map/map_privacy_page.dart#L201-L204)） | 「重新启动后生效 · 本次运行仍用原 Key」 | body / `warning` |
+| 两条重启长句（[L201–204](../../lib/src/map/map_privacy_page.dart#L201-L204)） | 「本次运行仍用原 Key」（重启指令由 `status` 承载，见 §14） | micro / `warning` |
 | 三段连写步骤（[L309](../../lib/src/map/map_privacy_page.dart#L309)） | 三条独立 `_StepRow`，保留原义与平台名插值 | label 序号 + body |
 | 「使用当前安装包的信息申请。重新签名或更换发行渠道后，请重新核对绑定信息。」 | 「按当前安装包信息申请；重签名或更换渠道后需重新核对」 | micro |
 | 隐私两段长说明（[L372](../../lib/src/map/map_privacy_page.dart#L372)、[L394](../../lib/src/map/map_privacy_page.dart#L394)） | 首屏只留一行摘要，完整说明移入「数据使用说明」折叠 | body / `textMuted` |
@@ -181,9 +181,10 @@ AppBar「地图」(title 18/22/600)
 
 新增 `MileafIconName.copy`，沿用 [icons.dart](../../lib/src/design/icons.dart) 的 24 网格、1.5 stroke、round cap/join：
 
-- 后层圆角矩形 `(8.5, 8.5) → (17.5, 17.5)`，radius 2，先画；
+- 后层圆角矩形 `(10.5, 10.5) → (19.5, 19.5)`，radius 2，先画（偏移 4，见 §14；原 2 在 20px 下读作单框重影）；
 - 前层圆角矩形 `(6.5, 6.5) → (15.5, 15.5)`，radius 2，后画；
 - 只用 `MileafIconMetrics.inline(16)` / `nav(20)` / `header(24)` 三档；本页用 20。
+- 已知几何后果：两层包围盒为 6.5–19.5，视觉中心落在 (13, 13)，比 24 网格中心低右约 1 单位（20px 下约 0.83px）；本页复制按钮常态无可见圆环，感知不到，未因此移动冻结的前层坐标。
 
 `chevron` 仍用既有路径 `9.4/5.8 → 15.6/12 → 9.4/18.2`；`mapPin` 仍用既有路径。图标计数断言 15 → 16，其余 [design_tokens_test.dart](../../test/design_tokens_test.dart) 断言不变。
 
@@ -249,3 +250,13 @@ AppBar「地图」(title 18/22/600)
 | 交付 | 双轴 `code-review`（Standards / Spec）+ 当前 `main` 本地提交，不推送 |
 
 真机、真实 Key、真实底图、CRS、大陆网络与性能仍为独立外部 gate，不因本 Spec 通过而关闭。
+
+## 14. 2026-11-09 实施期确认的修正
+
+实施会话渲染对比后由用户逐项确认，只改下列字面值，其余规格与冻结词不变：
+
+1. **复制图标后层偏移 2 → 4**。后层改为 `(10.5, 10.5) → (19.5, 19.5)`，radius 2、1.5 描边、24 网格不变。原坐标在 20px 下两层几乎重合，读作「一个圆角方框 + 重影」；4 单位偏移才能一眼读作「两张叠放的纸」，且与同行 `chevron` 的笔画重量一致。对比证据为实施会话的浅深两版几何对比图（不入库）。前层坐标不动，故两层包围盒的视觉中心比网格中心低右约 1 单位（见 §8 末条）。
+2. **待重启短说明收紧为「本次运行仍用原 Key」**（原「重新启动后生效 · 本次运行仍用原 Key」）。`MapKeyController.status` 已冻结为「已保存 · 重新启动后生效」，同句在首屏重复出现两次；去掉重复后信息量不变。
+3. **该短说明的层级以 §3 为准，是 `micro` 而非 §7 原表的 `body`**。§3 定义 `micro` 为「状态副说明」，状态行节奏为 `body` 13/600 + `micro` 9/12；§7 该格同步改标 `micro`。
+
+这三项只影响 `MapPrivacyPage` 的图标几何与一句副说明，不新增色值、字号、圆角、阴影或动效时长，不改变任何冻结定位词与 tooltip。

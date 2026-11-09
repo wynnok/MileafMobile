@@ -232,11 +232,13 @@ class _MileafIconPainter extends CustomPainter {
           ..lineTo(x(9.6), y(17.4))
           ..lineTo(x(19.4), y(6.6));
       case MileafIconName.copy:
-        // Two offset sheets on the 24 grid: the back one offset right/down.
+        // Two offset sheets on the 24 grid. The 4-unit offset keeps them
+        // readable as two sheets at 20px; a 2-unit offset merges into one box
+        // with a doubled edge (Spec §8 / §14).
         path
           ..addRRect(
             RRect.fromRectAndRadius(
-              Rect.fromLTWH(x(8.5), y(8.5), x(9), y(9)),
+              Rect.fromLTWH(x(10.5), y(10.5), x(9), y(9)),
               Radius.circular(x(2)),
             ),
           )

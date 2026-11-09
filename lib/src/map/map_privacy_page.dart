@@ -288,9 +288,7 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
               if (!keys.readFailed) ...[
                 const SizedBox(height: MileafSpace.s4),
                 Text(
-                  keys.restartRequired
-                      ? '重新启动后生效 · 本次运行仍用原 Key'
-                      : '保存在本机 · 所有车辆与站点共用',
+                  keys.restartRequired ? '本次运行仍用原 Key' : '保存在本机 · 所有车辆与站点共用',
                   style: type.micro.copyWith(
                     color: keys.restartRequired
                         ? colors.warning

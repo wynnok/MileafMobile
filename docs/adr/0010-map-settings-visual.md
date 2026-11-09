@@ -139,3 +139,8 @@
 2. Spec：`docs/specs/map-settings-visual.md`，含逐像素规格与状态矩阵。
 3. Ticket：`docs/specs/map-settings-visual-tickets.md`，含验收标准。
 4. 三份产物都确认后才动代码。
+
+## 9. 变更记录
+
+- **2026-11-09（落盘时）**：D5 按 Spec §0 的框架事实修正——当前 Flutter 的 `ExpansionTile` 只旋转内置默认箭头，传入的自定义 `trailing` 不会被旋转；折叠箭头改由本页两个 `bool` + `AnimatedRotation` 驱动，其余决策不变。
+- **2026-11-09（实施期，用户逐项确认）**：① `MileafIconName.copy` 后层偏移 2 → 4（`(10.5, 10.5) → (19.5, 19.5)`），原坐标在 20px 下两层几乎重合、读作单框重影；② 待重启短说明收紧为「本次运行仍用原 Key」，不再与冻结的 `status`「已保存 · 重新启动后生效」重复；③ 该短说明层级以 Spec §3 为准取 `micro`，Spec §7 原表标 `body` 的字面同步更正。三项均不新增色值、字号、圆角、阴影或动效时长，不改冻结定位词与 tooltip，详见 [视觉 Spec §14](../specs/map-settings-visual.md)。

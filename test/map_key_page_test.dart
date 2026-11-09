@@ -211,6 +211,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('待重启态：状态与副说明都用 warning，副说明不再重复重启句', (tester) async {
+    final keys = await configuredMapKeys();
+    keys.keyForMap();
+    await keys.save('b' * 32);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.light),
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '高德地图',
+          keys: keys,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    const colors = MileafColors.light();
+    expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+    expect(find.text('本次运行仍用原 Key'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('已保存 · 重新启动后生效')).style?.color,
+      colors.warning,
+    );
+    final subtitle = tester.widget<Text>(find.text('本次运行仍用原 Key')).style;
+    expect(subtitle?.color, colors.warning);
+    // Spec §14：该副说明按 §3 取 micro，不升到 body。
+    expect(subtitle?.fontSize, MileafType.microSize);
+    // 重启指令只由 status 承载，首屏不再出现两次「重新启动后生效」。
+    expect(find.textContaining('重新启动后生效'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('隐私详情默认收起，展开后可复制完整政策链接', (tester) async {
     final keys = await configuredMapKeys();
     final copied = mockClipboard();

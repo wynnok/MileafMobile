@@ -6,14 +6,14 @@
 
 | 文件 | 改动 |
 | --- | --- |
-| `lib/src/design/icons.dart` | additive `MileafIconName.copy`：24 网格、1.5 描边、双圆角矩形（8.5–17.5 / 6.5–15.5，r2） |
+| `lib/src/design/icons.dart` | additive `MileafIconName.copy`：24 网格、1.5 描边、双圆角矩形（后层 10.5–19.5 / 前层 6.5–15.5，r2，偏移 4） |
 | `lib/src/design/components/data_row.dart` | additive `destructive`（默认 false）；为 true 且可点击时 `title` 用既有 `colors.error`，不可点击时退回 `textFaint`，语义合成不变 |
 | `lib/src/design/components/copy_row.dart` | 新建 `MileafCopyRow`：`label` + `SelectableText` + 44×44 复制图标（透明底、1px 底线、`copyText` 可与显示值不同、大字号堆叠） |
 | `lib/src/design/components/components.dart` | 导出 `copy_row.dart` |
 | `lib/src/map/map_privacy_page.dart` | 三段 `label` 眉标 + 28px 段距；状态结论行；Key 摘要 `MileafDataRow` / 编辑表单；destructive 清除行；两个默认折叠区（两个 bool + `AnimatedRotation` 16px chevron）；绑定值 / 控制台 / 隐私链接改 `MileafCopyRow`；读取中 `MileafProgressLine`；绑定失败 `InlineBanner` |
 | `test/design_components_test.dart` | `MileafCopyRow` 五态（默认 / 按压 / 禁用 / focus / 200%）+ `destructive` 两态 |
 | `test/design_tokens_test.dart` | 图标计数 15 → 16，其余断言零改动 |
-| `test/map_key_page_test.dart` | `find.byTooltip` 定位复制；Key 行 / 破坏行 / 折叠默认态 / chevron 旋转 / 完整 URL 复制 / 供应商说明；补窄屏双倍字号的已保存态 |
+| `test/map_key_page_test.dart` | `find.byTooltip` 定位复制；Key 行 / 破坏行 / 折叠默认态 / chevron 旋转 / 完整 URL 复制 / 供应商说明 / 待重启副说明；补窄屏双倍字号的已保存态 |
 | `test/map_key_render_test.dart`、`docs/implementation/map-key-renders/` | 浅深 × 7 态重生成（新增 `privacy` 展开态），README 矩阵同步 |
 | `docs/tutorial/amap-key-settings.md`、`docs/tutorial/amap-key-application.md` | 同步可见文案、操作路径与截图引用 |
 | `docs/specs/user-amap-key.md` | 只追加 §8 视觉增量，§1–§7 未改写 |
@@ -23,7 +23,7 @@
 ## 验证（2026-11-09 本机）
 
 - `tool/flutterw analyze --no-pub`：No issues found。
-- `tool/flutterw test --no-pub`：482 通过 / 8 跳过 / 0 失败；`test/map_key_page_test.dart` 单文件先跑绿（8 例）。
+- `tool/flutterw test --no-pub`：483 通过 / 8 跳过 / 0 失败；`test/map_key_page_test.dart` 单文件先跑绿（9 例）。
 - `tool/flutterw dart format --output=none --set-exit-if-changed lib test`：158 文件 0 changed。
 - `git diff --check`：无输出。
 - 正式渲染 14 张（浅深 × empty / saved / restart / help / privacy / large / keyboard），每态 `takeException() == null`，无 `RenderFlex` 溢出、无横向滚动。
@@ -37,6 +37,14 @@
 5. **保存 / 清除中的进度线**：§6.1 只把 `MileafProgressLine` 归给「读取中」。为不丢失重排前就有的忙碌反馈，`busy` 时仍显示同一条 2px 进度线（无新增表面、无新增时长）。
 6. **供应商说明落点**：冻结的 `user-amap-key.md` §5 要求保留供应商说明，而 §6.6 未给它新位置。首屏保持「底图授权 + 动作行」两行，供应商名写进「数据使用说明」首段（「底图由高德地图提供：…」），既不新增首屏行，也不丢语义。
 7. **Key 掩码长度**：Spec §6.2 只要求「脱敏末四位」，用 `•••• aaaa` 而不是重排前的 `•••• •••• •••• aaaa`；200% 字号下旧掩码在 320 宽会把行尾撑破（`RenderFlex` 溢出 242px，已由新增测试捕获）。
+
+## 实施后追加确认（2026-11-09，用户逐项确认；承接上文 1–7）
+
+首轮提交后把三条「未确认建议」连同渲染对比提交用户，三项都按推荐落地，字面值已同步进 [Spec §14](../specs/map-settings-visual.md) 与 [ADR §9](../adr/0010-map-settings-visual.md)：
+
+8. **复制图标后层偏移 2 → 4**（`(10.5, 10.5) → (19.5, 19.5)`）。浅深两版几何对比显示 2 与 3 都读作「一个圆角方框 + 重影」，4 才读作「两张叠放的纸」，笔画重量与同行 `chevron` 一致。
+9. **待重启副说明收紧为「本次运行仍用原 Key」**。`status` 冻结为「已保存 · 重新启动后生效」，原句在首屏重复出现两次；收紧后信息量不变；help / privacy / restart 浅深共 6 张渲染已重生成，其余 8 张字节未变。
+10. **该副说明层级以 Spec §3 为准取 `micro`**，Spec §7 原表标 `body` 的字面同步更正，代码层级不变。
 
 ## 双轴审查
 
