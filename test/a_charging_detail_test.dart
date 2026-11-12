@@ -26,13 +26,13 @@ void main() {
     expect(find.text('电量区间'), findsOneWidget);
     expect(find.byType(BatteryArc), findsOneWidget);
     expect(find.text('40% → 70%'), findsOneWidget);
-    expect(find.text('充入电池 20 kWh'), findsOneWidget);
-    expect(find.textContaining('费用 12'), findsOneWidget);
-    expect(find.text('时长 60 分钟'), findsOneWidget);
+    expect(find.text('20 kWh'), findsOneWidget);
+    expect(find.text('费用'), findsOneWidget);
+    expect(find.text('60 分钟'), findsOneWidget);
     expect(find.text('40% → 70%'), findsOneWidget);
   });
 
-  testWidgets('A 充电详情电池弧 hero 浅色为 12 外边距卡片，其余内容保留页边距', (tester) async {
+  testWidgets('U01 充电详情同底横向SOC与页边对齐', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -53,23 +53,15 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    // 旧断言是 hero.left == 0 / right == 360，编码的是「hero 永远全出血」这个被
-    // ADR 0006 D4 推翻的决定。浅色（本测试的默认外观）下 hero 是卡片，量可见
-    // 卡片而不是 MileafHero 的外框——后者天然仍有整行宽。
-    final card = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(MileafHero),
-            matching: find.byType(Material),
-          )
-          .first,
-    );
-    expect(card.left, 12, reason: '卡片左右各 12 外边距');
-    expect(card.right, 348);
+    // R04/P05 取代旧浅色深底卡片。横向SOC摘要与页边对齐。
+    expect(find.byType(MileafHero), findsNothing);
+    final arc = tester.getRect(find.byType(BatteryArc));
+    expect(arc.left, 20);
+    expect(arc.height, 88);
     final title = tester.getRect(find.text('电量区间'));
-    expect(title.left, 28, reason: 'hero 内容距屏幕边 12 + 16');
-    final results = tester.getRect(find.text('充入电池 20 kWh'));
-    expect(results.left, greaterThanOrEqualTo(20), reason: '结果区保留页边距');
+    expect(title.left, arc.right + 16);
+    final results = tester.getRect(find.text('20 kWh'));
+    expect(results.left, greaterThanOrEqualTo(20));
     expect(tester.takeException(), isNull);
   });
 
@@ -135,7 +127,20 @@ void main() {
     final map = tester.getRect(find.byType(MapPanel));
     final copy = tester.getRect(privacy);
     final button = tester.getRect(find.text('启用地图'));
-    expect(map.height, 240, reason: '≥150% 时地点地图与行程地图同为 240');
+    final surface = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(MapPanel),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    );
+    expect(surface.height, 240);
+    expect(
+      copy.top,
+      greaterThanOrEqualTo(surface.bottom),
+      reason: 'P04 同意说明独立于图面',
+    );
     expect(copy.top, greaterThanOrEqualTo(map.top), reason: '文案不超出地图上缘');
     expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
     expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: '按钮完整在地图内');

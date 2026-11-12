@@ -41,6 +41,9 @@ class MileafColors extends ThemeExtension<MileafColors> {
     required this.sheetShadow,
   });
 
+  /// Input and actionable boundaries use an opaque neutral with measured contrast.
+  Color get controlBorder => textMuted;
+
   /// Dark: neutral cold black, one accent for graphics and text.
   const MileafColors.dark()
     : isDark = true,

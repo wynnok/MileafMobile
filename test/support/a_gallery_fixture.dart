@@ -31,6 +31,8 @@ MockClient aGalleryClient({
   String scenario = 'normal',
   String? vehicleName,
   bool sparseCharts = false,
+  bool irregular = false,
+  bool longFields = false,
 }) => MockClient((request) async {
   final url = request.url;
   final path = url.path;
@@ -72,7 +74,10 @@ MockClient aGalleryClient({
   }
   if (path.endsWith('/charging-sessions/9')) {
     return _ok(
-      scenario == 'empty' ? cHistoryChargeDetail() : cChargeDetailBody(),
+      _chargePlace(
+        scenario == 'empty' ? cHistoryChargeDetail() : cChargeDetailBody(),
+        longFields,
+      ),
     );
   }
 
@@ -164,20 +169,29 @@ MockClient aGalleryClient({
       _thinBuckets(body, 'distance_km');
       return _ok(body);
     }
-    return _ok(switch (scenario) {
+    final body = switch (scenario) {
       'empty' => cEmptyDriving(url),
       'missing' =>
         drivesWindow ? cMissingDrivesStats(url) : cMissingDriving(url),
       _ => drivesWindow ? cDrivesStats(url) : cDriving(url),
-    });
+    };
+    if (irregular && scenario == 'normal') _irregularDriving(body);
+    return _ok(body);
   }
 
   if (path.endsWith('/drives')) {
-    return _ok(switch (scenario) {
+    final body = switch (scenario) {
       'empty' => cEmptyDrives(),
       'missing' => cMissingDrives(),
       _ => cDrives(),
-    });
+    };
+    if (longFields) {
+      for (final item in body['items'] as List) {
+        item['start']['display_name'] = '上海市浦东新区张江高科技园区新能源汽车地下停车场';
+        item['end']['display_name'] = '浙江省杭州市西湖区云栖国际创新中心访客停车区域';
+      }
+    }
+    return _ok(body);
   }
 
   return http.Response('{}', 404);
@@ -412,3 +426,38 @@ Map<String, dynamic> cEmptyChargeSeries() => {
   'points': 0,
   'series': <Object>[],
 };
+
+/// Transfer half the first of two equal daily samples to its neighbour.
+/// Totals and drive counts stay exact. Distances, energy and duration travel
+/// together, so rates and all coverage ratios retain their original meaning.
+void _irregularDriving(Map<String, dynamic> body) {
+  final buckets = (body['buckets'] as List).cast<Map<String, dynamic>>();
+  void transfer(Map left, Map right) {
+    for (final key in left.keys) {
+      final value = left[key];
+      if (value is Map && right[key] is Map) {
+        transfer(value, right[key] as Map);
+      } else if (value is num &&
+          right[key] == value &&
+          (key.toString().endsWith('_km') &&
+                  !key.toString().endsWith('_wh_km') ||
+              key.toString().endsWith('_kwh') ||
+              key.toString().endsWith('_min'))) {
+        final half = value is int ? value ~/ 2 : value / 2;
+        left[key] = half;
+        right[key] = value * 2 - half;
+      }
+    }
+  }
+
+  for (var i = 0; i + 1 < buckets.length; i += 2) {
+    if (buckets[i]['distance_km'] == buckets[i + 1]['distance_km']) {
+      transfer(buckets[i], buckets[i + 1]);
+    }
+  }
+}
+
+Map<String, dynamic> _chargePlace(Map<String, dynamic> body, bool longFields) {
+  if (longFields) body['location']['display_name'] = '上海湖畔超级充电站地下停车场新能源专用补能区域';
+  return body;
+}

@@ -29,7 +29,19 @@ void main() {
         ),
       ),
     );
-    expect(tester.getSize(find.byType(MapPanel)).height, 240);
+    expect(
+      tester
+          .getSize(
+            find
+                .descendant(
+                  of: find.byType(MapPanel),
+                  matching: find.byType(ClipRRect),
+                )
+                .first,
+          )
+          .height,
+      240,
+    );
     await tester.scrollUntilVisible(find.bySemanticsLabel('距离 20.0 km'), 160);
     final distance = tester.getTopLeft(find.bySemanticsLabel('距离 20.0 km'));
     final duration = tester.getTopLeft(find.bySemanticsLabel('时长 120 分钟'));
@@ -76,7 +88,16 @@ void main() {
     final map = tester.getRect(find.byType(MapPanel));
     final copy = tester.getRect(privacy);
     final button = tester.getRect(find.text('启用地图'));
-    expect(map.height, 240, reason: '200% 地图高度仍为 240');
+    final surface = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(MapPanel),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    );
+    expect(surface.height, 240, reason: 'R03/P04 地图图面保留，状态区自然增高');
+    expect(copy.top, greaterThanOrEqualTo(surface.bottom));
     expect(copy.top, greaterThanOrEqualTo(map.top));
     expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
     expect(
@@ -104,6 +125,7 @@ void main() {
     );
     expect(find.textContaining('底图未启用'), findsOneWidget);
     expect(find.textContaining(' → '), findsWidgets);
+    await tester.scrollUntilVisible(find.bySemanticsLabel('距离 20.0 km'), 160);
     expect(find.bySemanticsLabel('距离 20.0 km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

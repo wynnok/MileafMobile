@@ -82,8 +82,8 @@ class SampleChart extends StatelessWidget {
         if (points.isNotEmpty)
           Text(unit, style: type.micro.copyWith(color: colors.textFaint)),
         if (points.isNotEmpty && onSelected != null)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
             children: [
               TextButton(
                 onPressed: selected <= 0

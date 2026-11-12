@@ -365,8 +365,8 @@ class _StatisticsViewState extends State<_StatisticsView>
   /// four selections themselves.
   Widget _steppers(_Sampling sampling, List<DateTime> times, {Key? nextKey}) {
     final selected = sampling.resolve(times);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
       children: [
         TextButton(
           onPressed: selected > 0

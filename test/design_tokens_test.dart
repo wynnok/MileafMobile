@@ -294,15 +294,15 @@ void main() {
     });
 
     test('五级字号与尺寸变体', () {
-      expect(MileafType.displaySize, 60);
-      expect(MileafType.metricLgSize, 44);
+      expect(MileafType.displaySize, 48);
+      expect(MileafType.metricLgSize, 36);
       expect(MileafType.metricMdSize, 24);
       expect(MileafType.titleSize, 18);
-      expect(MileafType.bodySize, 13);
-      expect(MileafType.labelSize, 10);
-      expect(MileafType.microSize, 9);
-      expect(MileafType.displayTracking, -.04);
-      expect(MileafType.labelTracking, .08);
+      expect(MileafType.bodySize, 16);
+      expect(MileafType.labelSize, 13);
+      expect(MileafType.microSize, 12);
+      expect(MileafType.displayTracking, -.02);
+      expect(MileafType.labelTracking, 0);
     });
 
     test('每个字号 level 都带 tabular figures', () {

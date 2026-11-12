@@ -590,6 +590,16 @@ void main() {
     await selectTab(tester, '统计');
     await tester.tap(find.widgetWithText(StatusChip, '近7天'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('已知支出'),
+      160,
+      scrollable: find
+          .descendant(
+            of: find.byType(StatisticsInsightsPage),
+            matching: find.byType(Scrollable),
+          )
+          .last,
+    );
     expect(find.textContaining('已知支出 ¥72'), findsOneWidget);
     final statisticsFrom = site.reads
         .lastWhere(
@@ -631,6 +641,16 @@ void main() {
       ),
       isTrue,
       reason: '返回后即使本地快照 TTL 未过期也必须校验费用',
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('已知支出'),
+      160,
+      scrollable: find
+          .descendant(
+            of: find.byType(StatisticsInsightsPage),
+            matching: find.byType(Scrollable),
+          )
+          .last,
     );
     expect(find.textContaining('已知支出 ¥99.5'), findsOneWidget);
     expect(site.writes, hasLength(1));
@@ -1171,12 +1191,12 @@ void main() {
       isTrue,
       reason: '返回可见后必须校验费用与汇总',
     );
+    expect(tabOffset(tester, OverviewPage), closeTo(offset, 1));
     await tester.scrollUntilVisible(
       find.textContaining('已知费用').hitTestable(),
-      220,
+      -120,
     );
     expect(find.textContaining('已知费用 ¥99.5'), findsOneWidget);
-    expect(tabOffset(tester, OverviewPage), closeTo(offset, 1));
     expect(site.writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -1199,7 +1219,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.byType(TimeSeriesChart).first, 200);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('driving-statistics-chart')).hitTestable(),
+      100,
+    );
     await tapPlot(tester, 0.5);
+    await tester.scrollUntilVisible(
+      find.textContaining('里程读数').hitTestable(),
+      100,
+    );
     final chosen = tester
         .widgetList<Text>(find.textContaining('里程读数').hitTestable())
         .firstWhere((t) => t.data != null && !t.data!.contains('—'))

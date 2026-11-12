@@ -441,15 +441,10 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   const SizedBox(height: MileafSpace.s4),
                   Text(
                     '${workspace.calendar!.local(d.startedAt).toString().substring(0, 16).replaceAll('-', '/')} · 充电 #${d.id}',
-                    style: type.body.copyWith(color: colors.textMuted),
+                    style: type.micro.copyWith(color: colors.textMuted),
                   ),
                   const SizedBox(height: MileafSpace.s20),
-                  Text(
-                    '充电单价',
-                    style: type.body.copyWith(
-                      fontWeight: MileafType.weightSemiBold,
-                    ),
-                  ),
+                  Text('充电单价', style: type.label),
                   if (stackedUnit) ...[
                     const SizedBox(height: MileafSpace.s4),
                     Text(
@@ -464,7 +459,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                       controller: input,
                       focusNode: focus,
                       enabled: !saving && !loading && !terminal,
-                      style: type.title,
+                      style: type.body,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -485,7 +480,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                         errorText:
                             fieldError ??
                             (showValidation ? _priceError(input.text) : null),
-                        errorStyle: type.body.copyWith(color: colors.error),
+                        errorStyle: type.micro.copyWith(color: colors.error),
                         errorMaxLines: 4,
                       ),
                     ),
@@ -500,7 +495,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   const SizedBox(height: MileafSpace.section),
                   Text(
                     '预估费用',
-                    style: type.body.copyWith(color: colors.textMuted),
+                    style: type.label.copyWith(color: colors.textMuted),
                   ),
                   gap8,
                   _amountText(

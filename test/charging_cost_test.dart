@@ -121,10 +121,18 @@ Future<void> pumpCostApp(
 }
 
 Future<void> openCostSheet(WidgetTester tester) async {
+  // 账目/记录页可能同时存在横向可编辑滚动区（金额输入框）；只沿纵向页面滚动，
+  // 否则滚错轴会始终找不到行内“补录费用”动作。
+  final pageScrollable = find
+      .byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      )
+      .first;
   await tester.scrollUntilVisible(
     find.text('补录费用').hitTestable(),
     150,
-    scrollable: find.byType(Scrollable).last,
+    scrollable: pageScrollable,
   );
   await tester.tap(find.text('补录费用').hitTestable());
   await tester.pumpAndSettle();
@@ -225,7 +233,12 @@ void main() {
       final site = CostSite()..version = version;
       await openCostDetail(tester, site);
       expect(find.text('补录费用'), findsNothing);
-      expect(find.text('费用 —'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == '费用 —',
+        ),
+        findsOneWidget,
+      );
       expect(site.writes, isEmpty);
     });
   }
@@ -439,6 +452,11 @@ void main() {
     expect(site.writes.single.headers['authorization'], 'Bearer test');
     expect(jsonDecode(site.writes.single.body), {'unit_price': '1.25'});
     expect(find.textContaining('费用已补录'), findsOneWidget);
-    expect(find.text('费用 ¥27.5'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == '费用 ¥27.5',
+      ),
+      findsOneWidget,
+    );
   });
 }

@@ -47,7 +47,7 @@ ThemeData mileafTheme(Brightness brightness) {
 
   final inputBorder = OutlineInputBorder(
     borderRadius: MileafRadius.mdAll,
-    borderSide: BorderSide(color: colors.lineStrong),
+    borderSide: BorderSide(color: colors.controlBorder),
   );
   return ThemeData(
     useMaterial3: true,
@@ -105,7 +105,7 @@ ThemeData mileafTheme(Brightness brightness) {
         borderSide: BorderSide(color: colors.line),
       ),
       focusedBorder: inputBorder.copyWith(
-        borderSide: BorderSide(color: colors.focusRing, width: 2),
+        borderSide: BorderSide(color: colors.accentStrong, width: 2),
       ),
       errorBorder: inputBorder.copyWith(
         borderSide: BorderSide(color: colors.error),

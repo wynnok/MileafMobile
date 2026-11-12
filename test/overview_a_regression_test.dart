@@ -108,6 +108,8 @@ void main() {
     await openOverview(tester, brightness: Brightness.light, textScale: 2);
     expect(find.textContaining('320'), findsWidgets);
     expect(find.textContaining('今日 km'), findsOneWidget);
+    // 200% 下主图眉标位于首屏之外，仅按需构建；沿页面滚动确认仍可达且文案不变。
+    await tester.scrollUntilVisible(find.textContaining('本月 · 驾驶里程'), 240);
     expect(find.textContaining('本月 · 驾驶里程'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

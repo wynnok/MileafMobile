@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 import '../icons.dart';
@@ -35,42 +33,39 @@ class MileafNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: ColoredBox(
-          color: colors.nav,
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: MileafSpace.navHeight,
-              child: Stack(
+    return ColoredBox(
+      color: colors.surface,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height:
+              MileafSpace.navHeight +
+              (MediaQuery.textScalerOf(context).scale(16) - 16),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: ColoredBox(
+                  color: colors.line,
+                  child: const SizedBox(height: 1),
+                ),
+              ),
+              Row(
                 children: [
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    child: ColoredBox(
-                      color: colors.line,
-                      child: const SizedBox(height: 1),
+                  for (var i = 0; i < items.length; i++)
+                    Expanded(
+                      child: _NavItem(
+                        item: items[i],
+                        active: i == index,
+                        labelStyle: type.navLabel,
+                        onTap: () => onSelected(i),
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      for (var i = 0; i < items.length; i++)
-                        Expanded(
-                          child: _NavItem(
-                            item: items[i],
-                            active: i == index,
-                            labelStyle: type.micro,
-                            onTap: () => onSelected(i),
-                          ),
-                        ),
-                    ],
-                  ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),

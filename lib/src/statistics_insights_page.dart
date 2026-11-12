@@ -494,80 +494,90 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         ],
     ],
   );
-  Widget insightHeader() => Padding(
-    padding: EdgeInsets.fromLTRB(
-      MileafLayout.pageInset(context),
-      MileafSpace.s8,
-      MileafLayout.pageInset(context),
-      0,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            if (topic != 'overview')
-              BackButton(
-                color: context.colors.textMuted,
-                onPressed: () => selectTopic('overview'),
-              ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('统计', style: context.type.title),
-                  const SizedBox(height: MileafSpace.inline2),
-                  Text(
-                    _periodLabel(),
-                    style: context.type.label.copyWith(
-                      color: context.colors.textMuted,
+  Widget insightHeader() {
+    final large = MileafLayout.largeText(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        MileafLayout.pageInset(context),
+        MileafSpace.s8,
+        MileafLayout.pageInset(context),
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: MileafSpace.s12,
+            runSpacing: MileafSpace.s4,
+            children: [
+              if (topic != 'overview')
+                BackButton(
+                  color: context.colors.textMuted,
+                  onPressed: () => selectTopic('overview'),
+                ),
+              SizedBox(
+                width: large
+                    ? MediaQuery.sizeOf(context).width -
+                          2 * MileafLayout.pageInset(context)
+                    : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('统计', style: context.type.pageTitle),
+                    const SizedBox(height: MileafSpace.inline2),
+                    Text(
+                      _periodLabel(),
+                      style: context.type.label.copyWith(
+                        color: context.colors.textMuted,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => _AllMetricsPage(
-                    timezone: workspace.calendar!.identifier,
-                    onTopic: (key) {
-                      Navigator.of(context).pop();
-                      selectTopic(key);
-                    },
-                  ),
+                  ],
                 ),
               ),
-              child: const Text('全部指标'),
-            ),
-          ],
-        ),
-        const SizedBox(height: MileafSpace.s4),
-        StatisticsPeriodControls(
-          selection: selection,
-          calendar: workspace.calendar!,
-          now: workspace.session.now(),
-          editor: readingEditor,
-          onChanged: (s) {
-            setState(() {
-              selection = s;
-              current = null;
-              reference = null;
-              charging = null;
-              loadedWindow = null;
-              point = 0;
-              pointAt = null;
-              pointTouched = false;
-            });
-            load();
-          },
-        ),
-      ],
-    ),
-  );
+              TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => _AllMetricsPage(
+                      timezone: workspace.calendar!.identifier,
+                      onTopic: (key) {
+                        Navigator.of(context).pop();
+                        selectTopic(key);
+                      },
+                    ),
+                  ),
+                ),
+                child: const Text('全部指标'),
+              ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          StatisticsPeriodControls(
+            selection: selection,
+            calendar: workspace.calendar!,
+            now: workspace.session.now(),
+            editor: readingEditor,
+            onChanged: (s) {
+              setState(() {
+                selection = s;
+                current = null;
+                reference = null;
+                charging = null;
+                loadedWindow = null;
+                point = 0;
+                pointAt = null;
+                pointTouched = false;
+              });
+              load();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   String _periodLabel() {
     final w = loadedWindow;
     final cal = workspace.calendar;
@@ -733,7 +743,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                               actionLabel: '重试参照',
                               onAction: retryReference,
                             ),
-                          const SizedBox(height: MileafSpace.s12),
                           _conclusionTile(
                             stats,
                             enhanced,
@@ -745,8 +754,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       ),
                     ),
                     _mileageChartTile(enhanced, other, comparable, cal),
-                    _insightRow(enhanced),
                     _questionTiles(enhanced, charging),
+                    _secondarySummary(stats, enhanced, paired),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),
@@ -763,6 +772,32 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
   }
 
+  Widget _secondarySummary(
+    legacy.DrivingStats stats,
+    insights.DrivingStats enhanced,
+    Map? paired,
+  ) {
+    final net =
+        (paired?['value_wh_km'] as num?) ?? stats.totals.consumptionWhKmNet;
+    final totals = charging?['totals'] as Map?;
+    final cost = chargingError == null ? (totals?['cost'] as num?) : null;
+    final active = enhanced.buckets.where((b) => b.distanceKm > 0).length;
+    final currencyNote = widget.currency.amountNote;
+    return Padding(
+      padding: MileafLayout.pagePadding(
+        context,
+        top: MileafSpace.s12,
+        bottom: 0,
+      ),
+      child: Text(
+        '净电耗 ${net == null ? '—' : _whKm(net)} Wh/km · '
+        '已知支出 ${widget.currency.amountValue(cost)} · $active 个活跃日'
+        '${currencyNote == null ? '' : ' · $currencyNote'}',
+        style: context.type.label,
+      ),
+    );
+  }
+
   /// C prints whole Wh/km, but keeps a decimal when the API value has one.
   String _whKm(num value) =>
       grouped(value, decimals: value == value.roundToDouble() ? 0 : 1);
@@ -772,7 +807,19 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     if (reference == 0) return '—（基期为0）';
     final delta = current - reference;
     if (delta.abs() < .05) return '与参照同期持平';
-    return '${delta > 0 ? '↑' : '↓'} ${grouped(delta.abs(), decimals: 1)} km 较参照';
+    return '${delta > 0 ? '↑' : '↓'} ${grouped(delta.abs(), decimals: 1)} km · 较${_referenceRange()}';
+  }
+
+  String _referenceRange() {
+    final query = reference?['query'] as Map?;
+    if (query == null) return '参照同期';
+    final cal = workspace.calendar!;
+    final from = cal.local(DateTime.parse(query['from'] as String));
+    final to = cal.local(
+      DateTime.parse(query['to'] as String)
+          .subtract(const Duration(microseconds: 1)),
+    );
+    return '${from.month}/${from.day}–${to.month}/${to.day}';
   }
 
   /// A conclusion: one dominant number and a delta line, no card.
@@ -783,56 +830,44 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     bool comparable,
     Map<String, dynamic>? other,
   ) {
-    final net =
-        (paired?['value_wh_km'] as num?) ?? (stats.totals.consumptionWhKmNet);
-    final active = enhanced.buckets.where((b) => b.distanceKm > 0).length;
-    final totals = charging?['totals'] as Map?;
-    final cost = chargingError == null ? (totals?['cost'] as num?) : null;
     final reference = other == null
         ? null
         : legacy.DrivingStats.fromJson(other).totals.distanceKm;
     final colors = context.colors;
     final type = context.type;
-    final note = widget.currency.amountNote;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Wrap(
+          spacing: MileafSpace.s12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            MileafNumber(
+              value: grouped(stats.totals.distanceKm, decimals: 1),
+              unit: 'km',
+              scale: MetricValueScale.metricLg,
+            ),
+            Text('${stats.totals.drives} 趟', style: type.label),
+          ],
+        ),
+        const SizedBox(height: MileafSpace.s4),
         Row(
           children: [
             Expanded(
               child: Text(
-                selection.period == StatisticsPeriod.month
-                    ? '本月 · 驾驶里程'
-                    : '期间 · 驾驶里程',
+                _mileageDeltaText(
+                  stats.totals.distanceKm,
+                  reference,
+                  comparable,
+                ),
                 style: type.label.copyWith(color: colors.textMuted),
               ),
             ),
-            Text(
-              '${stats.totals.drives} 趟',
-              style: type.label.copyWith(color: colors.textMuted),
+            TextButton(
+              onPressed: () => selectTopic('energy'),
+              child: const Text('依据'),
             ),
           ],
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        MileafNumber(
-          value: grouped(stats.totals.distanceKm, decimals: 1),
-          unit: 'km',
-          scale: MetricValueScale.display,
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        Text(
-          _mileageDeltaText(stats.totals.distanceKm, reference, comparable),
-          style: type.body.copyWith(
-            color: comparable ? colors.text : colors.textMuted,
-            fontWeight: MileafType.weightSemiBold,
-          ),
-        ),
-        const SizedBox(height: MileafSpace.s4),
-        Text(
-          '净电耗 ${net == null ? '—' : '${_whKm(net)} Wh/km'} · '
-          '已知支出 ${widget.currency.amountValue(cost)}'
-          '${note == null ? '' : ' · $note'} · $active 个活跃日',
-          style: type.micro.copyWith(color: colors.textMuted),
         ),
       ],
     );
@@ -867,26 +902,25 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       }
     }
     if (pointTouched) selected = _selectedPoint(times);
-    return MileafHero(
-      semanticLabel: '里程走势，本期与参照',
+    return Semantics(
+      label: '里程走势，本期与参照',
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          MileafLayout.heroInset(context),
-          MileafSpace.s20,
-          MileafLayout.heroInset(context),
-          MileafSpace.s20,
+          MileafLayout.pageInset(context),
+          MileafSpace.s12,
+          MileafLayout.pageInset(context),
+          MileafSpace.s12,
         ),
         child: TimeSeriesChart(
           key: const ValueKey('statistics-insights-chart-frame'),
           title: '里程走势',
           unit: 'km',
-          subtitle: '本期 / 参照',
           times: times,
           series: [
             ChartSeries(
               label: '本期',
               values: values,
-              style: ChartSeriesStyle.area,
+              style: ChartSeriesStyle.bars,
             ),
             if (comparable)
               ChartSeries(
@@ -896,8 +930,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               ),
           ],
           semanticsLabel: '里程走势图表',
-          onHero: true,
-          height: 132,
+          showYAxis: true,
+          height: MileafSpace.chartHeight,
           tickLabel: tick,
           readout: (index) {
             final value = index < values.length ? values[index] : null;
@@ -908,10 +942,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 '${value == null ? '—' : grouped(value, decimals: 1)} km'
                 '${reference == null ? '' : ' / 参照 ${grouped(reference, decimals: 1)}'}';
           },
-          trailing: Text(
-            '点按读值',
-            style: context.type.label.copyWith(color: context.colors.heroFaint),
-          ),
           plotKey: const ValueKey('statistics-insights-chart'),
           selectedIndex: selected,
           onSelected: (index) => setState(() {
@@ -929,57 +959,21 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   int _selectedPoint(List<DateTime> times) =>
       bucketIndexAt(times, pointAt) ?? point.clamp(0, times.length - 1);
 
-  Widget _insightRow(insights.DrivingStats enhanced) {
-    final net = enhanced.totals.netConsumptionPaired.valueWhKm;
-    final note = net == null ? '净电耗缺失，样本不足。' : '净电耗 ${_whKm(net)} Wh/km';
-    final colors = context.colors;
-    final type = context.type;
-    final text = Text(note, style: type.body.copyWith(color: colors.text));
-    final action = TextButton(
-      onPressed: () => selectTopic('energy'),
-      child: const Text('依据'),
-    );
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        MileafSpace.s20,
-        MileafLayout.pageInset(context),
-        0,
-      ),
-      child: MileafLayout.largeText(context)
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                text,
-                Align(alignment: Alignment.centerRight, child: action),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: text),
-                const SizedBox(width: MileafSpace.s8),
-                action,
-              ],
-            ),
-    );
-  }
-
   Widget _chapter(
     String title,
     MileafIconName icon,
     String value,
     String? unit,
     String note,
-    Widget? spark,
     VoidCallback onTap,
   ) {
     final colors = context.colors;
     final type = context.type;
     return InkWell(
+      key: ValueKey('statistics-topic-$title'),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
+        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1009,10 +1003,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             ),
             const SizedBox(height: MileafSpace.s4),
             Text(note, style: type.micro.copyWith(color: colors.textMuted)),
-            if (spark != null) ...[
-              const SizedBox(height: MileafSpace.s8),
-              spark,
-            ],
           ],
         ),
       ),
@@ -1045,7 +1035,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     final energy = totals?['energy_added_kwh'] as num?;
     final known = totals?['cost_known_sessions'];
     final sessions = totals?['sessions'];
-    final chargingBuckets = charging?['buckets'] as List?;
     final currencyNote = widget.currency.amountNote;
     final items = <Widget>[
       _chapter(
@@ -1053,12 +1042,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         MileafIconName.clock,
         '$active',
         '天',
-        minutes == null ? '驾驶时长缺失' : '驾驶 $duration · 单程中位见专题',
-        MicroSpark(
-          values: [for (final b in enhanced.buckets) b.distanceKm.toDouble()],
-          style: SparkStyle.bars,
-          semanticsLabel: '每日里程节奏',
-        ),
+        minutes == null ? '驾驶时长缺失' : '驾驶 $duration',
         () => selectTopic('usage'),
       ),
       _chapter(
@@ -1067,12 +1051,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         net == null ? '—' : _whKm(net),
         net == null ? null : 'Wh/km',
         _netDeltaNote(net, prior, comparable),
-        MicroSpark(
-          values: [
-            for (final b in enhanced.buckets) b.consumptionWhKmNet?.toDouble(),
-          ],
-          semanticsLabel: '净电耗趋势',
-        ),
         () => selectTopic('energy'),
       ),
       _chapter(
@@ -1086,15 +1064,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 : '${known ?? '—'} / ${sessions ?? '—'} 次有记录 · '
                       '${grouped(energy, decimals: 1)} kWh'
                       '${currencyNote == null ? '' : ' · $currencyNote'}'),
-        chargingBuckets == null
-            ? null
-            : MicroSpark(
-                values: [
-                  for (final bucket in chargingBuckets)
-                    (bucket as Map)['energy_added_kwh'] as num?,
-                ],
-                semanticsLabel: '每日补能趋势',
-              ),
         () => selectTopic('charging'),
       ),
       _chapter(
@@ -1103,7 +1072,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         '—',
         'km',
         '进专题查看',
-        null,
         () => selectTopic('long'),
       ),
     ];
@@ -1139,11 +1107,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       ],
     );
     return Padding(
-      padding: EdgeInsets.fromLTRB(inset, MileafSpace.section, inset, 0),
+      padding: EdgeInsets.fromLTRB(inset, MileafSpace.s12, inset, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '四个问题'),
           if (MileafLayout.largeText(context))
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1184,6 +1151,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s8),
     title: const Text('数据说明与更多'),
     children: [
+      Text('活跃 ${enhanced.buckets.where((b) => b.distanceKm > 0).length} 天'),
       MetricGrid(
         children: [
           MetricBlock(

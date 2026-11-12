@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/currency.dart';
 import 'package:mileaf/src/workspace.dart';
@@ -16,6 +18,9 @@ import 'support/vehicle_preferences.dart';
 import 'widget_test.dart' show MemoryTrustStore;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
+const u01 = bool.fromEnvironment('MILEAF_U01');
+const safeZero = bool.fromEnvironment('MILEAF_U01_SAFE_ZERO');
+const longFields = bool.fromEnvironment('MILEAF_U01_LONG');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 
 /// The 11 pages of the VA12 gallery.
@@ -138,12 +143,17 @@ void main() {
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
+      tester.view.resetPadding();
+      tester.view.resetViewPadding();
       tester.platformDispatcher.clearPlatformBrightnessTestValue();
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     final boundary = GlobalKey();
-    Future<void> save(String name) =>
-        saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
+    final images = <String>[];
+    Future<void> save(String name) async {
+      await saveRenderPng(tester, find.byKey(boundary), '$output/$name.png');
+      images.add('$name.png');
+    }
 
     Future<void> pumpApp(
       String key,
@@ -165,7 +175,12 @@ void main() {
           key: boundary,
           child: MileafApp(
             key: ValueKey(key),
-            client: aGalleryClient(scenario: scenario),
+            client: aGalleryClient(
+              scenario: scenario,
+              irregular: u01,
+              longFields: longFields,
+              vehicleName: longFields ? '行笺长名称车辆 · 上海至杭州通勤与周末旅行' : null,
+            ),
             sessionStore: store,
             trustStore: MemoryTrustStore(),
             vehiclePreferences: MemoryVehiclePreferences(),
@@ -228,46 +243,218 @@ void main() {
       }
     }
 
+    final measurements = <Map<String, Object?>>[];
     final problems = <String>[];
     var saved = 0;
-    for (final page in pages) {
-      for (final scenario in scenarios) {
-        for (final brightness in Brightness.values) {
-          for (final scale in [1.0, 2.0]) {
-            final suffix =
-                '$scenario-${brightness.name}-${scale == 1 ? '100' : '200'}';
-            final label = '$page-$suffix';
-            tester.platformDispatcher.platformBrightnessTestValue = brightness;
-            tester.platformDispatcher.textScaleFactorTestValue = scale;
-            try {
-              await pumpApp(label, scenario, brightness);
-              await navigate(page);
-              final texts = [
-                for (final text in tester.widgetList<Text>(find.byType(Text)))
-                  text.data ?? text.textSpan?.toPlainText() ?? '',
-              ].where((line) => line.trim().isNotEmpty).toList();
-              final wanted = markers[page]![scenario]!;
-              bool seen(String needle) => texts.any((t) => t.contains(needle));
-              final absent = wanted.must.where((n) => !seen(n)).toList();
-              final leaked = wanted.mustNot.where(seen).toList();
-              if (absent.isNotEmpty || leaked.isNotEmpty) {
-                problems.add(
-                  '$label 断言不符：缺少 $absent${leaked.isEmpty ? '' : '，不应出现 $leaked'}'
-                  '；实际：${texts.take(60).join(' | ')}',
-                );
+    for (final camera
+        in u01
+            ? [const Size(360, 800), const Size(320, 568), const Size(390, 844)]
+            : [const Size(360, 800)]) {
+      tester.view.physicalSize = camera;
+      if (u01) {
+        tester.view.viewPadding = FakeViewPadding(
+          top: safeZero ? 0 : 24,
+          bottom: safeZero ? 0 : 24,
+        );
+        tester.view.padding = FakeViewPadding(
+          top: safeZero ? 0 : 24,
+          bottom: safeZero ? 0 : 24,
+        );
+      }
+      for (final page
+          in u01 ? ['drives', 'statistics', 'charge-detail'] : pages) {
+        if (camera.width != 360 && page == 'charge-detail') continue;
+        for (final scenario in scenarios) {
+          for (final brightness in Brightness.values) {
+            for (final scale
+                in u01 && camera.width == 360
+                    ? [1.0, 1.3, 1.5, 2.0]
+                    : [1.0, if (!u01 || camera.width == 320) 2.0]) {
+              if (u01 && scale != 1 && scale != 2 && scenario != 'normal') {
+                continue;
               }
-              await save(label);
-              saved++;
-            } catch (failure) {
-              problems.add('$label 渲染失败：$failure');
-              tester.takeException();
+              if ((safeZero || longFields) &&
+                  (camera.width != 360 ||
+                      scenario != 'normal' ||
+                      scale == 1.3 ||
+                      scale == 1.5 ||
+                      safeZero && scale != 1)) {
+                continue;
+              }
+              if (u01 && camera.width != 360 && scenario != 'normal') continue;
+              final suffix =
+                  '$scenario-${brightness.name}-${scale == 1 ? '100' : '200'}';
+              final label = u01
+                  ? '$page-${longFields ? 'long' : scenario}-${brightness.name}-${camera.width.toInt()}-${(scale * 100).round()}${safeZero ? '-safe0' : ''}-top'
+                  : '$page-$suffix';
+              tester.platformDispatcher.platformBrightnessTestValue =
+                  brightness;
+              tester.platformDispatcher.textScaleFactorTestValue = scale;
+              try {
+                await pumpApp(label, scenario, brightness);
+                await navigate(page);
+                final texts = [
+                  for (final text in tester.widgetList<Text>(find.byType(Text)))
+                    text.data ?? text.textSpan?.toPlainText() ?? '',
+                ].where((line) => line.trim().isNotEmpty).toList();
+                final wanted = markers[page]![scenario]!;
+                bool seen(String needle) =>
+                    texts.any((t) => t.contains(needle));
+                final absent = wanted.must.where((n) => !seen(n)).toList();
+                final leaked = wanted.mustNot.where(seen).toList();
+                if ((absent.isNotEmpty && !u01) || leaked.isNotEmpty) {
+                  problems.add(
+                    '$label 断言不符：缺少 $absent${leaked.isEmpty ? '' : '，不应出现 $leaked'}'
+                    '；实际：${texts.take(60).join(' | ')}',
+                  );
+                }
+                if (longFields && page == 'drives' && scale == 1) {
+                  final row = find.byKey(const ValueKey('drive-17'));
+                  final title = tester.widget<Text>(
+                    find.descendant(of: row, matching: find.byType(Text)).first,
+                  );
+                  expect(title.maxLines, 2, reason: 'R03 普通字号长地点最多两行');
+                }
+                await save(label);
+                saved++;
+                if (u01) {
+                  final list = find.byType(ListView).last;
+                  final viewport = tester.getRect(list);
+                  final bars = find.byType(MileafTopBar);
+                  final bodyTop = bars.evaluate().isEmpty
+                      ? viewport.top
+                      : tester.getRect(bars.first).bottom;
+                  final entry = <String, Object?>{
+                    'image': '$label.png',
+                    'bodyTop': bodyTop,
+                    'bodyBottom': viewport.bottom,
+                    'bodyHeight': viewport.bottom - bodyTop,
+                  };
+                  if (scenario == 'normal' && scale == 1) {
+                    final target = page == 'drives'
+                        ? find.byKey(const ValueKey('drive-17'))
+                        : page == 'statistics'
+                        ? find.byKey(const ValueKey('statistics-topic-能耗'))
+                        : find.byKey(const Key('charging-time-chart'));
+                    if (target.evaluate().isNotEmpty) {
+                      final rect = tester.getRect(target.first);
+                      entry['targetTop'] = rect.top - bodyTop;
+                      entry['targetBottom'] = rect.bottom - bodyTop;
+                      entry['visibleHeight'] = (viewport.bottom - rect.top)
+                          .clamp(0, rect.height);
+                      if (camera.width == 360 && !longFields && !safeZero) {
+                        if (page == 'statistics') {
+                          expect(
+                            rect.bottom,
+                            lessThanOrEqualTo(viewport.bottom),
+                            reason: 'P06 专题首行完整',
+                          );
+                        }
+                        if (page == 'drives') {
+                          final secondTitle = find
+                              .descendant(
+                                of: find.byKey(const ValueKey('drive-16')),
+                                matching: find.byType(Text),
+                              )
+                              .first;
+                          final second = tester.getRect(secondTitle);
+                          final visible = (viewport.bottom - second.top).clamp(
+                            0.0,
+                            second.height,
+                          );
+                          entry['secondTitleTop'] = second.top - bodyTop;
+                          entry['secondTitleBottom'] = second.bottom - bodyTop;
+                          entry['secondTitleVisibleHeight'] = visible;
+                          entry['secondTitleAvailableHeight'] =
+                              viewport.bottom - second.top;
+                          expect(
+                            visible,
+                            greaterThanOrEqualTo(24),
+                            reason: 'P02 第二条实际正文至少24',
+                          );
+                        }
+                        if (page == 'charge-detail') {
+                          expect(
+                            viewport.bottom - rect.top,
+                            greaterThanOrEqualTo(128),
+                            reason: 'P05 图面至少120及8标记留白',
+                          );
+                        }
+                      }
+                    }
+                  }
+                  measurements.add(entry);
+                  {
+                    final scroll = find
+                        .descendant(of: list, matching: find.byType(Scrollable))
+                        .first;
+                    var cameraIndex = 0;
+                    while (tester
+                                .state<ScrollableState>(scroll)
+                                .position
+                                .extentAfter >
+                            0 &&
+                        cameraIndex < 30) {
+                      await tester.drag(list, Offset(0, -viewport.height * .7));
+                      await tester.pumpAndSettle();
+                      texts.addAll(
+                        tester
+                            .widgetList<Text>(find.byType(Text))
+                            .map(
+                              (text) =>
+                                  text.data ??
+                                  text.textSpan?.toPlainText() ??
+                                  '',
+                            ),
+                      );
+                      cameraIndex++;
+                      await save(
+                        label.replaceAll('-top', '-scroll$cameraIndex'),
+                      );
+                    }
+                    expect(
+                      tester
+                          .state<ScrollableState>(scroll)
+                          .position
+                          .extentAfter,
+                      0,
+                    );
+                    expect(
+                      wanted.must
+                          .where(
+                            (needle) => !texts.any((t) => t.contains(needle)),
+                          )
+                          .toList(),
+                      isEmpty,
+                      reason: '$label 完整滚动标记',
+                    );
+                  }
+                }
+              } catch (failure) {
+                problems.add('$label 渲染失败：$failure');
+                tester.takeException();
+              }
             }
           }
         }
       }
     }
-
-    expect(saved, pages.length * scenarios.length * 4, reason: '应生成 132 张');
+    if (u01) {
+      await tester.runAsync(() async {
+        await File(
+          '$output/u01${longFields
+              ? '-long'
+              : safeZero
+              ? '-safe0'
+              : ''}-measurements.json',
+        ).writeAsString(
+          const JsonEncoder.withIndent('  ')
+              .convert({'images': images, 'measurements': measurements}),
+        );
+      });
+    } else {
+      expect(saved, pages.length * scenarios.length * 4, reason: '应生成 132 张');
+    }
     expect(problems, isEmpty, reason: problems.join('\n'));
   }, skip: output.isEmpty);
 }

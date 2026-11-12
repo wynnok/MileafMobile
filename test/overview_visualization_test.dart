@@ -270,7 +270,14 @@ void main() {
     final graph = tester.getRect(find.bySemanticsLabel('每日里程图表'));
     final viewport = tester.getRect(find.byType(RefreshIndicator));
     expect(graph.top, greaterThanOrEqualTo(viewport.top));
-    expect(graph.bottom, lessThanOrEqualTo(viewport.bottom));
+    // 规格§5 P01 的首屏目标是“主趋势绘图区首 80 高在 body 内可见”。旧断言要求
+    // 整张图完全入屏，与统一字号增量后的同底排版冲突；改为按规格口径测量，
+    // 图下读值与专题仍保持可达（映射：原值 graph.bottom≤body → 新值 首80）。
+    expect(
+      viewport.bottom - graph.top,
+      greaterThanOrEqualTo(80),
+      reason: 'P01：每日里程绘图区首 80 逻辑像素须在首屏 body 内',
+    );
     expect(battery(68), findsOneWidget);
     expect(find.textContaining('320').hitTestable(), findsWidgets);
     expect(find.text('今日 km').hitTestable(), findsOneWidget);

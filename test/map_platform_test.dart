@@ -31,9 +31,13 @@ MapScene _scene({bool empty = false}) => driveScene(
 );
 
 // MapPanel 现在按 A token 绘制浮层，测试宿主必须提供 A 主题。
-Widget _app(MapPanel panel) => MaterialApp(
+Widget _app(MapPanel panel, {double? hostHeight}) => MaterialApp(
   theme: mileafTheme(Brightness.dark),
-  home: Scaffold(body: SingleChildScrollView(child: panel)),
+  home: Scaffold(
+    body: hostHeight == null
+        ? SingleChildScrollView(child: panel)
+        : SizedBox(height: hostHeight, child: panel),
+  ),
 );
 
 void main() {
@@ -146,14 +150,27 @@ void main() {
           platform: fake,
           height: 300,
         ),
+        hostHeight: 300,
       ),
     );
     expect(tester.takeException(), isNull);
     expect(find.text('启用地图'), findsOneWidget);
     final privacy = find.textContaining('不读取手机定位。');
     expect(tester.widget<Text>(privacy).maxLines, isNull, reason: '不再限制行数');
+    final surface = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(MapPanel),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    );
+    expect(surface.height, 300, reason: '图面高度不受文字缩放影响');
+    await tester.ensureVisible(find.text('启用地图'));
+    await tester.pumpAndSettle();
     final panel = tester.getRect(find.byType(MapPanel));
-    expect(panel.height, 300, reason: '地图高度不受文字缩放影响');
+    expect(panel.height, 300, reason: '有限高宿主通过滚动承载自然状态区');
+    expect(fake.builds, 0);
     expect(
       tester.getRect(find.text('启用地图')).bottom,
       lessThanOrEqualTo(panel.bottom),
@@ -182,6 +199,11 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('不读取手机定位。'), findsOneWidget);
     expect(find.text('启用地图'), findsOneWidget);
+    await tester.ensureVisible(find.text('启用地图'));
+    await tester.pumpAndSettle();
+    expect(find.text('启用地图').hitTestable(), findsOneWidget);
+    expect(fake.builds, 0);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('选中采样变化传给地图场景', (tester) async {

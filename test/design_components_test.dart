@@ -854,7 +854,19 @@ void main() {
 
     testWidgets('200% 弧为 72 且中心主数可见', (tester) async {
       await pumpComponent(tester, const BatteryArc(level: 68), scale: 2);
-      expect(tester.getSize(find.byType(BatteryArc)), const Size(72, 72));
+      expect(
+        tester.getSize(
+          find
+              .descendant(
+                of: find.byType(BatteryArc),
+                matching: find.byType(CustomPaint),
+              )
+              .first,
+        ),
+        const Size(72, 72),
+      );
+      expect(find.text('68 %'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       expect(find.textContaining('68'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -978,7 +990,7 @@ void main() {
             tester.widget<Text>(find.text(label)).style?.color;
         expect(textColor('概览'), colors.accentStrong, reason: '选中导航标签是文字');
         expect(textColor('行程'), colors.textFaint, reason: '未选导航标签');
-        expect(textColor('本月'), colors.accentStrong, reason: '选中 chip 标签是文字');
+        expect(textColor('本月'), colors.text, reason: '选中 chip 标签是文字');
         expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');
         expect(textColor('取消'), colors.text, reason: 'secondary 用正文色');
         expect(textColor('保存'), colors.textOnAccent, reason: '实心按钮文字');

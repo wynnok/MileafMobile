@@ -312,8 +312,9 @@ void main() {
       requests.last.url.queryParameters['cursor'],
       'MjAyNi0wMy0xNVQxMTowMDowMCswMDowMHw4',
     );
-    await tester.scrollUntilVisible(find.byTooltip('刷新充电'), -500);
-    await tester.tap(find.byTooltip('刷新充电'));
+    await tester.scrollUntilVisible(find.byTooltip('刷新充电').hitTestable(), -100);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('刷新充电').hitTestable());
     await tester.pumpAndSettle();
     expect(requests.last.url.queryParameters.containsKey('cursor'), isFalse);
     expect(requests.last.headers['if-none-match'], '"charges"');
@@ -498,7 +499,7 @@ void main() {
     );
     await tester.tap(find.text('充电 #9 · 查看详情').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('充电详情 #9'), findsOneWidget);
+    expect(find.text('充电详情'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     empty = true;

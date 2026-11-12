@@ -342,19 +342,28 @@ Future<void> openLedger(
 
 /// Reads the ledger list to its loaded end by following the cursor once.
 Future<void> readLedgerToEnd(WidgetTester tester) async {
-  await tester.scrollUntilVisible(
-    find.text('加载更多充电'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('加载更多充电'));
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('已到最后一条'),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
+  final scrollable = find
+      .descendant(
+        of: find.byType(ChargingPage),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+  final more = find.text('加载更多充电').hitTestable();
+  final end = find.text('已到最后一条').hitTestable();
+  for (
+    var step = 0;
+    step < 60 && more.evaluate().isEmpty && end.evaluate().isEmpty;
+    step++
+  ) {
+    await tester.drag(scrollable, const Offset(0, -200));
+    await tester.pumpAndSettle();
+  }
+  expect(more.evaluate().isNotEmpty || end.evaluate().isNotEmpty, isTrue);
+  if (more.evaluate().isNotEmpty) {
+    await tester.tapAt(tester.getCenter(more));
+    await tester.pumpAndSettle();
+  }
+  await tester.scrollUntilVisible(end, 200, scrollable: scrollable);
   await tester.pumpAndSettle();
 }
 

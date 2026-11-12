@@ -63,7 +63,15 @@ void main() {
         ),
       ),
     );
-    final map = tester.getRect(find.byType(MapPanel));
+    await tester.scrollUntilVisible(find.bySemanticsLabel('距离 20.0 km'), 100);
+    final map = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(MapPanel),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    );
     final route = tester.getRect(find.textContaining(' → ').first);
     final result = tester.getRect(find.bySemanticsLabel('距离 20.0 km'));
     final viewWidth =

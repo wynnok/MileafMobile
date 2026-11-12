@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../layout.dart';
-import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -71,6 +70,7 @@ class TimeSeriesChart extends StatefulWidget {
     this.note,
     this.onHero = false,
     this.showYAxis = false,
+    this.yRange,
     this.showXAxis = true,
     this.emptyMessage = '还没有采样点',
     this.onActivateSelected,
@@ -94,6 +94,7 @@ class TimeSeriesChart extends StatefulWidget {
   final String? note;
   final bool onHero;
   final bool showYAxis;
+  final (double, double)? yRange;
   final bool showXAxis;
   final String emptyMessage;
   final VoidCallback? onActivateSelected;
@@ -170,32 +171,16 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         .toInt();
     final titleColor = onHero ? colors.heroText : colors.text;
     final faint = onHero ? colors.heroFaint : colors.textFaint;
-    final header = MileafLayout.largeText(context)
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ChartTitle(title: widget.title, color: titleColor),
-              if (widget.subtitle != null) ...[
-                const SizedBox(height: MileafSpace.s4),
-                Text(
-                  widget.subtitle!,
-                  style: type.label.copyWith(color: faint),
-                ),
-              ],
-            ],
-          )
-        : Row(
-            children: [
-              Expanded(
-                child: _ChartTitle(title: widget.title, color: titleColor),
-              ),
-              if (widget.subtitle != null)
-                Text(
-                  widget.subtitle!,
-                  style: type.label.copyWith(color: faint),
-                ),
-            ],
-          );
+    final header = Wrap(
+      spacing: MileafSpace.s12,
+      runSpacing: MileafSpace.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _ChartTitle(title: widget.title, color: titleColor),
+        if (widget.subtitle != null)
+          Text(widget.subtitle!, style: type.label.copyWith(color: faint)),
+      ],
+    );
     final legend = widget.series.length > 1
         ? Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -229,20 +214,43 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        header,
+        if (legend == null || MileafLayout.largeText(context))
+          header
+        else
+          Row(
+            children: [
+              Expanded(child: header),
+              legend,
+            ],
+          ),
+        if (MileafLayout.largeText(context)) ?legend,
         if (widget.controls != null) ...[
           const SizedBox(height: MileafSpace.s8),
           widget.controls!,
         ],
-        ?legend,
         const SizedBox(height: MileafSpace.s8),
         LayoutBuilder(
           builder: (context, constraints) {
-            final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
+            final scaler = MediaQuery.textScalerOf(context);
+            final labelStyle = chartAxisLabelStyle(
+              color: faint,
+              scaler: scaler,
+            );
+            final bounds = widget.yRange ?? _chartBounds(widget.series);
+            final ticks = {bounds.$1, (bounds.$1 + bounds.$2) / 2, bounds.$2};
+            final sizes = [
+              for (final tick in ticks)
+                _measureAxis(_axisNumber(tick), labelStyle),
+            ];
             final plotHeight =
                 widget.height ?? MileafLayout.chartHeight(context);
-            final left = widget.showYAxis ? 34.0 : 0.0;
-            final bottom = widget.showXAxis ? 18.0 * math.min(scale, 1.5) : 0.0;
+            final left = widget.showYAxis
+                ? sizes.map((s) => s.width).reduce(math.max) + MileafSpace.s8
+                : 0.0;
+            final bottom = widget.showXAxis
+                ? _measureAxis(_tick(widget.times.first), labelStyle).height +
+                      MileafSpace.s8
+                : 0.0;
             final plotWidth = math.max(1.0, constraints.maxWidth - left);
             // Spec §8: the current marker is a 4px point inside an 8px halo.
             // The grid keeps one halo of margin top and bottom so a mark at the
@@ -250,14 +258,14 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             // cut by the plot edge.
             final plot = Rect.fromLTWH(
               left,
-              MileafChartMetrics.currentHalo,
+              widget.showYAxis
+                  ? math.max(
+                      MileafChartMetrics.currentHalo,
+                      sizes.first.height / 2,
+                    )
+                  : MileafChartMetrics.currentHalo,
               plotWidth,
-              math.max(
-                1.0,
-                plotHeight -
-                    bottom -
-                    2 * MileafChartMetrics.currentHalo,
-              ),
+              math.max(1.0, plotHeight),
             );
             double? lastFraction;
             void selectAt(Offset position) {
@@ -313,36 +321,32 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                       selectAt(details.localPosition),
                   child: SizedBox(
                     key: widget.plotKey,
-                    height: plotHeight,
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: MileafLayout.motion(
-                        context,
-                        MileafDurations.chart,
-                      ),
-                      curve: MileafCurves.chart,
-                      builder: (context, progress, _) => CustomPaint(
-                        size: Size(constraints.maxWidth, plotHeight),
-                        painter: _ChartPainter(
-                          times: widget.times,
-                          series: widget.series,
-                          selected: selected,
-                          plot: plot,
-                          progress: progress,
-                          primary: onHero ? colors.accentHero : colors.accent,
-                          reference: colors.reference,
-                          axis: faint,
-                          // Spec §8: the only horizontal grid line is the zero
-                          // baseline — `line` on paper, heroText 12% on a hero.
-                          baseline: onHero
-                              ? colors.heroText.withValues(alpha: .12)
-                              : colors.line,
-                          scaler: MediaQuery.textScalerOf(context),
-                          showYAxis: widget.showYAxis,
-                          showXAxis: widget.showXAxis,
-                          tick: _tick,
-                          largeText: MileafLayout.largeText(context),
-                        ),
+                    height:
+                        plotHeight +
+                        bottom +
+                        2 * MileafChartMetrics.currentHalo,
+                    child: CustomPaint(
+                      size: Size(constraints.maxWidth, plotHeight),
+                      painter: _ChartPainter(
+                        times: widget.times,
+                        series: widget.series,
+                        selected: selected,
+                        plot: plot,
+                        progress: 1,
+                        primary: onHero ? colors.accentHero : colors.accent,
+                        reference: colors.reference,
+                        axis: faint,
+                        // Spec §8: the only horizontal grid line is the zero
+                        // baseline — `line` on paper, heroText 12% on a hero.
+                        baseline: onHero
+                            ? colors.heroText.withValues(alpha: .12)
+                            : colors.line,
+                        scaler: MediaQuery.textScalerOf(context),
+                        yRange: widget.yRange,
+                        showYAxis: widget.showYAxis,
+                        showXAxis: widget.showXAxis,
+                        tick: _tick,
+                        largeText: MileafLayout.largeText(context),
                       ),
                     ),
                   ),
@@ -353,9 +357,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         ),
         const SizedBox(height: MileafSpace.inline6),
         Semantics(
+          container: true,
+          explicitChildNodes: true,
           liveRegion: true,
-          label: _reading(selected),
-          excludeSemantics: true,
           child: MileafLayout.largeText(context)
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,6 +387,15 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                         ),
                       ),
                     ),
+                    if (widget.onActivateSelected != null &&
+                        !MileafLayout.largeText(context))
+                      TextButton(
+                        onPressed: widget.onActivateSelected,
+                        child: Text(
+                          '看当天',
+                          semanticsLabel: widget.activationLabel,
+                        ),
+                      ),
                     if (widget.trailing != null)
                       DefaultTextStyle.merge(
                         style: type.label.copyWith(color: faint),
@@ -391,7 +404,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                   ],
                 ),
         ),
-        if (widget.onActivateSelected != null)
+        if (widget.onActivateSelected != null &&
+            MileafLayout.largeText(context))
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -428,9 +442,9 @@ TextStyle chartAxisLabelStyle({
 }) => TextStyle(
   fontFamily: MileafType.family,
   fontFamilyFallback: MileafType.fallback,
-  fontSize:
-      fontSize ?? MileafChartMetrics.axisLabelSize * math.min(scaler.scale(1), 1.5),
+  fontSize: scaler.scale(fontSize ?? MileafChartMetrics.axisLabelSize),
   color: color,
+  height: 1.5,
   fontFeatures: const [FontFeature.tabularFigures()],
 );
 
@@ -710,6 +724,7 @@ class _ChartPainter extends CustomPainter {
     required this.primary,
     required this.reference,
     required this.axis,
+    this.yRange,
     required this.baseline,
     required this.scaler,
     required this.showYAxis,
@@ -728,6 +743,7 @@ class _ChartPainter extends CustomPainter {
   final Color axis;
   final Color baseline;
   final TextScaler scaler;
+  final (double, double)? yRange;
   final bool showYAxis;
   final bool showXAxis;
   final String Function(DateTime) tick;
@@ -735,16 +751,7 @@ class _ChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final known = series.expand((s) => s.values).whereType<num>().toList();
-    var high = known.isEmpty ? 1.0 : known.reduce(math.max).toDouble();
-    var low = math.min(
-      0.0,
-      known.isEmpty ? 0.0 : known.reduce(math.min).toDouble(),
-    );
-    if (high == low) high = low + 1;
-    final step = _niceStep((high - low) / 3);
-    high = (high / step).ceil() * step;
-    if (high == low) high = low + step;
+    final (low, high) = yRange ?? _chartBounds(series);
     final span = high - low;
     double y(num value) => plot.bottom - (value - low) / span * plot.height;
     // Inset the drawn data so the 8px current-point halo is never clipped.
@@ -785,9 +792,15 @@ class _ChartPainter extends CustomPainter {
       painter.dispose();
     }
 
-    if (showYAxis && !largeText) {
-      for (final value in {low, (low + high) / 2, high}) {
-        label(_axisNumber(value), Offset(0, y(value) - 5));
+    if (showYAxis) {
+      for (final value in {low, if (!largeText) (low + high) / 2, high}) {
+        label(
+          _axisNumber(value),
+          Offset(
+            0,
+            y(value) - _measureAxis(_axisNumber(value), labelStyle).height / 2,
+          ),
+        );
       }
     }
     if (showXAxis) {
@@ -798,7 +811,7 @@ class _ChartPainter extends CustomPainter {
         final centered = index != 0 && index != times.length - 1;
         label(
           tick(times[index]),
-          Offset(x(index), plot.bottom + 4),
+          Offset(x(index), plot.bottom + MileafSpace.s8),
           centered: centered,
           right: index == times.length - 1,
         );
@@ -1033,28 +1046,52 @@ class _ChartPainter extends CustomPainter {
     }
   }
 
-  double _niceStep(double raw) {
-    if (raw <= 0 || !raw.isFinite) return 1;
-    final magnitude = math
-        .pow(10, (math.log(raw) / math.ln10).floor())
-        .toDouble();
-    final fraction = raw / magnitude;
-    final factor = fraction <= 1
-        ? 1
-        : fraction <= 2
-        ? 2
-        : fraction <= 5
-        ? 5
-        : 10;
-    return factor * magnitude;
-  }
-
-  String _axisNumber(double value) => value.abs() >= 10000
-      ? '${(value / 1000).toStringAsFixed(1)}k'
-      : value == value.roundToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toStringAsFixed(1);
-
   @override
   bool shouldRepaint(covariant _ChartPainter old) => true;
 }
+
+Size _measureAxis(String text, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  final size = painter.size;
+  painter.dispose();
+  return size;
+}
+
+(double, double) _chartBounds(List<ChartSeries> series) {
+  final known = series.expand((s) => s.values).whereType<num>().toList();
+  var high = known.isEmpty ? 1.0 : known.reduce(math.max).toDouble();
+  final low = math.min(
+    0.0,
+    known.isEmpty ? 0.0 : known.reduce(math.min).toDouble(),
+  );
+  if (high == low) high = low + 1;
+  final step = _niceStep((high - low) / 3);
+  high = (high / step).ceil() * step;
+  if (high == low) high = low + step;
+  return (low, high);
+}
+
+double _niceStep(double raw) {
+  if (raw <= 0 || !raw.isFinite) return 1;
+  final magnitude = math
+      .pow(10, (math.log(raw) / math.ln10).floor())
+      .toDouble();
+  final fraction = raw / magnitude;
+  final factor = fraction <= 1
+      ? 1
+      : fraction <= 2
+      ? 2
+      : fraction <= 5
+      ? 5
+      : 10;
+  return factor * magnitude;
+}
+
+String _axisNumber(double value) => value.abs() >= 10000
+    ? '${(value / 1000).toStringAsFixed(1)}k'
+    : value == value.roundToDouble()
+    ? value.toStringAsFixed(0)
+    : value.toStringAsFixed(1);

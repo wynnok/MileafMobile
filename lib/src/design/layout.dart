@@ -40,13 +40,8 @@ abstract final class MileafLayout {
       ? MileafSpace.chartHeightWide
       : MileafSpace.chartHeight;
 
-  /// 320–359 uses a 56 display, 390+ uses 64, base is 60.
-  static double heroDisplaySize(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width < MileafBreakpoints.base) return 56;
-    if (width >= MileafBreakpoints.wide) return 64;
-    return MileafType.displaySize;
-  }
+  /// The display role retains its size at every width; callers reflow.
+  static double heroDisplaySize(BuildContext context) => MileafType.displaySize;
 
   /// Duration that collapses to zero when reduce motion is requested.
   static Duration motion(BuildContext context, Duration duration) =>

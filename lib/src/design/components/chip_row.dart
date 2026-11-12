@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import '../semantic.dart';
 
 /// Horizontal row of A chips.
 ///
@@ -17,10 +18,16 @@ class ChipRow extends StatelessWidget {
   final WrapCrossAlignment alignment;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: MileafSpace.s8,
-    runSpacing: MileafSpace.s4,
-    crossAxisAlignment: alignment,
-    children: children,
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: context.colors.surfaceRaised,
+      borderRadius: MileafRadius.mdAll,
+    ),
+    child: Wrap(
+      spacing: MileafSpace.s8,
+      runSpacing: MileafSpace.s4,
+      crossAxisAlignment: alignment,
+      children: children,
+    ),
   );
 }

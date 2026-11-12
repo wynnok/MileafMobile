@@ -97,9 +97,12 @@ abstract final class MileafSpace {
   static const touch = 44.0;
   static const navHeight = 64.0;
   static const contentBottom = 84.0;
-  static const chipHeight = 34.0;
-  static const chartHeight = 140.0;
-  static const chartHeightWide = 148.0;
+  static const chipHeight = 44.0;
+  static const primaryButtonHeight = 48.0;
+  static const rhythmHeight = 88.0;
+  static const chartHeight = 160.0;
+  static const detailChartHeight = 200.0;
+  static const chartHeightWide = 160.0;
 
   /// hero card geometry (Spec §5.1): card outer margin and fixed inner pad.
   static const cardInset = 12.0;
@@ -159,36 +162,42 @@ abstract final class MileafElevation {
 abstract final class MileafType {
   const MileafType._();
 
-  static const displaySize = 60.0;
-  static const displayHeight = 60.0;
-  static const displayTracking = -0.04;
+  static const displaySize = 48.0;
+  static const displayHeight = 52.0;
+  static const displayTracking = -0.02;
 
-  static const metricLgSize = 44.0;
-  static const metricLgHeight = 44.0;
-  static const metricLgTracking = -0.035;
+  static const metricLgSize = 36.0;
+  static const metricLgHeight = 42.0;
+  static const metricLgTracking = -0.02;
 
   static const metricMdSize = 24.0;
-  static const metricMdHeight = 26.0;
-  static const metricMdTracking = -0.03;
+  static const metricMdHeight = 30.0;
+  static const metricMdTracking = -0.02;
+
+  static const pageTitleSize = 22.0;
+  static const pageTitleHeight = 28.0;
+
+  static const navLabelSize = 12.0;
+  static const navLabelHeight = 16.0;
 
   static const titleSize = 18.0;
-  static const titleHeight = 22.0;
-  static const titleTracking = -0.01;
+  static const titleHeight = 26.0;
+  static const titleTracking = 0.0;
 
-  static const bodySize = 13.0;
-  static const bodyHeight = 19.5;
+  static const bodySize = 16.0;
+  static const bodyHeight = 24.0;
 
-  static const labelSize = 10.0;
-  static const labelHeight = 13.0;
-  static const labelTracking = 0.08;
+  static const labelSize = 13.0;
+  static const labelHeight = 18.0;
+  static const labelTracking = 0.0;
 
-  static const microSize = 9.0;
-  static const microHeight = 12.0;
-  static const microTracking = 0.12;
+  static const microSize = 12.0;
+  static const microHeight = 18.0;
+  static const microTracking = 0.0;
 
   /// Technical table values and form error text.
   static const detailSize = 12.0;
-  static const detailHeight = 17.0;
+  static const detailHeight = 18.0;
 
   static const weightRegular = FontWeight.w400;
   static const weightMedium = FontWeight.w500;
@@ -223,7 +232,7 @@ abstract final class MileafIconMetrics {
 abstract final class MileafChartMetrics {
   const MileafChartMetrics._();
 
-  static const lineStroke = 1.5;
+  static const lineStroke = 2.0;
   static const microStroke = 1.2;
   static const areaMaxOpacity = .16;
   static const areaMinOpacity = .0;
@@ -237,8 +246,8 @@ abstract final class MileafChartMetrics {
   static const zeroDot = 1.5;
   static const barMaxWidth = 12.0;
   static const barSlotCoverage = .6;
-  static const barRadius = 1.0;
-  static const axisLabelSize = 9.0;
+  static const barRadius = 2.0;
+  static const axisLabelSize = 12.0;
   static const referenceDash = <double>[4, 4];
   static const yTicks = 3;
 }

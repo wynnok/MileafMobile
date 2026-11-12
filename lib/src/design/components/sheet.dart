@@ -43,6 +43,23 @@ class MileafSheetFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final compact =
+        (MediaQuery.sizeOf(context).width <= MileafBreakpoints.compact &&
+            MileafLayout.largeText(context)) ||
+        MediaQuery.sizeOf(context).height -
+                MediaQuery.viewInsetsOf(context).bottom <
+            400;
+    final heading = Row(
+      children: [
+        Expanded(child: Text(title, style: context.type.title)),
+        if (onClose != null)
+          MileafIconButton(
+            icon: MileafIconName.close,
+            tooltip: closeLabel,
+            onPressed: closeEnabled ? onClose : null,
+          ),
+      ],
+    );
     return SafeArea(
       top: false,
       child: Align(
@@ -74,22 +91,15 @@ class MileafSheetFrame extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: MileafSpace.s8),
-                Row(
-                  children: [
-                    Expanded(child: Text(title, style: context.type.title)),
-                    if (onClose != null)
-                      MileafIconButton(
-                        icon: MileafIconName.close,
-                        tooltip: closeLabel,
-                        onPressed: closeEnabled ? onClose : null,
-                      ),
-                  ],
-                ),
+                if (!compact) heading,
                 Flexible(
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: MileafSpace.s8),
-                      child: child,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [if (compact) heading, child],
+                      ),
                     ),
                   ),
                 ),

@@ -46,6 +46,7 @@ void main() {
     );
     expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
+    await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
     expect(find.textContaining('187.5'), findsWidgets);
 
     expect(
@@ -134,7 +135,7 @@ void main() {
         statisticsInsights: true,
       );
       await tester.scrollUntilVisible(
-        find.text('四个问题').hitTestable(),
+        find.text('节奏').hitTestable(),
         100,
         scrollable: find.byType(Scrollable).last,
       );
@@ -278,10 +279,12 @@ void main() {
       statisticsInsights: true,
     );
     expect(find.textContaining('参照读取失败'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
     expect(find.textContaining('187.5'), findsWidgets);
     final before = currentRequests;
     failReference = false;
-    await tester.tap(find.text('重试参照'));
+    await tester.scrollUntilVisible(find.text('重试参照').hitTestable(), -100);
+    await tester.tap(find.text('重试参照').hitTestable());
     await tester.pumpAndSettle();
     expect(currentRequests, before);
     expect(find.textContaining('参照读取失败'), findsNothing);
@@ -306,12 +309,13 @@ void main() {
       statisticsInsights: true,
     );
     await tester.scrollUntilVisible(
-      find.text('四个问题').hitTestable(),
+      find.text('能耗').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('187.5 Wh/km'), findsWidgets);
+    expect(find.text('187.5'), findsWidgets);
+    expect(find.text('Wh/km'), findsWidgets);
     expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
   });
 

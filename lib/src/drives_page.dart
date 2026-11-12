@@ -503,7 +503,10 @@ class _DrivesPageState extends State<DrivesPage>
     final calendar = workspace.calendar!;
     String md(DateTime t) {
       final d = calendar.local(t);
-      return '${d.month}月${d.day}日';
+      final from = calendar.local(DateTime.parse(range['from']!));
+      final to = calendar.local(DateTime.parse(range['to']!));
+      final year = from.year != to.year ? '${d.year}/' : '';
+      return '$year${d.month}/${d.day}';
     }
 
     return '${md(DateTime.parse(range['from']!))}—${md(DateTime.parse(range['to']!))}';
@@ -551,7 +554,7 @@ class _DrivesPageState extends State<DrivesPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('行程', style: type.title),
+              Text('行程', style: type.pageTitle),
               const SizedBox(height: MileafSpace.inline2),
               Text(
                 _rangeLabel,
@@ -598,23 +601,7 @@ class _DrivesPageState extends State<DrivesPage>
       ),
       child: const Text('日期'),
     );
-    if (MileafLayout.largeText(context)) {
-      return Wrap(
-        spacing: MileafSpace.s8,
-        runSpacing: MileafSpace.s8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [recent, week, dateAction],
-      );
-    }
-    return Row(
-      children: [
-        recent,
-        const SizedBox(width: MileafSpace.s8),
-        week,
-        const Spacer(),
-        dateAction,
-      ],
-    );
+    return ChipRow(children: [recent, week, dateAction]);
   }
 
   Widget _summarySkeleton() => const Column(
@@ -641,7 +628,7 @@ class _DrivesPageState extends State<DrivesPage>
     final netText = totals == null
         ? '净电耗 —'
         : '净电耗 ${number(totals.consumptionWhKmNet, 'Wh/km')}';
-    final metaStyle = type.body.copyWith(color: colors.textMuted);
+    final metaStyle = type.label.copyWith(color: colors.textMuted);
     final large = MileafLayout.largeText(context);
     final facts = large
         ? Column(
@@ -676,7 +663,7 @@ class _DrivesPageState extends State<DrivesPage>
           MileafNumber(
             value: distance,
             unit: 'km',
-            scale: MetricValueScale.display,
+            scale: MetricValueScale.metricLg,
           ),
           const SizedBox(height: MileafSpace.s4),
           facts,
@@ -739,7 +726,7 @@ class _DrivesPageState extends State<DrivesPage>
           chartDay = index;
           chartDayTouched = true;
         }),
-        height: 96,
+        height: MileafSpace.rhythmHeight,
         readout: (index) {
           if (index < 0 || index >= buckets.length) return '—';
           final local = workspace.calendar!.local(buckets[index].bucketStart);
@@ -761,95 +748,13 @@ class _DrivesPageState extends State<DrivesPage>
     );
   }
 
-  Widget _routeGlyph() {
-    final colors = context.colors;
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: colors.lineStrong),
-      ),
-      child: Center(
-        child: MileafIcon(
-          MileafIconName.route,
-          size: MileafIconMetrics.inline,
-          color: colors.textMuted,
-        ),
-      ),
-    );
-  }
-
-  Widget _featuredRoute(dto.Drive d) {
-    final type = context.type;
-    final colors = context.colors;
-    final meta = '${_clock(d.startedAt)} · ${_duration(d)}\n${_net(d)}';
-    final distance = _distance(d);
-    return Semantics(
-      button: true,
-      label: '${_route(d)}，$meta${distance == null ? '' : '，$distance km'}',
-      excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: ValueKey('drive-${d.id}'),
-          onTap: () => widget.onRecord?.call(d.id),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: colors.line)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _routeGlyph(),
-                const SizedBox(width: MileafSpace.s12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _route(d),
-                        style: type.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: MileafSpace.s4),
-                      Text(
-                        meta,
-                        style: type.micro.copyWith(color: colors.textMuted),
-                      ),
-                      if (d.endedAt == null) ...[
-                        const SizedBox(height: MileafSpace.s4),
-                        Text(
-                          '进行中',
-                          style: type.micro.copyWith(color: colors.warning),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: MileafSpace.s12),
-                MileafNumber(
-                  value: distance,
-                  unit: distance == null ? null : 'km',
-                  scale: MetricValueScale.metricMd,
-                  alignEnd: true,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _routeRow(dto.Drive d) {
     final distance = _distance(d);
     final meta = '${_clock(d.startedAt)} · ${_duration(d)}\n${_net(d)}';
     return MileafDataRow(
       key: ValueKey('drive-${d.id}'),
       title: _route(d),
+      titleMaxLines: MediaQuery.textScalerOf(context).scale(14) > 14 ? null : 2,
       meta: meta,
       badge: d.endedAt == null
           ? Text(
@@ -859,7 +764,6 @@ class _DrivesPageState extends State<DrivesPage>
           : null,
       value: distance,
       unit: distance == null ? null : 'km',
-      icon: MileafIconName.route,
       bottomLine: true,
       onTap: () => widget.onRecord?.call(d.id),
       semanticLabel:
@@ -891,7 +795,7 @@ class _DrivesPageState extends State<DrivesPage>
               ),
             )
           else ...[
-            _featuredRoute(items.first),
+            _routeRow(items.first),
             for (final d in items.skip(1)) _routeRow(d),
           ],
         ],

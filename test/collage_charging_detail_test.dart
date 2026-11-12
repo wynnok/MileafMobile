@@ -98,7 +98,7 @@ void main() {
     expect(find.text('电量区间'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('电量区间')).dy,
-      lessThan(tester.getTopLeft(find.text('充入电池 20 kWh')).dy),
+      lessThan(tester.getTopLeft(find.text('20 kWh')).dy),
     );
     final graph = tester.getRect(find.byKey(const Key('charging-time-chart')));
     expect(graph.bottom, lessThanOrEqualTo(800));

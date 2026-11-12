@@ -10,6 +10,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
+const u01 = bool.fromEnvironment('MILEAF_U01');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 
 void main() {
@@ -58,31 +59,49 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
       tester.view.resetViewInsets();
     });
-    final cameras = <Size, List<String>>{
-      const Size(360, 800): [
-        'list',
-        'detail',
-        'empty',
-        'preview',
-        'free',
-        'invalid',
-        'blocked',
-        'uncertain',
-      ],
-      const Size(320, 640): ['long', 'unknown', 'maximum', 'keyboard'],
-      const Size(390, 844): ['preview', 'keyboard'],
-      const Size(768, 1024): ['preview'],
-    };
+    final cameras = u01
+        ? <Size, List<String>>{
+            const Size(360, 800): [
+              'empty',
+              'preview',
+              'invalid',
+              'blocked',
+              'uncertain',
+            ],
+            const Size(320, 568): ['long', 'unknown', 'maximum', 'keyboard'],
+          }
+        : <Size, List<String>>{
+            const Size(360, 800): [
+              'list',
+              'detail',
+              'empty',
+              'preview',
+              'free',
+              'invalid',
+              'blocked',
+              'uncertain',
+            ],
+            const Size(320, 640): ['long', 'unknown', 'maximum', 'keyboard'],
+            const Size(390, 844): ['preview', 'keyboard'],
+            const Size(768, 1024): ['preview'],
+          };
     var saved = 0;
     for (final camera in cameras.entries) {
       for (final brightness in Brightness.values) {
-        for (final scale in [1.0, 2.0]) {
+        for (final scale
+            in u01 && camera.key.width == 360
+                ? [1.0, 1.3, 1.5, 2.0]
+                : [1.0, 2.0]) {
+          if (u01 && camera.key.width == 320 && scale != 2) continue;
           for (final scenario in camera.value) {
             await tester.pumpWidget(const SizedBox.shrink());
             tester.platformDispatcher.platformBrightnessTestValue = brightness;
             tester.platformDispatcher.textScaleFactorTestValue = scale;
             tester.view.resetViewInsets();
             final site = CostSite();
+            if (u01 && scenario == 'keyboard') {
+              site.place = '上海湖畔超级充电站地下停车场新能源专用补能区域';
+            }
             if (scenario == 'long') site.place = '上海湖畔超级充电站地下停车场新能源专用补能区域';
             if (scenario == 'maximum') {
               site.added = 999999.99;
@@ -168,14 +187,17 @@ void main() {
                   }
                 }
                 if (scenario == 'keyboard') {
-                  tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+                  tester.view.viewInsets = FakeViewPadding(
+                    bottom: u01 ? 300 : 280,
+                  );
                   await tester.tap(find.byType(TextField));
                   await tester.pumpAndSettle();
                 }
               }
             }
-            final name =
-                '${camera.key.width.toInt()}-$scenario-${brightness.name}-${scale == 1 ? '100' : '200'}';
+            final name = u01
+                ? 'cost-$scenario-${brightness.name}-${camera.key.width.toInt()}-${(scale * 100).round()}-top'
+                : '${camera.key.width.toInt()}-$scenario-${brightness.name}-${scale == 1 ? '100' : '200'}';
             await saveRenderPng(
               tester,
               find.byKey(boundary),
@@ -194,13 +216,21 @@ void main() {
               await saveRenderPng(
                 tester,
                 find.byKey(boundary),
-                '$output/$name-action.png',
+                u01
+                    ? '$output/${name.replaceAll('-top', '-action')}.png'
+                    : '$output/$name-action.png',
               );
+              if (u01 && scenario == 'keyboard') {
+                await tester.tapAt(tester.getCenter(find.text(action).last));
+                await tester.pumpAndSettle();
+                expect(site.writes, hasLength(1));
+                expect(find.text('充电单价'), findsNothing);
+              }
             }
           }
         }
       }
     }
-    expect(saved, 60);
+    expect(saved, u01 ? 48 : 60);
   }, skip: output.isEmpty);
 }

@@ -52,8 +52,18 @@ void main() {
     expect(find.text('均价读数 0/kWh'), findsOneWidget);
     await tester.drag(find.text('已知费用均价趋势'), const Offset(0, -200));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('statistics-charging-next')));
+    // 新字号下步进控件落到 800×600 视口下沿之外；先滚到整钮可命中再点击，
+    // 再回到读值行确认「0」与「缺失」仍分列（业务断言不变）。
+    final next = find.byKey(const ValueKey('statistics-charging-next'));
+    await tester.scrollUntilVisible(next, 120);
     await tester.pumpAndSettle();
+    await tester.tap(next);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('均价读数 —/kWh'),
+      -160,
+      maxScrolls: 40,
+    );
     expect(find.text('均价读数 —/kWh'), findsOneWidget);
     expect(requests.length, count);
     await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);

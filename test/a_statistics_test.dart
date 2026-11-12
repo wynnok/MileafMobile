@@ -20,7 +20,7 @@ void main() {
     );
     expect(find.text('316'), findsNothing);
     expect(find.text('进专题查看'), findsOneWidget);
-    expect(find.text('四个问题'), findsOneWidget);
+    expect(find.text('节奏'), findsOneWidget);
   });
 
   testWidgets('A 200% 章节单列且主图保留读数', (tester) async {
@@ -39,8 +39,10 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
+    expect(tester.widget<Text>(find.text('本月 · 2026年10月')).maxLines, isNull);
+    expect(tester.widget<Text>(find.text('本月 · 2026年10月')).overflow, isNull);
     await tester.scrollUntilVisible(
-      find.text('四个问题'),
+      find.text('节奏'),
       160,
       scrollable: find.byType(Scrollable).last,
     );

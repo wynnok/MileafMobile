@@ -40,25 +40,25 @@ class _StatusChipState extends State<StatusChip> {
     final selectedTint = colors.heroText.withValues(alpha: .12);
     final idleTint = colors.heroText.withValues(alpha: .04);
     final background = selected
-        ? (onHero ? selectedTint : colors.accentSoft)
+        ? (onHero ? selectedTint : colors.surface)
         : (onHero ? idleTint : Colors.transparent);
     final border = selected
-        ? (onHero ? colors.accentHero : colors.accentStrong)
+        ? (onHero ? colors.heroText : colors.textMuted)
         : (onHero ? colors.heroText.withValues(alpha: .16) : colors.line);
     final Color foreground;
     if (!widget.enabled) {
       foreground = colors.textFaint.withValues(alpha: .38);
     } else if (selected) {
-      foreground = onHero ? colors.heroText : colors.accentStrong;
+      foreground = onHero ? colors.heroText : colors.text;
     } else {
       foreground = onHero ? colors.heroMuted : colors.textMuted;
     }
     final chip = Container(
-      constraints: const BoxConstraints(minHeight: MileafSpace.chipHeight),
+      constraints: const BoxConstraints(minHeight: MileafSpace.touch),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: MileafRadius.fullAll,
+        borderRadius: MileafRadius.mdAll,
         border: Border.all(color: border),
       ),
       child: Row(
@@ -69,8 +69,6 @@ class _StatusChipState extends State<StatusChip> {
           Flexible(
             child: Text(
               widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: type.label.copyWith(color: foreground),
             ),
           ),
@@ -92,16 +90,20 @@ class _StatusChipState extends State<StatusChip> {
             heightFactor: 1,
             child: Material(
               color: Colors.transparent,
-              shape: const StadiumBorder(),
+              shape: const RoundedRectangleBorder(
+                borderRadius: MileafRadius.mdAll,
+              ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: enabled ? widget.onTap : null,
-                customBorder: const StadiumBorder(),
+                customBorder: const RoundedRectangleBorder(
+                  borderRadius: MileafRadius.mdAll,
+                ),
                 highlightColor: colors.accentSoft,
                 child: Container(
                   foregroundDecoration: _focused
                       ? BoxDecoration(
-                          borderRadius: MileafRadius.fullAll,
+                          borderRadius: MileafRadius.mdAll,
                           border: Border.all(color: colors.focusRing, width: 2),
                         )
                       : null,

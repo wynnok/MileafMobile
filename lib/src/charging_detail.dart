@@ -306,7 +306,6 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   }
 
   Widget _results(dto.ChargingSessionDetail d) {
-    final colors = context.colors;
     final type = context.type;
     final items = [
       '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
@@ -316,14 +315,21 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     ];
     final large = MileafLayout.largeText(context);
     Widget resultItem(String item) {
-      final text = Text(
-        item,
-        style: large
-            ? type.title.copyWith(color: colors.text)
-            : type.body.copyWith(
-                color: colors.text,
-                fontWeight: MileafType.weightSemiBold,
-              ),
+      final split = item.indexOf(' ');
+      final text = Semantics(
+        label: item,
+        excludeSemantics: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              split < 0 ? item : item.substring(0, split),
+              style: type.label,
+            ),
+            if (split >= 0)
+              Text(item.substring(split + 1), style: type.metricMd),
+          ],
+        ),
       );
       if (item != '费用 ${widget.currency.amountValue(d.cost)}' ||
           unavailable ||
@@ -383,7 +389,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [for (final item in items) resultItem(item)],
             ),
-          const SizedBox(height: MileafSpace.section),
+          const SizedBox(height: MileafSpace.s12),
         ],
       ),
     );
@@ -394,7 +400,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     listenable: widget.currency,
     builder: (context, _) => Scaffold(
       appBar: AppBar(
-        title: Text(expandedDetail == null ? '充电详情 #${widget.id}' : '充电回顾'),
+        title: const Text('充电详情'),
         actions: [
           IconButton(
             onPressed: detailLoading ? null : () => loadDetail(force: true),
@@ -410,8 +416,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       ),
       body: SafeArea(
         child: ListView(
-          // The battery-arc hero is the dark anchor, so it bleeds to both
-          // edges; every other block carries the page inset itself.
+          // Every block carries the page inset itself (R04/P05: the SOC arc
+          // row is a same-background block, not a dark hero).
           padding: EdgeInsets.zero,
           children: [
             if (detailLoading) const LinearProgressIndicator(),
@@ -456,62 +462,48 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   ),
                 ),
               ),
-              MileafHero(
-                semanticLabel:
-                    '电量区间 ${d.startSoc ?? '未知'}% 至 ${d.endSoc ?? '未知'}%',
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    MileafLayout.heroInset(context),
-                    MileafSpace.s20,
-                    MileafLayout.heroInset(context),
-                    MileafSpace.s20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              _inset(
+                Text(
+                  workspace.calendar!
+                      .local(d.startedAt)
+                      .toString()
+                      .substring(0, 16)
+                      .replaceAll('-', '/'),
+                  style: context.type.micro,
+                ),
+              ),
+              _inset(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '电量区间',
-                              style: context.type.label.copyWith(
-                                color: context.colors.heroMuted,
-                              ),
+                      BatteryArc(
+                        level: d.endSoc,
+                        start: d.startSoc,
+                        showLabel: false,
+                      ),
+                      const SizedBox(width: MileafSpace.s16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('电量区间', style: context.type.label),
+                            Text(
+                              '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
+                              style: context.type.metricMd,
                             ),
-                          ),
-                          Text(
-                            d.isDc == null
-                                ? '充电类型未知'
-                                : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
-                            style: context.type.micro.copyWith(
-                              color: context.colors.heroFaint,
+                            Text(
+                              d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
+                              style: context.type.micro,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: MileafSpace.s12),
-                      Center(
-                        child: BatteryArc(
-                          level: d.endSoc,
-                          start: d.startSoc,
-                          onHero: true,
-                          label: '到达',
-                        ),
-                      ),
-                      const SizedBox(height: MileafSpace.s8),
-                      Text(
-                        '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
-                        textAlign: TextAlign.center,
-                        style: context.type.title.copyWith(
-                          color: context.colors.heroText,
-                        ),
-                      ),
-                      const SizedBox(height: MileafSpace.s4),
-                      Text(
-                        d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
-                        textAlign: TextAlign.center,
-                        style: context.type.micro.copyWith(
-                          color: context.colors.heroMuted,
+                            Text(
+                              d.isDc == null
+                                  ? '充电类型未知'
+                                  : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
+                              style: context.type.micro,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -712,6 +704,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                   childrenPadding: const EdgeInsets.only(top: 12),
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('充电记录 #${d.id}'),
                     Text('开始 ${time(d.startedAt)}'),
                     Text('结束 ${time(d.endedAt)}'),
                     if (d.location.geofence != null)
@@ -831,7 +824,9 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                 plotKey: const Key('charging-time-chart'),
                 selectedIndex: selected,
                 onSelected: (index) => setState(() => selected = index),
-                height: 160,
+                height: MileafSpace.detailChartHeight,
+                showYAxis: true,
+                yRange: metric == 'soc' ? (0, 100) : null,
                 readout: (index) {
                   final value = index < points.length
                       ? reading(points[index])
@@ -1256,6 +1251,9 @@ class _ChargingCurveState extends State<ChargingCurve> {
       children: [
         TimeSeriesChart(
           title: '充电曲线',
+          height: MileafSpace.detailChartHeight,
+          showYAxis: true,
+          yRange: power ? null : (0, 100),
           unit: power ? 'kW' : '%',
           times: [for (final p in points) p.t],
           series: [

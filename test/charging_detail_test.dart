@@ -24,6 +24,10 @@ http.Response response(Object body, {Map<String, String> headers = const {}}) =>
       200,
       headers: {'content-type': 'application/json; charset=utf-8', ...headers},
     );
+Finder resultLabel(String value) => find.byWidgetPredicate(
+  (widget) => widget is Semantics && widget.properties.label == value,
+);
+
 Widget app(
   http.Client client, {
   MemoryCurrency? currency,
@@ -107,9 +111,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('充电详情 #1'), findsOneWidget);
-    expect(find.text('充入电池 20 kWh'), findsOneWidget);
-    expect(find.text('费用 12'), findsOneWidget);
+    expect(find.text('充电详情'), findsOneWidget);
+    expect(resultLabel('充入电池 20 kWh'), findsOneWidget);
+    expect(resultLabel('费用 12'), findsOneWidget);
     expect(find.text('币种未记录'), findsWidgets);
     await tester.scrollUntilVisible(find.text('功率 kW'), 300);
     expect(find.text('功率 kW'), findsOneWidget);
@@ -157,7 +161,7 @@ void main() {
     );
     await tester.tap(find.text('充电 #8 · 查看详情').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('充电详情 #8'), findsOneWidget);
+    expect(find.text('充电详情'), findsOneWidget);
     expect(find.text('充电进行中，当前指标不代表最终结果'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('更多充电信息'), 200);
     await tester.pumpAndSettle();
@@ -166,7 +170,7 @@ void main() {
     expect(find.text('结束 —'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('充电类型未知'), -200);
     expect(find.text('充电类型未知'), findsOneWidget);
-    expect(find.text('费用 0 USD'), findsOneWidget);
+    expect(resultLabel('费用 0 USD'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('重试充电曲线').hitTestable(), 200);
     failSeries = false;
     await tester.tap(find.text('重试充电曲线').hitTestable());
@@ -181,7 +185,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('保留上次快照'), -200);
     expect(find.textContaining('保留上次快照'), findsOneWidget);
-    expect(find.text('费用 0 USD'), findsOneWidget);
+    expect(resultLabel('费用 0 USD'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('此充电没有序列采样').hitTestable(), 200);
     expect(find.text('此充电没有序列采样'), findsOneWidget);
   });
@@ -262,7 +266,7 @@ void main() {
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('该充电记录已不可用，可返回上一页'), findsOneWidget);
-    expect(find.text('充入电池 20 kWh'), findsNothing);
+    expect(resultLabel('充入电池 20 kWh'), findsNothing);
     await tester.scrollUntilVisible(find.text('功率 kW'), 200);
     expect(find.text('功率 kW'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('返回上一页').hitTestable(), -300);
@@ -292,7 +296,7 @@ void main() {
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('站点访问口令'), findsOneWidget);
-    expect(find.text('充电详情 #1'), findsNothing);
+    expect(find.text('充电详情'), findsNothing);
     delayed.complete(response(fixture('charging-series')));
     await tester.pumpAndSettle();
     expect(find.text('站点访问口令'), findsOneWidget);
@@ -337,8 +341,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电明细'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('费用 —').hitTestable(), 200);
-    expect(find.text('费用 —'), findsOneWidget);
+    await tester.scrollUntilVisible(resultLabel('费用 —').hitTestable(), 200);
+    expect(resultLabel('费用 —'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byTooltip('刷新充电曲线').hitTestable(),
       200,

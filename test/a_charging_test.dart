@@ -68,6 +68,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('每日补能'), 160);
     expect(find.text('每日补能'), findsOneWidget);
     expect(find.text('这段时间还没有充电记录'), findsOneWidget);
     expect(find.byType(StemChart), findsNothing);

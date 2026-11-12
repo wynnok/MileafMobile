@@ -1,0 +1,76 @@
+{
+  "images": [
+    "drives-normal-dark-360-100-safe0-top.png",
+    "drives-normal-dark-360-100-safe0-scroll1.png",
+    "drives-normal-dark-360-100-safe0-scroll2.png",
+    "drives-normal-light-360-100-safe0-top.png",
+    "drives-normal-light-360-100-safe0-scroll1.png",
+    "drives-normal-light-360-100-safe0-scroll2.png",
+    "statistics-normal-dark-360-100-safe0-top.png",
+    "statistics-normal-dark-360-100-safe0-scroll1.png",
+    "statistics-normal-light-360-100-safe0-top.png",
+    "statistics-normal-light-360-100-safe0-scroll1.png",
+    "charge-detail-normal-dark-360-100-safe0-top.png",
+    "charge-detail-normal-dark-360-100-safe0-scroll1.png",
+    "charge-detail-normal-dark-360-100-safe0-scroll2.png",
+    "charge-detail-normal-light-360-100-safe0-top.png",
+    "charge-detail-normal-light-360-100-safe0-scroll1.png",
+    "charge-detail-normal-light-360-100-safe0-scroll2.png"
+  ],
+  "measurements": [
+    {
+      "image": "drives-normal-dark-360-100-safe0-top.png",
+      "bodyTop": 68.0,
+      "bodyBottom": 736.0,
+      "bodyHeight": 668.0,
+      "targetTop": 492.0,
+      "targetBottom": 580.0,
+      "visibleHeight": 88.0
+    },
+    {
+      "image": "drives-normal-light-360-100-safe0-top.png",
+      "bodyTop": 68.0,
+      "bodyBottom": 736.0,
+      "bodyHeight": 668.0,
+      "targetTop": 492.0,
+      "targetBottom": 580.0,
+      "visibleHeight": 88.0
+    },
+    {
+      "image": "statistics-normal-dark-360-100-safe0-top.png",
+      "bodyTop": 68.0,
+      "bodyBottom": 736.0,
+      "bodyHeight": 668.0,
+      "targetTop": 509.0,
+      "targetBottom": 617.0,
+      "visibleHeight": 108.0
+    },
+    {
+      "image": "statistics-normal-light-360-100-safe0-top.png",
+      "bodyTop": 68.0,
+      "bodyBottom": 736.0,
+      "bodyHeight": 668.0,
+      "targetTop": 509.0,
+      "targetBottom": 617.0,
+      "visibleHeight": 108.0
+    },
+    {
+      "image": "charge-detail-normal-dark-360-100-safe0-top.png",
+      "bodyTop": 56.0,
+      "bodyBottom": 800.0,
+      "bodyHeight": 744.0,
+      "targetTop": 335.0,
+      "targetBottom": 577.0,
+      "visibleHeight": 242.0
+    },
+    {
+      "image": "charge-detail-normal-light-360-100-safe0-top.png",
+      "bodyTop": 56.0,
+      "bodyBottom": 800.0,
+      "bodyHeight": 744.0,
+      "targetTop": 335.0,
+      "targetBottom": 577.0,
+      "visibleHeight": 242.0
+    }
+  ]
+}

@@ -400,13 +400,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
     expect(battery(0), findsOneWidget);
     // A missing range must render as —, never as 0 km.
     expect(find.textContaining('— km'), findsWidgets);
     expect(find.textContaining('额定续航'), findsOneWidget);
     expect(find.textContaining('最近充电功率'), findsNothing);
+    // 200% 下数据说明区位于首屏之外，仅按需构建；滚动确认回退文案仍可达。
+    await tester.scrollUntilVisible(find.textContaining('无法读取设备 IANA'), 240);
+    expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    // 上一步把列表内品牌/设置行滚出了视口；先回到顶栏入口再进入设置。
+    await tester.ensureVisible(find.byTooltip('设置'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('服务信息'), 180);

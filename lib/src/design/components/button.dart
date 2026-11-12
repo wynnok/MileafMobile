@@ -89,7 +89,7 @@ class _MileafButtonState extends State<MileafButton> {
           label,
           style: type.body.copyWith(
             color: foreground,
-            fontWeight: MileafType.weightSemiBold,
+            fontWeight: MileafType.weightMedium,
           ),
         ),
       ],
@@ -103,16 +103,20 @@ class _MileafButtonState extends State<MileafButton> {
         onFocusChange: (value) => setState(() => _focused = value),
         child: Material(
           color: background,
-          borderRadius: MileafRadius.smAll,
+          borderRadius: MileafRadius.mdAll,
           child: InkWell(
             onTap: enabled ? onPressed : null,
-            borderRadius: MileafRadius.smAll,
+            borderRadius: MileafRadius.mdAll,
             highlightColor: highlight,
             child: Container(
-              constraints: const BoxConstraints(minHeight: MileafSpace.touch),
-              padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),
+              constraints: BoxConstraints(
+                minHeight: kind == MileafButtonKind.primary
+                    ? MileafSpace.primaryButtonHeight
+                    : MileafSpace.touch,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s16),
               decoration: BoxDecoration(
-                borderRadius: MileafRadius.smAll,
+                borderRadius: MileafRadius.mdAll,
                 border: Border.all(
                   color: _focused
                       ? colors.focusRing

@@ -81,10 +81,21 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     micro: _style(
       size: MileafType.microSize,
       height: MileafType.microHeight,
-      weight: MileafType.weightMedium,
+      weight: MileafType.weightRegular,
       tracking: MileafType.microTracking,
       color: colors.textFaint,
     ),
+  );
+
+  TextStyle get pageTitle => title.copyWith(
+    fontSize: MileafType.pageTitleSize,
+    height: MileafType.pageTitleHeight / MileafType.pageTitleSize,
+  );
+  TextStyle get bodyStrong =>
+      body.copyWith(fontWeight: MileafType.weightMedium);
+  TextStyle get navLabel => label.copyWith(
+    fontSize: MileafType.navLabelSize,
+    height: MileafType.navLabelHeight / MileafType.navLabelSize,
   );
 
   final TextStyle display;

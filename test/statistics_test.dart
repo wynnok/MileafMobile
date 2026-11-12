@@ -368,6 +368,9 @@ void main() {
       find.textContaining('2025-12-31 · 620.0 km'),
       300,
     );
+    // 200% 下该行停在视口边缘，滚动到“已构建”不等于可命中；先整行可见再展开。
+    await tester.ensureVisible(find.textContaining('2025-12-31 · 620.0 km'));
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('2025-12-31 · 620.0 km'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('行程数  31 次'), 200);

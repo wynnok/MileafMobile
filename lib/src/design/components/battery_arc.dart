@@ -50,30 +50,53 @@ class BatteryArc extends StatelessWidget {
             ? '电池电量 ${level == null ? '未知' : '${level!.toStringAsFixed(0)}%'}'
             : '电量区间 ${start == null ? '未知' : '${start!.toStringAsFixed(0)}%'} 至 '
                   '${level == null ? '未知' : '${level!.toStringAsFixed(0)}%'}，尺度0至100%');
+    final separate = MileafLayout.largeText(context) && showLabel;
+    final arc = SizedBox.fromSize(
+      size: resolved,
+      child: CustomPaint(
+        painter: _BatteryArcPainter(
+          level: level,
+          start: start,
+          arc: arcColor,
+          track: trackColor,
+        ),
+        child: !showLabel || separate
+            ? null
+            : Center(
+                child: _ArcCenter(
+                  level: level,
+                  label: label,
+                  showLabel: showLabel,
+                  onHero: onHero,
+                  diameter: resolved.width,
+                ),
+              ),
+      ),
+    );
     return Semantics(
       container: true,
       label: semantics,
       excludeSemantics: true,
-      child: SizedBox.fromSize(
-        size: resolved,
-        child: CustomPaint(
-          painter: _BatteryArcPainter(
-            level: level,
-            start: start,
-            arc: arcColor,
-            track: trackColor,
-          ),
-          child: Center(
-            child: _ArcCenter(
-              level: level,
-              label: label,
-              showLabel: showLabel,
-              onHero: onHero,
-              diameter: resolved.width,
-            ),
-          ),
-        ),
-      ),
+      child: separate
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                arc,
+                Text(
+                  level == null ? '—' : '${level!.toStringAsFixed(0)} %',
+                  style: context.type.metricMd.copyWith(
+                    color: onHero ? colors.heroText : colors.text,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: context.type.micro.copyWith(
+                    color: onHero ? colors.heroMuted : colors.textMuted,
+                  ),
+                ),
+              ],
+            )
+          : arc,
     );
   }
 }
@@ -107,7 +130,7 @@ class _ArcCenter extends StatelessWidget {
       color: valueColor,
     );
     final smallStyle = valueStyle.copyWith(
-      fontSize: MileafBatteryMetrics.labelSize * 2,
+      fontSize: MileafBatteryMetrics.valueSize,
       height: 1.2,
     );
     final unitStyle = type.micro.copyWith(color: unitColor);

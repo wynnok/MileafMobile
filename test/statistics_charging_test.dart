@@ -84,7 +84,10 @@ void main() {
       240,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('家 · 地库'));
+    // 字号增量后该行停在 800×600 视口下沿之外，滚动到“已构建”不等于可命中。
+    await tester.ensureVisible(find.text('家 · 地库'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('家 · 地库').hitTestable());
     await tester.pumpAndSettle();
     expect(
       queries.any(

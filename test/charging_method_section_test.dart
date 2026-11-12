@@ -110,6 +110,9 @@ void main() {
     expect(find.textContaining('统计校验时间'), findsNothing);
 
     await tester.scrollUntilVisible(find.text('数据说明'), 400);
+    // 新字号下行行高变化使该行停在视口边缘；先确保整行可命中再展开。
+    await tester.ensureVisible(find.text('数据说明'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明'));
     await tester.pumpAndSettle();
     expect(find.textContaining('统计校验时间'), findsOneWidget);

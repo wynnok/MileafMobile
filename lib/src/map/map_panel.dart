@@ -204,45 +204,65 @@ class _MapPanelState extends State<MapPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
-      height: widget.height,
-      width: double.infinity,
-      child: ClipRRect(
-        borderRadius: widget.borderRadius,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _content(context),
-              if (_status != _MapStatus.ready && widget.overlay != null)
-                Positioned.fill(child: IgnorePointer(child: widget.overlay!)),
-              if (_status == _MapStatus.ready && widget.onExpand != null)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.onExpand,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mapHeight = widget.height.isFinite
+            ? widget.height
+            : constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : MediaQuery.sizeOf(context).height;
+        final panel = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: mapHeight,
+              width: double.infinity,
+              child: ClipRRect(
+                borderRadius: widget.borderRadius,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerLow,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _content(context),
+                      if (_status != _MapStatus.ready && widget.overlay != null)
+                        Positioned.fill(
+                          child: IgnorePointer(child: widget.overlay!),
+                        ),
+                      if (_status == _MapStatus.ready &&
+                          widget.onExpand != null)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: widget.onExpand,
+                          ),
+                        ),
+                      if (_status == _MapStatus.ready) _chrome(context),
+                      if (_status == _MapStatus.loading) _loading(context),
+                      if (_status == _MapStatus.configuration)
+                        _configurationPanel(context),
+                      if (_status == _MapStatus.unsupported)
+                        _unsupportedPanel(context),
+                      if (_status == _MapStatus.failed) _failurePanel(context),
+                    ],
                   ),
                 ),
-              if (_status == _MapStatus.ready) _chrome(context),
-              if (_status == _MapStatus.loading) _loading(context),
-              if (_status == _MapStatus.consent)
-                Positioned(
-                  left: MileafSpace.s12,
-                  right: MileafSpace.s12,
-                  bottom: MileafSpace.s12,
-                  child: _consentCard(context),
-                ),
-              if (_status == _MapStatus.configuration)
-                _configurationPanel(context),
-              if (_status == _MapStatus.unsupported) _unsupportedPanel(context),
-              if (_status == _MapStatus.failed) _failurePanel(context),
-            ],
-          ),
-        ),
-      ),
+              ),
+            ),
+            if (_status == _MapStatus.consent)
+              Padding(
+                padding: const EdgeInsets.only(top: MileafSpace.s8),
+                child: _consentCard(context),
+              ),
+          ],
+        );
+        return constraints.hasBoundedHeight
+            ? SingleChildScrollView(child: panel)
+            : panel;
+      },
     );
   }
 
@@ -397,11 +417,9 @@ class _MapPanelState extends State<MapPanel> {
     );
   }
 
-  /// Bottom-of-map notice: the full privacy copy in natural wrapping.
+  /// The full privacy notice below the map uses its natural text height.
   ///
-  /// No `maxLines`/`ellipsis` — at 200% the sentence wraps to three lines and
-  /// still fits inside the 240 map hero. Spacing, radius and type all come from
-  /// A tokens.
+  /// Map geometry and authorization remain independent of notice wrapping.
   Widget _consentCard(BuildContext context) {
     final colors = context.colors;
     final type = context.type;

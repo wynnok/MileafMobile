@@ -27,9 +27,11 @@ class MileafDataRow extends StatefulWidget {
     this.bottomLine = false,
     this.destructive = false,
     this.semanticLabel,
+    this.titleMaxLines,
   });
 
   final String title;
+  final int? titleMaxLines;
   final String? meta;
   final String? value;
   final String? unit;
@@ -91,6 +93,8 @@ class _MileafDataRowState extends State<MileafDataRow> {
       children: [
         Text(
           widget.title,
+          maxLines: widget.titleMaxLines,
+          overflow: widget.titleMaxLines == null ? null : TextOverflow.ellipsis,
           style: type.body.copyWith(
             color: titleColor,
             fontWeight: MileafType.weightSemiBold,
@@ -112,8 +116,8 @@ class _MileafDataRowState extends State<MileafDataRow> {
             color: widget.enabled ? colors.text : colors.textFaint,
             unitColor: colors.textFaint,
           );
-    final trailing = Row(
-      mainAxisSize: MainAxisSize.min,
+    final trailing = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (widget.badge != null) ...[
           widget.badge!,
