@@ -94,14 +94,14 @@ abstract final class MileafSpace {
   static const heroTop = 16.0;
   static const heroBottom = 18.0;
 
-  /// Generic list row floor (R05); the vehicle sheet keeps its own 56 floor.
+  /// Generic list row floor (R05); rows that render as inputs use
+  /// [inputMinHeight] instead. P16's vehicle-row floor of 56 stays satisfied.
   static const rowMin = 72.0;
 
   /// Text input floor (R05: 最小52，字16).
   static const inputMinHeight = 52.0;
   static const touch = 44.0;
   static const navHeight = 64.0;
-  static const chipHeight = 44.0;
   static const primaryButtonHeight = 48.0;
   static const rhythmHeight = 88.0;
   static const chartHeight = 160.0;

@@ -58,6 +58,7 @@
 | `MileafSpace.rowMin` | 56 | 72 | R05/P12 |
 | `MileafSpace.inputMinHeight` | 无 | 52 | R05 |
 | `MileafSpace.contentBottom` | 84 | 删除（无消费点；R01 不再假定固定 84） | R01 |
+| `MileafSpace.chipHeight` | 44 | 删除（无消费点，与 `touch` 重复；两轴审查修正补充） | R01 |
 | `MileafBatteryMetrics.labelSize` | 9 | 删除（无消费点） | R02 |
 
 ## 组件
