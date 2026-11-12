@@ -15,7 +15,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('费用覆盖'), findsOneWidget);
+    expect(find.textContaining('费用覆盖'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('已知充电费用')).dy,
       lessThan(tester.getTopLeft(find.text('补入电池')).dy),

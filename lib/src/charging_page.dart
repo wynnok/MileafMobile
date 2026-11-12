@@ -1079,109 +1079,43 @@ class _ChargingPageState extends State<ChargingPage>
     });
   }
 
-  Widget _hero(expanded.ChargingStats stats) {
+  Widget _accountSummary(expanded.ChargingStats stats) {
     final total = stats.totals;
     final colors = context.colors;
     final type = context.type;
-    final inset = MileafLayout.heroInset(context);
-    // 无一条记录带费用时，0 不是「花了 ¥0」而是「未知」（Spec §9.5 空态）。
-    final cost = total.cost == null || total.costKnownSessions == 0
-        ? '—'
-        : widget.currency.amountValue(total.cost);
+    final missing = total.cost == null || total.costKnownSessions == 0;
     final unitCost = total.unitCostAdded.value == null
         ? '—'
         : decimal(total.unitCostAdded.value!);
-    final note = widget.currency.amountNote;
-    final coverage = total.sessions == 0
-        ? 0.0
-        : (total.costKnownSessions / total.sessions).clamp(0.0, 1.0);
-    final currencyLabel = widget.currency.code ?? note ?? '';
-    return MileafHero(
-      semanticLabel:
-          '已知充电费用 $cost；费用有记录 ${total.costKnownSessions} / ${total.sessions} 次',
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          inset,
-          MileafSpace.s20,
-          inset,
-          MileafSpace.s20,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '已知充电费用',
-                    style: type.label.copyWith(color: colors.heroMuted),
-                  ),
-                ),
-                if (currencyLabel.isNotEmpty)
-                  Text(
-                    currencyLabel,
-                    style: type.micro.copyWith(color: colors.heroFaint),
-                  ),
-              ],
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            MileafNumber(
-              value: cost,
-              scale: MetricValueScale.display,
-              onHero: true,
-            ),
-            if (note != null) ...[
-              const SizedBox(height: MileafSpace.s4),
-              Text(note, style: type.micro.copyWith(color: colors.heroFaint)),
-            ],
-            const SizedBox(height: MileafSpace.s12),
-            Semantics(
-              label: '有效入电均价 $unitCost ${widget.currency.symbol}/kWh',
-              child: Text(
-                '有效入电均价 $unitCost ${widget.currency.symbol}/kWh',
-                style: type.body.copyWith(color: colors.heroMuted),
-              ),
-            ),
-            const SizedBox(height: MileafSpace.s16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '费用覆盖',
-                    style: type.label.copyWith(color: colors.heroMuted),
-                  ),
-                ),
-                Text(
-                  '${total.costKnownSessions} / ${total.sessions} 次',
-                  style: type.label.copyWith(color: colors.heroText),
-                ),
-              ],
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            Semantics(
-              label: '费用记录覆盖：${total.costKnownSessions}/${total.sessions}次',
-              child: ClipRRect(
-                borderRadius: MileafRadius.fullAll,
-                child: Container(
-                  height: 4,
-                  color: colors.heroText.withValues(alpha: .14),
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: coverage,
-                    heightFactor: 1,
-                    child: ColoredBox(color: colors.accentHero),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            Text(
-              '费用有记录 ${total.costKnownSessions} / ${total.sessions} 次 · '
-              '对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
-              style: type.micro.copyWith(color: colors.heroFaint),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        MileafLayout.pageInset(context),
+        MileafSpace.s12,
+        MileafLayout.pageInset(context),
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('已知充电费用', style: type.label.copyWith(color: colors.textMuted)),
+          MileafNumber(
+            value: missing ? null : widget.currency.amountValue(total.cost),
+            scale: MetricValueScale.metricLg,
+          ),
+          if (missing)
+            Text('暂无费用记录', style: type.label.copyWith(color: colors.textMuted)),
+          Text(
+            '费用覆盖：费用有记录 ${total.costKnownSessions} / ${total.sessions} 次，'
+            '对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
+            style: type.label.copyWith(color: colors.textMuted),
+          ),
+          Text(
+            '有效入电均价 $unitCost ${widget.currency.symbol}/kWh',
+            style: type.label.copyWith(color: colors.textMuted),
+          ),
+          if (widget.currency.amountNote case final note?)
+            Text(note, style: type.micro.copyWith(color: colors.textMuted)),
+        ],
       ),
     );
   }
@@ -1199,20 +1133,23 @@ class _ChargingPageState extends State<ChargingPage>
       label: '补入电池',
       value: energy,
       unit: energyMissing ? null : 'kWh',
-      note: '${total.energyKnownSessions}/${total.sessions}次有记录',
+      note: total.energyKnownSessions < total.sessions
+          ? '${total.energyKnownSessions}/${total.sessions}次有记录'
+          : null,
       semanticLabel: '补入电池 $energy${energyMissing ? '' : ' kWh'}',
     );
     final countBlock = MetricBlock(
       label: '充电次数',
       value: '${total.sessions}',
       unit: '次',
-      note: '已完成',
       semanticLabel: '充电次数 ${total.sessions} 次',
     );
     final durationBlock = MetricBlock(
       label: '记录时长',
       value: duration,
-      note: '${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间',
+      note: total.durationKnownSessions < total.sessions
+          ? '${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间'
+          : null,
       semanticLabel:
           '记录时长 $duration，${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间',
     );
@@ -1220,32 +1157,21 @@ class _ChargingPageState extends State<ChargingPage>
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: energyBlock),
-                  const SizedBox(width: MileafSpace.s16),
-                  Expanded(child: durationBlock),
-                ],
-              ),
-              const SizedBox(height: MileafSpace.s20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: countBlock),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
+              energyBlock,
+              const SizedBox(height: MileafSpace.s16),
+              countBlock,
+              const SizedBox(height: MileafSpace.s16),
+              durationBlock,
             ],
           )
         : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: energyBlock),
-              const SizedBox(width: MileafSpace.s16),
-              Expanded(child: countBlock),
-              const SizedBox(width: MileafSpace.s16),
-              Expanded(child: durationBlock),
+              Expanded(flex: 3, child: energyBlock),
+              const SizedBox(width: MileafSpace.s8),
+              Expanded(flex: 2, child: countBlock),
+              const SizedBox(width: MileafSpace.s8),
+              Expanded(flex: 2, child: durationBlock),
             ],
           );
     return Padding(
@@ -1291,10 +1217,6 @@ class _ChargingPageState extends State<ChargingPage>
       ('次数', '次'),
     ];
     final metric = entries[chartMetric];
-    final zone = workspace.calendar!;
-    final start = zone.local(from);
-    final end = zone.local(to.subtract(const Duration(microseconds: 1)));
-    String md(DateTime value) => '${value.month}/${value.day}';
     final times = [for (final bucket in stats.buckets) bucket.bucketStart];
     final lastActive = stats.buckets.lastIndexWhere((b) => b.sessions > 0);
     final selected =
@@ -1324,9 +1246,7 @@ class _ChargingPageState extends State<ChargingPage>
       child: StemChart(
         title: '每日补能',
         unit: metric.$2,
-        subtitle:
-            '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · '
-            '${md(start)} — ${md(end)} · 按结束时间归期',
+
         times: times,
         values: values,
         semanticsLabel: '每日补能图表',
@@ -1334,7 +1254,7 @@ class _ChargingPageState extends State<ChargingPage>
         selectedIndex: selected,
         onSelected: (index) =>
             setState(() => chartDayAt = stats.buckets[index].bucketStart),
-        height: 96,
+        height: MileafSpace.rhythmHeight,
         readout: (index) {
           if (index < 0 || index >= stats.buckets.length) return '—';
           final bucket = stats.buckets[index];
@@ -1362,19 +1282,31 @@ class _ChargingPageState extends State<ChargingPage>
                 showDay(DateTime(local.year, local.month, local.day));
               },
         activationLabel: '查看这一天的充电',
-        controls: Wrap(
-          spacing: MileafSpace.s8,
-          runSpacing: MileafSpace.s8,
-          children: [
-            for (final (index, entry) in entries.indexed)
-              StatusChip(
-                label: entry.$1,
-                selected: chartMetric == index,
-                onTap: () => setState(() => chartMetric = index),
-              ),
-          ],
+        controls: LayoutBuilder(
+          builder: (context, constraints) {
+            final columns =
+                MileafLayout.largeText(context) ||
+                    MediaQuery.sizeOf(context).width <= 320
+                ? 2
+                : 4;
+            return ChipRow(
+              children: [
+                for (final (index, entry) in entries.indexed)
+                  SizedBox(
+                    width:
+                        (constraints.maxWidth -
+                            MileafSpace.s8 * (columns - 1)) /
+                        columns,
+                    child: StatusChip(
+                      label: entry.$1,
+                      selected: chartMetric == index,
+                      onTap: () => setState(() => chartMetric = index),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
-        note: '费用与均价仅包含有效记录；缺失不补零。',
       ),
     );
   }
@@ -1621,11 +1553,13 @@ class _ChargingPageState extends State<ChargingPage>
         onSubmitted: (_) => applyFilters(),
       ),
       Wrap(
-        spacing: 12,
-        runSpacing: 6,
+        spacing: MileafSpace.s12,
+        runSpacing: MileafSpace.s8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           DropdownButton<String>(
+            isExpanded: MileafLayout.largeText(context),
+            itemHeight: null,
             value: chargeType,
             onChanged: (value) {
               if (value == null) return;
@@ -1640,6 +1574,8 @@ class _ChargingPageState extends State<ChargingPage>
             ],
           ),
           DropdownButton<String>(
+            isExpanded: MileafLayout.largeText(context),
+            itemHeight: null,
             value: costStatus,
             onChanged: (value) {
               if (value == null) return;
@@ -1654,6 +1590,8 @@ class _ChargingPageState extends State<ChargingPage>
             ],
           ),
           DropdownButton<String>(
+            isExpanded: MileafLayout.largeText(context),
+            itemHeight: null,
             value: sort,
             onChanged: (value) {
               if (value == null) return;
@@ -1693,7 +1631,12 @@ class _ChargingPageState extends State<ChargingPage>
         : expandedAvailable
         ? '充电'
         : '充电历史';
-    final subtitle = '近$recentDays天 · 按${expandedAvailable ? '结束' : '开始'}时间归期';
+    final zone = workspace.calendar!;
+    final start = zone.local(from);
+    final end = zone.local(to.subtract(const Duration(microseconds: 1)));
+    final subtitle =
+        '${start.year}/${start.month}/${start.day}–'
+        '${end.year}/${end.month}/${end.day}（按${expandedAvailable ? '结束' : '开始'}时间）';
     final actions = <Widget>[
       if (expandedAvailable)
         TextButton(
@@ -1711,30 +1654,20 @@ class _ChargingPageState extends State<ChargingPage>
         onPressed: loading ? null : refreshAll,
       ),
     ];
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: type.title),
-        const SizedBox(height: MileafSpace.inline2),
-        Text(subtitle, style: type.label.copyWith(color: colors.textMuted)),
-      ],
-    );
-    if (MileafLayout.largeText(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          titleBlock,
-          Align(
-            alignment: Alignment.centerRight,
-            child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+        if (MileafLayout.largeText(context)) ...[
+          Text(title, style: type.pageTitle),
+          Wrap(alignment: WrapAlignment.end, children: actions),
+        ] else
+          Row(
+            children: [
+              Expanded(child: Text(title, style: type.pageTitle)),
+              ...actions,
+            ],
           ),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(child: titleBlock),
-        ...actions,
+        Text(subtitle, style: type.label.copyWith(color: colors.textMuted)),
       ],
     );
   }
@@ -1768,14 +1701,15 @@ class _ChargingPageState extends State<ChargingPage>
         spacing: MileafSpace.s8,
         runSpacing: MileafSpace.s8,
         crossAxisAlignment: WrapCrossAlignment.center,
-        children: [chip('近30天', 30), chip('近7天', 7), date],
+        children: [
+          ChipRow(children: [chip('近30天', 30), chip('近7天', 7)]),
+          date,
+        ],
       );
     }
     return Row(
       children: [
-        chip('近30天', 30),
-        const SizedBox(width: MileafSpace.s8),
-        chip('近7天', 7),
+        ChipRow(children: [chip('近30天', 30), chip('近7天', 7)]),
         const Spacer(),
         date,
       ],
@@ -1786,9 +1720,11 @@ class _ChargingPageState extends State<ChargingPage>
     final colors = context.colors;
     final type = context.type;
     return InkWell(
+      key: ValueKey('charge-${value.id}'),
       onTap: () => widget.onRecord?.call('charge', value.id),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+        constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
+        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: colors.line)),
         ),
@@ -1805,15 +1741,16 @@ class _ChargingPageState extends State<ChargingPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '正在充电 · ${value.location.displayName ?? '未知地点'}',
-                    style: type.body.copyWith(
-                      color: colors.text,
-                      fontWeight: MileafType.weightSemiBold,
-                    ),
+                    '正在充电，${value.location.displayName ?? '未知地点'}',
+                    maxLines: MileafLayout.largeText(context) ? null : 2,
+                    overflow: MileafLayout.largeText(context)
+                        ? null
+                        : TextOverflow.ellipsis,
+                    style: type.bodyStrong,
                   ),
                   const SizedBox(height: MileafSpace.inline2),
                   Text(
-                    '已补入 ${number(value.energyAddedKwh, 'kWh')} · 不计入已完成统计',
+                    '已补入 ${number(value.energyAddedKwh, 'kWh')}，不计入已完成统计',
                     style: type.micro.copyWith(color: colors.textMuted),
                   ),
                 ],
@@ -1877,7 +1814,7 @@ class _ChargingPageState extends State<ChargingPage>
         ),
       ),
       subtitle: Text(
-        '${place.sessions} 次 · $energy · '
+        '${place.sessions} 次，$energy\n'
         '费用有记录 ${place.costKnownSessions}/${place.sessions} 次\n'
         '有效入电均价 $unit ${widget.currency.symbol}/kWh',
         style: type.micro.copyWith(color: colors.textMuted),
@@ -1914,8 +1851,10 @@ class _ChargingPageState extends State<ChargingPage>
         '地址：${value.location.address}',
     ];
     return InkWell(
+      key: ValueKey('charge-${value.id}'),
       onTap: () => widget.onRecord?.call('charge', value.id),
       child: Container(
+        constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: colors.line)),
@@ -1931,10 +1870,11 @@ class _ChargingPageState extends State<ChargingPage>
                     value.location.displayName?.trim().isNotEmpty == true
                         ? value.location.displayName!
                         : '未知地点',
-                    style: type.body.copyWith(
-                      color: colors.text,
-                      fontWeight: MileafType.weightSemiBold,
-                    ),
+                    maxLines: MileafLayout.largeText(context) ? null : 2,
+                    overflow: MileafLayout.largeText(context)
+                        ? null
+                        : TextOverflow.ellipsis,
+                    style: type.bodyStrong,
                   ),
                 ),
                 const SizedBox(width: MileafSpace.s8),
@@ -1946,29 +1886,41 @@ class _ChargingPageState extends State<ChargingPage>
                 ),
               ],
             ),
-            const SizedBox(height: MileafSpace.inline2),
             Text(
-              '${local.toString().split('.').first} · $kind',
+              '${local.toString().split('.').first}，$kind',
               style: type.micro.copyWith(color: colors.textMuted),
-            ),
-            const SizedBox(height: MileafSpace.s4),
-            Text(
-              '电量 ${number(value.startSoc, '%')} → ${number(value.endSoc, '%')}',
-              style: type.label.copyWith(color: colors.textMuted),
             ),
             SocIntervalBar(start: value.startSoc, end: value.endSoc),
             const SizedBox(height: MileafSpace.s4),
-            Text(
-              '充入电池 ${number(value.energyAddedKwh, 'kWh')}',
-              style: type.body.copyWith(
-                color: colors.text,
-                fontWeight: MileafType.weightSemiBold,
-              ),
-            ),
-            const SizedBox(height: MileafSpace.inline2),
-            Text(
-              '电网侧 ${number(value.energyUsedKwh, 'kWh')}',
-              style: type.micro.copyWith(color: colors.textMuted),
+            Wrap(
+              spacing: MileafSpace.s12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    text: '充入电池 ',
+                    style: type.label.copyWith(color: colors.textMuted),
+                    children: [
+                      TextSpan(
+                        text: value.energyAddedKwh == null
+                            ? '—'
+                            : decimal(value.energyAddedKwh!),
+                        style: type.metricMd.copyWith(color: colors.text),
+                      ),
+                      if (value.energyAddedKwh != null)
+                        TextSpan(text: ' kWh', style: type.label),
+                    ],
+                  ),
+                ),
+                Text(
+                  '电网侧 ${number(value.energyUsedKwh, 'kWh')}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                Text(
+                  '时长 ${number(value.durationMin, '分钟')}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+              ],
             ),
             Wrap(
               spacing: MileafSpace.s8,
@@ -2023,14 +1975,10 @@ class _ChargingPageState extends State<ChargingPage>
                   ),
               ],
             ),
-            Text(
-              '时长 ${number(value.durationMin, '分钟')}',
-              style: type.micro.copyWith(color: colors.textMuted),
-            ),
             if (extra.isNotEmpty) ...[
               const SizedBox(height: MileafSpace.inline2),
               Text(
-                extra.join(' · '),
+                extra.join('，'),
                 style: type.micro.copyWith(color: colors.textFaint),
               ),
             ],
@@ -2116,8 +2064,9 @@ class _ChargingPageState extends State<ChargingPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '按${expandedAvailable ? '结束' : '开始'}时间归期 · '
-                  '时区：${workspace.calendar!.identifier}；费用与均价仅包含有效记录。',
+                  '口径：按${expandedAvailable ? '结束' : '开始'}时间归期。\n'
+                  '时区：${workspace.calendar!.identifier}。\n'
+                  '覆盖：费用与均价仅包含有效记录，缺失不补零。',
                   style: type.micro.copyWith(color: colors.textMuted),
                 ),
                 const SizedBox(height: MileafSpace.s4),
@@ -2127,7 +2076,8 @@ class _ChargingPageState extends State<ChargingPage>
                 ),
                 const SizedBox(height: MileafSpace.s4),
                 Text(
-                  '记录时长按分类累计，不等于等待时间。',
+                  '记录时长按分类累计，不等于等待时间。\n'
+                  '来源：当前站点的充电记录与服务端统计。',
                   style: type.micro.copyWith(color: colors.textMuted),
                 ),
                 if (statsCheckedAt != null) ...[
@@ -2292,7 +2242,7 @@ class _ChargingPageState extends State<ChargingPage>
               if (stats == null && statsLoading && !recordsOnly)
                 _compositionSkeleton(),
               if (stats != null && !recordsOnly) ...[
-                _hero(stats),
+                _accountSummary(stats),
                 _readings(stats),
                 trend(stats),
                 if (stats.totals.unitCostAdded.excludedCostSessions > 0)
@@ -2308,7 +2258,6 @@ class _ChargingPageState extends State<ChargingPage>
                       style: type.micro.copyWith(color: colors.textMuted),
                     ),
                   ),
-                _composition(stats),
               ] else if (legacyStats != null && !recordsOnly)
                 Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -2371,6 +2320,8 @@ class _ChargingPageState extends State<ChargingPage>
                     ],
                   ),
                 ),
+              if (!recordsOnly) _recentSection(),
+              if (stats != null && !recordsOnly) _composition(stats),
               if (expandedAvailable && !recordsOnly)
                 Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -2414,7 +2365,6 @@ class _ChargingPageState extends State<ChargingPage>
                     ],
                   ),
                 ),
-              if (!recordsOnly) _recentSection(),
               if (!expandedAvailable || recordsOnly)
                 Padding(
                   padding: EdgeInsets.fromLTRB(inset, 0, inset, 0),
@@ -2472,11 +2422,11 @@ class _ChargingPageState extends State<ChargingPage>
       ),
     );
     final bar = widget.topBar;
-    if (bar == null) return content;
+    if (bar == null) return MileafContent(child: content);
     return Column(
       children: [
         bar,
-        Expanded(child: content),
+        Expanded(child: MileafContent(child: content)),
       ],
     );
   }

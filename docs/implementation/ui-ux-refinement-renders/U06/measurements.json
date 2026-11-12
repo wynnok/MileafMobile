@@ -1,0 +1,38 @@
+[
+  {
+    "scene": "normal-dark",
+    "bodyHeight": 620.0,
+    "firstTop": 644.0,
+    "firstBottom": 852.0,
+    "requiredFirstHeight": 208.0,
+    "visibleFirstHeight": 0,
+    "targetMet": false
+  },
+  {
+    "scene": "normal-light",
+    "bodyHeight": 620.0,
+    "firstTop": 644.0,
+    "firstBottom": 852.0,
+    "requiredFirstHeight": 208.0,
+    "visibleFirstHeight": 0,
+    "targetMet": false
+  },
+  {
+    "scene": "active-dark",
+    "bodyHeight": 620.0,
+    "firstTop": 716.0,
+    "firstBottom": 924.0,
+    "requiredFirstHeight": 44,
+    "visibleFirstHeight": 0,
+    "targetMet": false
+  },
+  {
+    "scene": "active-light",
+    "bodyHeight": 620.0,
+    "firstTop": 716.0,
+    "firstBottom": 924.0,
+    "requiredFirstHeight": 44,
+    "visibleFirstHeight": 0,
+    "targetMet": false
+  }
+]

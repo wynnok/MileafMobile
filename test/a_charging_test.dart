@@ -7,7 +7,7 @@ import 'charging_test.dart' show app, jsonResponse;
 import 'charging_expansion_test.dart' show chargingStatsV2, expansionResponse;
 
 void main() {
-  testWidgets('A 账本首屏为费用 hero、三读数与每日补能', (tester) async {
+  testWidgets('U06 账本同底摘要、三读数与每日补能', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -17,7 +17,7 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     expect(find.text('已知充电费用'), findsOneWidget);
-    expect(find.text('费用覆盖'), findsOneWidget);
+    expect(find.textContaining('费用覆盖'), findsOneWidget);
     expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
     expect(find.text('补入电池'), findsOneWidget);
     expect(find.text('充电次数'), findsOneWidget);

@@ -1030,9 +1030,16 @@ void main() {
           url.queryParameters['time_basis'] == 'ended_at',
     );
     expect(retried.queryParameters['to'], locationEnd);
+    // U06 places recent records before locations. Rebuilt records may move
+    // this target below the restored offset after retry.
+    tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .jumpTo(0);
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('加载更多地点').hitTestable(),
-      -200,
+      200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('加载更多地点').hitTestable());

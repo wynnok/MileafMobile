@@ -613,7 +613,7 @@ void main() {
       ..maxAge = 300
       ..statsMaxAge = 300;
     await openLedger(tester, site);
-    expect(find.text('2 / 8 次'), findsOneWidget);
+    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 200);
@@ -633,14 +633,14 @@ void main() {
     await tester.pumpAndSettle();
     // The deferred fee refresh failed for the summary; the ledger keeps its
     // snapshot instead of claiming a new total.
-    expect(find.text('2 / 8 次'), findsOneWidget);
+    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     // The pending fee revision must still force a real revalidation, not hit
     // the old local snapshot.
-    expect(find.text('3 / 8 次'), findsOneWidget);
+    expect(find.textContaining('费用有记录 3 / 8 次'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -786,6 +786,11 @@ void main() {
     expect(
       site.reads.where((r) => r.url.path.endsWith('/charging-sessions')).length,
       1,
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('分页游标未前进'),
+      100,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('分页游标未前进'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -996,7 +1001,7 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.textContaining('近7天 · 按结束时间归期').hitTestable(),
+      find.textContaining('2026/3/25–2026/3/31').hitTestable(),
       -300,
       scrollable: find.byType(Scrollable).first,
     );
