@@ -67,7 +67,7 @@ void main() {
       ownerCapabilities: true,
     );
     expect(find.text('持平'), findsOneWidget);
-    expect(find.textContaining('净电耗 188 Wh/km · 已知费用'), findsOneWidget);
+    expect(find.textContaining('净电耗 188 Wh/km\n已知费用'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
     await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多'));
