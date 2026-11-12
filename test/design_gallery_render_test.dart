@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/icons.dart';
@@ -15,6 +15,10 @@ const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 
 /// Opt-in component state gallery; run with MILEAF_RENDER_OUTPUT set.
+///
+/// U02 图册矩阵：浅深 × 100/200%，三条画廊
+/// `gallery-*`（代表组件）、`gallery-long-*`（长文本）、
+/// `gallery-states-*`（焦点/禁用/处理中），每种角色均可查。
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
@@ -22,7 +26,6 @@ void main() {
   });
 
   testWidgets('A 组件状态画廊', (tester) async {
-    tester.view.physicalSize = const Size(360, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -30,30 +33,49 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
     final boundary = GlobalKey();
+    const galleries = {
+      'gallery': (Size(360, 1200), _Gallery.new),
+      'gallery-long': (Size(360, 2200), _LongGallery.new),
+      'gallery-states': (Size(360, 1900), _StatesGallery.new),
+    };
     for (final brightness in Brightness.values) {
       for (final scale in [1.0, 2.0]) {
         tester.platformDispatcher.textScaleFactorTestValue = scale;
-        await tester.pumpWidget(
-          RepaintBoundary(
-            key: boundary,
-            child: MaterialApp(
-              debugShowCheckedModeBanner: false,
-              theme: mileafTheme(brightness),
-              home: const _Gallery(),
+        for (final entry in galleries.entries) {
+          tester.view.physicalSize = entry.value.$1;
+          await tester.pumpWidget(
+            RepaintBoundary(
+              key: boundary,
+              child: MaterialApp(
+                debugShowCheckedModeBanner: false,
+                theme: mileafTheme(brightness),
+                home: entry.value.$2(),
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await saveRenderPng(
-          tester,
-          find.byKey(boundary),
-          '$output/gallery-${brightness.name}-${scale == 1 ? '100' : '200'}.png',
-        );
+          );
+          if (entry.key == 'gallery-states') {
+            // 焦点证据：Tab 把真实键盘焦点落在画廊第一个控件（焦点按钮），
+            // 同屏其余控件保持未聚焦，便于对照焦点环。处理中的转圈不收敛，
+            // 只推进固定帧，不使用 pumpAndSettle。
+            await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 200));
+          } else {
+            await tester.pumpAndSettle();
+          }
+          await saveRenderPng(
+            tester,
+            find.byKey(boundary),
+            '$output/${entry.key}-${brightness.name}-${scale == 1 ? '100' : '200'}.png',
+            settle: entry.key != 'gallery-states',
+          );
+        }
       }
     }
   }, skip: output.isEmpty);
 }
 
+/// 短文本代表画廊：hero、主数、图表、记录行、chip 与按钮。
 class _Gallery extends StatelessWidget {
   const _Gallery();
 
@@ -90,17 +112,22 @@ class _Gallery extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          '充电中 · 11.0 kW',
-                          style: context.type.label.copyWith(
-                            color: context.colors.heroMuted,
+                        Flexible(
+                          child: Text(
+                            '充电中 · 11.0 kW',
+                            style: context.type.label.copyWith(
+                              color: context.colors.heroMuted,
+                            ),
                           ),
                         ),
                         const Spacer(),
-                        Text(
-                          '2 分钟前',
-                          style: context.type.label.copyWith(
-                            color: context.colors.heroFaint,
+                        Flexible(
+                          child: Text(
+                            '2 分钟前',
+                            style: context.type.label.copyWith(
+                              color: context.colors.heroFaint,
+                            ),
+                            textAlign: TextAlign.end,
                           ),
                         ),
                       ],
@@ -311,6 +338,262 @@ class _Gallery extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 长文本画廊：顶栏长车名、长地点、长金额、长 URL、长按钮与长错误。
+class _LongGallery extends StatelessWidget {
+  const _LongGallery();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: MileafTopBar(
+                vehicleName: '北仑港·滨海超级充电站有限公司车队二号车',
+                onVehicle: _noop,
+                onSettings: _noop,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  MileafDataRow(
+                    title: '杭州市西湖区文三路 199 号创业大厦 12 层 A 座充电桩',
+                    meta: '10/25 · 18→82% · 34 分钟 · 估算 197.47 kWh',
+                    value: '12,345.67',
+                    unit: 'kWh',
+                    icon: MileafIconName.bolt,
+                    showChevron: true,
+                    topLine: true,
+                    bottomLine: true,
+                    onTap: _noop,
+                  ),
+                  const SizedBox(height: 16),
+                  const ChipRow(
+                    children: [
+                      StatusChip(
+                        label: '2026-03-01 至 2026-03-30',
+                        selected: true,
+                      ),
+                      StatusChip(label: '查看期间补能记录'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  MileafButton(
+                    label: '验证并替换当前站点连接配置并保留历史数据',
+                    onPressed: _noop,
+                    expand: true,
+                  ),
+                  const SizedBox(height: 12),
+                  const MileafCopyRow(
+                    label: '设备标识',
+                    value: 'app.mileaf.mileaf.device-9f2c7a1e5b3d4c6a8b0d2e4f6a8c0e2b',
+                  ),
+                  const SizedBox(height: 20),
+                  const InlineBanner(
+                    message: '更新失败：无法读取设备 IANA 时区，保留 10/26 旧数据与选点，重试仅刷新当前资源。',
+                    tone: BannerTone.error,
+                    actionLabel: '重试',
+                  ),
+                  const SizedBox(height: 20),
+                  const MileafNumber(
+                    value: null,
+                    unit: 'km',
+                    scale: MetricValueScale.metricLg,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '暂无本月数据 · 期间 10.01 — 10.31 · 估算口径',
+                    style: context.type.micro.copyWith(
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 状态画廊：焦点（真实 autofocus）、禁用、处理中、选中与图形组件。
+class _StatesGallery extends StatelessWidget {
+  const _StatesGallery();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _FocusSection(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('处理中 / 禁用', style: context.type.title),
+                  const SizedBox(height: 12),
+                  const MileafButton(
+                    label: '正在提交',
+                    loading: true,
+                    onPressed: _noop,
+                  ),
+                  const SizedBox(height: 10),
+                  const MileafButton(
+                    label: '不可用',
+                    kind: MileafButtonKind.secondary,
+                    onPressed: null,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: const [
+                      StatusChip(label: '里程', selected: true),
+                      StatusChip(label: '禁用', enabled: false),
+                      StatusChip(label: '近7天'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: const [
+                      MileafIconButton(
+                        icon: MileafIconName.refresh,
+                        tooltip: '刷新',
+                        onPressed: _noop,
+                      ),
+                      MileafIconButton(
+                        icon: MileafIconName.settings,
+                        tooltip: '设置',
+                        selected: true,
+                        onPressed: _noop,
+                      ),
+                      MileafIconButton(
+                        icon: MileafIconName.close,
+                        tooltip: '不可用',
+                        onPressed: null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text('图形组件', style: context.type.title),
+                  const SizedBox(height: 12),
+                  const Row(
+                    children: [
+                      BatteryArc(level: 68),
+                      SizedBox(width: 16),
+                      BatteryArc(level: null),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const SocIntervalBar(start: 68, end: 82),
+                  const SizedBox(height: 16),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      MileafShareRing(
+                        segments: [
+                          ShareRingSegment(
+                            label: 'AC',
+                            value: 62,
+                            color: Color(0xFF2688F5),
+                          ),
+                          ShareRingSegment(
+                            label: 'DC',
+                            value: 38,
+                            color: Color(0xFF0B62C4),
+                          ),
+                        ],
+                        centerValue: '62',
+                        centerLabel: 'AC',
+                        size: 104,
+                      ),
+                    ],
+                  ),
+                  ShareRingLegendRow(
+                    color: const Color(0xFF2688F5),
+                    label: 'AC 交流',
+                    share: '62%',
+                    onTap: _noop,
+                  ),
+                  const ShareRingLegendRow(
+                    color: Color(0xFF0B62C4),
+                    label: 'DC 直流',
+                    share: '38%',
+                  ),
+                  const SizedBox(height: 20),
+                  Text('弹层框架', style: context.type.title),
+                  const SizedBox(height: 12),
+                  MileafSheetFrame(
+                    title: '外观',
+                    onClose: _noop,
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        MileafDataRow(title: '跟随系统', selected: true),
+                        MileafDataRow(title: '浅色'),
+                        MileafDataRow(title: '深色', bottomLine: true),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('底栏', style: context.type.title),
+                  const SizedBox(height: 12),
+                  // 底栏预览：固定高度组件可直接内嵌，选中标记与实色可查。
+                  ClipRect(child: MileafNavBar(index: 0, onSelected: (_) {})),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 真实键盘焦点探测：渲染后由测试发送 Tab，焦点按钮画出 2px 外环。
+class _FocusSection extends StatelessWidget {
+  const _FocusSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('焦点（键盘可达，即时 2px 外环）', style: context.type.title),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: const [
+              MileafButton(label: '焦点按钮', onPressed: _noop),
+              StatusChip(label: '焦点 chip', selected: true),
+              MileafIconButton(
+                icon: MileafIconName.settings,
+                tooltip: '焦点图标',
+                onPressed: _noop,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

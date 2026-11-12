@@ -60,11 +60,11 @@ class _MileafIconButtonState extends State<MileafIconButton> {
               ),
               child: Material(
                 color: Colors.transparent,
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
+                // R05「实际命中区≥44×44」：命中用整块方形（A08），水波仍呈
+                // 全圆角，视觉与圆形一致；不用 CircleBorder 裁掉四角。
                 child: InkWell(
-                  customBorder: const CircleBorder(),
                   onTap: widget.onPressed,
+                  borderRadius: MileafRadius.fullAll,
                   highlightColor: colors.accentSoft,
                   splashColor: colors.accentSoft,
                   child: Center(

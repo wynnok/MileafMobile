@@ -38,8 +38,10 @@ class ShareRingSegment {
 ///
 /// The ring is the primary visual of the charging-method block
 /// (`docs/specs/charging-method-share-ring.md` §5): 12 px stroke, 3 px gaps,
-/// butt caps, a 500 ms clockwise reveal, and a centre that disappears rather
-/// than shrinking any number.
+/// butt caps and a centre that disappears rather than shrinking any number.
+/// The first frame draws the full real geometry (R07: 图表首次 0，无绘制生长);
+/// a data update keeps the values instant and eases the arc fractions over
+/// 160 ms (R07 局部快照更新), collapsing to zero under disableAnimations.
 class MileafShareRing extends StatefulWidget {
   const MileafShareRing({
     super.key,
@@ -67,10 +69,6 @@ class MileafShareRing extends StatefulWidget {
 
 class _MileafShareRingState extends State<MileafShareRing>
     with TickerProviderStateMixin {
-  late final AnimationController _sweep = AnimationController(
-    vsync: this,
-    duration: MileafDurations.chart,
-  );
   late final AnimationController _change = AnimationController(
     vsync: this,
     duration: MileafDurations.value,
@@ -90,20 +88,10 @@ class _MileafShareRingState extends State<MileafShareRing>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _sweep.value = 0;
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (MileafLayout.reduceMotion(context)) {
-      _sweep.value = 1;
       _change.value = 1;
-    } else if (_sweep.status == AnimationStatus.dismissed &&
-        _sweep.value == 0) {
-      _sweep.forward();
     }
   }
 
@@ -138,7 +126,6 @@ class _MileafShareRingState extends State<MileafShareRing>
 
   @override
   void dispose() {
-    _sweep.dispose();
     _change.dispose();
     super.dispose();
   }
@@ -170,13 +157,12 @@ class _MileafShareRingState extends State<MileafShareRing>
       child: SizedBox.square(
         dimension: size,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_sweep, _change]),
+          animation: _change,
           builder: (context, _) => CustomPaint(
             painter: _ShareRingPainter(
               fractions: _currentFractions(),
               colors: [for (final segment in widget.segments) segment.color],
               track: colors.line,
-              progress: Curves.easeOutCubic.transform(_sweep.value),
               stroke: MileafShareRingMetrics.stroke,
             ),
             child: Center(child: _center(context, available)),
@@ -193,79 +179,98 @@ class _MileafShareRingState extends State<MileafShareRing>
     final unit = widget.centerValue == null ? null : widget.centerUnit;
     final valueStyle = type.metricMd.copyWith(color: colors.text);
     final unitStyle = type.micro.copyWith(color: colors.textFaint);
-    final number = _measure(context, value, valueStyle);
-    final numberFits = number <= available;
+    final (valueWidth, valueHeight) = _measure(context, value, valueStyle);
+    final (unitWidth, unitHeight) = unit == null
+        ? (0.0, 0.0)
+        : _measure(context, ' $unit', unitStyle);
+    final (labelWidth, labelHeight) = widget.centerLabel == null
+        ? (0.0, 0.0)
+        : _measure(context, widget.centerLabel!, unitStyle);
     // Never shrink a number: when even the bare value does not fit, the centre
-    // is dropped and the legend carries the share (Spec §5.3).
-    final unitFits =
+    // is dropped and the legend carries the share (Spec §5.3). The unit and
+    // label move under the value only while the whole column still fits the
+    // ring; otherwise they are omitted — the centre must never overflow.
+    if (valueWidth > available || valueHeight > available) {
+      return const SizedBox.shrink();
+    }
+    final inlineUnit =
         unit != null &&
-        number + _measure(context, ' $unit', unitStyle) <= available;
-    return numberFits
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
+        valueWidth + unitWidth <= available &&
+        unitHeight <= available;
+    var height = valueHeight;
+    var unitBelow = false;
+    if (!inlineUnit && unit != null && height + 2 + unitHeight <= available) {
+      unitBelow = true;
+      height += 2 + unitHeight;
+    }
+    final showLabel =
+        widget.centerLabel != null &&
+        labelWidth <= available &&
+        height + 2 + labelHeight <= available;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text.rich(
+          TextSpan(
+            text: value,
+            style: valueStyle,
             children: [
-              Text.rich(
-                TextSpan(
-                  text: value,
-                  style: valueStyle,
-                  children: [
-                    if (unitFits) TextSpan(text: ' $unit', style: unitStyle),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              if (unit != null && !unitFits)
-                Text(unit, textAlign: TextAlign.center, style: unitStyle),
-              if (widget.centerLabel != null) ...[
-                const SizedBox(height: MileafSpace.inline2),
-                Text(
-                  widget.centerLabel!,
-                  textAlign: TextAlign.center,
-                  style: type.micro.copyWith(color: colors.textFaint),
-                ),
-              ],
+              if (inlineUnit) TextSpan(text: ' $unit', style: unitStyle),
             ],
-          )
-        : const SizedBox.shrink();
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (unitBelow)
+          Text(unit!, textAlign: TextAlign.center, style: unitStyle),
+        if (showLabel) ...[
+          const SizedBox(height: MileafSpace.inline2),
+          Text(
+            widget.centerLabel!,
+            textAlign: TextAlign.center,
+            style: unitStyle,
+          ),
+        ],
+      ],
+    );
   }
 
-  double _measure(BuildContext context, String text, TextStyle style) {
+  (double, double) _measure(
+    BuildContext context,
+    String text,
+    TextStyle style,
+  ) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
-    final width = painter.width;
+    final result = (painter.width, painter.height);
     painter.dispose();
-    return width;
+    return result;
   }
 }
 
 /// Arc geometry for [MileafShareRing], exposed for tests.
 ///
 /// Returns `(segmentIndex, startAngle, sweepAngle)` from 12 o'clock clockwise.
-/// Values ≤ 0 are skipped, neighbouring segments lose half a gap each, and
-/// [progress] reveals the ring left to right without moving the gaps.
+/// Values ≤ 0 are skipped, neighbouring segments lose half a gap each, and a
+/// single 100 % arc stays unbroken (R07: 首帧即完整几何).
 List<(int, double, double)> shareRingArcs({
   required List<double> fractions,
   required double radius,
-  double progress = 1,
   double gap = MileafShareRingMetrics.gap,
 }) {
   final visible = fractions.where((fraction) => fraction > 0).length;
   if (radius <= 0 || visible == 0) return const [];
   // Only a real boundary gets a gap; a single 100 % arc stays unbroken.
   final pad = visible > 1 ? (gap / radius) / 2 : 0.0;
-  final limit = -math.pi / 2 + progress.clamp(0.0, 1.0) * math.pi * 2;
   final arcs = <(int, double, double)>[];
   var cursor = -math.pi / 2;
   for (var i = 0; i < fractions.length; i++) {
     final sweep = fractions[i] * math.pi * 2;
     if (sweep > 0) {
-      final from = cursor + pad;
-      final to = math.min(cursor + sweep - pad, limit);
-      if (to > from) arcs.add((i, from, to - from));
+      arcs.add((i, cursor + pad, sweep - pad * 2));
     }
     cursor += sweep;
   }
@@ -277,14 +282,12 @@ class _ShareRingPainter extends CustomPainter {
     required this.fractions,
     required this.colors,
     required this.track,
-    required this.progress,
     required this.stroke,
   });
 
   final List<double> fractions;
   final List<Color> colors;
   final Color track;
-  final double progress;
   final double stroke;
 
   @override
@@ -301,11 +304,7 @@ class _ShareRingPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke,
     );
-    final arcs = shareRingArcs(
-      fractions: fractions,
-      radius: radius,
-      progress: progress,
-    );
+    final arcs = shareRingArcs(fractions: fractions, radius: radius);
     for (final (index, start, sweep) in arcs) {
       canvas.drawArc(
         rect,
@@ -323,7 +322,6 @@ class _ShareRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ShareRingPainter old) =>
-      old.progress != progress ||
       old.track != track ||
       old.stroke != stroke ||
       !_sameFractions(old.fractions, fractions) ||

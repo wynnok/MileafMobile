@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 
-/// 34px chip with a 44px touch target.
+/// 44px chip with a 44px touch target; selection fades in over 160ms (R07).
 class StatusChip extends StatefulWidget {
   const StatusChip({
     super.key,
@@ -53,7 +54,10 @@ class _StatusChipState extends State<StatusChip> {
     } else {
       foreground = onHero ? colors.heroMuted : colors.textMuted;
     }
-    final chip = Container(
+    final chip = AnimatedContainer(
+      // R07 互斥选中：160ms easeOutCubic 底色淡入，控件尺寸固定；禁用动效归零。
+      duration: MileafLayout.motion(context, MileafDurations.tab),
+      curve: Curves.easeOutCubic,
       constraints: const BoxConstraints(minHeight: MileafSpace.touch),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       decoration: BoxDecoration(

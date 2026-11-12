@@ -40,3 +40,33 @@
 本候选落实ADR0011与规格§1.4的字号、主次、同底统计/详情、图轴与费用小屏呈现增量。旧ADR0003/0006的当时验收记录保留，当前候选不沿用其旧字号、深底统计Hero和居中大块SOC包装。
 
 全局尚待U02/U03收敛的明确清单及代表页剩余项以U01.md与visual-reference.md为准。用户确认状态只依据实际回复登记，目前待验。
+
+---
+
+# U02 共享系统收敛增量
+
+2026-11-12。输入 U01 结果提交 `463899f`（交接 `99e7b56`）；用户已确认「按候选继续」，G01 视觉决定保持待验。以下为本包实际落地的 token / 组件增量，旧值→新值→规则 ID 均登记于 [U02.md](U02.md)。
+
+## token
+
+| token | U01 候选值 | U02 值 | 规则 |
+| --- | --- | --- | --- |
+| `MileafDurations.press` | 120ms | 100ms | R07 |
+| `MileafDurations.value` | 220ms | 160ms | R07 |
+| `MileafDurations.chart` | 500ms | 删除（无消费点） | R07/A13 |
+| `MileafDurations.enter` | 180ms | 保留（motion.dart/U03、map_privacy_page/U10 仍消费） | 交 U03 移除 |
+| `MileafSpace.rowMin` | 56 | 72 | R05/P12 |
+| `MileafSpace.inputMinHeight` | 无 | 52 | R05 |
+| `MileafSpace.contentBottom` | 84 | 删除（无消费点；R01 不再假定固定 84） | R01 |
+| `MileafBatteryMetrics.labelSize` | 9 | 删除（无消费点） | R02 |
+
+## 组件
+
+- `MileafHero`：移除径向光晕及 `glow` 参数，实色锚点（R04/ADR0011）。
+- `MileafDataRow`：图标圆圈改为行内 20px 图标（R04/A12）。
+- `MileafTopBar`：200% 两行布局，车辆独立 ≥44 命中（R05/R03）。
+- `StatusChip`：选中底色 160ms easeOutCubic 过渡，禁动效归零（R07）。
+- `MileafIconButton`：命中区由圆形改整块方形、水波仍全圆角（R05/A08）。
+- `MileafShareRing`：移除 500ms 首绘生长，首帧即完整几何；数据更新 160ms；圆心单位/标签按宽高预算逐级下移或省略，不再溢出（R07/§5.3）。
+- `MileafButton`：长标签可换行（R03）。
+- 主题输入装饰：`constraints minHeight 52`（R05）。

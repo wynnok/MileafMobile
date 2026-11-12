@@ -11,7 +11,8 @@ class MileafNavItem {
   final MileafIconName icon;
 }
 
-/// 64px bottom navigation: 20px icon, 9px label, accent + 2px top marker.
+/// Bottom navigation: solid `surface` (R05，无模糊), 20px icon, 12/16
+/// `navLabel`, accent + 2px top marker; the bar grows with the text scaler.
 class MileafNavBar extends StatelessWidget {
   const MileafNavBar({
     super.key,

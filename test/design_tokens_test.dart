@@ -264,8 +264,11 @@ void main() {
       expect(MileafSpace.section % 4, 0);
       expect(MileafSpace.touch, 44);
       expect(MileafSpace.navHeight, 64);
-      expect(MileafSpace.contentBottom, 84);
-      expect(MileafSpace.rowMin, 56);
+      // R01：不再假定固定 84 的滚动余量（contentBottom 已移除，由各页按
+      // 实际底栏高度+安全区+16 计算）；R05/P12：列表行下限 56→72。
+      expect(MileafSpace.rowMin, 72);
+      // R05：输入最小 52。
+      expect(MileafSpace.inputMinHeight, 52);
     });
 
     test('圆角与动效时长锁定', () {
@@ -280,6 +283,10 @@ void main() {
         },
         {0.0, 4.0, 10.0, 12.0, 20.0, 999.0},
       );
+      // R07 时长合同（原值 120/160/180/220/240/500）：
+      // press 120→100（按压 100ms）、value 220→160（局部快照更新 160ms）、
+      // chart 500 删除（图表首次/刷新 0，无绘制生长，A13）；enter 180 保留，
+      // 待 U03 移除 MileafPageEnter 时一并删除。
       expect(
         {
           MileafDurations.press.inMilliseconds,
@@ -287,9 +294,8 @@ void main() {
           MileafDurations.enter.inMilliseconds,
           MileafDurations.value.inMilliseconds,
           MileafDurations.sheet.inMilliseconds,
-          MileafDurations.chart.inMilliseconds,
         },
-        {120, 160, 180, 220, 240, 500},
+        {100, 160, 180, 240},
       );
     });
 

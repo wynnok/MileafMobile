@@ -7,7 +7,8 @@ import '../typography.dart';
 
 enum MileafButtonKind { primary, secondary, ghost }
 
-/// 44px-high button: primary, secondary or ghost; loading keeps its label.
+/// Primary (48px floor), secondary (44px) or ghost button; loading keeps its
+/// label and blocks repeat taps (R05).
 class MileafButton extends StatefulWidget {
   const MileafButton({
     super.key,
@@ -85,11 +86,16 @@ class _MileafButtonState extends State<MileafButton> {
           MileafIcon(icon, size: MileafIconMetrics.inline, color: foreground),
           const SizedBox(width: MileafSpace.s8),
         ],
-        Text(
-          label,
-          style: type.body.copyWith(
-            color: foreground,
-            fontWeight: MileafType.weightMedium,
+        Flexible(
+          child: Text(
+            label,
+            style: type.body.copyWith(
+              color: foreground,
+              fontWeight: MileafType.weightMedium,
+            ),
+            // R03：长标签换行重排，不缩字、不溢出（Row 内需显式 Flexible 才有界）。
+            softWrap: true,
+            textAlign: TextAlign.center,
           ),
         ),
       ],

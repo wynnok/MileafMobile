@@ -1,6 +1,6 @@
 # UI/UX 精修正式 Flutter 图册
 
-2026-11-12，当前收录 U01 正式候选，用户视觉决定待确认。U01 收尾已完成：全量 591 通过 / 12 跳过 / 0 失败，图册由收尾会话重新生成并核对为 316 + 96 张。任务状态见[总控记录](../ui-ux-refinement/README.md)与 [U01 交接](../ui-ux-refinement/U01.md)。
+2026-11-12，当前收录 U01 正式候选与 U02 共享组件图册，U01 用户视觉决定按「按候选继续」授权保持待验。U01 收尾已完成：全量 591 通过 / 12 跳过 / 0 失败，图册由收尾会话重新生成并核对为 316 + 96 张。U02 已交付共享系统收敛与 `components/` 三条画廊（12 张），全量 607 通过 / 12 跳过 / 0 失败。任务状态见[总控记录](../ui-ux-refinement/README.md)、[U01 交接](../ui-ux-refinement/U01.md)与 [U02 交接](../ui-ux-refinement/U02.md)。
 
 ## 来源与范围
 
@@ -19,6 +19,9 @@
 | [长字段清单](gallery/u01-long-measurements.json) | 12 | 56 | 三页 360×800，浅深正常100/200%，长地点/长车名 |
 | `flows/cost-*` 普通表单 | 40 | 80 | 360×800，浅深×100/130/150/200%，空输入/预估/非法输入/403/待确认，各有输入与动作机位 |
 | `flows/cost-*` 窄屏表单 | 8 | 16 | 320×568，浅深200%，长地点/未知币种/最大金额/键盘 inset300，各有输入与动作机位 |
+| `components/gallery-*`（U02） | 12 | 0 | 组件状态画廊浅深×100/200%：`gallery-*` 代表组件、`gallery-long-*` 长文本、`gallery-states-*` 焦点/禁用/处理中 |
+
+`components/` 由 U02 分配并维护，入口为 `test/design_gallery_render_test.dart`，视口 360 宽、高度按画廊 1200/2200/1900，DPR 1、PNG 输出倍率 2，字体与数据口径同上节（合成夹具、固定 2026-10-26）。逐张目视清单见 [U02 交接](../ui-ux-refinement/U02.md)。
 
 命名为 `页面-场景-模式-宽度-字号-机位.png`。`top` 为初始机位，`scrollN` 为按视口70%递进的完整滚动序列，`action` 为滚至表单动作区，`safe0` 为零安全区。gallery 完整文件名及 body 测量在上述 JSON 中。flows 的具体场景、字号与生成数量由 `test/charging_cost_render_test.dart` 的 U01 分支定义。
 
@@ -39,6 +42,12 @@
 ./tool/flutterw test --no-pub test/a_gallery_render_test.dart --dart-define=MILEAF_U01=true --dart-define=MILEAF_U01_SAFE_ZERO=true --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/gallery '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
 ./tool/flutterw test --no-pub test/a_gallery_render_test.dart --dart-define=MILEAF_U01=true --dart-define=MILEAF_U01_LONG=true --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/gallery '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
 ./tool/flutterw test --no-pub test/charging_cost_render_test.dart --dart-define=MILEAF_U01=true --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/flows '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
+```
+
+U02 组件画廊入口（2026-11-12 由 U02 会话实跑，退出 0，输出 12 张到 `components/`）：
+
+```sh
+./tool/flutterw test --no-pub test/design_gallery_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/components '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
 ```
 
 ## 总控抽样目视与测量

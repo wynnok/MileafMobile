@@ -93,10 +93,14 @@ abstract final class MileafSpace {
   /// Fixed structural measurements from the spec.
   static const heroTop = 16.0;
   static const heroBottom = 18.0;
-  static const rowMin = 56.0;
+
+  /// Generic list row floor (R05); the vehicle sheet keeps its own 56 floor.
+  static const rowMin = 72.0;
+
+  /// Text input floor (R05: 最小52，字16).
+  static const inputMinHeight = 52.0;
   static const touch = 44.0;
   static const navHeight = 64.0;
-  static const contentBottom = 84.0;
   static const chipHeight = 44.0;
   static const primaryButtonHeight = 48.0;
   static const rhythmHeight = 88.0;
@@ -130,12 +134,24 @@ abstract final class MileafRadius {
 abstract final class MileafDurations {
   const MileafDurations._();
 
-  static const press = Duration(milliseconds: 120);
+  /// R07：按压 100ms easeOut（中性覆盖层，由 InkWell 高光承载）。
+  static const press = Duration(milliseconds: 100);
+
+  /// R07：互斥选中 / 折叠 / 读值反馈 160ms。
   static const tab = Duration(milliseconds: 160);
+
+  /// 180ms 整页入场，仅剩 `MileafPageEnter`（motion.dart，U03 范围）与
+  /// `map/map_privacy_page.dart`（U10 范围）消费。ADR0011 已裁定整页入场由
+  /// 即时完整内容替代；U03 移除该组件时一并删除本 token。
   static const enter = Duration(milliseconds: 180);
-  static const value = Duration(milliseconds: 220);
+
+  /// R07：弹层 240ms easeOutCubic（charging_cost 的自管转场消费）。
   static const sheet = Duration(milliseconds: 240);
-  static const chart = Duration(milliseconds: 500);
+
+  /// R07：局部快照更新 160ms easeOut，一次 opacity 过渡，数值即时正确。
+  static const value = Duration(milliseconds: 160);
+
+  /// R07：初次加载静态骨架的无缝循环。
   static const skeleton = Duration(milliseconds: 1200);
 }
 
@@ -252,7 +268,7 @@ abstract final class MileafChartMetrics {
   static const yTicks = 3;
 }
 
-/// 88px battery arc (72 at 200%); 2.5 stroke, 10% track, 22/9 centre.
+/// 88px battery arc (72 at 200%); 2.5 stroke, 10% track, 22 centre text.
 abstract final class MileafBatteryMetrics {
   const MileafBatteryMetrics._();
 
@@ -262,7 +278,6 @@ abstract final class MileafBatteryMetrics {
   static const trackOpacity = .10;
   static const valueSize = 22.0;
   static const valueHeight = 24.0;
-  static const labelSize = 9.0;
 }
 
 /// Share ring geometry from Spec `charging-method-share-ring` §5.2 / §10.1.

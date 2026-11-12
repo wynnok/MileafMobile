@@ -5,7 +5,7 @@ import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 
-/// The one "now / primary result" block per page.
+/// The one "now / primary result" block per page (R04: 概览唯一深底锚点).
 ///
 /// The form is derived from the palette, never passed in (Spec §6.1):
 ///
@@ -17,30 +17,19 @@ import '../tokens.dart';
 ///   under the status bar, so it declares no `SystemUiOverlayStyle`; the page
 ///   level region in `main.dart` decides the icon brightness from the canvas.
 ///
-/// The surface paints a single radial glow in the top-right corner (≤20%
-/// opacity); on a card the glow follows the card width.
+/// No glow: ADR0011 replaces the decorative radial highlight with the solid
+/// anchor itself; decoration must not re-enter via call sites either.
 class MileafHero extends StatelessWidget {
-  const MileafHero({
-    super.key,
-    required this.child,
-    this.glow = true,
-    this.semanticLabel,
-  });
+  const MileafHero({super.key, required this.child, this.semanticLabel});
 
   final Widget child;
-  final bool glow;
   final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final card = colors.heroAsCard;
-    final content = Stack(
-      children: [
-        if (glow) _glow(colors, card: card),
-        child,
-      ],
-    );
+    final content = child;
     final surface = Material(
       color: colors.hero,
       borderRadius: card ? BorderRadius.circular(MileafRadius.lg) : null,
@@ -61,48 +50,6 @@ class MileafHero extends StatelessWidget {
         systemNavigationBarColor: Colors.transparent,
       ),
       child: surface,
-    );
-  }
-
-  Widget _glow(MileafColors colors, {required bool card}) {
-    final glowColors = [
-      colors.accentHero.withValues(alpha: .18),
-      colors.accentHero.withValues(alpha: 0),
-    ];
-    if (!card) {
-      // Full bleed keeps the fixed 420 disc anchored to the top-right corner.
-      return Positioned(
-        top: -180,
-        right: -140,
-        child: IgnorePointer(
-          child: Container(
-            width: 420,
-            height: 420,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: glowColors),
-            ),
-          ),
-        ),
-      );
-    }
-    // Card: same 18% peak; Flutter resolves a fractional radius against the
-    // box's **short side**, so 0.95 reads as ≈0.95×height here, not 0.95×width
-    // as §6.3's "半径 ≈ w×0.95" says. The centre is the spec ratio
-    // (w×1.02, −h×0.15) expressed in the card's own fractional coordinates, so
-    // it needs no built-time height.
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(1.04, -1.3),
-              radius: .95,
-              colors: glowColors,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -38,7 +38,7 @@ Future<void> pumpComponent(
 
 void main() {
   group('MileafHero', () {
-    testWidgets('深色锚点带单个光晕且状态栏为浅色图标', (tester) async {
+    testWidgets('深色锚点为实色、无光晕且状态栏为浅色图标', (tester) async {
       final semantics = tester.ensureSemantics();
       await pumpComponent(
         tester,
@@ -56,6 +56,18 @@ void main() {
             .first,
       );
       expect(material.color, const MileafColors.dark().hero);
+      // R04/ADR0011：光晕由实色锚点替代，hero 子树不得再出现渐变装饰。
+      expect(
+        find.descendant(
+          of: find.byType(MileafHero),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is DecoratedBox &&
+                (widget.decoration as BoxDecoration?)?.gradient != null,
+          ),
+        ),
+        findsNothing,
+      );
       final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
         find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,
       );
@@ -504,7 +516,7 @@ void main() {
   });
 
   group('StatusChip / 按钮', () {
-    testWidgets('chip 视觉 34、触控 44，选中与禁用状态可用', (tester) async {
+    testWidgets('chip 触控 44、选中过渡 160ms，选中与禁用状态可用', (tester) async {
       var taps = 0;
       await pumpComponent(
         tester,

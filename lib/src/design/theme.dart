@@ -88,6 +88,8 @@ ThemeData mileafTheme(Brightness brightness) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colors.surface,
+      // R05 输入最小 52（字 16），不靠加内边距改变内容尺寸。
+      constraints: const BoxConstraints(minHeight: MileafSpace.inputMinHeight),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: MileafSpace.s16,
         vertical: MileafSpace.s12,

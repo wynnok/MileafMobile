@@ -70,22 +70,13 @@ class _MileafDataRowState extends State<MileafDataRow> {
         : colors.textFaint;
     final metaColor = widget.enabled ? colors.textMuted : colors.textFaint;
     final large = MileafLayout.largeText(context);
+    // R04 禁止图标圆币：行内图标直接绘制，20px、textMuted，无圆圈包装。
     final leading = widget.icon == null
         ? null
-        : Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: colors.lineStrong),
-            ),
-            child: Center(
-              child: MileafIcon(
-                widget.icon!,
-                size: MileafIconMetrics.inline,
-                color: widget.enabled ? colors.textMuted : colors.textFaint,
-              ),
-            ),
+        : MileafIcon(
+            widget.icon!,
+            size: MileafIconMetrics.nav,
+            color: widget.enabled ? colors.textMuted : colors.textFaint,
           );
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,

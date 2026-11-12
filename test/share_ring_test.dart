@@ -32,16 +32,17 @@ void main() {
       expect(shareRingArcs(fractions: const [0, 0], radius: 46), isEmpty);
     });
 
-    test('扫出进度只影响已画长度，不移动起点', () {
-      final full = shareRingArcs(fractions: const [.5, .5], radius: 46);
-      final half = shareRingArcs(
-        fractions: const [.5, .5],
-        radius: 46,
-        progress: .5,
-      );
-      expect(half.first.$2, full.first.$2);
-      expect(half.first.$3, closeTo(math.pi - (3 / 46), .01));
-      expect(half, hasLength(1));
+    test('首帧即完整几何：各段只扣缺口，总弧长守恒', () {
+      // R07：图表首次 0，无 500ms 顺时针生长（原 progress 参数随动画移除）。
+      final arcs = shareRingArcs(fractions: const [.5, .5], radius: 46);
+      expect(arcs, hasLength(2));
+      final pad = (3 / 46) / 2;
+      final drawn = arcs.fold<double>(0, (sum, arc) => sum + arc.$3);
+      expect(drawn, closeTo(math.pi * 2 - pad * 4, .01));
+      for (final (index, _, sweep) in arcs) {
+        expect(sweep, closeTo(math.pi - pad * 2, .01));
+        expect(index, anyOf(0, 1));
+      }
     });
   });
 
@@ -97,7 +98,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('reduce motion 下首帧即完整，不再排帧', (tester) async {
+    testWidgets('首帧即完整几何，无生长动画，不再排帧', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafShareRing(
+          segments: [
+            ShareRingSegment(label: 'AC', value: 60, color: _ac),
+            ShareRingSegment(label: 'DC', value: 40, color: _dc),
+          ],
+          centerValue: '60',
+        ),
+      );
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+
+    testWidgets('reduce motion 下同样首帧完整且不排帧', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
           const FakeAccessibilityFeatures(disableAnimations: true);
       addTearDown(
