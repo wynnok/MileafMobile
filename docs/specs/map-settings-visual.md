@@ -1,5 +1,7 @@
 # 地图设置页视觉规格（Spec）
 
+> 2026-11-12整体UI/UX增量已确认。§3–§6、§9–§11及§13的呈现与验证条款按[新规格§1.4](ui-ux-refinement.md#14-旧条款替代索引)执行，迁移和验收见[U00–U12](ui-ux-refinement-tickets.md)。以下正文记录此前切片的规格与实施事实。
+
 - 日期：2026-11-09
 - 状态：confirmed（用户于 2026-11-09 确认，含 ADR 0010 D5 的框架事实修正；§14 为实施期追加确认的修正）
 - 依据：[ADR 0010](../adr/0010-map-settings-visual.md)、[ADR 0003](../adr/0003-visual-direction-a.md)、[ADR 0006](../adr/0006-appearance-and-accent.md)、[视觉系统 Spec](visual-system-a.md)、[外观 v2 Spec](appearance-v2.md)、[自备高德地图 Key Spec](user-amap-key.md)。
@@ -260,3 +262,7 @@ AppBar「地图」(title 18/22/600)
 3. **该短说明的层级以 §3 为准，是 `micro` 而非 §7 原表的 `body`**。§3 定义 `micro` 为「状态副说明」，状态行节奏为 `body` 13/600 + `micro` 9/12；§7 该格同步改标 `micro`。
 
 这三项只影响 `MapPrivacyPage` 的图标几何与一句副说明，不新增色值、字号、圆角、阴影或动效时长，不改变任何冻结定位词与 tooltip。
+
+## 2026-11-12 整体 UI/UX 优化增量
+
+用户已确认[ADR0011](../adr/0011-ui-ux-refinement.md)与[整体规格](ui-ux-refinement.md)。§3–§6、§9–§11及§13的呈现与验证条款使用新规格的替代索引、设计数值和逐页规则。相关任务及测试映射见[实施Tickets](ui-ux-refinement-tickets.md)，代表视觉参考在U01交付后确认。原切片的业务契约、状态条件、数据来源和历史验收记录作为后续回归依据。

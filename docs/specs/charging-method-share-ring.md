@@ -1,5 +1,7 @@
 # 充电页「我的补能方式」构成环 · 设计规格
 
+> 2026-11-12整体UI/UX增量已确认。§2–§7、§10、§13–§14及§17的文字、几何、交互反馈与绘制动效条款（含§5.4、§6）按[新规格§1.4](ui-ux-refinement.md#14-旧条款替代索引)执行，迁移和验收见[U00–U12](ui-ux-refinement-tickets.md)。以下正文记录此前切片的规格与实施事实。
+
 - 日期：2026-11-01
 - 状态：accepted（2026-11-01 用户确认，含 R1）
 - 上游：[ADR 0004](../adr/0004-charging-method-visual.md)（accepted）
@@ -375,3 +377,7 @@ abstract final class MileafShareRingMetrics {
 - 不做逐日构成堆叠图（ADR 备选 C 已否决）。
 - 不改 `MileafCompositionBar` 在概览/补能专题的用法。
 - 不新增请求、不改 `MileafServer`。
+
+## 2026-11-12 整体 UI/UX 优化增量
+
+用户已确认[ADR0011](../adr/0011-ui-ux-refinement.md)与[整体规格](ui-ux-refinement.md)。§2–§7、§10、§13–§14及§17的文字、几何、交互反馈与绘制动效条款（含§5.4、§6）使用新规格的替代索引、设计数值和逐页规则。相关任务及测试映射见[实施Tickets](ui-ux-refinement-tickets.md)，代表视觉参考在U01交付后确认。原切片的业务契约、状态条件、数据来源和历史验收记录作为后续回归依据。

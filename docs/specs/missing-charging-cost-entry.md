@@ -1,5 +1,7 @@
 # 缺失充电费用补录 · 设计与接口规格
 
+> 2026-11-12整体UI/UX增量已确认。§4–§6及对应视觉验收按[新规格§1.4](ui-ux-refinement.md#14-旧条款替代索引)执行，迁移和验收见[U00–U12](ui-ux-refinement-tickets.md)。以下正文记录此前切片的规格与实施事实。
+
 - 日期：2026-11-04
 - 状态：**accepted，2026-11-04 用户确认 Spec 并要求继续 Ticket**；代码、自动化与正式Flutter图册已本地实施，见[实施记录](../implementation/charging-cost-entry.md)；最终视觉结论与外部gate仍独立待验。
 - 上游：[ADR 0007](../adr/0007-missing-charging-cost-entry.md)，已接受。
@@ -258,3 +260,7 @@
 | CE14 | 完成静态检查、相关定向测试、最终全量测试与双轴审查；真实写入/生产权限/推送部署和其他外部gate单独记录 |
 
 App可见操作＋可控HTTP与正式Flutter渲染/语义两项测试边界已随[实施 Ticket](missing-charging-cost-entry-tickets.md)确认。当前代码、自动化与图册证据见[实施记录](../implementation/charging-cost-entry.md)；按implement在当前分支本地提交，不发布工单、不推送，视觉结论与外部gate仍独立待验。
+
+## 2026-11-12 整体 UI/UX 优化增量
+
+用户已确认[ADR0011](../adr/0011-ui-ux-refinement.md)与[整体规格](ui-ux-refinement.md)。§4–§6及对应视觉验收使用新规格的替代索引、设计数值和逐页规则。相关任务及测试映射见[实施Tickets](ui-ux-refinement-tickets.md)，代表视觉参考在U01交付后确认。原切片的业务契约、状态条件、数据来源和历史验收记录作为后续回归依据。

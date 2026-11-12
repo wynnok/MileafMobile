@@ -1,5 +1,7 @@
 # 地图设置页按「细线列表 + 留白」重排
 
+> 2026-11-12修订已由用户确认。分组字阶、间距、共享控件及折叠反馈的呈现数值采用[ADR0011](0011-ui-ux-refinement.md)和[整体优化规格](../specs/ui-ux-refinement.md)§1.4的明确增量。本文保留当时决定与验收事实，产品迁移待实施。
+
 - 日期：2026-11-09
 - 状态：accepted（用户于 2026-11-09 确认 ADR 后授权落盘并继续 Spec；D5 按同日确认的 Spec §0 框架事实修正）
 - 关系：继承 [ADR 0003](0003-visual-direction-a.md)（版面范式）、[ADR 0006](0006-appearance-and-accent.md)（外观 v2 / R1–R3）、[ADR 0008](0008-user-amap-key.md)（功能边界）、[ADR 0009](0009-settings-navigation.md)（入口）；作为 [自备高德地图 Key Spec](../specs/user-amap-key.md) 的呈现层增量，不回溯改写其已冻结色板、字号与页面顺序。

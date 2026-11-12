@@ -1,5 +1,7 @@
 # 外观 v2 设计规格（Spec）
 
+> 2026-11-12整体UI/UX增量已确认。§4–§11及对应§13验收中涉及排版、Hero、控件、表面、图表与动效的条款按[新规格§1.4](ui-ux-refinement.md#14-旧条款替代索引)执行，迁移和验收见[U00–U12](ui-ux-refinement-tickets.md)。以下正文记录此前切片的规格与实施事实。
+
 - 日期：2026-11-02
 - 状态：已确认并实施（AV01–AV09 分三批，2026-11-02 本地完成；证据见 [实施记录](../implementation/appearance-v2.md)、[渲染图册](../implementation/appearance-v2-renders/README.md)、[双轴审查](../implementation/appearance-v2-review.md)）
 - 上游：[ADR 0006](../adr/0006-appearance-and-accent.md)（已 accepted）
@@ -365,3 +367,7 @@ MileafPalette（primitive，只有 raw hex）
 - [~] 图表系列、参照、当前点、hero 内图表在两种模式下都可读。**部分**：系列/次系列/参照/网格的对比度有断言，当前点为实心 4 + 8 光晕的几何断言；「可读」的最终判断靠图册目视。
 - [x] `lib/` 内除 tokens/semantic 外仍零 `Color(0x...)`。（`grep` 0 命中）
 - [x] 四主 Tab + 两类详情 × 浅/深 × 100/200% 正式 Flutter 渲染全部重出并归档。（[图册](../implementation/appearance-v2-renders/README.md) 132 张）
+
+## 2026-11-12 整体 UI/UX 优化增量
+
+用户已确认[ADR0011](../adr/0011-ui-ux-refinement.md)与[整体规格](ui-ux-refinement.md)。§4–§11及对应§13验收中涉及排版、Hero、控件、表面、图表与动效的条款使用新规格的替代索引、设计数值和逐页规则。相关任务及测试映射见[实施Tickets](ui-ux-refinement-tickets.md)，代表视觉参考在U01交付后确认。原切片的业务契约、状态条件、数据来源和历史验收记录作为后续回归依据。
