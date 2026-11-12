@@ -87,17 +87,17 @@ void main() {
     ) async {
       await openOverview(tester, textScale: scale, size: size);
       final arc = find.byType(BatteryArc);
-      final hero = find.byType(MileafHero);
+      final hero = find.byKey(const ValueKey('overview-status'));
       expect(arc, findsOneWidget);
       expect(hero, findsOneWidget);
-      final inset = size.width >= 390 ? 24.0 : 20.0;
+      final inset = MileafSpace.s16;
       final arcRect = tester.getRect(arc);
       final heroRect = tester.getRect(hero);
       expect(arcRect.right, lessThanOrEqualTo(heroRect.right - inset + .5));
       expect(arcRect.left, greaterThanOrEqualTo(heroRect.left + inset - .5));
       expect(
         arcRect.bottom,
-        lessThanOrEqualTo(heroRect.bottom - 18 + .5),
+        lessThanOrEqualTo(heroRect.bottom - MileafSpace.s12 + .5),
         reason: '弧不得被 hero 底边裁切',
       );
       expect(tester.takeException(), isNull);
@@ -106,7 +106,7 @@ void main() {
 
   testWidgets('A 概览只有一个深色锚点，内容区没有卡片', (tester) async {
     await openOverview(tester);
-    expect(find.byType(MileafHero), findsOneWidget);
+    expect(find.byKey(const ValueKey('overview-status')), findsOneWidget);
     expect(find.byType(Card), findsNothing);
     expect(find.text('四个问题'), findsNothing);
     await tester.scrollUntilVisible(
@@ -126,7 +126,7 @@ void main() {
     final value = tester.getRect(find.textContaining('1,198.6'));
     final chartTitle = tester.getRect(find.text('每日里程'));
     expect(chartTitle.top - value.bottom, lessThan(160), reason: '本月块不应留下整块空白');
-    expect(find.textContaining('净电耗 158 Wh/km · 已知费用 ¥186.4'), findsOneWidget);
+    expect(find.textContaining('净电耗 158 Wh/km\n已知费用 ¥186.4'), findsOneWidget);
     expect(find.textContaining('8/9 次'), findsOneWidget);
   });
 
@@ -166,12 +166,7 @@ void main() {
           ? const MileafColors.dark()
           : const MileafColors.light();
       final heroMaterial = tester.widget<Material>(
-        find
-            .descendant(
-              of: find.byType(MileafHero),
-              matching: find.byType(Material),
-            )
-            .first,
+        find.byKey(const ValueKey('overview-status')),
       );
       expect(heroMaterial.color, colors.hero);
       expect(heroMaterial.color, isNot(colors.canvas));
@@ -189,7 +184,7 @@ void main() {
         mode == MileafAppearance.dark ? colors.heroText : colors.text,
       );
       expect(
-        Theme.of(tester.element(find.byType(MileafHero)))
+        Theme.of(tester.element(find.byKey(const ValueKey('overview-status'))))
             .scaffoldBackgroundColor,
         colors.canvas,
       );
@@ -197,68 +192,45 @@ void main() {
     });
   }
 
-  // AV02 / AV03：形态由 MileafColors 推导。量的是可见卡片（hero 内的 Material），
-  // 不是 MileafHero 自身的外框。
+  // P01/R01/R04 replaces AV02/03: identical inset and radius in both modes.
   for (final mode in [MileafAppearance.light, MileafAppearance.dark]) {
     for (final width in const [320.0, 360.0, 390.0]) {
       for (final scale in const [1.0, 2.0]) {
-        testWidgets(
-          'A 概览 ${mode.name} ${width.round()}宽 ${scale * 100}% hero 形态与内容宽',
-          (tester) async {
-            await openOverview(
-              tester,
-              mode: mode,
-              size: Size(width, 800),
-              textScale: scale,
-            );
-            final card = mode == MileafAppearance.light;
-            final hero = find.byType(MileafHero);
-            final box = tester.getRect(
-              find.descendant(of: hero, matching: find.byType(Material)).first,
-            );
-            final bar = tester.getRect(find.byType(MileafTopBar));
-            final outer = card ? MileafSpace.cardInset : 0.0;
-            expect(box.left, outer, reason: 'hero 左外边距');
-            expect(box.right, width - outer, reason: 'hero 右外边距');
-            // 品牌行归属：卡片形态在纸面，满幅形态在 hero 内。
-            expect(
-              find.descendant(of: hero, matching: find.text('行笺')),
-              card ? findsNothing : findsOneWidget,
-            );
-            if (card) {
-              expect(box.top, bar.bottom, reason: '卡片紧接品牌行区块，不叠加 inset');
-              expect(
-                bar.bottom - tester.getRect(find.text('行笺')).bottom,
-                greaterThanOrEqualTo(MileafSpace.cardInset),
-                reason: '品牌行与卡片之间至少留 12',
-              );
-              expect(bar.top, 0, reason: '品牌行自己承担状态栏 inset（测试环境状态栏为 0）');
-            } else {
-              expect(box.top, 0, reason: '满幅 hero 贴上边');
-              expect(bar.top, box.top, reason: '品牌行是 hero 的第一个子块');
-              expect(
-                bar.top + bar.height,
-                lessThanOrEqualTo(box.bottom),
-                reason: '品牌行完全落在 hero 内',
-              );
-            }
-            // Spec §6.5 内容宽：卡片 = 宽 − 12×2 − 16×2；满幅 = 宽 − pageInset×2。
-            final divider = tester.getRect(
-              find.descendant(of: hero, matching: find.byType(Divider)).first,
-            );
-            final pageInset = width >= 390 ? 48.0 : 40.0;
-            final content = card
-                ? width - MileafSpace.cardInset * 2 - MileafSpace.cardPad * 2
-                : width - pageInset;
-            expect(divider.width, closeTo(content, .5), reason: 'hero 内容宽');
-            expect(tester.takeException(), isNull);
-          },
-        );
+        testWidgets('U04 ${mode.name} $width $scale status geometry', (
+          tester,
+        ) async {
+          await openOverview(
+            tester,
+            mode: mode,
+            size: Size(width, 800),
+            textScale: scale,
+          );
+          final status = find.byKey(const ValueKey('overview-status'));
+          final box = tester.getRect(status);
+          final bar = tester.getRect(find.byType(MileafTopBar));
+          final inset = width >= 390 ? 24.0 : 20.0;
+          expect(box.left, inset);
+          expect(box.right, width - inset);
+          expect(box.top, bar.bottom);
+          expect(
+            find.descendant(of: status, matching: find.text('行笺')),
+            findsNothing,
+          );
+          final material = tester.widget<Material>(status);
+          expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
+          final divider = tester.getRect(
+            find.descendant(of: status, matching: find.byType(Divider)).first,
+          );
+          expect(divider.width, width - inset * 2 - MileafSpace.s16 * 2);
+          expect(tester.takeException(), isNull);
+        });
       }
     }
   }
 
-  testWidgets('A 概览浅色→深色→浅色不残留双倍 inset', (tester) async {
+  testWidgets('U04 appearance round trip preserves status geometry', (
+    tester,
+  ) async {
     final appearance = AppearanceController(
       _MemoryAppearance()..value = 'light',
     );
@@ -267,37 +239,14 @@ void main() {
       mode: MileafAppearance.light,
       appearance: appearance,
     );
-    Rect cardBox() => tester.getRect(
-      find
-          .descendant(
-            of: find.byType(MileafHero),
-            matching: find.byType(Material),
-          )
-          .first,
-    );
-    final light = cardBox();
-    final lightBar = tester.getRect(find.byType(MileafTopBar));
-    expect(light.left, MileafSpace.cardInset);
-    expect(light.top, lightBar.bottom);
-
+    Rect box() => tester.getRect(find.byKey(const ValueKey('overview-status')));
+    final light = box();
     await appearance.select(MileafAppearance.dark);
     await tester.pumpAndSettle();
-    final dark = cardBox();
-    expect(dark.left, 0, reason: '深色满幅贴边');
-    expect(dark.top, 0, reason: '深色 hero 从屏幕顶部开始');
-    expect(
-      tester.getRect(find.byType(MileafTopBar)).top,
-      dark.top,
-      reason: '深色品牌行回到 hero 内',
-    );
-
+    expect(box(), light);
     await appearance.select(MileafAppearance.light);
     await tester.pumpAndSettle();
-    final again = cardBox();
-    final againBar = tester.getRect(find.byType(MileafTopBar));
-    expect(again.left, MileafSpace.cardInset, reason: '切回浅色仍是 12，不叠加');
-    expect(again.top, againBar.bottom, reason: '切回浅色不残留空档');
-    expect(again, light, reason: '两次浅色的卡片位置一致');
+    expect(box(), light);
     expect(tester.takeException(), isNull);
   });
 }

@@ -7,7 +7,6 @@ import 'currency.dart';
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
-import 'design/motion.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -437,6 +436,9 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   Future<void> loadComparison({bool force = false}) async {
+    // A current driving request may finish after the reader changes tabs.
+    // The visible return path revalidates this resource through loadStats.
+    if (!readingVisible) return;
     final owner = workspace.session.current, calendar = workspace.calendar;
     final id = workspace.selectedId,
         requested = ranges['driving'],
@@ -518,7 +520,7 @@ class _OverviewPageState extends State<OverviewPage>
   String _shortStamp(DateTime? time) {
     if (time == null) return '未知时间';
     final local = workspace.calendar!.local(time);
-    return '${local.month}/${local.day} · '
+    return '${local.month}/${local.day} '
         '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}';
   }
@@ -555,19 +557,18 @@ class _OverviewPageState extends State<OverviewPage>
     _ => '状态未知',
   };
 
-  /// The brand row belongs to the hero only in the full-bleed (dark) form.
-  ///
-  /// Once the hero is a card, the status bar sits over paper and the row moves
-  /// out of the hero as a sibling above it (Spec §6.4); the hero adds no top
-  /// inset of its own in that form.
-  Widget _topInset() {
-    if (context.colors.heroAsCard) return const SizedBox.shrink();
-    if (widget.topBar != null) return widget.topBar!;
-    return Padding(
-      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-      child: const SizedBox(height: MileafSpace.s12),
-    );
-  }
+  // P01/R04: both appearances share the same compact status surface.
+  // MileafHero retains the historical full-bleed dark form for other callers.
+  Widget _statusSurface(Widget child) => MileafContent(
+    padding: MileafLayout.pageHorizontal(context),
+    child: Material(
+      key: const ValueKey('overview-status'),
+      color: context.colors.hero,
+      borderRadius: BorderRadius.circular(MileafRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    ),
+  );
 
   Widget _hero(dto.Summary d) {
     final colors = context.colors;
@@ -597,12 +598,15 @@ class _OverviewPageState extends State<OverviewPage>
     final range = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MileafNumber(
-          value: d.battery?.rangeKm?.toStringAsFixed(0),
-          unit: 'km',
-          scale: MetricValueScale.display,
-          onHero: true,
-        ),
+        if (d.battery?.rangeKm == null)
+          Text('— 暂无续航', style: type.metricMd.copyWith(color: colors.heroText))
+        else
+          MileafNumber(
+            value: d.battery?.rangeKm?.toStringAsFixed(0),
+            unit: 'km',
+            scale: MetricValueScale.display,
+            onHero: true,
+          ),
         const SizedBox(height: MileafSpace.s4),
         Text(
           '$rangeLabel · 非实时',
@@ -610,13 +614,15 @@ class _OverviewPageState extends State<OverviewPage>
         ),
       ],
     );
-    final arc = BatteryArc(
-      level: d.battery?.level,
-      onHero: true,
-      size: large
-          ? MileafBatteryMetrics.largeTextSize
-          : MileafBatteryMetrics.size,
-    );
+    final arc = d.battery?.level == null
+        ? Text('电量未知', style: type.micro.copyWith(color: colors.heroMuted))
+        : BatteryArc(
+            level: d.battery?.level,
+            onHero: true,
+            size: large
+                ? MileafBatteryMetrics.largeTextSize
+                : MileafBatteryMetrics.size,
+          );
     final today = d.period.today;
     final stats = large
         ? Column(
@@ -659,17 +665,16 @@ class _OverviewPageState extends State<OverviewPage>
               ),
             ],
           );
-    return MileafHero(
-      child: Column(
+    return _statusSurface(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _topInset(),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              MileafLayout.heroInset(context),
-              MileafSpace.s4,
-              MileafLayout.heroInset(context),
-              MileafSpace.heroBottom,
+              MileafSpace.s16,
+              MileafSpace.s12,
+              MileafSpace.s16,
+              MileafSpace.s12,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -694,10 +699,12 @@ class _OverviewPageState extends State<OverviewPage>
                       ),
                     ),
                     if (ago != null) ...[
-                      const SizedBox(width: MileafSpace.s12),
-                      Text(
-                        ago,
-                        style: type.label.copyWith(color: colors.heroFaint),
+                      const SizedBox(width: MileafSpace.s8),
+                      Flexible(
+                        child: Text(
+                          ago,
+                          style: type.label.copyWith(color: colors.heroFaint),
+                        ),
                       ),
                     ],
                   ],
@@ -715,13 +722,13 @@ class _OverviewPageState extends State<OverviewPage>
                       arc,
                     ],
                   ),
-                const SizedBox(height: MileafSpace.row14),
+                const SizedBox(height: MileafSpace.s8),
                 Divider(
                   height: 1,
                   thickness: 1,
                   color: colors.heroText.withValues(alpha: .12),
                 ),
-                const SizedBox(height: MileafSpace.s12),
+                const SizedBox(height: MileafSpace.s8),
                 stats,
               ],
             ),
@@ -738,17 +745,16 @@ class _OverviewPageState extends State<OverviewPage>
     scale: MetricValueScale.metricMd,
   );
 
-  Widget _heroSkeleton() => MileafHero(
-    child: Column(
+  Widget _heroSkeleton() => _statusSurface(
+    Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _topInset(),
         Padding(
           padding: EdgeInsets.fromLTRB(
-            MileafLayout.heroInset(context),
-            MileafSpace.s4,
-            MileafLayout.heroInset(context),
-            MileafSpace.heroBottom,
+            MileafSpace.s16,
+            MileafSpace.s12,
+            MileafSpace.s16,
+            MileafSpace.s12,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -788,11 +794,10 @@ class _OverviewPageState extends State<OverviewPage>
 
   Widget _heroEmpty() {
     final retryable = error != null;
-    return MileafHero(
-      child: Column(
+    return _statusSurface(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _topInset(),
           StateView(
             kind: retryable ? StateViewKind.error : StateViewKind.empty,
             onHero: true,
@@ -814,9 +819,7 @@ class _OverviewPageState extends State<OverviewPage>
     child: Row(
       children: [
         Expanded(
-          child: Wrap(
-            spacing: MileafSpace.s8,
-            runSpacing: MileafSpace.s8,
+          child: ChipRow(
             children: [
               StatusChip(
                 label: '本月',
@@ -913,7 +916,14 @@ class _OverviewPageState extends State<OverviewPage>
         style: context.type.micro.copyWith(color: context.colors.textFaint),
       );
     }
-    return MetricDelta(text: delta.text, label: delta.label, up: delta.up);
+    return MetricDelta(
+      text: delta.text,
+      label: [
+        delta.label,
+        _rangeText(comparisonRange?.previous),
+      ].whereType<String>().join('\n'),
+      up: delta.up,
+    );
   }
 
   Widget _monthSection() {
@@ -925,7 +935,7 @@ class _OverviewPageState extends State<OverviewPage>
         '${period == OverviewPeriod.month ? '本月' : '近7天'}驾驶里程 '
         '$parts km，${drives ?? '—'} 趟';
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s20),
+      padding: const EdgeInsets.only(top: MileafSpace.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -936,7 +946,7 @@ class _OverviewPageState extends State<OverviewPage>
           const SizedBox(height: MileafSpace.s8),
           MetricBlock(
             semanticLabel: semantic,
-            value: parts,
+            value: value == null ? null : parts,
             unit: 'km',
             scale: MetricValueScale.metricLg,
             trailing: _deltaWidget(),
@@ -1027,7 +1037,26 @@ class _OverviewPageState extends State<OverviewPage>
   Widget mainChart() {
     final isCharging = metric == _Metric.charge || metric == _Metric.cost;
     final source = isCharging ? charging : driving;
-    if (source == null) return const SizedBox.shrink();
+    if (source == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _metricTabs(),
+          const SizedBox(height: MileafSpace.s8),
+          if (pending.contains(isCharging ? 'charging' : 'driving'))
+            const SkeletonBlock(
+              width: double.infinity,
+              height: MileafSpace.chartHeight,
+            )
+          else
+            StateView(
+              kind: StateViewKind.error,
+              title: isCharging ? '补能数据暂不可用' : '驾驶数据暂不可用',
+              message: '可切换其他指标，或使用上方重试操作',
+            ),
+        ],
+      );
+    }
     final (title, unit) = switch (metric) {
       _Metric.distance => ('每日里程', 'km'),
       _Metric.net => ('净电耗趋势 · 估算', 'Wh/km'),
@@ -1045,7 +1074,7 @@ class _OverviewPageState extends State<OverviewPage>
     String readout(int index) {
       final value = index < values.length ? values[index] : null;
       final stamp = tickLabelAt(times, index);
-      return switch (metric) {
+      final currentReading = switch (metric) {
         _Metric.cost => '$stamp · ${widget.currency.amountValue(value)}',
         _Metric.net =>
           value == null
@@ -1056,28 +1085,59 @@ class _OverviewPageState extends State<OverviewPage>
               ? '$stamp · —'
               : '$stamp · ${value.toStringAsFixed(1)} $unit',
       };
+      final previous = reference?.elementAtOrNull(index);
+      if (value == null || previous == null) return currentReading;
+      final referenceReading =
+          '${_rangeText(comparisonRange?.previous)} '
+          '${previous.toStringAsFixed(metric == _Metric.net ? 0 : 1)} $unit';
+      final comparable =
+          metric != _Metric.net ||
+          (pairedAvailable &&
+              results['driving'] != null &&
+              comparisonResult != null &&
+              canCompare(
+                results['driving']!.body,
+                comparisonResult!.body,
+                workspace.calendar!,
+                period == OverviewPeriod.month
+                    ? StatisticsPeriod.month
+                    : StatisticsPeriod.custom,
+              ));
+      if (!comparable) {
+        return '$currentReading\n$referenceReading\n口径或覆盖待核验，仅展示原值';
+      }
+      final difference = value - previous;
+      return '$currentReading\n$referenceReading\n'
+          '差 ${difference >= 0 ? '+' : ''}${difference.toStringAsFixed(metric == _Metric.net ? 0 : 1)} $unit';
     }
 
     return TimeSeriesChart(
       key: chartKey,
       plotKey: plotKey,
+      showYAxis: true,
       title: metric == _Metric.net && pairedAvailable ? '配对净电耗趋势 · 估算' : title,
       unit: unit,
       times: times,
       semanticsLabel: '$title图表',
       series: [
         ChartSeries(
-          label: metric == _Metric.net ? '本期' : '里程',
+          label: switch (metric) {
+            _Metric.distance => '里程',
+            _Metric.net => '本期',
+            _Metric.charge => '补能',
+            _Metric.cost => '费用',
+            _Metric.energy => '驾驶消耗',
+          },
           values: values,
           style: switch (metric) {
-            _Metric.distance => ChartSeriesStyle.area,
+            _Metric.distance => ChartSeriesStyle.bars,
             _Metric.net || _Metric.energy => ChartSeriesStyle.line,
             _ => ChartSeriesStyle.bars,
           },
         ),
         if (reference != null)
           ChartSeries(
-            label: '参照',
+            label: period == OverviewPeriod.month ? '上月同期' : '前一区间',
             values: reference,
             style: ChartSeriesStyle.reference,
           ),
@@ -1092,7 +1152,7 @@ class _OverviewPageState extends State<OverviewPage>
         '点按读值',
         style: context.type.label.copyWith(color: context.colors.textFaint),
       ),
-      subtitle: _rangeText(evidence),
+      subtitle: '${_rangeText(evidence) ?? ''}\n$unit',
       tickLabel: (time) {
         final local = workspace.calendar!.local(time);
         return '${local.month}/${local.day}';
@@ -1116,26 +1176,37 @@ class _OverviewPageState extends State<OverviewPage>
     return last < 0 ? 0 : last;
   }
 
-  Widget _metricTabs() => Wrap(
-    spacing: MileafSpace.s8,
-    runSpacing: MileafSpace.s8,
-    children: [
-      for (final (m, label) in [
-        (_Metric.distance, '里程'),
-        (_Metric.net, '电耗'),
-        (_Metric.charge, '补能'),
-        (_Metric.cost, '费用'),
-      ])
-        StatusChip(
-          label: label,
-          selected: metric == m,
-          onTap: () => setState(() {
-            metric = m;
-            chartSelection = null;
-            chartSelectionAt = null;
-          }),
-        ),
-    ],
+  Widget _metricTabs() => LayoutBuilder(
+    builder: (context, constraints) {
+      final twoColumns =
+          MileafLayout.largeText(context) ||
+          MediaQuery.sizeOf(context).width <= 320;
+      final columns = twoColumns ? 2 : 4;
+      final cellWidth =
+          (constraints.maxWidth - MileafSpace.s8 * (columns - 1)) / columns;
+      return ChipRow(
+        children: [
+          for (final (m, label) in [
+            (_Metric.distance, '里程'),
+            (_Metric.net, '电耗'),
+            (_Metric.charge, '补能'),
+            (_Metric.cost, '费用'),
+          ])
+            SizedBox(
+              width: cellWidth,
+              child: StatusChip(
+                label: label,
+                selected: metric == m,
+                onTap: () => setState(() {
+                  metric = m;
+                  chartSelection = null;
+                  chartSelectionAt = null;
+                }),
+              ),
+            ),
+        ],
+      );
+    },
   );
 
   Widget _auxReadout() {
@@ -1152,40 +1223,27 @@ class _OverviewPageState extends State<OverviewPage>
     final parts = <String>[
       '净电耗 ${net == null ? '—' : '${net.toStringAsFixed(0)} Wh/km'}',
       '已知费用 ${widget.currency.amountValue(cost)}',
+      '补能 ${number(charging?.totals.energyAddedKwh, 'kWh', decimals: 2)}',
+      '驾驶 ${driving?.totals.drives ?? '—'} 趟',
       ?note,
-      ?coverage,
+      if (coverage != null) '费用已知 $coverage，缺失不表示免费',
+      '净电耗与驾驶消耗为估算',
     ];
     return Text(
-      parts.join(' · '),
+      parts.join('\n'),
       style: context.type.body.copyWith(color: context.colors.textMuted),
     );
   }
 
   Widget _chartSection() {
-    if (driving == null && charging == null) {
-      if (loading || pending.isNotEmpty) {
-        return const Padding(
-          padding: EdgeInsets.only(top: MileafSpace.section),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SkeletonBlock(width: 120, height: 18),
-              SizedBox(height: MileafSpace.s12),
-              SkeletonBlock(width: double.infinity, height: 140),
-            ],
-          ),
-        );
-      }
-      return const SizedBox.shrink();
-    }
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
+      padding: const EdgeInsets.only(top: MileafSpace.s16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           mainChart(),
           const SizedBox(height: MileafSpace.s8),
-          _auxReadout(),
+          if (driving != null || charging != null) _auxReadout(),
         ],
       ),
     );
@@ -1225,7 +1283,7 @@ class _OverviewPageState extends State<OverviewPage>
             title: '最近行程',
             meta: drive == null
                 ? '这段时间还没有行程'
-                : '${_shortStamp(drive.startedAt)} · '
+                : '${_shortStamp(drive.startedAt)}\n'
                       '净电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
             value: drive?.distanceKm?.toStringAsFixed(1),
             unit: drive?.distanceKm == null ? null : 'km',
@@ -1239,7 +1297,7 @@ class _OverviewPageState extends State<OverviewPage>
             title: '最近充电',
             meta: charge == null
                 ? '还没有充电记录'
-                : '${_shortStamp(charge.startedAt)} · '
+                : '${_shortStamp(charge.startedAt)}\n'
                       '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
             value: charge?.endSoc?.toStringAsFixed(0),
             unit: charge?.endSoc == null ? null : '%',
@@ -1664,7 +1722,7 @@ class _OverviewPageState extends State<OverviewPage>
     ),
   ]);
 
-  Widget _notesSection(dto.Summary d) => Padding(
+  Widget _notesSection(dto.Summary? d) => Padding(
     padding: const EdgeInsets.only(top: MileafSpace.section),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1685,7 +1743,7 @@ class _OverviewPageState extends State<OverviewPage>
             _comparisonNote(),
             _drivingNote(),
             _chargingNote(),
-            _vehicleNote(d),
+            if (d != null) _vehicleNote(d),
           ],
         ),
       ],
@@ -1710,10 +1768,6 @@ class _OverviewPageState extends State<OverviewPage>
       }
       final inset = MileafLayout.pageInset(context);
       final topBar = widget.topBar;
-      // Card form: the brand row is a sibling on paper, so the status bar never
-      // sits over the hero; the row's own 12 bottom padding is the gap to the
-      // card (Spec §6.4). Full bleed keeps it inside the hero.
-      final barOnPaper = context.colors.heroAsCard ? topBar : null;
       return RefreshIndicator(
         key: viewportKey,
         onRefresh: () => load(force: true),
@@ -1721,14 +1775,14 @@ class _OverviewPageState extends State<OverviewPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            ?barOnPaper,
+            ?topBar,
             if (data != null)
               _hero(data!)
             else if (loading)
               _heroSkeleton()
             else
               _heroEmpty(),
-            MileafPageEnter(
+            MileafContent(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(inset, 0, inset, MileafSpace.s24),
                 child: Column(
@@ -1744,7 +1798,10 @@ class _OverviewPageState extends State<OverviewPage>
                           ),
                         ),
                       ),
-                    if (loading && data != null) const MileafProgressLine(),
+                    if (loading && data != null) ...[
+                      const MileafProgressLine(),
+                      const Text('更新中'),
+                    ],
                     if (error != null && data != null)
                       InlineBanner(
                         message: error!,
@@ -1771,7 +1828,7 @@ class _OverviewPageState extends State<OverviewPage>
                     _chartSection(),
                     if (data != null) _recentSection(data!),
                     _continueSection(),
-                    if (data != null) _notesSection(data!),
+                    _notesSection(data),
                   ],
                 ),
               ),
