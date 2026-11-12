@@ -527,6 +527,29 @@ void main() {
       expect(find.text('费用'), findsOneWidget);
     });
 
+    testWidgets('长日期与短标签在窄屏大字下保留触控和完整语义', (tester) async {
+      var taps = 0;
+      const date = '2026-03-01 至 2026-03-30';
+      await pumpComponent(
+        tester,
+        ChipRow(
+          children: [
+            for (final label in [date, '查看期间补能记录', '里程', 'DC记录'])
+              StatusChip(label: label, onTap: () => taps++),
+          ],
+        ),
+        scale: 2,
+      );
+      expect(tester.takeException(), isNull);
+      for (final label in [date, '查看期间补能记录', '里程', 'DC记录']) {
+        final chip = find.widgetWithText(StatusChip, label);
+        expect(tester.getSize(chip).height, greaterThanOrEqualTo(44));
+        expect(tester.getSize(chip).width, lessThanOrEqualTo(320));
+        await tester.tap(chip);
+      }
+      expect(taps, 4);
+    });
+
     for (final kind in MileafButtonKind.values) {
       testWidgets('${kind.name} 按钮 44 高、禁用与 loading 可见', (tester) async {
         var taps = 0;

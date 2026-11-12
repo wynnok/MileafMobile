@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'appearance.dart';
+import 'reading_scope.dart';
 import 'design/components/icon_button.dart';
 import 'design/components/nav_bar.dart';
 import 'design/components/top_bar.dart';
@@ -57,7 +58,9 @@ class _WorkspacePageState extends State<WorkspacePage> {
     widget.session.current!.site.uri.toString(),
     widget.currencyPreferences ?? PreferenceCurrencyStore(),
   );
-  final chargingFilter = ChargingFilter();
+  var chargingFilter = ChargingFilter();
+  final pages = <int, Widget>{};
+  int? readingVehicle;
   int tab = 0;
   int statisticsKind = 0;
   int statisticsEntry = 0;
@@ -127,6 +130,23 @@ class _WorkspacePageState extends State<WorkspacePage> {
     }
   }
 
+  /// An explicit drill-down from the overview. The entry's target and period
+  /// win over whatever the statistics entry retained; no other main entry's
+  /// period follows this jump.
+  void openStatistics({
+    int kind = 0,
+    String? topic,
+    StatisticsSelection selection = const StatisticsSelection(),
+  }) {
+    setState(() {
+      statisticsEntry++;
+      statisticsKind = kind;
+      statisticsTopic = topic;
+      statisticsSelection = selection;
+      tab = 3;
+    });
+  }
+
   void record(String kind, int id) {
     if (kind == 'drive') {
       final performanceTrial = PerformanceTrace.start(
@@ -188,26 +208,28 @@ class _WorkspacePageState extends State<WorkspacePage> {
         onSettings: openSettings,
         onHero: onHero,
       );
+      if (readingVehicle != selected) {
+        readingVehicle = selected;
+        pages.clear();
+        chargingFilter = ChargingFilter();
+        statisticsKind = 0;
+        statisticsTopic = null;
+        statisticsSelection = const StatisticsSelection();
+      }
       final page = switch (tab) {
         0 => OverviewPage(
-          key: ValueKey('$selected:${workspace.revision}'),
+          key: ValueKey('overview:$selected'),
           workspace: workspace,
           currency: currency,
           // The brand row rides the hero only while the hero is full bleed;
           // once it is a card the row stays on paper (Spec §6.4).
           topBar: topBar(onHero: !context.colors.heroAsCard),
-          onStatistics: (kind, selection) => setState(() {
-            statisticsTopic = null;
-            statisticsKind = kind == 'charging' ? 1 : 0;
-            statisticsSelection = selection;
-            tab = 3;
-          }),
-          onInsight: (topic, selection) => setState(() {
-            statisticsKind = 0;
-            statisticsTopic = topic;
-            statisticsSelection = selection;
-            tab = 3;
-          }),
+          onStatistics: (kind, selection) => openStatistics(
+            kind: kind == 'charging' ? 1 : 0,
+            selection: selection,
+          ),
+          onInsight: (topic, selection) =>
+              openStatistics(topic: topic, selection: selection),
           onRecord: record,
         ),
         1 => DrivesPage(
@@ -236,25 +258,35 @@ class _WorkspacePageState extends State<WorkspacePage> {
         ),
         _ => Center(child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付')),
       };
+      pages[tab] = page;
       return Scaffold(
         body: Column(
           children: [
             if (workspace.notice != null)
               _NoticeBanner(text: workspace.notice!),
-            Expanded(child: page),
+            Expanded(
+              child: IndexedStack(
+                index: tab,
+                children: [
+                  for (var index = 0; index < 4; index++)
+                    ReadingScope(
+                      key: ValueKey('$selected:$index'),
+                      active: index == tab,
+                      child: TickerMode(
+                        enabled: index == tab,
+                        child: pages[index] ?? const SizedBox.shrink(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: MileafNavBar(
           index: tab,
-          onSelected: (index) => setState(() {
-            if (index == 3) {
-              statisticsEntry++;
-              statisticsKind = 0;
-              statisticsTopic = null;
-              statisticsSelection = const StatisticsSelection();
-            }
-            tab = index;
-          }),
+          onSelected: (index) {
+            if (index != tab) setState(() => tab = index);
+          },
         ),
       );
     },

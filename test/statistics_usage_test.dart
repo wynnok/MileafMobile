@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture;
+import 'package:mileaf/src/design/semantic.dart';
 
 Map<String, dynamic> setCoverage() => {
   'candidate_count': 20,
@@ -244,4 +245,66 @@ void main() {
     await tester.scrollUntilVisible(find.text('一周的用车节奏').hitTestable(), 200);
     expect(tester.takeException(), isNull);
   });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('${brightness.name} 周柱全部是强调色实色，不靠淡化其他星期突出峰值', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+        tester.platformDispatcher.clearPlatformBrightnessTestValue();
+      });
+      await openStats(
+        tester,
+        usageClient([]),
+        () => DateTime.utc(2026, 10, 28, 11),
+        () => 'Asia/Shanghai',
+        statisticsInsights: true,
+      );
+      await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 200);
+      await tester.tap(find.text('节奏').first);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('一周的用车节奏').hitTestable(), 200);
+
+      // Anchor on what a reader can name — each weekday's labelled bar — rather
+      // than on a widget geometry constant.
+      final semantics = tester.ensureSemantics();
+      try {
+        final colors = MileafColors.of(
+          tester.element(find.text('一周的用车节奏')),
+        );
+        final checked = <String>[];
+        for (final day in const ['一', '二', '三', '四', '五', '六', '日']) {
+          final bar = find.descendant(
+            of: find.bySemanticsLabel(RegExp('^周$day ')),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Container && widget.decoration is BoxDecoration,
+            ),
+          );
+          if (bar.evaluate().isEmpty) continue;
+          checked.add(day);
+          expect(
+            (tester.widget<Container>(bar.first).decoration! as BoxDecoration)
+                .color,
+            colors.accent,
+            reason:
+                '${brightness.name}: 周$day 的柱应是强调色实色，而不是按峰值淡化',
+          );
+        }
+        expect(
+          checked,
+          hasLength(7),
+          reason: '${brightness.name}: 七天都应能按语义定位到自己的柱',
+        );
+      } finally {
+        semantics.dispose();
+      }
+    });
+  }
 }

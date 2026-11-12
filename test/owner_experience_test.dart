@@ -9,7 +9,7 @@ import 'support/statistics_insights_fixture.dart';
 import 'charging_expansion_test.dart' show chargingStatsV2;
 
 void main() {
-  testWidgets('默认统计入口在总览自定义后恢复本月', (tester) async {
+  testWidgets('重复点击统计保留自定义期间且不发请求', (tester) async {
     final seen = <Uri>[];
     await openStats(
       tester,
@@ -30,14 +30,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.widget<StatusChip>(find.widgetWithText(StatusChip, '本月')).selected,
-      isTrue,
+      isFalse,
     );
-    expect(
-      seen
-          .where((u) => u.queryParameters['kind'] == 'driving')
-          .any((u) => u.queryParameters['from'] == '2026-09-30T16:00:00.000Z'),
-      isTrue,
-    );
+    expect(seen, isEmpty);
   });
 
   testWidgets('概览使用已声明配对净电耗和费用覆盖，旧值不冒充配对值', (tester) async {
@@ -160,7 +155,7 @@ void main() {
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('驾驶里程'), findsWidgets);
+    expect(find.text('活跃 12 天'), findsOneWidget);
   });
 
   testWidgets('统计主结果包含驾驶时长和有效趟数，节奏有显式入口', (tester) async {

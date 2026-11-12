@@ -237,7 +237,7 @@ void main() {
         unsolicited = false;
         return http.Response('', 304);
       }
-      expect(request.headers.containsKey('if-none-match'), isFalse);
+      expectSync(request.headers.containsKey('if-none-match'), isFalse);
       return http.Response(
         File('test/fixtures/summary.json').readAsStringSync(),
         200,

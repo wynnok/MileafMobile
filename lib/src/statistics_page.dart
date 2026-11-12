@@ -16,6 +16,7 @@ import 'statistics_range_page.dart';
 import 'statistics_parking_page.dart';
 import 'driving_statistics_contract.g.dart' as dto;
 import 'workspace.dart';
+import 'reading_scope.dart';
 import 'api.dart';
 import 'currency.dart';
 import 'charging_statistics_contract.g.dart' as charge;
@@ -162,7 +163,10 @@ class _StatisticsView extends StatefulWidget {
 }
 
 class _StatisticsViewState extends State<_StatisticsView>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ReadingLifecycle<_StatisticsView>,
+        CostAwareReading<_StatisticsView> {
   late StatisticsSelection selection = widget.initialSelection;
   dto.DrivingStats? data;
   charge.ChargingStats? chargingData;
@@ -181,10 +185,12 @@ class _StatisticsViewState extends State<_StatisticsView>
   final consumption = _Sampling();
   final charging = _Sampling();
   final classification = _Sampling();
+  @override
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
     super.initState();
+    initCostReading();
     workspace.addCostReader(refreshCost);
     WidgetsBinding.instance.addObserver(this);
     if (widget.active) load();
@@ -193,9 +199,12 @@ class _StatisticsViewState extends State<_StatisticsView>
   @override
   void didUpdateWidget(covariant _StatisticsView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !oldWidget.active) {
+    if (readingActive && widget.active && !oldWidget.active) {
       final calendar = workspace.calendar!;
+      final costChanged = widget.kind == 'charging' && costPending;
+      if (widget.kind != 'charging') consumeCost();
       load(
+        force: costChanged,
         reset:
             resultZone != calendar.identifier ||
             resultDay != calendar.day(workspace.session.now()),
@@ -212,23 +221,44 @@ class _StatisticsViewState extends State<_StatisticsView>
   }
 
   Future<bool> refreshCost() async {
-    if (widget.kind != 'charging') return true;
+    if (widget.kind != 'charging') {
+      consumeCost();
+      return true;
+    }
+    // A hidden or inactive charging view defers the fee refresh; the revision
+    // is consumed when this view is visible again.
+    if (!readingVisible || !widget.active) {
+      deferCost();
+      return false;
+    }
     await load(force: true);
-    return error == null;
+    final refreshed = error == null;
+    if (refreshed) consumeCost();
+    return refreshed;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (widget.active &&
-        state == AppLifecycleState.resumed &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
+    if (readingVisible && widget.active && state == AppLifecycleState.resumed) {
       foreground();
     }
   }
 
+  @override
+  Future<void> resumeReading() async {
+    if (widget.active) await foreground();
+  }
+
   Future<void> foreground() async {
     final changed = await workspace.foreground();
-    if (mounted) await load(reset: changed);
+    if (!mounted || !readingPresent || !widget.active) return;
+    if (widget.kind != 'charging') consumeCost();
+    if (costPending) {
+      await load(force: true);
+      if (mounted && error == null) consumeCost();
+      return;
+    }
+    await load(reset: changed);
   }
 
   Future<void> load({bool force = false, bool reset = false}) async {
@@ -333,21 +363,21 @@ class _StatisticsViewState extends State<_StatisticsView>
   /// A stepper row keeps the published 前/后一个采样 behaviour without the C
   /// chart widget; it mutates the chart's [_Sampling] so pages never carry the
   /// four selections themselves.
-  Widget _steppers(_Sampling sampling, int length, {Key? nextKey}) {
-    final selected = sampling.clampedIndex(length);
+  Widget _steppers(_Sampling sampling, List<DateTime> times, {Key? nextKey}) {
+    final selected = sampling.resolve(times);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
           onPressed: selected > 0
-              ? () => setState(() => sampling.index = selected - 1)
+              ? () => setState(() => sampling.select(times, selected - 1))
               : null,
           child: const Text('前一个采样'),
         ),
         TextButton(
           key: nextKey,
-          onPressed: selected < length - 1
-              ? () => setState(() => sampling.index = selected + 1)
+          onPressed: selected < times.length - 1
+              ? () => setState(() => sampling.select(times, selected + 1))
               : null,
           child: const Text('后一个采样'),
         ),
@@ -408,6 +438,9 @@ class _StatisticsViewState extends State<_StatisticsView>
               selection: selection,
               calendar: calendar,
               now: workspace.session.now(),
+              // The dialog's own completion loads the picked period; closing
+              // it must not revalidate the abandoned one as well.
+              editor: readingEditor,
               onChanged: (value) {
                 setState(() => selection = value);
                 load(reset: true);
@@ -482,7 +515,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       2 => 2,
       _ => 0,
     };
-    final point = driving.clampedIndex(times.length);
+    final point = driving.resolve(times);
     return [
       Padding(
         padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -518,7 +551,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         plotKey: const ValueKey('driving-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
-        onSelected: (index) => setState(() => driving.index = index),
+        onSelected: (index) => setState(() => driving.select(times, index)),
         readout: (index) =>
             '$title读数 '
             '${index < values.length ? number(values[index], unit, decimals: decimals) : '—'}',
@@ -527,7 +560,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       if (times.isNotEmpty)
         _steppers(
           driving,
-          times.length,
+          times,
           nextKey: const ValueKey('statistics-driving-next'),
         ),
       const SizedBox(height: MileafSpace.section),
@@ -579,7 +612,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     List<dto.DrivingBucket> buckets,
     List<DateTime> times,
   ) {
-    final point = consumption.clampedIndex(times.length);
+    final point = consumption.resolve(times);
     final net = [for (final bucket in buckets) bucket.consumptionWhKmNet];
     final gross = [for (final bucket in buckets) bucket.consumptionWhKmGross];
     return Column(
@@ -598,7 +631,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           plotKey: const ValueKey('driving-consumption-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
-          onSelected: (index) => setState(() => consumption.index = index),
+          onSelected: (index) =>
+              setState(() => consumption.select(times, index)),
           readout: (index) =>
               '净电耗读数 ${index < net.length ? number(net[index], 'Wh/km') : '—'}'
               '；毛电耗读数 ${index < gross.length ? number(gross[index], 'Wh/km') : '—'}',
@@ -608,7 +642,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         if (times.isNotEmpty)
           _steppers(
             consumption,
-            times.length,
+            times,
             nextKey: const ValueKey('statistics-consumption-next'),
           ),
       ],
@@ -658,7 +692,7 @@ class _StatisticsViewState extends State<_StatisticsView>
                 : richer.buckets[index].unitCostAdded.value,
         },
     ];
-    final point = charging.clampedIndex(times.length);
+    final point = charging.resolve(times);
     // 没有一条记录带电量就是未知；真实 0 保留 0。
     final energyMissing =
         richer != null && richer.totals.energyKnownSessions == 0;
@@ -705,7 +739,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         plotKey: const ValueKey('charging-statistics-chart'),
         tickLabel: (t) => _tick(calendar, t),
         selectedIndex: point,
-        onSelected: (index) => setState(() => charging.index = index),
+        onSelected: (index) => setState(() => charging.select(times, index)),
         readout: (index) {
           final value = index < values.length ? values[index] : null;
           if (chargingMetric >= 2) {
@@ -726,7 +760,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       if (times.isNotEmpty)
         _steppers(
           charging,
-          times.length,
+          times,
           nextKey: const ValueKey('statistics-charging-next'),
         ),
       const SizedBox(height: MileafSpace.section),
@@ -851,7 +885,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     expanded.ChargingStats? richer,
     List<DateTime> times,
   ) {
-    final point = classification.clampedIndex(times.length);
+    final point = classification.resolve(times);
     final ac = [for (final b in buckets) b.acEnergyKwh];
     final dc = [for (final b in buckets) b.dcEnergyKwh];
     final unknown = richer == null
@@ -879,7 +913,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           plotKey: const ValueKey('charging-classification-chart'),
           tickLabel: (t) => _tick(calendar, t),
           selectedIndex: point,
-          onSelected: (index) => setState(() => classification.index = index),
+          onSelected: (index) =>
+              setState(() => classification.select(times, index)),
           readout: (index) =>
               'AC读数 ${index < ac.length ? number(ac[index], 'kWh', decimals: 2) : '—'}',
           emptyMessage: '区间内无趋势数据',
@@ -897,7 +932,7 @@ class _StatisticsViewState extends State<_StatisticsView>
             ),
           _steppers(
             classification,
-            times.length,
+            times,
             nextKey: const ValueKey('statistics-classification-next'),
           ),
         ],
@@ -969,7 +1004,18 @@ class _StatisticsViewState extends State<_StatisticsView>
 /// `int` plus its own clamp, so 「前/后一个采样」 behaves identically everywhere.
 class _Sampling {
   int index = 0;
+  DateTime? at;
 
   /// 0 for an empty bucket list, otherwise the index inside `0..length-1`.
   int clampedIndex(int length) => length <= 0 ? 0 : index.clamp(0, length - 1);
+
+  /// Keeps a deliberate sample by its bucket date across a shifted window,
+  /// then falls back to the nearest earlier sample that still exists.
+  int resolve(List<DateTime> times) =>
+      bucketIndexAt(times, at) ?? clampedIndex(times.length);
+
+  void select(List<DateTime> times, int next) {
+    index = next;
+    at = next >= 0 && next < times.length ? times[next] : null;
+  }
 }

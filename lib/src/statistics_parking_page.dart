@@ -8,6 +8,7 @@ import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 
+import 'reading_scope.dart';
 import 'statistics_insights_page.dart';
 import 'parking_observations_contract.g.dart' as dto;
 
@@ -30,16 +31,30 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
   String? cursor, error;
   bool busy = false;
   int sequence = 0, selected = 0;
+
+  /// The owner is actually looking at this topic: its own route is on top and
+  /// the statistics tab it lives in is the selected one.
+  bool get readingNow =>
+      ReadingScope.isActive(context) &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
   String get identity {
     final c = widget.context;
     return '${c.workspace.session.current?.generation}/${c.workspace.selectedId}/${c.workspace.calendar?.identifier}/${c.workspace.revision}/${c.window.from}/${c.window.to}/${c.window.bucket}/${c.features['parking_observations']}';
   }
 
+  String get readingIdentity {
+    final c = widget.context;
+    return '${c.workspace.session.current?.generation}/${c.workspace.selectedId}/${c.workspace.calendar?.identifier}/${c.selection.period}/${c.selection.start}/${c.selection.end}';
+  }
+
+  late String loadedReadingIdentity;
   late String loadedIdentity;
   @override
   void initState() {
     super.initState();
     loadedIdentity = identity;
+    loadedReadingIdentity = readingIdentity;
     WidgetsBinding.instance.addObserver(this);
     load();
   }
@@ -47,12 +62,19 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
   @override
   void didUpdateWidget(covariant ParkingObservationPage old) {
     super.didUpdateWidget(old);
-    if (loadedIdentity != identity) {
+    // A hidden or covered topic records nothing and reads nothing; the next
+    // visible rebuild picks the change up.
+    if ((loadedIdentity != identity ||
+            loadedReadingIdentity != readingIdentity) &&
+        readingNow) {
       loadedIdentity = identity;
-      data = null;
+      if (loadedReadingIdentity != readingIdentity) {
+        data = null;
+        selected = 0;
+      }
+      loadedReadingIdentity = readingIdentity;
       items.clear();
       cursor = null;
-      selected = 0;
       load();
     }
   }
@@ -66,11 +88,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        mounted &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
-      load();
-    }
+    if (state == AppLifecycleState.resumed && mounted && readingNow) load();
   }
 
   Future<void> load({bool more = false, bool force = false}) async {
@@ -121,9 +139,31 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       if (valid()) {
         setState(() {
           if (!more) {
+            final oldRows = data?['buckets'] as List? ?? const [];
+            final newRows = response.body['buckets'] as List;
+            // Dates can repeat. Evidence values distinguish those rows, and
+            // occurrence rank distinguishes otherwise identical observations.
+            Object pointIdentity(dynamic row) => (
+              row['bucket_start'],
+              row['soc_change_pp'],
+              row['soc_change_pp_per_24h'],
+              row['observed_hours'],
+              row['valid_windows'],
+            );
+            final picked = selected < oldRows.length
+                ? pointIdentity(oldRows[selected])
+                : null;
+            final rank = oldRows
+                .take(selected)
+                .where((row) => pointIdentity(row) == picked)
+                .length;
+            final matches = [
+              for (var i = 0; i < newRows.length; i++)
+                if (pointIdentity(newRows[i]) == picked) i,
+            ];
+            selected = rank < matches.length ? matches[rank] : 0;
             data = response.body;
             items.clear();
-            selected = 0;
           }
           items.addAll([
             for (final x in response.body['items'] as List)
@@ -165,7 +205,9 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       'offline': '离线',
       'unknown': '未知',
     };
-    // A「夜航」只有一条绿色色阶：状态用不透明度分层，不用 Material 调色板。
+    // A「夜航」只有一条强调色色阶（外观 v2 后为电光蓝，不再是玉绿）：状态用
+    // 不透明度分层，不用 Material 调色板。这条占比条的色阶本身就是量级编码，
+    // 因此按 Spec §8.1 的例外保留半透明，不适用实色规则。
     final palette = context.colors;
     final colors = [
       palette.accent,

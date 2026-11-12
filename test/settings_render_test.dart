@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
@@ -12,6 +10,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'appearance_shell_test.dart' show MemoryAppearanceStore, shellClient;
 import 'charging_test.dart' show MemoryCurrency;
 import 'support/map_key_fixture.dart';
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -23,13 +22,7 @@ const _font = String.fromEnvironment('MILEAF_RENDER_FONT');
 void main() {
   setUpAll(() async {
     if (_output.isEmpty) return;
-    final bytes = ByteData.sublistView(File(_font).readAsBytesSync());
-    for (final family in ['Inter', 'Roboto', 'Arial', 'sans-serif']) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
-    }
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: _font);
   });
 
   testWidgets('设置与连接正式组件浅深、大字号、键盘渲染', (tester) async {

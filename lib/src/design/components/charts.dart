@@ -244,11 +244,20 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             final left = widget.showYAxis ? 34.0 : 0.0;
             final bottom = widget.showXAxis ? 18.0 * math.min(scale, 1.5) : 0.0;
             final plotWidth = math.max(1.0, constraints.maxWidth - left);
+            // Spec §8: the current marker is a 4px point inside an 8px halo.
+            // The grid keeps one halo of margin top and bottom so a mark at the
+            // maximum, the minimum, a negative value or a real zero is never
+            // cut by the plot edge.
             final plot = Rect.fromLTWH(
               left,
-              6,
+              MileafChartMetrics.currentHalo,
               plotWidth,
-              math.max(1.0, plotHeight - bottom - 6),
+              math.max(
+                1.0,
+                plotHeight -
+                    bottom -
+                    2 * MileafChartMetrics.currentHalo,
+              ),
             );
             double? lastFraction;
             void selectAt(Offset position) {
@@ -405,6 +414,25 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         _ => widget.onHero ? colors.accentHero : colors.accent,
       };
 }
+
+/// Style for the text the chart paints itself (axis labels, tick labels).
+///
+/// The painter cannot read the theme, so the family and the CJK fallback are
+/// declared here once: self-drawn chart text falls back to the same face as
+/// every other number on the page. Size still follows the text scaler up to
+/// the 150% axis-label cap.
+TextStyle chartAxisLabelStyle({
+  required Color color,
+  required TextScaler scaler,
+  double? fontSize,
+}) => TextStyle(
+  fontFamily: MileafType.family,
+  fontFamilyFallback: MileafType.fallback,
+  fontSize:
+      fontSize ?? MileafChartMetrics.axisLabelSize * math.min(scaler.scale(1), 1.5),
+  color: color,
+  fontFeatures: const [FontFeature.tabularFigures()],
+);
 
 class _ChartTitle extends StatelessWidget {
   const _ChartTitle({required this.title, required this.color});
@@ -618,7 +646,7 @@ class _SparkPainter extends CustomPainter {
             Rect.fromLTRB(x(i) - width / 2, top, x(i) + width / 2, y(0)),
             const Radius.circular(1),
           ),
-          Paint()..color = color.withValues(alpha: .55),
+          Paint()..color = color,
         );
       }
       return;
@@ -730,14 +758,7 @@ class _ChartPainter extends CustomPainter {
         ? inner.center.dx
         : inner.left + index / (times.length - 1) * inner.width;
 
-    final labelStyle = TextStyle(
-      fontFamily: MileafType.family,
-      fontFamilyFallback: MileafType.fallback,
-      fontSize:
-          MileafChartMetrics.axisLabelSize * math.min(scaler.scale(1), 1.5),
-      color: axis,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+    final labelStyle = chartAxisLabelStyle(color: axis, scaler: scaler);
     void label(
       String text,
       Offset at, {
@@ -784,11 +805,12 @@ class _ChartPainter extends CustomPainter {
       }
     }
 
-    final clip = Rect.fromLTWH(
+    const halo = MileafChartMetrics.currentHalo;
+    final clip = Rect.fromLTRB(
       plot.left,
-      plot.top - 4,
-      plot.width * progress.clamp(0.0, 1.0),
-      plot.height + 8,
+      plot.top - halo,
+      plot.left + plot.width * progress.clamp(0.0, 1.0),
+      plot.bottom + halo,
     );
     canvas.save();
     canvas.clipRect(clip);
@@ -825,12 +847,15 @@ class _ChartPainter extends CustomPainter {
       (s) => s.style != ChartSeriesStyle.reference,
     );
     final first = primarySeries.isEmpty ? null : primarySeries.first;
-    if (first != null &&
-        selected < first.values.length &&
-        first.values[selected] != null &&
-        first.style != ChartSeriesStyle.bars &&
-        first.style != ChartSeriesStyle.stem) {
-      final point = Offset(x(selected), y(first.values[selected]!));
+    final value = first != null && selected < first.values.length
+        ? first.values[selected]
+        : null;
+    if (first != null && value != null) {
+      // The selected mark is an endpoint plus halo for every series style, so
+      // selection never relies on fading the other data. A real zero is the one
+      // exception, in every style: it keeps the zero dot so the selection
+      // marker can never be mistaken for bar volume.
+      final point = Offset(x(selected), y(value));
       canvas.drawCircle(
         point,
         MileafChartMetrics.currentHalo,
@@ -838,7 +863,9 @@ class _ChartPainter extends CustomPainter {
       );
       canvas.drawCircle(
         point,
-        MileafChartMetrics.currentPoint,
+        value == 0
+            ? MileafChartMetrics.zeroDot
+            : MileafChartMetrics.currentPoint,
         Paint()..color = primary,
       );
     }
@@ -968,13 +995,14 @@ class _ChartPainter extends CustomPainter {
           rect,
           const Radius.circular(MileafChartMetrics.barRadius),
         ),
-        Paint()
-          ..color = primary.withValues(
-            alpha: i == selected ? 1 : MileafChartMetrics.barIdleOpacity,
-          ),
+        Paint()..color = primary,
       );
       if (value == 0) {
-        canvas.drawCircle(Offset(x(i), y(0)), 1.5, Paint()..color = primary);
+        canvas.drawCircle(
+          Offset(x(i), y(0)),
+          MileafChartMetrics.zeroDot,
+          Paint()..color = primary,
+        );
       }
     }
   }
@@ -987,23 +1015,20 @@ class _ChartPainter extends CustomPainter {
   ) {
     for (final index in chartStemIndices(chart.values)) {
       final value = chart.values[index]!;
-      final color = primary.withValues(
-        alpha: index == selected ? 1 : MileafChartMetrics.stemIdleOpacity,
-      );
       final top = Offset(x(index), y(value));
       final bottom = Offset(x(index), y(0));
       canvas.drawLine(
         bottom,
         top,
         Paint()
-          ..color = color
+          ..color = primary
           ..strokeWidth = MileafChartMetrics.stemStroke
           ..strokeCap = StrokeCap.round,
       );
       canvas.drawCircle(
         top,
         MileafChartMetrics.stemEndpoint,
-        Paint()..color = color,
+        Paint()..color = primary,
       );
     }
   }

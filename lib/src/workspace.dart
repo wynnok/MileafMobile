@@ -261,12 +261,19 @@ class VehicleWorkspace extends ChangeNotifier {
   void removeCostReader(Future<bool> Function() reader) =>
       _costReaders.remove(reader);
 
+  /// Bumped whenever an entered fee invalidates charge-derived snapshots.
+  /// Retained pages compare it on return: a hidden page never reads while
+  /// hidden, but a page that has not consumed this revision must revalidate
+  /// its real records and totals on its next visible frame. #25 shares it.
+  int costRevision = 0;
+
   /// A fee change is data refresh, never a vehicle/session revision.
   Future<bool> refreshChargingCosts(SiteSession owner, int vehicle) async {
     if (_disposed || !session.isCurrent(owner) || selectedId != vehicle) {
       return false;
     }
     cache.invalidateChargingCosts(vehicle);
+    costRevision++;
     final results = await Future.wait(
       _costReaders.toList().map((reader) async {
         try {

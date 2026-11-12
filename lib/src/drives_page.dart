@@ -1,6 +1,8 @@
 import 'number_format.dart';
 import 'api.dart';
+import 'reading_scope.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'design/components/components.dart';
@@ -13,6 +15,10 @@ import 'design/typography.dart';
 import 'driving_statistics_contract.g.dart' as stats;
 import 'drives_contract.g.dart' as dto;
 import 'workspace.dart';
+
+/// A server cursor that never advances would page forever; the list keeps what
+/// it already read and says so instead of blaming the contract version.
+const _cursorStalled = '分页游标未前进，已保留现有行程，请刷新或手动重试';
 
 class DrivesPage extends StatefulWidget {
   const DrivesPage({
@@ -28,7 +34,8 @@ class DrivesPage extends StatefulWidget {
   State<DrivesPage> createState() => _DrivesPageState();
 }
 
-class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
+class _DrivesPageState extends State<DrivesPage>
+    with WidgetsBindingObserver, ReadingLifecycle<DrivesPage> {
   List<dto.Drive> items = [];
   String? error, pageError, cursor;
   bool loading = false, paging = false, loaded = false;
@@ -41,10 +48,23 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   String? statsError;
   bool statsLoading = false;
   Map<String, String> statsQuery = {}, statsSnapshot = {};
-  String? windowDay, windowZone;
-  late Map<String, String> query;
+  Map<String, String> query = const {};
+
+  /// Reading range of the records on screen. The open end (`to`) follows the
+  /// clock, so continuity is keyed on the start and page size instead.
+  ({String from, String limit})? listRange;
+  int loadedPages = 0;
   CachedResult? result;
+
+  /// Set when a revalidation was cut short because the page stopped being
+  /// visible. The records already on screen stay untouched, and the whole
+  /// range is checked again on the next visible frame instead of being
+  /// reported as refreshed.
+  bool revalidatePending = false;
   VehicleWorkspace get workspace => widget.workspace;
+  ({String from, String limit}) get _range =>
+      (from: query['from'] ?? '', limit: query['limit'] ?? '');
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +78,10 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant DrivesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (revision != workspace.revision) {
+    // A revision the owner cannot see (hidden tab, or a detail route on top)
+    // stays unhandled here: the visible frame re-reads it with the current
+    // calendar instead of fetching behind the detail.
+    if (readingWasVisible && revision != workspace.revision) {
       revision = workspace.revision;
       resetQuery();
       load(clear: true);
@@ -76,21 +99,31 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
-      foreground();
-    }
+    if (readingVisible && state == AppLifecycleState.resumed) foreground();
   }
+
+  @override
+  Future<void> resumeReading() => foreground();
 
   Future<void> foreground() async {
     final changed = await workspace.foreground();
-    if (!mounted || changed) return;
-    final calendar = workspace.calendar!;
-    if (windowDay != calendar.day(workspace.session.now()) ||
-        windowZone != calendar.identifier) {
+    // The owner may have hidden the page or opened a detail while the calendar
+    // was read; then this pass must not start reads behind them.
+    if (!mounted || !readingPresent) return;
+    final stale = changed || revision != workspace.revision;
+    revision = workspace.revision;
+    if (stale) {
+      revalidatePending = false;
       if (custom == null) selectedDay = null;
       resetQuery();
-      await Future.wait([load(clear: true), loadStats(clear: true)]);
+      await _revalidate();
+      return;
+    }
+    if (revalidatePending) {
+      // A read that was cut short by hiding still owes the whole read range;
+      // the snapshot on screen was never replaced by a partial one.
+      revalidatePending = false;
+      await _revalidate();
       return;
     }
     final owner = workspace.session.current;
@@ -115,16 +148,27 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       }
       return;
     }
-    resetQuery();
-    await Future.wait([load(), loadStats()]);
+    // The snapshot outlived its TTL: recompute the window, then either start a
+    // new reading context or revalidate the range the owner already read.
+    resetQuery(keepChartPoint: true);
+    await _revalidate();
   }
 
-  void resetQuery() {
-    chartDayTouched = false;
+  Future<void> _revalidate() async {
+    if (listRange != _range) {
+      await Future.wait([load(clear: true), loadStats(clear: true)]);
+      return;
+    }
+    await Future.wait([load(preservePages: true), loadStats()]);
+  }
+
+  /// Rebuilds both queries from the current calendar, range and day filter.
+  /// A return to the same range keeps the rhythm point the owner picked.
+  void resetQuery({bool keepChartPoint = false}) {
+    final touched = chartDayTouched;
+    final previousRange = query.isEmpty ? null : _range;
     final clock = workspace.calendar!;
     final now = workspace.session.now();
-    windowDay = clock.day(now);
-    windowZone = clock.identifier;
     final today = clock.local(now);
     final first =
         custom?.start ??
@@ -153,6 +197,9 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
       'to': (dayEnd.isAfter(to) ? to : dayEnd).toIso8601String(),
       'limit': '20',
     };
+    chartDayTouched = keepChartPoint && previousRange == _range
+        ? touched
+        : false;
   }
 
   Future<void> loadStats({bool force = false, bool clear = false}) async {
@@ -223,10 +270,15 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Loads the first page, appends one more cursor page, or — with
+  /// [preservePages] — revalidates the whole range the owner already read.
+  /// The swap happens once at the end, so a failed revalidation keeps the
+  /// visible snapshot and its range instead of truncating it.
   Future<void> load({
     bool force = false,
     bool more = false,
     bool clear = false,
+    bool preservePages = false,
   }) async {
     if (more && (loading || paging || cursor == null)) return;
     if (!DateTime.parse(query['from']!)
@@ -238,6 +290,8 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
         cursor = null;
         loading = false;
         paging = false;
+        loadedPages = 0;
+        listRange = null;
         error = '当前日期范围尚无可查询时段，请选择历史日期或稍后刷新';
       });
       return;
@@ -246,7 +300,12 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
     final id = workspace.selectedId;
     if (session == null || id == null) return;
     final attempt = more ? sequence : ++sequence;
-    final requested = {...query, if (more) 'cursor': cursor!};
+    final range = _range;
+    // One fixed query snapshot per read. A page that arrives late must never
+    // append its cursor to conditions the owner changed in the meantime.
+    final requested = Map<String, String>.of(query);
+    final startCursor = more ? cursor : null;
+    final targetPages = preservePages ? (loadedPages < 1 ? 1 : loadedPages) : 1;
     setState(() {
       if (more) {
         paging = true;
@@ -256,10 +315,14 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
         paging = false;
         error = null;
         pageError = null;
-        cursor = null;
+        // A cursor belongs to one range; a same-range refresh may keep it so a
+        // failed attempt cannot strand the records already on screen.
+        if (clear || listRange != range) cursor = null;
         if (clear) {
           items = [];
           loaded = false;
+          loadedPages = 0;
+          listRange = null;
           result = null;
         }
       }
@@ -269,27 +332,71 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
         attempt == sequence &&
         workspace.session.isCurrent(session) &&
         workspace.selectedId == id;
+    // A read still belongs to this page only while its own query is unchanged.
+    bool owned() => current() && mapEquals(query, requested);
     try {
-      final value = await workspace.cache.get(
-        session,
-        'vehicles/$id/drives',
-        query: requested,
-        force: force,
-      );
-      final page = dto.DrivePage.fromJson(value.body);
+      final page = <dto.Drive>[];
+      final visited = <String?>{};
+      String? following = startCursor;
+      CachedResult? value;
+      var fetched = 0;
+      var stalled = false;
+      var interrupted = false;
+      do {
+        if (!visited.add(following)) {
+          stalled = true;
+          break;
+        }
+        value = await workspace.cache.get(
+          session,
+          'vehicles/$id/drives',
+          query: {...requested, 'cursor': ?following},
+          force: force,
+        );
+        // The request already in flight may finish; the next one may not be
+        // started from a page the owner can no longer see.
+        if (!owned()) return;
+        if (!readingPresent) {
+          interrupted = true;
+          break;
+        }
+        final decoded = dto.DrivePage.fromJson(value.body);
+        page.addAll(decoded.items);
+        following = decoded.nextCursor;
+        fetched++;
+      } while (fetched < targetPages && following != null);
       if (!current()) return;
+      if (interrupted) {
+        // Keep the pages, their cursor and their range exactly as they were;
+        // the abandoned read is retried when the page is visible again.
+        if (!more) revalidatePending = true;
+        return;
+      }
+      if (stalled) {
+        // A cursor that stops advancing cannot rebuild the range the owner
+        // read. Keep the pages on screen and name the real cause instead of
+        // blaming the contract version (Spec #22: 失效旧查询游标，失败保留
+        // 当前快照). The ledger reports the same condition the same way.
+        setState(
+          () => more ? pageError = _cursorStalled : error = _cursorStalled,
+        );
+        return;
+      }
       setState(() {
         final seen = <int>{};
         items = [
           ...(more ? items : <dto.Drive>[]),
-          ...page.items,
+          ...page,
         ].where((item) => seen.add(item.id)).toList();
-        cursor = page.nextCursor;
-        if (more && cursor != null && cursor == requested['cursor']) {
-          pageError = '分页游标未前进，已保留现有行程，请刷新或重试';
+        cursor = following;
+        if (more && cursor != null && cursor == startCursor) {
+          pageError = _cursorStalled;
         }
+        loadedPages = more ? loadedPages + fetched : fetched;
+        listRange = range;
         loaded = true;
         result = value;
+        if (!more) revalidatePending = false;
       });
     } catch (e) {
       if (!current()) return;
@@ -311,6 +418,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
           pageError = message;
         } else {
           error = message;
+          revalidatePending = false;
         }
       });
       if (e is BusinessFailure && e.status == 404) {
@@ -329,16 +437,32 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Manual retry of a failed read. A failed extra page keeps its own cursor;
+  /// a failed revalidation keeps the range and pages already read instead of
+  /// collapsing the list back to the first page (Spec #22: 失败保留当前快照
+  /// 并提供重试). The ledger retries the same way.
+  Future<void> retryLoad() async {
+    if (pageError != null) {
+      await load(more: true, force: true);
+      return;
+    }
+    await load(force: true, preservePages: listRange == _range);
+  }
+
   Future<void> chooseDates() async {
     final today = workspace.calendar!.local(workspace.session.now());
     final last = DateTime(today.year, today.month, today.day);
-    final range = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(1900),
-      lastDate: last,
-      initialDateRange: custom,
-      initialEntryMode: DatePickerEntryMode.input,
-      helpText: '选择行程日期（含首尾日期）',
+    // The picker is this page's own editor: its completion reloads the range
+    // it returns, so closing it must not revalidate the abandoned range too.
+    final range = await readingEditor(
+      () => showDateRangePicker(
+        context: context,
+        firstDate: DateTime(1900),
+        lastDate: last,
+        initialDateRange: custom,
+        initialEntryMode: DatePickerEntryMode.input,
+        helpText: '选择行程日期（含首尾日期）',
+      ),
     );
     if (!mounted || range == null) return;
     custom = range;
@@ -874,7 +998,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                         message: error!,
                         tone: BannerTone.error,
                         actionLabel: '重试行程',
-                        onAction: () => load(force: true),
+                        onAction: retryLoad,
                       ),
                     if (statsError != null)
                       InlineBanner(
@@ -905,7 +1029,7 @@ class _DrivesPageState extends State<DrivesPage> with WidgetsBindingObserver {
                         message: pageError!,
                         tone: BannerTone.error,
                         actionLabel: '重试加载更多',
-                        onAction: () => load(more: true, force: true),
+                        onAction: retryLoad,
                       ),
                     if (cursor != null &&
                         !loading &&

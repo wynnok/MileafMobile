@@ -231,11 +231,12 @@ abstract final class MileafChartMetrics {
   static const currentHalo = 8.0;
   static const pointRadius = 2.5;
   static const stemStroke = 1.5;
-  static const stemIdleOpacity = .35;
   static const stemEndpoint = 2.5;
+
+  /// A real zero under a bar: a dot on the baseline, never a sliver of volume.
+  static const zeroDot = 1.5;
   static const barMaxWidth = 12.0;
   static const barSlotCoverage = .6;
-  static const barIdleOpacity = .3;
   static const barRadius = 1.0;
   static const axisLabelSize = 9.0;
   static const referenceDash = <double>[4, 4];

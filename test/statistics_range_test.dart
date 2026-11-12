@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:mileaf/src/design/components/components.dart';
+
+import 'overview_test.dart' show background, foreground;
 import 'statistics_test.dart' show openStats, fixture;
 import 'support/statistics_insights_fixture.dart';
 
@@ -131,6 +134,64 @@ Future<void> openRange(
 }
 
 void main() {
+  testWidgets('统计Tab隐藏时嵌入的长期续航不请求，可见时按30秒规则校验', (tester) async {
+    var now = DateTime.utc(2026, 10, 28, 11);
+    final reads = <Uri>[];
+    await openStats(
+      tester,
+      MockClient((r) async {
+        if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
+        if (r.url.path.endsWith('/summary')) return fixture('summary');
+        if (r.url.path.endsWith('/meta')) {
+          // No insights overview: the long topics are embedded in the tab.
+          return http.Response(
+            jsonEncode(
+              statisticsInsightsMeta(features: {'range_observations': true}),
+            ),
+            200,
+          );
+        }
+        if (r.url.path.endsWith('/range-observations')) {
+          reads.add(r.url);
+          return http.Response(
+            jsonEncode(
+              rangeResponse(
+                months: int.parse(r.url.queryParameters['months']!),
+              ),
+            ),
+            200,
+          );
+        }
+        return http.Response(jsonEncode(statisticsInsightsFixture(r.url)), 200);
+      }),
+      () => now,
+      () => 'Asia/Shanghai',
+      statisticsInsights: true,
+    );
+    await tester.tap(find.text('长期'));
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '前置：嵌入的长期续航确实读过');
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
+    );
+    await tester.pumpAndSettle();
+    reads.clear();
+    now = now.add(const Duration(minutes: 5));
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(reads, isEmpty, reason: '统计Tab隐藏时，嵌入专题不得在后台请求');
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
+    );
+    await tester.pumpAndSettle();
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '重新可见后按自己的30秒规则校验');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('续航专题读取6/12月服务端波动带和原值', (tester) async {
     final requests = <int>[];
     await openRange(tester, requests);

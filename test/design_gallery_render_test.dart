@@ -1,7 +1,5 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/icons.dart';
@@ -10,6 +8,7 @@ import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/typography.dart';
 
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
@@ -19,26 +18,7 @@ const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
-    final bytes = ByteData.sublistView(File(fontPath).readAsBytesSync());
-    for (final family in [
-      'PingFang SC',
-      'Noto Sans CJK SC',
-      'Heiti SC',
-      'sans-serif',
-    ]) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
-    }
-    for (final file in [
-      'Inter-Regular.ttf',
-      'Inter-Medium.ttf',
-      'Inter-SemiBold.ttf',
-    ]) {
-      final font = await rootBundle.load('assets/fonts/$file');
-      await (FontLoader('Inter')..addFont(Future.value(font))).load();
-    }
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: fontPath);
   });
 
   testWidgets('A 组件状态画廊', (tester) async {

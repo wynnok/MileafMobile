@@ -605,11 +605,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
                               max *
                               barArea,
                           decoration: BoxDecoration(
-                            color: colors.accent.withValues(
-                              alpha: (b['distance_km'] as num? ?? 0) == max
-                                  ? 1
-                                  : MileafChartMetrics.barIdleOpacity,
-                            ),
+                            color: colors.accent,
                             borderRadius: BorderRadius.circular(
                               MileafChartMetrics.barRadius,
                             ),

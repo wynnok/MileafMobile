@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
@@ -11,6 +9,7 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'support/a_gallery_fixture.dart';
 import 'support/c_fixture.dart';
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -128,13 +127,7 @@ class _Cny implements CurrencyPreferenceStore {
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
-    final bytes = ByteData.sublistView(File(fontPath).readAsBytesSync());
-    for (final family in ['Inter', 'Roboto', 'Arial', 'sans-serif']) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
-    }
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: fontPath);
   });
 
   testWidgets('A 图册：11 页 × normal/empty/missing × 浅深 × 100/200%', (

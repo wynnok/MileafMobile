@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -15,8 +16,15 @@ import 'charging_experience_contract.g.dart' as expanded;
 import 'charging_method.dart';
 import 'charging_statistics_contract.g.dart' as legacy;
 import 'overview_contract.g.dart' as overview;
+import 'reading_scope.dart';
+import 'session.dart';
+import 'statistics_period.dart';
 import 'workspace.dart';
 import 'currency.dart';
+
+/// A server cursor that never advances would page forever; the ledger keeps
+/// what it already read and says so instead of blaming the contract version.
+const _cursorStalled = '分页游标未前进，已保留现有充电，请刷新或手动重试';
 
 class ChargingFilter {
   DateTime? first, last;
@@ -56,10 +64,18 @@ class ChargingPage extends StatefulWidget {
 }
 
 class _ChargingPageState extends State<ChargingPage>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ReadingLifecycle<ChargingPage>,
+        CostAwareReading<ChargingPage> {
   final items = <dto.ChargingSession>[];
   String? next, error;
   bool loading = false, loaded = false, failedMore = false;
+
+  /// Set when a revalidation was cut short because the ledger stopped being
+  /// visible. The records already on screen keep their range and cursor, and
+  /// the whole read range is checked again on the next visible frame.
+  bool revalidatePending = false;
   int revision = 0;
   int loadedPages = 0;
   int sequence = 0;
@@ -86,7 +102,12 @@ class _ChargingPageState extends State<ChargingPage>
   String sort = 'ended_desc';
   String? locationId;
   DateTime? selectedDay;
-  int chartMetric = 0, chartDay = 0;
+  int chartMetric = 0;
+
+  /// Calendar date of the bucket the owner picked. The chart re-resolves it
+  /// against the buckets it is given, so a refresh keeps the point by date and
+  /// only an explicit condition change drops it.
+  DateTime? chartDayAt;
   int recentDays = 30;
   int? matchedSessions;
   String? statsKey, locationsKey;
@@ -94,6 +115,17 @@ class _ChargingPageState extends State<ChargingPage>
   expanded.ChargingStats? expandedStats;
   legacy.ChargingStats? legacyStats;
   late DateTime from, to;
+
+  /// Identity of the records on screen: the range start and page size. The
+  /// open end of a relative window follows the clock, so it is freshness, not
+  /// reading identity — a revalidation keeps the pages already read.
+  ({String from, String limit})? listRange;
+  ({String from, String limit}) get _range {
+    final query = listQuery();
+    return (from: query['from']!, limit: query['limit']!);
+  }
+
+  @override
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
@@ -101,7 +133,10 @@ class _ChargingPageState extends State<ChargingPage>
     WidgetsBinding.instance.addObserver(this);
     workspace.addListener(contextChanged);
     workspace.addCostReader(refreshCost);
+    initCostReading();
     revision = workspace.revision;
+    _owner = workspace.session.current;
+    _vehicle = workspace.selectedId;
     interval();
     final entry = widget.initialEntry;
     if (entry != null) {
@@ -117,6 +152,17 @@ class _ChargingPageState extends State<ChargingPage>
     loadCapability();
   }
 
+  /// Set when the vehicle/session/calendar context changed while this tab was
+  /// hidden or covered by a record detail: the stale reading state is dropped
+  /// at once, the reads wait until the ledger is visible again.
+  bool deferredContext = false;
+
+  @override
+  bool get readingDeferred => super.readingDeferred || deferredContext;
+
+  SiteSession? _owner;
+  int? _vehicle;
+
   void contextChanged() {
     if (!mounted ||
         revision == workspace.revision ||
@@ -124,14 +170,22 @@ class _ChargingPageState extends State<ChargingPage>
       return;
     }
     revision = workspace.revision;
+    // A rebuilt context reads from scratch; a note from an interrupted read on
+    // the old context must not force a second pass.
+    revalidatePending = false;
+    final owner = workspace.session.current, vehicle = workspace.selectedId;
+    // A vehicle, site or session change has no reading context to keep. A
+    // calendar change only invalidates the window-bound queries and cursors;
+    // the owner's legal conditions and chosen dates stay as they were.
+    final reset = owner != _owner || vehicle != _vehicle;
+    _owner = owner;
+    _vehicle = vehicle;
     interval();
     items.clear();
     next = null;
     loaded = false;
-    expandedAvailable = false;
-    costSupported = false;
-    recordsOnly = false;
-    capabilityChecked = false;
+    loadedPages = 0;
+    listRange = null;
     expandedStats = null;
     legacyStats = null;
     statsKey = null;
@@ -144,17 +198,42 @@ class _ChargingPageState extends State<ChargingPage>
     vehicleState = null;
     locations.clear();
     locationCursor = null;
-    locationId = null;
-    locationName = null;
-    selectedDay = null;
     matchedSessions = null;
-    search.clear();
-    searchTerm = '';
-    chargeType = 'all';
-    costStatus = 'all';
-    sort = 'ended_desc';
+    if (!reset && selectedDay != null && !_dayInRange(selectedDay!)) {
+      selectedDay = null;
+    }
+    if (reset) {
+      expandedAvailable = false;
+      costSupported = false;
+      recordsOnly = false;
+      capabilityChecked = false;
+      locationId = null;
+      locationName = null;
+      selectedDay = null;
+      search.clear();
+      searchTerm = '';
+      chargeType = 'all';
+      costStatus = 'all';
+      sort = 'ended_desc';
+      chartDayAt = null;
+    }
+    if (!readingVisible) {
+      deferredContext = true;
+      // The rebuild below refetches every charge-derived resource, so the fee
+      // revision is settled here rather than forcing a second pass.
+      consumeCost();
+      return;
+    }
+    deferredContext = false;
+    consumeCost();
     load();
     loadCapability();
+  }
+
+  /// Whether a selected day still falls inside the current window.
+  bool _dayInRange(DateTime day) {
+    final start = workspace.calendar!.midnight(day);
+    return !start.isBefore(from) && start.isBefore(to);
   }
 
   void interval() {
@@ -223,6 +302,9 @@ class _ChargingPageState extends State<ChargingPage>
         workspace.selectedId != vehicle) {
       return;
     }
+    if (!readingPresent && !costSheetOpen) {
+      return;
+    }
     final changed = available != expandedAvailable;
     setState(() {
       expandedAvailable = available;
@@ -243,6 +325,10 @@ class _ChargingPageState extends State<ChargingPage>
       next = null;
       items.clear();
       loaded = false;
+      // The old page range belonged to the previous contract; re-read from the
+      // first page rather than replaying it with the new one.
+      loadedPages = 0;
+      listRange = null;
       activeSequence++;
       locationSequence++;
       activeItems.clear();
@@ -339,7 +425,7 @@ class _ChargingPageState extends State<ChargingPage>
       activeItems.clear();
       matchedSessions = null;
       loaded = false;
-      chartDay = 0;
+      chartDayAt = null;
     });
     load();
     loadStats();
@@ -389,6 +475,13 @@ class _ChargingPageState extends State<ChargingPage>
     if (!expandedAvailable || owner == null || vehicle == null) return;
     final attempt = ++activeSequence;
     await loadVehicleState(force: force);
+    if (!mounted ||
+        !readingPresent ||
+        attempt != activeSequence ||
+        !workspace.session.isCurrent(owner) ||
+        workspace.selectedId != vehicle) {
+      return;
+    }
     try {
       final result = await workspace.cache.get(
         owner,
@@ -553,22 +646,6 @@ class _ChargingPageState extends State<ChargingPage>
         legacyStats = value is legacy.ChargingStats ? value : null;
         statsKey = key;
         statsCheckedAt = result.checkedAt;
-        final int activeIndex;
-        if (value is expanded.ChargingStats) {
-          final last = value.buckets.lastIndexWhere((b) => b.sessions > 0);
-          activeIndex = value.buckets.isEmpty
-              ? 0
-              : (last < 0 ? value.buckets.length - 1 : last);
-        } else {
-          final legacyValue = value as legacy.ChargingStats;
-          final last = legacyValue.buckets.lastIndexWhere(
-            (b) => b.sessions > 0,
-          );
-          activeIndex = legacyValue.buckets.isEmpty
-              ? 0
-              : (last < 0 ? legacyValue.buckets.length - 1 : last);
-        }
-        chartDay = activeIndex;
       });
     } catch (_) {
       if (mounted &&
@@ -588,20 +665,67 @@ class _ChargingPageState extends State<ChargingPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
-      foreground();
-    }
+    if (readingVisible && state == AppLifecycleState.resumed) foreground();
   }
+
+  @override
+  Future<void> resumeReading() => foreground();
 
   Future<void> foreground() async {
     final changed = await workspace.foreground();
-    if (!mounted || changed) return;
+    // The owner may have hidden the ledger or opened a detail while the
+    // calendar was read; then this pass must not start reads behind them.
+    if (!mounted || !readingPresent) return;
+    // Work deferred while hidden runs first: a dropped context is rebuilt from
+    // scratch, a deferred fee refresh revalidates the pages already read.
+    if (deferredContext) {
+      deferredContext = false;
+      revalidatePending = false;
+      consumeCost();
+      await Future.wait([load(), loadCapability()]);
+      return;
+    }
+    if (costPending) {
+      final owner = workspace.session.current;
+      final vehicle = workspace.selectedId;
+      final range = _range;
+      // The fee is pending while the site may also have changed capability;
+      // check that first so the revalidation never speaks for an old contract.
+      await loadCapability(refreshData: false);
+      if (!mounted ||
+          (!readingPresent && !costSheetOpen) ||
+          !identical(workspace.session.current, owner) ||
+          workspace.selectedId != vehicle ||
+          _range != range) {
+        return;
+      }
+      final refreshed = await _refreshCostData();
+      if (mounted && refreshed) consumeCost();
+      return;
+    }
+    if (revalidatePending) {
+      // A read cut short by hiding still owes the whole range the owner read.
+      revalidatePending = false;
+      interval();
+      final previous = listRange;
+      final same = previous != null && previous == _range;
+      await Future.wait([
+        load(preservePages: same),
+        loadStats(),
+        if (expandedAvailable) loadLocations(),
+        if (expandedAvailable) loadActive(),
+      ]);
+      return;
+    }
+    if (changed) return;
     final session = workspace.session.current;
     final vehicle = workspace.selectedId;
     if (session == null || vehicle == null) return;
+    final range = _range;
     await loadCapability(refreshData: false);
     if (!mounted ||
+        _range != range ||
+        (!readingPresent && !costSheetOpen) ||
         !workspace.session.isCurrent(session) ||
         workspace.selectedId != vehicle) {
       return;
@@ -624,9 +748,10 @@ class _ChargingPageState extends State<ChargingPage>
       return;
     }
     interval();
-    next = null;
+    final previous = listRange;
+    final same = previous != null && previous == _range;
     await Future.wait([
-      load(),
+      load(preservePages: same),
       loadStats(),
       if (expandedAvailable) loadLocations(),
       if (expandedAvailable) loadActive(),
@@ -640,6 +765,7 @@ class _ChargingPageState extends State<ChargingPage>
     interval();
     await loadCapability(force: true, refreshData: false);
     if (!mounted ||
+        (!readingPresent && !costSheetOpen) ||
         !workspace.session.isCurrent(owner) ||
         workspace.selectedId != vehicle) {
       return;
@@ -653,6 +779,20 @@ class _ChargingPageState extends State<ChargingPage>
   }
 
   Future<bool> refreshCost() async {
+    // A hidden ledger, or one covered by a record detail, keeps its snapshot
+    // and revalidates the pages already read on its next visible frame. The
+    // fee sheet is this page's own reading context, so that one refreshes
+    // inline and can report its real result instead of a deferral.
+    if (!readingVisible && !costSheetOpen) {
+      deferCost();
+      return false;
+    }
+    final refreshed = await _refreshCostData();
+    if (refreshed) consumeCost();
+    return refreshed;
+  }
+
+  Future<bool> _refreshCostData() async {
     await Future.wait([
       load(force: true, preservePages: true),
       loadStats(force: true),
@@ -686,30 +826,50 @@ class _ChargingPageState extends State<ChargingPage>
     if (session == null || id == null) return;
     final attempt = ++sequence;
     final cursor = more ? next : null;
+    final range = _range;
+    // One fixed query snapshot per read: a page that arrives late must never
+    // append its cursor to conditions the owner changed in the meantime.
+    final requested = listQuery();
     setState(() {
       loading = true;
       error = null;
       failedMore = more;
     });
+    bool current() =>
+        mounted &&
+        attempt == sequence &&
+        workspace.session.isCurrent(session) &&
+        workspace.selectedId == id;
+    bool owned() => current() && mapEquals(listQuery(), requested);
     try {
       final page = <dto.ChargingSession>[];
       String? following = cursor;
       int? matched;
       var pages = 0;
       final targetPages = preservePages
-          ? loadedPages.clamp(1, loadedPages + 1)
+          ? (loadedPages < 1 ? 1 : loadedPages)
           : 1;
       final visited = <String?>{};
+      var stalled = false;
+      var interrupted = false;
       do {
         if (!visited.add(following)) {
-          throw const FormatException('Repeated cursor');
+          stalled = true;
+          break;
         }
         final value = await workspace.cache.get(
           session,
           'vehicles/$id/charging-sessions',
-          query: listQuery(cursor: following),
+          query: {...requested, 'cursor': ?following},
           force: force,
         );
+        // The request already in flight may finish; the next one may not be
+        // started from a page the owner can no longer see.
+        if (!owned()) return;
+        if (!readingPresent) {
+          interrupted = true;
+          break;
+        }
         final decoded = dto.ChargingSessionPage.fromJson(value.body);
         matched = expandedAvailable
             ? expanded.ChargingSessionPage.fromJson(value.body).matchedSessions
@@ -718,10 +878,26 @@ class _ChargingPageState extends State<ChargingPage>
         following = decoded.nextCursor;
         pages++;
       } while (preservePages && pages < targetPages && following != null);
-      if (!mounted ||
-          attempt != sequence ||
-          !workspace.session.isCurrent(session) ||
-          workspace.selectedId != id) {
+      if (!current()) return;
+      if (interrupted) {
+        // Keep the pages, their cursor and their range exactly as they were;
+        // the abandoned read is retried when the ledger is visible again. An
+        // interrupted "load more" leaves no failure for the retry action.
+        if (more) {
+          failedMore = false;
+        } else {
+          revalidatePending = true;
+        }
+        return;
+      }
+      if (stalled) {
+        // A cursor that stops advancing cannot rebuild the range the owner
+        // read, so the visible pages and their cursor stay exactly as they
+        // were instead of being replaced by a truncated list.
+        setState(() {
+          error = _cursorStalled;
+          failedMore = false;
+        });
         return;
       }
       setState(() {
@@ -732,12 +908,14 @@ class _ChargingPageState extends State<ChargingPage>
         }
         next = following;
         loadedPages = more ? loadedPages + pages : pages;
+        listRange = range;
         matchedSessions = matched;
         if (more && following != null && following == cursor) {
-          error = '分页游标未前进，已保留现有充电，请刷新或手动重试';
-          failedMore = true;
+          error = _cursorStalled;
+          failedMore = false;
         }
         loaded = true;
+        if (!more) revalidatePending = false;
       });
     } catch (e) {
       if (e is BusinessFailure &&
@@ -751,15 +929,27 @@ class _ChargingPageState extends State<ChargingPage>
           attempt == sequence &&
           workspace.session.isCurrent(session) &&
           workspace.selectedId == id) {
-        setState(
-          () => error = e is FormatException
+        setState(() {
+          error = e is FormatException
               ? '服务返回格式不兼容，请核对版本'
-              : '${e is ApiFailure ? e.message : '充电读取失败，请重试'}${items.isEmpty ? '' : '；保留已加载记录，请重试'}',
-        );
+              : '${e is ApiFailure ? e.message : '充电读取失败，请重试'}${items.isEmpty ? '' : '；保留已加载记录，请重试'}';
+          if (!more) revalidatePending = false;
+        });
       }
     } finally {
       if (mounted && attempt == sequence) setState(() => loading = false);
     }
+  }
+
+  /// Manual retry of a failed read. A failed extra page keeps its own cursor;
+  /// a failed revalidation keeps the range and pages already read instead of
+  /// collapsing the ledger back to the first page.
+  Future<void> retryLoad() async {
+    if (failedMore) {
+      await load(more: true, force: true);
+      return;
+    }
+    await load(force: true, preservePages: listRange == _range);
   }
 
   Future<void> filterDates() async {
@@ -776,59 +966,61 @@ class _ChargingPageState extends State<ChargingPage>
       return date != null && day(date) == text ? date : null;
     }
 
-    final dates = await showDialog<List<DateTime>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => AlertDialog(
-          title: const Text('按日期筛选'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  initialValue: start,
-                  onChanged: (value) => start = value,
-                  decoration: const InputDecoration(
-                    labelText: '开始日期 YYYY-MM-DD',
+    final dates = await readingEditor(
+      () => showDialog<List<DateTime>>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, update) => AlertDialog(
+            title: const Text('按日期筛选'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: start,
+                    onChanged: (value) => start = value,
+                    decoration: const InputDecoration(
+                      labelText: '开始日期 YYYY-MM-DD',
+                    ),
+                    keyboardType: TextInputType.datetime,
                   ),
-                  keyboardType: TextInputType.datetime,
-                ),
-                TextFormField(
-                  initialValue: end,
-                  onChanged: (value) => end = value,
-                  decoration: const InputDecoration(
-                    labelText: '结束日期 YYYY-MM-DD',
+                  TextFormField(
+                    initialValue: end,
+                    onChanged: (value) => end = value,
+                    decoration: const InputDecoration(
+                      labelText: '结束日期 YYYY-MM-DD',
+                    ),
+                    keyboardType: TextInputType.datetime,
                   ),
-                  keyboardType: TextInputType.datetime,
-                ),
-                Text(
-                  '含首尾日期；今天截至当前时刻。按充电${expandedAvailable ? '结束' : '开始'}时间归期。',
-                ),
-                if (validation != null) Text(validation!),
-              ],
+                  Text(
+                    '含首尾日期；今天截至当前时刻。按充电${expandedAvailable ? '结束' : '开始'}时间归期。',
+                  ),
+                  if (validation != null) Text(validation!),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final a = parse(start), b = parse(end);
+                  if (a == null ||
+                      b == null ||
+                      a.year < 1970 ||
+                      a.isAfter(b) ||
+                      day(b).compareTo(day(today)) > 0) {
+                    update(() => validation = '请输入有效日期，开始不晚于结束，且不能选择未来日期');
+                    return;
+                  }
+                  Navigator.pop(context, [a, b]);
+                },
+                child: const Text('应用日期'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () {
-                final a = parse(start), b = parse(end);
-                if (a == null ||
-                    b == null ||
-                    a.year < 1970 ||
-                    a.isAfter(b) ||
-                    day(b).compareTo(day(today)) > 0) {
-                  update(() => validation = '请输入有效日期，开始不晚于结束，且不能选择未来日期');
-                  return;
-                }
-                Navigator.pop(context, [a, b]);
-              },
-              child: const Text('应用日期'),
-            ),
-          ],
         ),
       ),
     );
@@ -844,6 +1036,7 @@ class _ChargingPageState extends State<ChargingPage>
     expandedStats = null;
     legacyStats = null;
     statsKey = null;
+    chartDayAt = null;
     locationsKey = null;
     locations.clear();
     await Future.wait([
@@ -1102,9 +1295,13 @@ class _ChargingPageState extends State<ChargingPage>
     final start = zone.local(from);
     final end = zone.local(to.subtract(const Duration(microseconds: 1)));
     String md(DateTime value) => '${value.month}/${value.day}';
-    final selected = stats.buckets.isEmpty
-        ? 0
-        : chartDay.clamp(0, stats.buckets.length - 1);
+    final times = [for (final bucket in stats.buckets) bucket.bucketStart];
+    final lastActive = stats.buckets.lastIndexWhere((b) => b.sessions > 0);
+    final selected =
+        bucketIndexAt(times, chartDayAt) ??
+        (stats.buckets.isEmpty
+            ? 0
+            : (lastActive < 0 ? stats.buckets.length - 1 : lastActive));
     final values = [
       for (final bucket in stats.buckets)
         switch (chartMetric) {
@@ -1130,12 +1327,13 @@ class _ChargingPageState extends State<ChargingPage>
         subtitle:
             '${widget.filter.first == null ? '近$recentDays天' : '自定义日期'} · '
             '${md(start)} — ${md(end)} · 按结束时间归期',
-        times: [for (final bucket in stats.buckets) bucket.bucketStart],
+        times: times,
         values: values,
         semanticsLabel: '每日补能图表',
         plotKey: const Key('charging-briefing-chart'),
         selectedIndex: selected,
-        onSelected: (index) => setState(() => chartDay = index),
+        onSelected: (index) =>
+            setState(() => chartDayAt = stats.buckets[index].bucketStart),
         height: 96,
         readout: (index) {
           if (index < 0 || index >= stats.buckets.length) return '—';
@@ -1800,14 +1998,25 @@ class _ChargingPageState extends State<ChargingPage>
                             '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
                         onPressed: () async {
                           if (costSheetOpen) return;
+                          // The sheet is this ledger's own fee context: the
+                          // refresh it triggers must run inline, so the flag
+                          // has to drop even if the sheet throws.
                           costSheetOpen = true;
-                          await showChargingCostSheet(
-                            context,
-                            workspace,
-                            widget.currency,
-                            value.id,
-                          );
-                          costSheetOpen = false;
+                          try {
+                            // The sheet is this page's own editor: its submit
+                            // already refreshes the ledger inline, so closing
+                            // it must not read the same query a second time.
+                            await readingEditor(
+                              () => showChargingCostSheet(
+                                context,
+                                workspace,
+                                widget.currency,
+                                value.id,
+                              ),
+                            );
+                          } finally {
+                            costSheetOpen = false;
+                          }
                         },
                       ),
                     ),
@@ -2227,7 +2436,7 @@ class _ChargingPageState extends State<ChargingPage>
                         message: error!,
                         tone: BannerTone.error,
                         actionLabel: '重试充电',
-                        onAction: () => load(more: failedMore, force: true),
+                        onAction: retryLoad,
                       ),
                     if (loaded &&
                         next != null &&

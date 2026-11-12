@@ -8,6 +8,7 @@ import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
+import 'reading_scope.dart';
 import 'statistics_insights_page.dart';
 import 'statistics_usage_page.dart';
 import 'workspace.dart';
@@ -33,6 +34,13 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   int months = 6, sequence = 0, selected = 0;
   String? identity;
   DateTime? checkedAt;
+
+  /// The owner is actually looking at this topic: its own route is on top and
+  /// the statistics tab it lives in is the selected one.
+  bool get readingNow =>
+      ReadingScope.isActive(context) &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
   String get currentIdentity {
     final c = widget.context;
     return '${c.workspace.session.current?.generation}/${c.workspace.selectedId}/${c.workspace.calendar?.identifier}/${c.workspace.revision}/${c.features['range_observations']}/${c.workspace.calendar?.day(c.workspace.session.now())}';
@@ -49,7 +57,9 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   @override
   void didUpdateWidget(covariant RangeObservationPage old) {
     super.didUpdateWidget(old);
-    if (identity != currentIdentity) {
+    // A hidden or covered topic records nothing and reads nothing; the next
+    // visible rebuild picks the change up.
+    if (identity != currentIdentity && readingNow) {
       identity = currentIdentity;
       data = null;
       load();
@@ -67,7 +77,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
         mounted &&
-        (ModalRoute.of(context)?.isCurrent ?? false) &&
+        readingNow &&
         (checkedAt == null ||
             widget.context.workspace.session
                     .now()
@@ -457,12 +467,12 @@ class _RangePainter extends CustomPainter {
     if (width <= 0 || height <= 0) return;
     double x(int i) => left + (i + .5) * width / rows.length;
     double y(num n) => top + height - (n - low) / (high - low) * height;
-    final labelStyle = TextStyle(
-      fontFamily: MileafType.family,
-      fontFamilyFallback: MileafType.fallback,
-      fontSize: largeText ? 11 : MileafChartMetrics.axisLabelSize,
+    // This painter never followed the text scaler: the label size steps once
+    // for large text and stays fixed otherwise.
+    final labelStyle = chartAxisLabelStyle(
       color: colors.textFaint,
-      fontFeatures: const [FontFeature.tabularFigures()],
+      scaler: TextScaler.noScaling,
+      fontSize: largeText ? 11 : MileafChartMetrics.axisLabelSize,
     );
     void label(String text, Offset p) {
       final t = TextPainter(

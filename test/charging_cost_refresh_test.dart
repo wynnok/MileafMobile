@@ -87,11 +87,17 @@ void main() {
       await tester.ensureVisible(find.text('确认补录'));
       await tester.tap(find.text('确认补录'));
       await tester.pump(const Duration(milliseconds: 500));
+      // The topic sits under its own record-list route; a hidden page keeps
+      // its snapshot instead of reading locations behind the owner's back.
+      expect(queried, false);
+      expect(find.textContaining('费用已补录'), findsOneWidget);
+      expect(find.textContaining('部分汇总暂未更新'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 500));
       expect(queried, true);
       delayedLocation.complete(http.Response('', 503));
       await tester.pumpAndSettle();
-      expect(find.textContaining('费用已补录'), findsOneWidget);
-      expect(find.textContaining('部分汇总暂未更新'), findsOneWidget);
+      expect(find.textContaining('地点账目暂不可用'), findsOneWidget);
     } finally {
       if (!delayedLocation.isCompleted) {
         delayedLocation.complete(http.Response('', 503));

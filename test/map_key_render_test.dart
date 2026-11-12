@@ -1,7 +1,5 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/map/map_consent.dart';
@@ -9,6 +7,7 @@ import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/map/map_privacy_page.dart';
 
 import 'support/map_key_fixture.dart';
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 
 const _output = String.fromEnvironment('MILEAF_MAP_RENDER_OUTPUT');
@@ -17,13 +16,7 @@ const _font = String.fromEnvironment('MILEAF_RENDER_FONT');
 void main() {
   setUpAll(() async {
     if (_output.isEmpty) return;
-    final bytes = ByteData.sublistView(File(_font).readAsBytesSync());
-    for (final family in ['Inter', 'Roboto', 'Arial', 'sans-serif']) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
-    }
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: _font);
   });
   testWidgets('地图设置正式组件浅深渲染与大字号、键盘验收', (tester) async {
     tester.view.devicePixelRatio = 1;

@@ -22,6 +22,7 @@ import 'performance_trace.dart';
 import 'statistics_period.dart';
 import 'overview_period.dart';
 import 'workspace.dart';
+import 'reading_scope.dart';
 import 'session.dart' show SiteSession;
 
 enum _Metric { distance, net, charge, cost, energy }
@@ -47,7 +48,10 @@ class OverviewPage extends StatefulWidget {
 }
 
 class _OverviewPageState extends State<OverviewPage>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ReadingLifecycle<OverviewPage>,
+        CostAwareReading<OverviewPage> {
   dto.Summary? data;
   CachedResult? result;
   String? error;
@@ -76,9 +80,11 @@ class _OverviewPageState extends State<OverviewPage>
   String? windowDay, windowZone;
   _Metric metric = _Metric.distance;
   int? chartSelection;
+  DateTime? chartSelectionAt;
   final plotKey = GlobalKey();
   final chartKey = GlobalKey();
   final viewportKey = GlobalKey();
+  @override
   VehicleWorkspace get workspace => widget.workspace;
 
   insights.DrivingStats? enhancedDriving(CachedResult? value) {
@@ -137,6 +143,7 @@ class _OverviewPageState extends State<OverviewPage>
   @override
   void initState() {
     super.initState();
+    initCostReading();
     workspace.addCostReader(refreshCost);
     WidgetsBinding.instance.addObserver(this);
     load();
@@ -151,6 +158,18 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   Future<bool> refreshCost() async {
+    // A covered or hidden page keeps its snapshot and consumes the revision
+    // when it is visible again; it must not report this deferral as updated.
+    if (!readingVisible) {
+      deferCost();
+      return false;
+    }
+    final refreshed = await _refreshCostData();
+    if (refreshed) consumeCost();
+    return refreshed;
+  }
+
+  Future<bool> _refreshCostData() async {
     await Future.wait([
       loadSummary(force: true),
       loadStats('charging', force: true, requestedRange: range),
@@ -189,8 +208,7 @@ class _OverviewPageState extends State<OverviewPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
+    if (readingVisible && state == AppLifecycleState.resumed) {
       final owner = workspace.session.current;
       if (readable && owner != null) {
         PerformanceTrace.warmOverviewFrame(
@@ -206,9 +224,18 @@ class _OverviewPageState extends State<OverviewPage>
     }
   }
 
+  @override
+  Future<void> resumeReading() => foreground();
+
   Future<void> foreground() async {
-    final changed = await workspace.foreground();
-    if (mounted && !changed) await load();
+    await workspace.foreground();
+    if (!mounted || !readingPresent) return;
+    if (costPending) {
+      await load(force: true);
+      if (mounted && error == null && errors.isEmpty) consumeCost();
+      return;
+    }
+    await load();
   }
 
   Future<void> load({bool force = false}) async {
@@ -797,6 +824,7 @@ class _OverviewPageState extends State<OverviewPage>
                 onTap: () {
                   if (period != OverviewPeriod.month) {
                     chartSelection = null;
+                    chartSelectionAt = null;
                     changePeriod(OverviewPeriod.month);
                   }
                 },
@@ -807,6 +835,7 @@ class _OverviewPageState extends State<OverviewPage>
                 onTap: () {
                   if (period != OverviewPeriod.recent) {
                     chartSelection = null;
+                    chartSelectionAt = null;
                     changePeriod(OverviewPeriod.recent);
                   }
                 },
@@ -1009,11 +1038,7 @@ class _OverviewPageState extends State<OverviewPage>
     final values = _currentValues();
     final reference = _referenceValues();
     final times = chartTimes;
-    final selected =
-        chartSelection ??
-        (values.lastIndexWhere((v) => v != null && v > 0) < 0
-            ? 0
-            : values.lastIndexWhere((v) => v != null && v > 0));
+    final selected = _selectedChartPoint(times, values);
     final evidence = isCharging
         ? ranges['charging']?.current
         : ranges['driving']?.current;
@@ -1058,7 +1083,10 @@ class _OverviewPageState extends State<OverviewPage>
           ),
       ],
       selectedIndex: selected,
-      onSelected: (index) => setState(() => chartSelection = index),
+      onSelected: (index) => setState(() {
+        chartSelection = index;
+        chartSelectionAt = index < times.length ? times[index] : null;
+      }),
       readout: readout,
       trailing: Text(
         '点按读值',
@@ -1072,6 +1100,20 @@ class _OverviewPageState extends State<OverviewPage>
       controls: _metricTabs(),
       note: metric == _Metric.cost ? '仅含费用已知记录；缺失不表示免费。' : null,
     );
+  }
+
+  /// Keeps a deliberate point by its bucket date. When the calendar window
+  /// shifts, the same date moves to another index; when that date is gone the
+  /// point falls back to the nearest earlier bucket that still exists.
+  int _selectedChartPoint(List<DateTime> times, List<num?> values) {
+    final exact = bucketIndexAt(times, chartSelectionAt);
+    if (exact != null) return exact;
+    final touched = chartSelection;
+    if (touched != null && times.isNotEmpty) {
+      return touched.clamp(0, times.length - 1);
+    }
+    final last = values.lastIndexWhere((v) => v != null && v > 0);
+    return last < 0 ? 0 : last;
   }
 
   Widget _metricTabs() => Wrap(
@@ -1090,6 +1132,7 @@ class _OverviewPageState extends State<OverviewPage>
           onTap: () => setState(() {
             metric = m;
             chartSelection = null;
+            chartSelectionAt = null;
           }),
         ),
     ],

@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
@@ -13,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'support/c_fixture.dart';
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -99,26 +98,7 @@ class _Appearance implements AppearancePreferenceStore {
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
-    final bytes = ByteData.sublistView(File(fontPath).readAsBytesSync());
-    for (final family in [
-      'PingFang SC',
-      'Noto Sans CJK SC',
-      'Heiti SC',
-      'sans-serif',
-    ]) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
-    }
-    for (final file in [
-      'Inter-Regular.ttf',
-      'Inter-Medium.ttf',
-      'Inter-SemiBold.ttf',
-    ]) {
-      final font = await rootBundle.load('assets/fonts/$file');
-      await (FontLoader('Inter')..addFont(Future.value(font))).load();
-    }
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: fontPath);
   });
 
   testWidgets('A 概览 12 张样张', (tester) async {

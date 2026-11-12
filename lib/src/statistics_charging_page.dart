@@ -12,7 +12,10 @@ import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
+import 'reading_scope.dart';
+import 'workspace.dart';
 import 'statistics_insights_page.dart';
+import 'statistics_period.dart';
 import 'statistics_usage_page.dart';
 
 class StatisticsChargingPage extends StatefulWidget {
@@ -22,7 +25,11 @@ class StatisticsChargingPage extends StatefulWidget {
   State<StatisticsChargingPage> createState() => _StatisticsChargingPageState();
 }
 
-class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
+class _StatisticsChargingPageState extends State<StatisticsChargingPage>
+    with
+        WidgetsBindingObserver,
+        ReadingLifecycle<StatisticsChargingPage>,
+        CostAwareReading<StatisticsChargingPage> {
   legacy.ChargingStats? data;
   expanded.ChargingStats? richer;
   String? error, capabilityError;
@@ -32,44 +39,117 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
   bool locationsLoading = false, expandedAvailable = false;
   int locationSequence = 0;
   bool loading = false;
+  bool childRouteOpen = false;
+  bool resuming = false;
   int sequence = 0, metric = 0, selectedBucket = 0;
+
+  /// Calendar instant of the bucket the owner picked. A refresh, TTL check or
+  /// fee invalidation re-resolves it against the buckets it is given, so the
+  /// reading survives a same-context reload; an explicit new period or target
+  /// clears it.
+  DateTime? bucketAt;
   DateTime? checkedAt;
+  String? readingIdentity;
+  String readingKey(StatisticsInsightsContext c) =>
+      '${c.workspace.session.current?.generation}/${c.workspace.selectedId}/${c.workspace.calendar?.identifier}/${c.selection.period}/${c.selection.start}/${c.selection.end}';
   StatisticsInsightsContext get scope => widget.context;
+  @override
+  VehicleWorkspace get workspace => scope.workspace;
   String identity(StatisticsInsightsContext c) =>
       '${c.workspace.revision}/${c.workspace.selectedId}/${c.workspace.calendar!.identifier}/${c.window.from}/${c.window.to}/${c.window.bucket}';
   @override
   void initState() {
     super.initState();
+    initCostReading();
     scope.workspace.addCostReader(refreshCost);
-    load();
+    WidgetsBinding.instance.addObserver(this);
+    readingIdentity = readingKey(scope);
+    if (scope.revalidate == null) {
+      load();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && readingVisible) resumeReading();
+      });
+    }
   }
 
   @override
   void didUpdateWidget(covariant StatisticsChargingPage old) {
     super.didUpdateWidget(old);
-    if (queryIdentity != identity(scope) ||
+    if (readingIdentity != readingKey(scope) ||
+        queryIdentity != identity(scope) ||
         !identical(queryOwner, scope.workspace.session.current)) {
       data = null;
       richer = null;
       checkedAt = null;
+      if (readingIdentity != readingKey(scope)) {
+        bucketAt = null;
+        selectedBucket = 0;
+      }
+      readingIdentity = readingKey(scope);
       locations.clear();
       locationCursor = null;
       locationSequence++;
-      load();
+      if (readingWasVisible && !resuming) load();
     }
   }
 
   @override
   void dispose() {
     scope.workspace.removeCostReader(refreshCost);
+    WidgetsBinding.instance.removeObserver(this);
     sequence++;
     locationSequence++;
     super.dispose();
   }
 
   Future<bool> refreshCost() async {
+    // An embedded topic can be hidden with the statistics tab; it keeps its
+    // snapshot and consumes the revision when visible again. A modal fee sheet
+    // over the topic is still the owner's active context, so it refreshes.
+    if (!readingActive || childRouteOpen) {
+      deferCost();
+      return false;
+    }
+    final refreshed = await _refreshCostNow();
+    if (refreshed) consumeCost();
+    return refreshed;
+  }
+
+  Future<bool> _refreshCostNow() async {
     await load(force: true, waitForLocations: true);
-    return error == null && locationsError == null;
+    return readingPresent &&
+        !childRouteOpen &&
+        error == null &&
+        locationsError == null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (readingVisible && state == AppLifecycleState.resumed) resumeReading();
+  }
+
+  /// A visible topic follows its own cache TTL even when the parent overview
+  /// topic's driving snapshot is still fresh.
+  @override
+  Future<void> resumeReading() async {
+    if (resuming) return;
+    resuming = true;
+    try {
+      if (scope.revalidate != null) {
+        await scope.revalidate!();
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      if (!mounted || !readingVisible) return;
+      if (!costPending) {
+        await load();
+        return;
+      }
+      final refreshed = await _refreshCostNow();
+      if (refreshed) consumeCost();
+    } finally {
+      resuming = false;
+    }
   }
 
   Future<void> load({bool force = false, bool waitForLocations = false}) async {
@@ -101,6 +181,10 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
       if (valid()) setState(() => capabilityError = '补能能力暂不可用，保留基础统计');
     }
     if (!valid()) return;
+    if (!readingPresent) {
+      setState(() => loading = false);
+      return;
+    }
     expandedAvailable = available;
     final locationsRead = available ? loadLocations(force: force) : null;
     if (!waitForLocations && locationsRead != null) unawaited(locationsRead);
@@ -122,7 +206,11 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
           data = basic;
           richer = detail;
           checkedAt = result.checkedAt;
-          selectedBucket = 0;
+          // Keep the chosen bucket by its calendar instant; a bucket that is
+          // gone falls back to the nearest earlier one that still exists.
+          final times = [for (final b in basic.buckets) b.bucketStart];
+          selectedBucket = bucketIndexAt(times, bucketAt) ?? 0;
+          bucketAt = times.isEmpty ? null : times[selectedBucket];
         });
       }
     } catch (failure) {
@@ -188,12 +276,12 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
     }
   }
 
-  void openRecords({
+  Future<void> openRecords({
     String? type,
     expanded.ChargingLocation? place,
     DateTime? from,
     DateTime? to,
-  }) {
+  }) async {
     final window = scope.window, calendar = scope.workspace.calendar!;
     final start = from ?? window.from, end = to ?? window.to;
     final first = calendar.local(start);
@@ -201,39 +289,47 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
     final filter = ChargingFilter()
       ..first = DateTime.utc(first.year, first.month, first.day)
       ..last = DateTime.utc(last.year, last.month, last.day);
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('补能记录')),
-          body: ChargingPage(
-            workspace: scope.workspace,
-            currency: scope.currency,
-            filter: filter,
-            initialEntry: ChargingEntry(
-              from: start,
-              to: end,
-              chargingType: type,
-              locationId: place?.locationId,
-              locationName: place?.location.displayName,
-            ),
-            onRecord: (_, id) => openChargingDetail(
-              context,
-              scope.workspace,
-              scope.currency,
-              id,
+    childRouteOpen = true;
+    try {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(title: const Text('补能记录')),
+            body: ChargingPage(
+              workspace: scope.workspace,
+              currency: scope.currency,
+              filter: filter,
+              initialEntry: ChargingEntry(
+                from: start,
+                to: end,
+                chargingType: type,
+                locationId: place?.locationId,
+                locationName: place?.location.displayName,
+              ),
+              onRecord: (_, id) => openChargingDetail(
+                context,
+                scope.workspace,
+                scope.currency,
+                id,
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    } finally {
+      // A thrown route must not leave the topic permanently "covered", or the
+      // deferred fee refresh would never run.
+      childRouteOpen = false;
+    }
   }
 
   void openBucket() {
     final buckets = data?.buckets;
     if (buckets == null || buckets.isEmpty) return;
     final calendar = scope.workspace.calendar!, window = scope.window;
-    final start = buckets[selectedBucket].bucketStart;
+    final index = selectedBucket.clamp(0, buckets.length - 1);
+    final start = buckets[index].bucketStart;
     final local = calendar.local(start);
     final nextDate = switch (window.bucket) {
       'day' => DateTime.utc(local.year, local.month, local.day + 1),
@@ -469,7 +565,10 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage> {
           ],
         ),
         selectedIndex: selected,
-        onSelected: (value) => setState(() => selectedBucket = value),
+        onSelected: (value) => setState(() {
+          selectedBucket = value;
+          bucketAt = value < buckets.length ? buckets[value].bucketStart : null;
+        }),
         height: 118,
         tickLabel: tick,
         readout: (index) {

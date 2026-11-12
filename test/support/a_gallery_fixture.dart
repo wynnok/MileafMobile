@@ -23,14 +23,27 @@ import 'c_fixture.dart';
 ///
 /// Every response is contract-valid: the pages decode the published DTOs
 /// before rendering, so a fixture that drifts is caught by the render run.
-MockClient aGalleryClient({String scenario = 'normal'}) => MockClient((
-  request,
-) async {
+///
+/// [vehicleName] replaces the display name (long-text coverage) and
+/// [sparseCharts] thins every daily bucket to a mix of real values, real
+/// zeros and nulls (sparse coverage) without changing totals.
+MockClient aGalleryClient({
+  String scenario = 'normal',
+  String? vehicleName,
+  bool sparseCharts = false,
+}) => MockClient((request) async {
   final url = request.url;
   final path = url.path;
   final query = url.queryParameters;
 
-  if (path.endsWith('/vehicles')) return _ok(cVehicles());
+  if (path.endsWith('/vehicles')) {
+    final body = cVehicles();
+    if (vehicleName != null) {
+      final vehicles = (body as List).cast<Map>();
+      vehicles.first['name'] = vehicleName;
+    }
+    return _ok(body);
+  }
   if (path.endsWith('/meta')) return _ok(cMeta());
   if (path.endsWith('/summary')) {
     return _ok(switch (scenario) {
@@ -132,14 +145,25 @@ MockClient aGalleryClient({String scenario = 'normal'}) => MockClient((
 
   if (path.endsWith('/stats')) {
     if (query['kind'] == 'charging') {
-      return _ok(switch (scenario) {
+      final body = switch (scenario) {
         'empty' => cEmptyChargingV2(),
         'missing' => cMissingChargingV2(),
         _ => cChargingStatsV2(),
-      });
+      };
+      if (sparseCharts) _thinChargingBuckets(body);
+      return _ok(body);
     }
     // Any window that starts in late September is the 30-day drives period.
     final drivesWindow = (query['from'] ?? '').startsWith('2026-09-2');
+    if (sparseCharts) {
+      final body = switch (scenario) {
+        'empty' => cEmptyDriving(url),
+        'missing' => cMissingDriving(url),
+        _ => drivesWindow ? cDrivesStats(url) : cDriving(url),
+      };
+      _thinBuckets(body, 'distance_km');
+      return _ok(body);
+    }
     return _ok(switch (scenario) {
       'empty' => cEmptyDriving(url),
       'missing' =>
@@ -158,6 +182,45 @@ MockClient aGalleryClient({String scenario = 'normal'}) => MockClient((
 
   return http.Response('{}', 404);
 });
+
+/// Thins the driving series into a mix of real values and real zeros.
+///
+/// Totals are left alone on purpose: this scene is about how marks are drawn
+/// (a zero is a zero, a null is a gap), not about a different dataset. The
+/// published `driving_statistics` contract declares `distance_km` non-null, so
+/// only zeros are used here.
+void _thinBuckets(Map<String, dynamic> body, String key) {
+  final buckets = body['buckets'];
+  if (buckets is! List) return;
+  for (var i = 0; i < buckets.length; i++) {
+    final bucket = buckets[i];
+    if (bucket is! Map) continue;
+    if (i % 5 == 1) bucket[key] = 0;
+  }
+}
+
+/// Thins the charging series the way the server can really produce it: an
+/// empty day (no sessions) and a day whose sessions carry no known energy.
+///
+/// The charging page already maps `sessions > 0 && energy_known_sessions == 0`
+/// to a null chart value, so the stems show a gap instead of a fake zero.
+void _thinChargingBuckets(Map<String, dynamic> body) {
+  final buckets = body['buckets'];
+  if (buckets is! List) return;
+  for (var i = 0; i < buckets.length; i++) {
+    final bucket = buckets[i];
+    if (bucket is! Map) continue;
+    if (i % 5 == 1) {
+      bucket['sessions'] = 0;
+      bucket['energy_known_sessions'] = 0;
+      bucket['energy_added_kwh'] = 0;
+    } else if (i % 5 == 3) {
+      bucket['sessions'] = 1;
+      bucket['energy_known_sessions'] = 0;
+      bucket['energy_added_kwh'] = 0;
+    }
+  }
+}
 
 http.Response _ok(Object body) => http.Response(
   jsonEncode(body),

@@ -69,6 +69,19 @@ class StatisticsWindow {
   };
 }
 
+/// The bucket at [at], else the nearest earlier bucket, else 0. Null when
+/// there is no date to preserve or no bucket to land on.
+int? bucketIndexAt(List<DateTime> times, DateTime? at) {
+  if (at == null || times.isEmpty) return null;
+  for (var i = 0; i < times.length; i++) {
+    if (times[i].isAtSameMomentAs(at)) return i;
+  }
+  for (var i = times.length - 1; i >= 0; i--) {
+    if (!times[i].isAfter(at)) return i;
+  }
+  return 0;
+}
+
 String statisticsDate(DateTime date) =>
     '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
@@ -79,11 +92,17 @@ class StatisticsPeriodControls extends StatelessWidget {
     required this.calendar,
     required this.now,
     required this.onChanged,
+    this.editor,
   });
   final StatisticsSelection selection;
   final CalendarContext calendar;
   final DateTime now;
   final ValueChanged<StatisticsSelection> onChanged;
+
+  /// Wraps the page-owned modal date editor, so closing it is not mistaken for
+  /// a reading-route return: the editor's own completion already loads the
+  /// period the owner picked.
+  final Future<R> Function<R>(Future<R> Function())? editor;
   Future<void> custom(BuildContext context) async {
     final today = calendar.local(now);
     final start = TextEditingController(
@@ -184,7 +203,8 @@ class StatisticsPeriodControls extends StatelessWidget {
         ),
       ),
     );
-    final value = await Navigator.of(context).push(route);
+    Future<StatisticsSelection?> open() => Navigator.of(context).push(route);
+    final value = await (editor?.call(open) ?? open());
     await route.completed;
     if (value != null && context.mounted) onChanged(value);
     start.dispose();

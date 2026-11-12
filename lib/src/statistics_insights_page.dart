@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 
 import 'statistics_period.dart';
 import 'workspace.dart';
+import 'reading_scope.dart';
 
 /// A topic receives the same vehicle/calendar selection, never a derived total.
 class StatisticsInsightsContext {
@@ -27,6 +28,7 @@ class StatisticsInsightsContext {
     this.features, {
     this.compact = false,
     StatisticsWindow? window,
+    this.revalidate,
   }) : window =
            window ??
            selection.resolve(workspace.calendar!, workspace.session.now());
@@ -36,6 +38,7 @@ class StatisticsInsightsContext {
   final Map<String, bool> features;
   final bool compact;
   final StatisticsWindow window;
+  final Future<void> Function()? revalidate;
 }
 
 typedef StatisticsTopicBuilder = Widget Function(
@@ -63,7 +66,10 @@ class StatisticsInsightsPage extends StatefulWidget {
 }
 
 class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ReadingLifecycle<StatisticsInsightsPage>,
+        CostAwareReading<StatisticsInsightsPage> {
   late StatisticsSelection selection = widget.initialSelection;
   Map<String, bool>? features;
   Map<String, dynamic>? current, reference;
@@ -71,16 +77,20 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   String? chargingError;
   String? error, referenceError;
   String topic = 'overview';
+  DateTime? pointAt;
   int point = 0;
   bool pointTouched = false;
   int sequence = 0, revision = 0;
   bool busy = false;
+  bool foregrounding = false;
   StatisticsWindow? loadedWindow;
+  @override
   VehicleWorkspace get workspace => widget.workspace;
   @override
   void initState() {
     super.initState();
     revision = workspace.revision;
+    initCostReading();
     workspace.addCostReader(refreshCost);
     topic = widget.initialTopic;
     WidgetsBinding.instance.addObserver(this);
@@ -96,6 +106,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   }
 
   Future<bool> refreshCost() async {
+    // A covered or hidden page keeps its snapshot and consumes the revision
+    // once visible; a deferred refresh is never reported as updated.
+    if (!readingVisible) {
+      deferCost();
+      return false;
+    }
     final owner = workspace.session.current,
         vehicle = workspace.selectedId,
         cal = workspace.calendar;
@@ -103,24 +119,32 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         owner == null ||
         vehicle == null ||
         cal == null) {
+      consumeCost();
       return true;
     }
     await loadCharging(owner, vehicle, cal, true);
-    return chargingError == null;
+    final refreshed = chargingError == null;
+    if (refreshed) consumeCost();
+    return refreshed;
   }
 
   @override
   void didUpdateWidget(covariant StatisticsInsightsPage old) {
     super.didUpdateWidget(old);
+    // A foreground pass drives its own reload; the notification it causes must
+    // not add a second read through this path. A page hidden or covered by a
+    // route records the new revision and reads it on its next visible frame.
+    if (!readingWasVisible || foregrounding) return;
     if (revision != workspace.revision ||
         old.initialTopic != widget.initialTopic) {
       revision = workspace.revision;
       if (old.initialTopic != widget.initialTopic) {
         topic = widget.initialTopic;
         selection = widget.initialSelection;
-        loadedWindow = null;
         point = 0;
+        pointAt = null;
       }
+      loadedWindow = null;
       current = null;
       reference = null;
       charging = null;
@@ -130,18 +154,58 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        (features == null || features!['driving_coverage'] == true) &&
-        (ModalRoute.of(context)?.isCurrent ?? false)) {
+    if (readingVisible &&
+        state == AppLifecycleState.resumed &&
+        (features == null || features!['driving_coverage'] == true)) {
       foreground();
     }
   }
 
-  Future<void> foreground() async {
+  @override
+  Future<void> resumeReading() async {
+    if (features == null || features!['driving_coverage'] == true) {
+      await foreground();
+    }
+  }
+
+  Future<void>? foregroundRead;
+  Future<void> foreground() => foregroundRead ??= runForeground().whenComplete(
+    () => foregroundRead = null,
+  );
+
+  Future<void> runForeground() async {
+    foregrounding = true;
+    try {
+      await _foreground();
+    } finally {
+      foregrounding = false;
+    }
+  }
+
+  Future<void> _foreground() async {
     final changed = await workspace.foreground();
-    if (!mounted) return;
+    if (!mounted || !readingPresent) return;
+    final staleCalendar = changed || revision != workspace.revision;
+    revision = workspace.revision;
+    final costChanged = costPending;
+    if (staleCalendar) {
+      loadedWindow = null;
+      current = null;
+      reference = null;
+      charging = null;
+    }
+    if (costChanged) {
+      if (topic != 'overview') {
+        // This view shows no fee aggregate; consume the revision without a read.
+        consumeCost();
+        return;
+      }
+      await load(force: true);
+      if (mounted && error == null && chargingError == null) consumeCost();
+      return;
+    }
     final previous = loadedWindow, owner = workspace.session.current;
-    if (!changed &&
+    if (!staleCalendar &&
         previous != null &&
         owner != null &&
         workspace.calendar!.day(previous.to) ==
@@ -156,13 +220,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         return;
       }
     }
-    if (changed) {
-      current = null;
-      reference = null;
-      charging = null;
-    }
     loadedWindow = null;
-    load();
+    await load();
   }
 
   void selectTopic(String key) {
@@ -171,7 +230,13 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       if (current == null && !busy) load();
       return;
     }
-    final captured = topicContext();
+    final captured = StatisticsInsightsContext(
+      workspace,
+      widget.currency,
+      selection,
+      features ?? const {},
+      window: loadedWindow,
+    );
     final capturedRevision = workspace.revision;
     final capturedOwner = workspace.session.current;
     final capturedZone = workspace.calendar?.identifier;
@@ -407,6 +472,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         features ?? const {},
         compact: compact,
         window: loadedWindow,
+        revalidate: foreground,
       );
   Widget longTopics() => ListView(
     padding: const EdgeInsets.all(18),
@@ -484,6 +550,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           selection: selection,
           calendar: workspace.calendar!,
           now: workspace.session.now(),
+          editor: readingEditor,
           onChanged: (s) {
             setState(() {
               selection = s;
@@ -492,6 +559,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               charging = null;
               loadedWindow = null;
               point = 0;
+              pointAt = null;
               pointTouched = false;
             });
             load();
@@ -626,6 +694,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       selection,
       features!,
       window: loadedWindow,
+      revalidate: foreground,
     );
     return Column(
       children: [
@@ -790,14 +859,14 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       return '${local.month}/${local.day}';
     }
 
-    var selected = point;
+    var selected = times.isEmpty ? 0 : times.length - 1;
     for (var i = times.length - 1; i >= 0; i--) {
       if (i < values.length && (values[i] ?? 0) > 0) {
         selected = i;
         break;
       }
     }
-    if (pointTouched) selected = point.clamp(0, times.length - 1);
+    if (pointTouched) selected = _selectedPoint(times);
     return MileafHero(
       semanticLabel: '里程走势，本期与参照',
       child: Padding(
@@ -847,12 +916,18 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           selectedIndex: selected,
           onSelected: (index) => setState(() {
             point = index;
+            pointAt = index < times.length ? times[index] : null;
             pointTouched = true;
           }),
         ),
       ),
     );
   }
+
+  /// Keeps a deliberate point by its bucket date across revalidations, then
+  /// falls back to the nearest earlier bucket that still exists.
+  int _selectedPoint(List<DateTime> times) =>
+      bucketIndexAt(times, pointAt) ?? point.clamp(0, times.length - 1);
 
   Widget _insightRow(insights.DrivingStats enhanced) {
     final net = enhanced.totals.netConsumptionPaired.valueWhKm;

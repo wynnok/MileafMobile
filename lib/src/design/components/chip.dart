@@ -66,11 +66,13 @@ class _StatusChipState extends State<StatusChip> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            widget.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: type.label.copyWith(color: foreground),
+          Flexible(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: type.label.copyWith(color: foreground),
+            ),
           ),
         ],
       ),

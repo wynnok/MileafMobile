@@ -959,12 +959,6 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                               text: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant,
-                              fontFamily:
-                                  Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.fontFamily ??
-                                  'Roboto',
                               scale:
                                   MediaQuery.textScalerOf(context).scale(10) /
                                   10,
@@ -1154,14 +1148,12 @@ class _ChargingSocPainter extends CustomPainter {
     required this.color,
     required this.grid,
     required this.text,
-    required this.fontFamily,
     required this.scale,
   });
   final List<expanded.ChargePoint> points;
   final List<num?> values;
   final int selected;
   final Color color, grid, text;
-  final String fontFamily;
   final double scale;
 
   @override
@@ -1182,8 +1174,11 @@ class _ChargingSocPainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: value,
+          // Self-drawn labels use the product family and the declared CJK
+          // fallback, never a hardcoded substitute family.
           style: TextStyle(
-            fontFamily: fontFamily,
+            fontFamily: MileafType.family,
+            fontFamilyFallback: MileafType.fallback,
             fontSize: 10 * math.min(scale, 1.5),
             color: text,
           ),

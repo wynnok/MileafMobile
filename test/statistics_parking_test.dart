@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:mileaf/src/design/components/components.dart';
+
+import 'overview_test.dart' show background, foreground;
 import 'statistics_test.dart' show openStats, fixture;
 import 'support/statistics_insights_fixture.dart';
 
@@ -129,6 +132,7 @@ Future<void> openParking(
   bool empty = false,
   bool fail = false,
   bool missing = false,
+  Map<String, dynamic> Function(Uri)? response,
 }) async {
   await openStats(
     tester,
@@ -152,7 +156,10 @@ Future<void> openParking(
         requests.add(r.url);
         if (fail) return http.Response('{}', 503);
         return http.Response(
-          jsonEncode(parkingResponse(r.url, empty: empty, missing: missing)),
+          jsonEncode(
+            response?.call(r.url) ??
+                parkingResponse(r.url, empty: empty, missing: missing),
+          ),
           200,
         );
       }
@@ -179,6 +186,103 @@ Future<void> openParking(
 }
 
 void main() {
+  testWidgets('停放结果重排及删除后读数保持有效', (tester) async {
+    var phase = 0;
+    await openParking(
+      tester,
+      <Uri>[],
+      response: (uri) {
+        final body = parkingResponse(uri);
+        final rows = body['buckets'] as List;
+        if (phase == 1) body['buckets'] = rows.reversed.toList();
+        if (phase == 2) body['buckets'] = [rows.last];
+        return body;
+      },
+    );
+    await tester.scrollUntilVisible(
+      find.text('后一点').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('后一点'));
+    await tester.pumpAndSettle();
+    phase = 1;
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0.0 pp'), findsWidgets);
+    phase = 2;
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1.0 pp'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('同日刷新保留重复日期中的有效选点', (tester) async {
+    await openParking(tester, <Uri>[]);
+    await tester.scrollUntilVisible(
+      find.text('后一点').hitTestable(),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('后一点'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0.0 pp'), findsWidgets);
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0.0 pp'), findsWidgets);
+  });
+
+  testWidgets('统计Tab隐藏时嵌入的停放观察不请求，可见后才校验', (tester) async {
+    final reads = <Uri>[];
+    await openStats(
+      tester,
+      MockClient((r) async {
+        if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
+        if (r.url.path.endsWith('/summary')) return fixture('summary');
+        if (r.url.path.endsWith('/meta')) {
+          // No insights overview: the long topics are embedded in the tab.
+          return http.Response(
+            jsonEncode(
+              statisticsInsightsMeta(features: {'parking_observations': true}),
+            ),
+            200,
+          );
+        }
+        if (r.url.path.endsWith('/parking-observations')) {
+          reads.add(r.url);
+          return http.Response(jsonEncode(parkingResponse(r.url)), 200);
+        }
+        return http.Response(jsonEncode(statisticsInsightsFixture(r.url)), 200);
+      }),
+      () => DateTime.utc(2026, 10, 28, 11),
+      () => 'Asia/Shanghai',
+      statisticsInsights: true,
+    );
+    await tester.tap(find.text('长期'));
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '前置：嵌入的停放观察确实读过');
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
+    );
+    await tester.pumpAndSettle();
+    reads.clear();
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(reads, isEmpty, reason: '统计Tab隐藏时，嵌入专题不得在后台请求');
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
+    );
+    await tester.pumpAndSettle();
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '重新可见后才校验');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('360宽双倍字号完整页可滚动无溢出', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;

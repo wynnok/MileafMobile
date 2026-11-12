@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
 import 'charging_cost_test.dart'
     show CostSite, pumpCostApp, openCostSheet, tapCostAction;
+import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
@@ -16,18 +15,7 @@ const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
-    final inter = FontLoader('Inter');
-    for (final weight in ['Regular', 'Medium', 'SemiBold']) {
-      inter.addFont(rootBundle.load('assets/fonts/Inter-$weight.ttf'));
-    }
-    await inter.load();
-    await (FontLoader('PingFang SC')..addFont(
-          Future.value(ByteData.sublistView(File(fontPath).readAsBytesSync())),
-        ))
-        .load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await loadRenderFonts(cjkFontPath: fontPath);
   });
 
   testWidgets('320宽200%与键盘下输入、语义、错误和底部动作完整可达', (tester) async {
