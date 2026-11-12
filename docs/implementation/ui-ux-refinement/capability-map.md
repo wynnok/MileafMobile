@@ -78,6 +78,15 @@
 | V05-06 入电/网侧均价 | 这一次的账 | `charging_detail.dart::build` | extra.unitCostAdded/unitCostGrid | expandedDetail存在，null非免费 | P05账目说明 | charging_expansion_test.dart |
 | V05-07 额定/理想续航/充电器资料 | 车辆与环境 | `charging_detail.dart::build` | start/endRatedRangeKm、Ideal、charger及sourceSampleAt | fields逐项支持声明 | P05其他指标 | charging_expansion_test.dart |
 | V05-08 地点地图/精确时间/地址/ID | 充电地点/更多信息/AppBar | `charging_detail.dart::build`、`map/map_panel.dart::MapPanel` | Detail.location/startedAt/endedAt/id | 坐标可空，授权与Key独立 | P05地图/数据说明 | collage_charging_detail_test.dart |
+| V05-09 电压曲线 | 充电曲线→电压 | `charging_detail.dart::_ExpandedChargingCurveState.choices/reading` | series.voltageV，单位V | 扩展且capabilities.fields.voltage_v=true | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-10 实际电流曲线 | 充电曲线→实际电流 | 同上 | series.actualCurrentA，单位A | 对应actual_current_a字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-11 引导电流曲线 | 充电曲线→引导电流 | 同上 | series.pilotCurrentA，单位A | 对应pilot_current_a字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-12 室外温度曲线 | 充电曲线→室外温度 | 同上 | series.outsideTempC，单位°C | 对应outside_temp_c字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-13 额定续航曲线 | 充电曲线→额定续航 | 同上 | series.ratedRangeKm，单位km | 对应rated_range_km字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-14 理想续航曲线 | 充电曲线→理想续航 | 同上 | series.idealRangeKm，单位km | 对应ideal_range_km字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-15 累计入电曲线 | 充电曲线→累计入电 | 同上 | series.chargeEnergyAddedKwh，可能重置，非相加总计 | 对应charge_energy_added_kwh字段能力 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-16 时间/SOC横轴及读值/前后采样 | 曲线→按时间/按电量 | `charging_detail.dart::_ExpandedChargingCurveState.build/_ChargingSocPainter` | 同一series，SOC0–100，同SOC按时间保留，缺失不补点 | 扩展曲线存在；无采样或不足两点独立说明 | P05曲线控制/读值 | charging_expansion_test.dart（按电量切换） |
+| V05-17 加热事件/时间线/状态明细 | 曲线→电池加热状态变化 | `charging_detail.dart::heatingLabel/_ExpandedChargingCurveState.build` | stateEvents的battery_heater/battery_heater_on/battery_heater_no_power/not_enough_power_to_heat及原始时刻 | 请求字段按能力，events非null；截断显示totalEvents | P05过程事件/说明 | charging_expansion_test.dart（事件展开） |
 
 ## V06–V08 统计与0.3专题增量
 
@@ -122,7 +131,7 @@
 | MAP-03 隐私同意/撤销/待重启/政策复制 | 地图→地图隐私/详情授权 | `map/map_privacy_page.dart::build`、`map/map_consent_sheet.dart` | MapConsentController与原生进程Key状态 | 同意独立于Key，撤销卸载，重启边界可见 | P12地图隐私 | map_platform_test.dart、map_key_page_test.dart |
 | MAP-04 真图/速写/空轨迹/失败/重试 | 行程及充电地图 | `map/map_panel.dart::_initialStatus/build` | MapScene真实坐标，设备Key与同意先决 | configuration/consent/unsupported/empty/loading/ready/failed | P04/P05/P15地图 | map_platform_test.dart、collage_charging_detail_test.dart |
 | CFG-01 设置分组/无车辆入口 | 顶栏设置→偏好/站点 | `settings_page.dart::SettingsPage`、`workspace_page.dart::openSettings` | 当前session/config状态 | 有车/无车均可进入 | P12设置 | settings_navigation_test.dart |
-| CFG-02 外观跟随系统/浅/深 | 设置→外观弹层 | `appearance_sheet.dart::showAppearanceSheet` | AppearanceController.mode持久化 | 保存真实成功才反映 | P12外观 | appearance_shell_test.dart |
+| CFG-02 外观跟随系统/浅/深 | 设置→外观弹层 | `appearance_sheet.dart::showAppearanceSheet` | AppearanceController.mode持久化 | 选择即时应用，保存失败回滚并显示错误，成功关闭弹层 | P12外观 | appearance_shell_test.dart |
 | CFG-03 币种/未知/手动配置 | 设置→币种 | `currency.dart::CurrencyPage/CurrencySettings` | 站点维度币种，未知非默认CNY | 未识别显示未配置说明 | P12币种 | charging_test.dart、settings_navigation_test.dart |
 | CFG-04 服务版本/schema/兼容/单位 | 设置→服务信息 | `overview_page.dart::MetaPage` | meta真实字段，完整技术值 | meta失败独立重试 | P12服务信息 | overview_test.dart、settings_navigation_test.dart |
 | AUTH-01 首次服务地址/检查/可信HTTP | 首次连接 | `connection_page.dart::_check/_setTrust/build` | health，正常TLS与显式HTTP可信确认 | 恢复/加载/验证状态 | P13连接 | widget_test.dart、setup_test.dart |
@@ -207,12 +216,12 @@
 
 | 历史ID | 当前已承接 | 仍未支持/范围 | 后续归属 |
 | --- | --- | --- | --- |
-| G01 总览/详情 | V01–V05及扩展过程汇总 | 胎压、电压/电流过程、能量回收独立指标无当前入口/冻结呈现契约 | 后端能力候选，本轮无新增目标 |
+| G01 总览/详情 | V01–V05及扩展过程汇总 | 胎压、能量回收独立指标无当前入口/冻结呈现契约；充电电压/实际与引导电流已支持，见V05-09–11 | 后端能力候选，本轮无新增目标 |
 | G02 里程/效率 | 0.3已提供单程中位/P90、温度条件、距离分组与证据 | 速度直方图、目的地排行、里程预测 | U09a/b保留已有；其余候选 |
 | G03 充电 | 0.2已提供地点账目、分类时长、费用覆盖、单次过程；AC/DC环已确认 | 跨会话DC曲线比较、空间聚合、CH06后续能力 | U06/U09c保留已有；其余候选 |
 | G04 电量/续航/健康 | 当前SOC、单次过程、0.3月额定续航中位/P10–P90 | 连续跨记录SOC/续航历史、容量/健康/衰减诊断 | U09d保留观察，健康无目标 |
 | G05 停放/状态 | 0.3闭合停放SOC窗口、有效窗口状态时长 | 完整连续全天状态时间线、基于净毛差推导损耗 | U09e保留观察，非未来预测 |
-| G06 温度/更新 | 当前固件、详情均温、温度条件分组 | 车内外温度历史曲线、固件更新历史与间隔 | U07/U09b已有；其余候选 |
+| G06 温度/更新 | 当前固件、详情均温、温度条件分组、按能力提供的充电室外温度过程 | 跨记录连续车内外温度历史、固件更新历史与间隔 | U07/U09b已有；其余候选 |
 | G07 地点/旅程 | 单次轨迹、地点账目/记录、日期证据 | 全历史访问地图/空间排行、跨记录旅程组合、围栏编辑/导航 | 保留既有，后端/范围候选 |
 | G08 数据库/税务 | 当前无入口 | 数据库运维、专项税务报表 | 首版范围外 |
 
