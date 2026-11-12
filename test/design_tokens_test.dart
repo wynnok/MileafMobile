@@ -285,8 +285,10 @@ void main() {
       );
       // R07 时长合同（原值 120/160/180/220/240/500）：
       // press 120→100（按压 100ms）、value 220→160（局部快照更新 160ms）、
-      // chart 500 删除（图表首次/刷新 0，无绘制生长，A13）；enter 180 保留，
-      // 待 U03 移除 MileafPageEnter 时一并删除。
+      // chart 500 删除（图表首次/刷新 0，无绘制生长，A13）、skeleton 1200
+      // 删除（U03：静态骨架，无无限脉冲）。enter 180 保留：MileafPageEnter
+      // 已改为即时直出（U03），仅剩 map_privacy_page 自绘 chevron 消费，
+      // 待 U10 P12 迁移后随 MileafCurves.enter 一并删除。
       expect(
         {
           MileafDurations.press.inMilliseconds,
@@ -297,6 +299,8 @@ void main() {
         },
         {100, 160, 180, 240},
       );
+      // R06：参照线 1.5 虚线 4/4，比 2px 主线细一档。
+      expect(MileafChartMetrics.referenceStroke, 1.5);
     });
 
     test('五级字号与尺寸变体', () {

@@ -140,19 +140,17 @@ abstract final class MileafDurations {
   /// R07：互斥选中 / 折叠 / 读值反馈 160ms。
   static const tab = Duration(milliseconds: 160);
 
-  /// 180ms 整页入场，仅剩 `MileafPageEnter`（motion.dart，U03 范围）与
-  /// `map/map_privacy_page.dart`（U10 范围）消费。ADR0011 已裁定整页入场由
-  /// 即时完整内容替代；U03 移除该组件时一并删除本 token。
+  /// 180ms 整页入场时长。`MileafPageEnter` 已改为即时直出（U03，ADR0011），
+  /// 仅剩 `map/map_privacy_page.dart`（U10 范围）的自绘折叠 chevron 消费；
+  /// U10 在 P12 迁移该 chevron 后删除本 token 与 `MileafCurves.enter`。
   static const enter = Duration(milliseconds: 180);
 
-  /// R07：弹层 240ms easeOutCubic（charging_cost 的自管转场消费）。
+  /// R07：弹层 240ms easeOutCubic（showMileafSheet 的框架路由转场，
+  /// charging_cost 的自管转场消费）。
   static const sheet = Duration(milliseconds: 240);
 
   /// R07：局部快照更新 160ms easeOut，一次 opacity 过渡，数值即时正确。
   static const value = Duration(milliseconds: 160);
-
-  /// R07：初次加载静态骨架的无缝循环。
-  static const skeleton = Duration(milliseconds: 1200);
 }
 
 /// Only two shadow levels exist: sheet/overlay and toast.
@@ -249,6 +247,9 @@ abstract final class MileafChartMetrics {
   const MileafChartMetrics._();
 
   static const lineStroke = 2.0;
+
+  /// R06：参照线 1.5 虚线 4/4，比主线细一档。
+  static const referenceStroke = 1.5;
   static const microStroke = 1.2;
   static const areaMaxOpacity = .16;
   static const areaMinOpacity = .0;

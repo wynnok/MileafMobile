@@ -71,3 +71,27 @@
 - `MileafShareRing`：移除 500ms 首绘生长，首帧即完整几何；数据更新 160ms；圆心单位/标签按宽高预算逐级下移或省略，不再溢出（R07/§5.3）。
 - `MileafButton`：长标签可换行（R03）。
 - 主题输入装饰：`constraints minHeight 52`（R05）。
+
+---
+
+# U03 图表、状态和动效基础增量
+
+2026-11-12。输入 U02 交接提交 `1773d70`；以下为本包实际落地的 token / 组件增量，旧值→新值→规则 ID 见 [U03.md](U03.md)。
+
+## token
+
+| token | U02 值 | U03 值 | 规则 |
+| --- | --- | --- | --- |
+| `MileafDurations.skeleton` | 1200ms | 删除（静态骨架，无无限脉冲） | R07/R08/A14 |
+| `MileafDurations.enter` | 180ms | 保留（仅剩 map_privacy_page 自绘 chevron 消费；`MileafPageEnter` 已改即时直出） | U10 P12 迁移后删除 |
+| `MileafChartMetrics.referenceStroke` | 无 | 1.5 | R06.5 |
+
+## 组件
+
+- `MileafCurves`：删除 `chart`/`value`/`press`/`tab`（无消费点；R07 实际曲线由消费方声明）；保留 `enter`（U10 交接）与 `sheet`（弹层转场）。
+- `MileafPageEnter`：180ms 入场淡入/位移改为即时直出，参数 API 不变（ADR0011/R07；U04/U05 迁移调用点后删除组件）。
+- `MileafValueFade`：删除（无消费点）。
+- `SkeletonBlock`：StatefulWidget 脉冲改为静态实色块，无控制器（R07/R08）。
+- `MileafProgressLine`：禁动效时改静态 accent 55% 条，默认模式保留不定指示（R07）。
+- `showMileafSheet`：框架路由转场改 240ms easeOutCubic（`sheetAnimationStyle`），禁动效归零（R07；U02 交接项）。
+- `TimeSeriesChart`：绘图盒高度改为「顶轴留白 + 绘图区 + 底轴行高」，大字下随实测轴标增高（R06.4）；参照线描边 2→1.5（R06.5）。

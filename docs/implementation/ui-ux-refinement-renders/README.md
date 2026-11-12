@@ -1,6 +1,6 @@
 # UI/UX 精修正式 Flutter 图册
 
-2026-11-12，当前收录 U01 正式候选与 U02 共享组件图册，U01 用户视觉决定按「按候选继续」授权保持待验。U01 收尾已完成：全量 591 通过 / 12 跳过 / 0 失败，图册由收尾会话重新生成并核对为 316 + 96 张。U02 已交付共享系统收敛与 `components/` 三条画廊（12 张），全量 607 通过 / 12 跳过 / 0 失败。任务状态见[总控记录](../ui-ux-refinement/README.md)、[U01 交接](../ui-ux-refinement/U01.md)与 [U02 交接](../ui-ux-refinement/U02.md)。
+2026-11-12，当前收录 U01 正式候选、U02 共享组件图册与 U03 图表状态板，U01 用户视觉决定按「按候选继续」授权保持待验。U01 收尾已完成：全量 591 通过 / 12 跳过 / 0 失败，图册由收尾会话重新生成并核对为 316 + 96 张。U02 已交付共享系统收敛与 `components/` 三条画廊（12 张）。U03 已交付图表/状态/动效基础与 `components/chart-states-*` 状态板（4 张），全量 618 通过 / 13 跳过 / 0 失败（含 U03 新增 11 条回归与 1 条 opt-in 渲染用例）。任务状态见[总控记录](../ui-ux-refinement/README.md)、[U01 交接](../ui-ux-refinement/U01.md)、[U02 交接](../ui-ux-refinement/U02.md)与 [U03 交接](../ui-ux-refinement/U03.md)。
 
 ## 来源与范围
 
@@ -20,6 +20,7 @@
 | `flows/cost-*` 普通表单 | 40 | 80 | 360×800，浅深×100/130/150/200%，空输入/预估/非法输入/403/待确认，各有输入与动作机位 |
 | `flows/cost-*` 窄屏表单 | 8 | 16 | 320×568，浅深200%，长地点/未知币种/最大金额/键盘 inset300，各有输入与动作机位 |
 | `components/gallery-*`（U02） | 12 | 0 | 组件状态画廊浅深×100/200%：`gallery-*` 代表组件、`gallery-long-*` 长文本、`gallery-states-*` 焦点/禁用/处理中 |
+| `components/chart-states-*`（U03） | 4 | 0 | 图表状态板浅深×100/200%：折线+参照虚线与 null 断线、正/负/0/null/极值柱、稀疏竖线（真实 0 与 null 不画线）、单点、大数轴（千位缩写）、长轴标、全空说明；200% 大字 Y 轴减 tick、图例移行、轴标完整放大 |
 
 `components/` 由 U02 分配并维护，入口为 `test/design_gallery_render_test.dart`，视口 360 宽、高度按画廊 1200/2200/1900，DPR 1、PNG 输出倍率 2，字体与数据口径同上节（合成夹具、固定 2026-10-26）。逐张目视清单见 [U02 交接](../ui-ux-refinement/U02.md)。
 
@@ -48,6 +49,12 @@ U02 组件画廊入口（2026-11-12 由 U02 会话实跑，退出 0，输出 12 
 
 ```sh
 ./tool/flutterw test --no-pub test/design_gallery_render_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/components '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
+```
+
+U03 图表状态板入口（2026-11-12 由 U03 会话实跑，退出 0，输出 4 张到 `components/`，命名 `chart-states-<浅/深>-<100/200>.png`；视口 360×800、DPR 1、PNG 倍率 2，合成夹具、无 HTTP，读值用默认「日期 · 数值 单位」结构）：
+
+```sh
+./tool/flutterw test --no-pub test/ui_ux_u03_test.dart --dart-define=MILEAF_RENDER_OUTPUT=docs/implementation/ui-ux-refinement-renders/components '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
 ```
 
 ## 总控抽样目视与测量

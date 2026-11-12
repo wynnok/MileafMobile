@@ -1,57 +1,33 @@
 import 'package:flutter/material.dart';
 
-import 'layout.dart';
-import 'tokens.dart';
-
 abstract final class MileafCurves {
   const MileafCurves._();
 
+  /// 自绘折叠 chevron（map_privacy_page）仍消费；R07 折叠指示箭头为
+  /// 160ms easeOutCubic，U10 在 P12 迁移时改用 [MileafDurations.tab] 后
+  /// 随 [MileafDurations.enter] 一并删除。
   static const enter = Curves.easeOutCubic;
-  static const chart = Curves.easeOutCubic;
-  static const value = Curves.easeOut;
-  static const press = Curves.easeOut;
+
+  /// R07 弹层 240ms easeOutCubic（showMileafSheet 的框架路由转场）。
   static const sheet = Curves.easeOutCubic;
-  static const tab = Curves.easeInOut;
 }
 
-/// 180ms opacity + 4px rise for page entry; opacity only with reduce motion.
+/// Former 180ms page-entry fade; ADR0011 / R07 replaced page-entry motion
+/// with immediate full content, so this is a pure pass-through in every mode
+/// (reduce motion or not, the child is complete from the first frame).
 ///
-/// Motion never gates content: the child is laid out at full size from the
-/// first frame.
+/// Kept only because two tab bodies still wrap themselves with it —
+/// `overview_page.dart` (U04) and `drives_page.dart` (U05) delete the call
+/// sites during their migrations; this widget must not come back.
 class MileafPageEnter extends StatelessWidget {
   const MileafPageEnter({super.key, required this.child, this.offset = 4});
 
   final Widget child;
+
+  /// Unused since the entry animation was removed; kept for call-site
+  /// compatibility until U04/U05 migrate.
   final double offset;
 
   @override
-  Widget build(BuildContext context) {
-    final reduce = MileafLayout.reduceMotion(context);
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: reduce ? Duration.zero : MileafDurations.enter,
-      curve: MileafCurves.enter,
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.translate(
-          offset: Offset(0, reduce ? 0 : offset * (1 - value)),
-          child: child,
-        ),
-      ),
-      child: child,
-    );
-  }
-}
-
-/// Static value swap used by readouts; no number rolling.
-class MileafValueFade extends StatelessWidget {
-  const MileafValueFade({super.key, required this.child});
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => AnimatedSwitcher(
-    duration: MileafLayout.motion(context, MileafDurations.value),
-    transitionBuilder: (child, animation) =>
-        FadeTransition(opacity: animation, child: child),
-    child: child,
-  );
+  Widget build(BuildContext context) => child;
 }

@@ -2,27 +2,40 @@ import 'package:flutter/material.dart';
 
 import '../icons.dart';
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 import 'icon_button.dart';
 
 /// Bottom sheet: top radius 20, scrim, 36×4 handle, 18 title, 44 close.
+///
+/// Transition follows R07: 240ms easeOutCubic, zero when reduce motion is on
+/// (U03 动效基础；U02 交接的弹层时长校准).
 Future<T?> showMileafSheet<T>({
   required BuildContext context,
   required String title,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
-}) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: isScrollControlled,
-  showDragHandle: false,
-  builder: (sheetContext) => MileafSheetFrame(
-    title: title,
-    onClose: () => Navigator.pop(sheetContext),
-    child: builder(sheetContext),
-  ),
-);
+}) {
+  final duration = MileafLayout.motion(context, MileafDurations.sheet);
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: isScrollControlled,
+    showDragHandle: false,
+    sheetAnimationStyle: AnimationStyle(
+      duration: duration,
+      reverseDuration: duration,
+      curve: MileafCurves.sheet,
+      reverseCurve: MileafCurves.sheet,
+    ),
+    builder: (sheetContext) => MileafSheetFrame(
+      title: title,
+      onClose: () => Navigator.pop(sheetContext),
+      child: builder(sheetContext),
+    ),
+  );
+}
 
 class MileafSheetFrame extends StatelessWidget {
   const MileafSheetFrame({

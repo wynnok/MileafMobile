@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../icons.dart';
-import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -162,8 +161,10 @@ class InlineBanner extends StatelessWidget {
   }
 }
 
-/// 1.2s opacity skeleton; static when reduce motion is on.
-class SkeletonBlock extends StatefulWidget {
+/// Static skeleton (R07/R08): a fixed shape in the skeleton tone, so first
+/// load shows the module's real structure without an infinite pulse or a
+/// shimmer sweep; reduce motion needed no special case because nothing moves.
+class SkeletonBlock extends StatelessWidget {
   const SkeletonBlock({
     super.key,
     required this.width,
@@ -176,46 +177,12 @@ class SkeletonBlock extends StatefulWidget {
   final double radius;
 
   @override
-  State<SkeletonBlock> createState() => _SkeletonBlockState();
-}
-
-class _SkeletonBlockState extends State<SkeletonBlock>
-    with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(
-    vsync: this,
-    duration: MileafDurations.skeleton,
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MileafLayout.reduceMotion(context)) {
-      _controller
-        ..stop()
-        ..value = .5;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _controller,
-    builder: (context, _) => Container(
-      width: widget.width,
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: context.colors.skeleton.withValues(
-          alpha: .5 + .5 * _controller.value,
-        ),
-        borderRadius: BorderRadius.circular(widget.radius),
-      ),
+  Widget build(BuildContext context) => Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: context.colors.skeleton,
+      borderRadius: BorderRadius.circular(radius),
     ),
   );
 }

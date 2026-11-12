@@ -158,6 +158,23 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     final value = series == null || index >= series.values.length
         ? null
         : series.values[index];
+    // R06.6：可比时读值带「参照区间名 参照值（差 ±d）」；当前值或参照值
+    // 任一缺失即省略参照段——不伪造比较，不按分母折百分比。
+    final references = widget.series
+        .where((s) => s.style == ChartSeriesStyle.reference)
+        .toList();
+    final reference = references.isEmpty ? null : references.first;
+    if (value != null &&
+        reference != null &&
+        index < reference.values.length &&
+        reference.values[index] != null) {
+      final refValue = reference.values[index]!;
+      final diff = value.toDouble() - refValue.toDouble();
+      final sign = diff > 0 ? '+' : '';
+      return '${_tick(date)} · ${_value(value)} · ${reference.label} '
+          '${_format(refValue)} ${widget.unit}'
+          '（差 $sign${_format(diff)} ${widget.unit}）';
+    }
     return '${_tick(date)} · ${_value(value)}';
   }
 
@@ -250,20 +267,26 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             final bottom = widget.showXAxis
                 ? _measureAxis(_tick(widget.times.first), labelStyle).height +
                       MileafSpace.s8
-                : 0.0;
+                // 无 X 轴时仍保住一个底部 halo，底部标记不被裁（R06.4）。
+                : MileafChartMetrics.currentHalo;
             final plotWidth = math.max(1.0, constraints.maxWidth - left);
             // Spec §8: the current marker is a 4px point inside an 8px halo.
-            // The grid keeps one halo of margin top and bottom so a mark at the
-            // maximum, the minimum, a negative value or a real zero is never
-            // cut by the plot edge.
+            // The box reserves one halo of margin above the plot (plus half
+            // the Y-tick label when a Y axis is shown) and at least one halo
+            // below it, so a mark at the maximum, the minimum, a negative
+            // value or a real zero is never cut by the plot edge. With a Y
+            // axis the top margin also carries half the tick label
+            // (R06: 轴留白按实际 TextPainter 度量), which grows past the
+            // halo at large text sizes.
+            final topMargin = widget.showYAxis
+                ? math.max(
+                    MileafChartMetrics.currentHalo,
+                    sizes.first.height / 2,
+                  )
+                : MileafChartMetrics.currentHalo;
             final plot = Rect.fromLTWH(
               left,
-              widget.showYAxis
-                  ? math.max(
-                      MileafChartMetrics.currentHalo,
-                      sizes.first.height / 2,
-                    )
-                  : MileafChartMetrics.currentHalo,
+              topMargin,
               plotWidth,
               math.max(1.0, plotHeight),
             );
@@ -321,10 +344,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                       selectAt(details.localPosition),
                   child: SizedBox(
                     key: widget.plotKey,
-                    height:
-                        plotHeight +
-                        bottom +
-                        2 * MileafChartMetrics.currentHalo,
+                    // R06：盒子高度按实际绘制范围给足——顶轴留白 +
+                    // 绘图区 + 底部 X 轴行高，大字下随文字增高，不截字。
+                    height: plot.top + math.max(1.0, plotHeight) + bottom,
                     child: CustomPaint(
                       size: Size(constraints.maxWidth, plotHeight),
                       painter: _ChartPainter(
@@ -433,8 +455,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
 ///
 /// The painter cannot read the theme, so the family and the CJK fallback are
 /// declared here once: self-drawn chart text falls back to the same face as
-/// every other number on the page. Size still follows the text scaler up to
-/// the 150% axis-label cap.
+/// every other number on the page. Size follows the full text scaler (R06.4:
+/// 自绘轴文字应用完整 TextScaler，不设放大上限).
 TextStyle chartAxisLabelStyle({
   required Color color,
   required TextScaler scaler,
@@ -949,7 +971,8 @@ class _ChartPainter extends CustomPainter {
     final paint = Paint()
       ..color = reference
       ..style = PaintingStyle.stroke
-      ..strokeWidth = MileafChartMetrics.lineStroke
+      // R06：参照 1.5 虚线 4/4，比 2px 主线细一档。
+      ..strokeWidth = MileafChartMetrics.referenceStroke
       ..strokeCap = StrokeCap.round;
     for (final run in chartRuns(chart.values)) {
       for (var i = 1; i < run.length; i++) {

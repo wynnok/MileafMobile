@@ -74,16 +74,33 @@ class MileafContent extends StatelessWidget {
   );
 }
 
-/// Page-level 2px progress line; static colour when reduce motion is on.
+/// Page-level 2px progress line. Under reduce motion the indeterminate
+/// animation is replaced by a static accent strip (R07：减少动效不残留无限
+/// 转动；静态进度提示由所在页面配文承载). The strip opacity is the midpoint
+/// of the former pulse so it still reads as activity, not completion; the
+/// value is registered in token-changes as a candidate opacity token.
 class MileafProgressLine extends StatelessWidget {
   const MileafProgressLine({super.key});
+
+  /// R07 减动效静态条的透明度（原 1.2s 脉冲的中段值）。
+  static const _reducedOpacity = .55;
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 2,
-    child: LinearProgressIndicator(
-      minHeight: 2,
-      backgroundColor: Colors.transparent,
-      color: context.colors.accent,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final color = context.colors.accent;
+    if (MileafLayout.reduceMotion(context)) {
+      return Container(
+        height: 2,
+        color: color.withValues(alpha: _reducedOpacity),
+      );
+    }
+    return SizedBox(
+      height: 2,
+      child: LinearProgressIndicator(
+        minHeight: 2,
+        backgroundColor: Colors.transparent,
+        color: color,
+      ),
+    );
+  }
 }

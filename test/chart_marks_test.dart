@@ -68,11 +68,7 @@ TimeSeriesChart _bars(
   unit: 'km',
   times: [for (var i = 0; i < values.length; i++) DateTime(2026, 10, 1 + i)],
   series: [
-    ChartSeries(
-      label: '每日里程',
-      values: values,
-      style: ChartSeriesStyle.bars,
-    ),
+    ChartSeries(label: '每日里程', values: values, style: ChartSeriesStyle.bars),
   ],
   semanticsLabel: '每日里程图表',
   selectedIndex: selectedIndex,
@@ -97,74 +93,75 @@ void main() {
     for (final brightness in Brightness.values) {
       for (final onSurface in [false, true]) {
         final surfaceName = onSurface ? '表面' : '画布';
-        testWidgets(
-          '${brightness.name} $surfaceName：每根柱都是强调色实色且合成对比度 ≥3:1',
-          (tester) async {
-            final colors = _colors(brightness);
-            final background = onSurface ? colors.surface : colors.canvas;
-            const values = <num?>[12, 24, 8, 30, 18, 22];
-            final probe = await pumpChart(
-              tester,
-              brightness: brightness,
-              background: background,
-              chart: _bars(values, selectedIndex: 2),
-            );
+        testWidgets('${brightness.name} $surfaceName：每根柱都是强调色实色且合成对比度 ≥3:1', (
+          tester,
+        ) async {
+          final colors = _colors(brightness);
+          final background = onSurface ? colors.surface : colors.canvas;
+          const values = <num?>[12, 24, 8, 30, 18, 22];
+          final probe = await pumpChart(
+            tester,
+            brightness: brightness,
+            background: background,
+            chart: _bars(values, selectedIndex: 2),
+          );
 
-            // The background under the marks is the surface the chart sits on.
-            expect(probe.at(probe.width - 2, probe.height - 2), background);
+          // The background under the marks is the surface the chart sits on.
+          expect(probe.at(probe.width - 2, probe.height - 2), background);
 
-            // One solid column per known value: no bar is drawn faded.
-            final bars = probe.columns(colors.accent);
+          // One solid column per known value: no bar is drawn faded.
+          final bars = probe.columns(colors.accent);
+          expect(
+            bars,
+            hasLength(values.length),
+            reason:
+                '${brightness.name} $surfaceName: 每根普通柱都应是 ${colors.accent} 实色',
+          );
+          expect(
+            probe.count(colors.accent),
+            greaterThan(800),
+            reason:
+                '${brightness.name} $surfaceName: 实色柱应有成片的像素，'
+                '而不是一条描边',
+          );
+
+          // The colour actually painted against the background actually
+          // painted: sample the middle of the first bar and the gap beside it.
+          final first = bars.first;
+          final markRect = probe.bounds(
+            colors.accent,
+            where: (x, _) => x >= first.from && x <= first.to,
+          )!;
+          final markX = (first.from + first.to) ~/ 2;
+          final markY = markRect.center.dy.round();
+          final painted = probe.at(markX, markY);
+          final beside = probe.at(first.to + 15 * probeScale.toInt(), markY);
+          expect(painted, colors.accent);
+          expect(beside, background);
+          expect(
+            contrastRatio(painted, beside),
+            greaterThanOrEqualTo(3),
+            reason: '${brightness.name} $surfaceName: 普通柱与背景合成后仍须 ≥3:1',
+          );
+
+          // The 30% idle rule must be gone: the interior of every bar is
+          // solid, so no faded composite survives away from antialiased edges.
+          final faded = compositeOver(colors.accent, .3, background);
+          for (final bar in bars) {
+            final center = (bar.from + bar.to) ~/ 2;
             expect(
-              bars,
-              hasLength(values.length),
+              probe.count(
+                faded,
+                tolerance: 2,
+                where: (x, _) => (x - center).abs() <= 2,
+              ),
+              0,
               reason:
-                  '${brightness.name} $surfaceName: 每根普通柱都应是 ${colors.accent} 实色',
+                  '${brightness.name} $surfaceName: 仍有 30% 淡化柱'
+                  '（合成色 $faded）',
             );
-            expect(
-              probe.count(colors.accent),
-              greaterThan(800),
-              reason: '${brightness.name} $surfaceName: 实色柱应有成片的像素，'
-                  '而不是一条描边',
-            );
-
-            // The colour actually painted against the background actually
-            // painted: sample the middle of the first bar and the gap beside it.
-            final first = bars.first;
-            final markRect = probe.bounds(
-              colors.accent,
-              where: (x, _) => x >= first.from && x <= first.to,
-            )!;
-            final markX = (first.from + first.to) ~/ 2;
-            final markY = markRect.center.dy.round();
-            final painted = probe.at(markX, markY);
-            final beside = probe.at(first.to + 15 * probeScale.toInt(), markY);
-            expect(painted, colors.accent);
-            expect(beside, background);
-            expect(
-              contrastRatio(painted, beside),
-              greaterThanOrEqualTo(3),
-              reason: '${brightness.name} $surfaceName: 普通柱与背景合成后仍须 ≥3:1',
-            );
-
-            // The 30% idle rule must be gone: the interior of every bar is
-            // solid, so no faded composite survives away from antialiased edges.
-            final faded = compositeOver(colors.accent, .3, background);
-            for (final bar in bars) {
-              final center = (bar.from + bar.to) ~/ 2;
-              expect(
-                probe.count(
-                  faded,
-                  tolerance: 2,
-                  where: (x, _) => (x - center).abs() <= 2,
-                ),
-                0,
-                reason: '${brightness.name} $surfaceName: 仍有 30% 淡化柱'
-                    '（合成色 $faded）',
-              );
-            }
-          },
-        );
+          }
+        });
       }
     }
   });
@@ -212,7 +209,10 @@ void main() {
                 where: (x, _) => x >= stem.from && x <= stem.to,
               )
               .reduce((a, b) => a.dy < b.dy ? a : b);
-          final beside = probe.at(stem.to + 6 * probeScale.toInt(), topmost.dy.round());
+          final beside = probe.at(
+            stem.to + 6 * probeScale.toInt(),
+            topmost.dy.round(),
+          );
           expect(beside, colors.canvas);
           expect(
             contrastRatio(colors.accent, beside),
@@ -226,9 +226,7 @@ void main() {
 
   group('真实零与缺失', () {
     for (final brightness in Brightness.values) {
-      testWidgets('${brightness.name}：零保留零值标记、缺失留空、选中的零仍为零', (
-        tester,
-      ) async {
+      testWidgets('${brightness.name}：零保留零值标记、缺失留空、选中的零仍为零', (tester) async {
         final colors = _colors(brightness);
         const values = <num?>[12, 0, null, 18];
         final probe = await pumpChart(
@@ -238,7 +236,11 @@ void main() {
         );
 
         final bars = probe.columns(colors.accent);
-        expect(bars, hasLength(3), reason: '${brightness.name}: 零与缺失各占一槽，只有零有标记');
+        expect(
+          bars,
+          hasLength(3),
+          reason: '${brightness.name}: 零与缺失各占一槽，只有零有标记',
+        );
 
         final zero = bars[1];
         final zeroBounds = probe.bounds(
@@ -438,9 +440,13 @@ void main() {
           mark.center.dy.round(),
         );
         expect(painted, colors.accentHero);
-        // The hero carries a decorative glow, so the background is sampled
-        // next to the mark rather than assumed from the token.
-        final beside = probe.at(first.to + 20 * probeScale.toInt(), mark.center.dy.round());
+        // The hero has no glow (U02 removed it), but it may sit on either the
+        // canvas or the card surface, so the background is sampled beside the
+        // mark rather than assumed from a token.
+        final beside = probe.at(
+          first.to + 20 * probeScale.toInt(),
+          mark.center.dy.round(),
+        );
         expect(
           contrastRatio(painted, beside),
           greaterThanOrEqualTo(3),
@@ -452,9 +458,7 @@ void main() {
 
   group('选中零值', () {
     for (final brightness in Brightness.values) {
-      testWidgets('${brightness.name}：竖线里被选中的真实零用零值点，不用当前端点', (
-        tester,
-      ) async {
+      testWidgets('${brightness.name}：竖线里被选中的真实零用零值点，不用当前端点', (tester) async {
         final colors = _colors(brightness);
         final halo = compositeOver(colors.accent, .2, colors.canvas);
         // Index 1 is a real zero, index 2 is missing: neither draws a stem, so
@@ -485,7 +489,8 @@ void main() {
         expect(
           short.single.width / probeScale,
           lessThanOrEqualTo(4),
-          reason: '${brightness.name}: 选中的零只能用零值点那样的小标记，'
+          reason:
+              '${brightness.name}: 选中的零只能用零值点那样的小标记，'
               '不能用当前端点（会把零读成有体积）',
         );
         expect(
