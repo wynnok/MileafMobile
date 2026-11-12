@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
-import 'design/motion.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -512,11 +511,20 @@ class _DrivesPageState extends State<DrivesPage>
     return '${md(DateTime.parse(range['from']!))}—${md(DateTime.parse(range['to']!))}';
   }
 
-  String _clock(DateTime value) {
-    final local = workspace.calendar!.local(value);
-    return '${local.month}/${local.day} · '
-        '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
+  String _recordDate(dto.Drive drive) =>
+      date(workspace.calendar!.local(drive.startedAt));
+
+  String _recordTime(dto.Drive drive) {
+    final calendar = workspace.calendar!;
+    final start = calendar.local(drive.startedAt);
+    String hm(DateTime t) =>
+        '${t.hour.toString().padLeft(2, '0')}:'
+        '${t.minute.toString().padLeft(2, '0')}';
+    final end = drive.endedAt;
+    if (end == null) return hm(start);
+    final localEnd = calendar.local(end);
+    final endDate = date(start) == date(localEnd) ? '' : '${date(localEnd)} ';
+    return '${hm(start)}–$endDate${hm(localEnd)}';
   }
 
   String get _rangeLabel {
@@ -647,9 +655,7 @@ class _DrivesPageState extends State<DrivesPage>
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(drivesText, style: metaStyle),
-              Text('·', style: metaStyle),
               Text(energyText, style: metaStyle),
-              Text('·', style: metaStyle),
               Text(netText, style: metaStyle),
             ],
           );
@@ -750,25 +756,34 @@ class _DrivesPageState extends State<DrivesPage>
 
   Widget _routeRow(dto.Drive d) {
     final distance = _distance(d);
-    final meta = '${_clock(d.startedAt)} · ${_duration(d)}\n${_net(d)}';
-    return MileafDataRow(
+    final meta = '${_recordTime(d)}  ${_duration(d)}\n${_net(d)}';
+    return ConstrainedBox(
       key: ValueKey('drive-${d.id}'),
-      title: _route(d),
-      titleMaxLines: MediaQuery.textScalerOf(context).scale(14) > 14 ? null : 2,
-      meta: meta,
-      badge: d.endedAt == null
-          ? Text(
-              '进行中',
-              style: context.type.micro.copyWith(color: context.colors.warning),
-            )
-          : null,
-      value: distance,
-      unit: distance == null ? null : 'km',
-      bottomLine: true,
-      onTap: () => widget.onRecord?.call(d.id),
-      semanticLabel:
-          '${_route(d)}，$meta${d.endedAt == null ? '，进行中' : ''}'
-          '${distance == null ? '' : '，$distance km'}',
+      constraints: const BoxConstraints(
+        minHeight: MileafSpace.rowMin + MileafSpace.s16,
+      ),
+      child: MileafDataRow(
+        title: _route(d),
+        titleMaxLines: MediaQuery.textScalerOf(context).scale(14) > 14
+            ? null
+            : 2,
+        meta: meta,
+        badge: d.endedAt == null
+            ? Text(
+                '进行中',
+                style: context.type.micro.copyWith(
+                  color: context.colors.warning,
+                ),
+              )
+            : null,
+        value: distance ?? '—',
+        unit: 'km',
+        bottomLine: true,
+        onTap: () => widget.onRecord?.call(d.id),
+        semanticLabel:
+            '${_recordDate(d)}，${_route(d)}，$meta${d.endedAt == null ? '，进行中' : ''}'
+            '，${distance ?? '距离缺失'}${distance == null ? '' : ' km'}',
+      ),
     );
   }
 
@@ -784,7 +799,10 @@ class _DrivesPageState extends State<DrivesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '最近的路'),
+          SectionHeader(
+            title: '最近的路',
+            range: items.isEmpty ? null : _recordDate(items.first),
+          ),
           const SizedBox(height: MileafSpace.s4),
           if (items.isEmpty)
             Padding(
@@ -796,7 +814,17 @@ class _DrivesPageState extends State<DrivesPage>
             )
           else ...[
             _routeRow(items.first),
-            for (final d in items.skip(1)) _routeRow(d),
+            for (var i = 1; i < items.length; i++) ...[
+              if (_recordDate(items[i]) != _recordDate(items[i - 1]))
+                Padding(
+                  padding: const EdgeInsets.only(top: MileafSpace.s12),
+                  child: Text(
+                    _recordDate(items[i]),
+                    style: type.label.copyWith(color: colors.textMuted),
+                  ),
+                ),
+              _routeRow(items[i]),
+            ],
           ],
         ],
       ),
@@ -826,7 +854,7 @@ class _DrivesPageState extends State<DrivesPage>
                 ),
                 const SizedBox(height: MileafSpace.s4),
                 Text(
-                  '已完成行程 · ${timeRange(statsSnapshot)}',
+                  '已完成行程\n${timeRange(statsSnapshot)}',
                   style: type.micro.copyWith(color: colors.textMuted),
                 ),
                 if (result != null) ...[
@@ -874,7 +902,7 @@ class _DrivesPageState extends State<DrivesPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            MileafPageEnter(
+            MileafContent(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   inset,
@@ -896,7 +924,10 @@ class _DrivesPageState extends State<DrivesPage>
                           style: type.micro.copyWith(color: colors.warning),
                         ),
                       ),
-                    if (loading || statsLoading) const MileafProgressLine(),
+                    if (loading || statsLoading) ...[
+                      const MileafProgressLine(),
+                      Text(loaded ? '更新中' : '正在加载行程', style: type.micro),
+                    ],
                     if (error != null)
                       InlineBanner(
                         message: error!,
