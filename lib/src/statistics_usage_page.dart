@@ -8,6 +8,7 @@ import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 import 'statistics_insights_page.dart';
+import 'statistics_period.dart';
 
 String usageValue(Object? value) => value is num
     ? value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)
@@ -38,7 +39,7 @@ void openDrivingEvidence(
   );
 }
 
-/// One evidence fact on an A statistics topic: label, number and unit.
+/// One evidence fact on a statistics topic: label, number and unit.
 class StatisticsTopicFact {
   const StatisticsTopicFact({
     required this.label,
@@ -92,6 +93,8 @@ class StatisticsTopicFacts extends StatelessWidget {
         value: fact.value,
         unit: fact.unit,
         note: fact.note,
+        semanticLabel:
+            '${fact.label} ${fact.value ?? '—'} ${fact.unit ?? ''}${fact.note == null ? '' : '，${fact.note}'}',
         scale: MetricValueScale.metricMd,
       ),
     );
@@ -172,7 +175,9 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
   Map<String, dynamic>? data, calendar;
   String? error, calendarError;
   int sequence = 0;
+  bool loading = false;
   String? loadedScope;
+  DateTime? selectedDay;
   String get scope =>
       '${identityHashCode(source.workspace.session.current)}:${source.workspace.selectedId}:${source.workspace.calendar?.identifier}:${source.window.from}:${source.window.to}';
   StatisticsInsightsContext get source => widget.source;
@@ -188,6 +193,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     if (loadedScope != scope) {
       data = null;
       calendar = null;
+      selectedDay = null;
       load();
     }
   }
@@ -222,6 +228,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     setState(() {
       error = null;
       calendarError = null;
+      loading = true;
     });
     try {
       final response = await ws.cache.get(
@@ -233,7 +240,10 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
       if (valid()) setState(() => data = response.body);
     } catch (_) {
       if (valid()) {
-        setState(() => error = '用车节奏读取失败${data != null ? '，保留上次结果' : ''}');
+        setState(
+          () => error =
+              '用车节奏读取失败${data != null ? '，保留上次结果（${data!['as_of'] ?? '校验时间未知'}）' : ''}',
+        );
       }
     }
     try {
@@ -245,8 +255,14 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
       );
       if (valid()) setState(() => calendar = response.body);
     } catch (_) {
-      if (valid()) setState(() => calendarError = '日历暂不可用');
+      if (valid()) {
+        setState(
+          () => calendarError =
+              '日历暂不可用${calendar != null ? '，保留上次每日结果（${calendar!['as_of'] ?? '校验时间未知'}）' : ''}',
+        );
+      }
     }
+    if (valid()) setState(() => loading = false);
   }
 
   @override
@@ -260,14 +276,17 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     }
     final d = data;
     final children = <Widget>[
+      if (loading && (data != null || calendar != null)) ...[
+        const MileafProgressLine(),
+        const Text('用车节奏更新中'),
+      ],
       if (error != null)
         Padding(
           padding: const EdgeInsets.only(bottom: MileafSpace.s12),
-          child: InlineBanner(
-            message: error!,
+          child: _retryNotice(
+            error!,
             tone: BannerTone.error,
             actionLabel: '重试用车节奏',
-            onAction: () => load(force: true),
           ),
         ),
       if (d == null && calendarError != null && error == null)
@@ -289,7 +308,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
         _notesSection(d),
       ] else if (calendar != null)
         _calendarSection()
-      else
+      else if (error == null)
         const StateView(kind: StateViewKind.loading, title: '正在加载用车节奏'),
     ];
     final column = Column(
@@ -298,18 +317,36 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     );
     return source.compact
         ? column
-        : SingleChildScrollView(
-            padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
-            child: column,
+        : MileafContent(
+            child: SingleChildScrollView(
+              padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+              child: column,
+            ),
           );
   }
 
   Widget _empty(String title, String message) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const SectionHeader(title: '这段时间的用车节奏'),
-      const SizedBox(height: MileafSpace.s8),
       StateView(kind: StateViewKind.empty, title: title, message: message),
+    ],
+  );
+
+  Widget _retryNotice(
+    String message, {
+    required BannerTone tone,
+    required String actionLabel,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      InlineBanner(message: message, tone: tone),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: loading ? null : () => load(force: true),
+          child: Text(actionLabel),
+        ),
+      ),
     ],
   );
 
@@ -321,7 +358,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: '这段时间的用车节奏', range: '有行程的日子'),
+        Text('这段时间的用车节奏', style: type.label.copyWith(color: colors.textMuted)),
         const SizedBox(height: MileafSpace.s8),
         Text.rich(
           TextSpan(
@@ -332,7 +369,9 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
               ),
               TextSpan(
                 text: active,
-                style: type.display.copyWith(color: colors.text),
+                style:
+                    (d['active_days'] == null ? type.metricMd : type.metricLg)
+                        .copyWith(color: colors.text),
               ),
               TextSpan(
                 text: ' 天',
@@ -343,11 +382,17 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
         ),
         const SizedBox(height: MileafSpace.s4),
         Text(
-          '${usageValue(d['driving_distance_km'])} km 记录里程 · '
-          '每活跃日 ${usageValue(d['distance_per_active_day_km'])} km'
-          '${partial ? ' · 今天尚未结束' : ''}',
+          '${usageValue(d['driving_distance_km'])} km 记录里程',
           style: type.body.copyWith(color: colors.textMuted),
         ),
+        Text(
+          '每活跃日 ${usageValue(d['distance_per_active_day_km'])} km',
+          style: type.label.copyWith(color: colors.textMuted),
+        ),
+        if (d['active_days'] == null) Text('暂无活跃天数', style: type.micro),
+        if (partial)
+          Text('今天尚未结束', style: type.micro.copyWith(color: colors.textMuted)),
+        const SizedBox(height: MileafSpace.s24),
       ],
     );
   }
@@ -355,61 +400,122 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
   Widget _calendarSection() {
     final colors = context.colors;
     final type = context.type;
-    final buckets = calendar == null
-        ? const <Map<String, dynamic>>[]
-        : usageItems(calendar!['buckets']);
-    final positive = buckets.any((b) => (b['distance_km'] as num? ?? 0) > 0);
+    final zone = source.workspace.calendar!;
+    final byDate = {
+      for (final bucket in usageItems(calendar?['buckets']))
+        statisticsDate(
+          zone.local(DateTime.parse(bucket['bucket_start'] as String)),
+        ): bucket,
+    };
+    final first = zone.local(source.window.from);
+    final last = zone.local(
+      source.window.to.subtract(const Duration(microseconds: 1)),
+    );
+    // Civil dates are advanced before midnight conversion, including DST days.
+    final buckets = <Map<String, dynamic>>[
+      if (calendar != null)
+        for (
+          var date = DateTime.utc(first.year, first.month, first.day);
+          !date.isAfter(DateTime.utc(last.year, last.month, last.day));
+          date = date.add(const Duration(days: 1))
+        )
+          byDate[statisticsDate(date)] ??
+              {'bucket_start': zone.midnight(date).toIso8601String()},
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (calendarError != null)
           Padding(
             padding: const EdgeInsets.only(bottom: MileafSpace.s8),
-            child: InlineBanner(
-              message: calendarError!,
+            child: _retryNotice(
+              calendarError!,
               tone: BannerTone.warning,
               actionLabel: '重试日历',
-              onAction: () => load(force: true),
             ),
           ),
         if (buckets.isEmpty)
           Text(
-            calendar == null ? '正在读取每日里程' : '还没有每日里程',
+            calendarError != null && calendar == null
+                ? '每日里程读取失败'
+                : calendar == null
+                ? '正在读取每日里程'
+                : '还没有每日里程',
             style: type.body.copyWith(color: colors.textMuted),
           )
-        else if (!positive)
-          Text('还没有每日里程', style: type.body.copyWith(color: colors.textMuted))
         else ...[
           const SectionHeader(title: '每日用车', range: 'km'),
           const SizedBox(height: MileafSpace.s8),
           LayoutBuilder(
             builder: (context, constraints) {
-              final scaler = MediaQuery.textScalerOf(context);
               const gap = MileafSpace.s4;
-              final preferred = math.max(39.0, scaler.scale(39));
-              final columns = math.max(
-                1,
-                math.min(
-                  7,
-                  ((constraints.maxWidth + gap) / (preferred + gap)).floor(),
-                ),
-              );
+              final large = MileafLayout.largeText(context);
+              final seven =
+                  !large &&
+                  MediaQuery.sizeOf(context).width >= MileafBreakpoints.wide &&
+                  constraints.maxWidth >= 7 * MileafSpace.touch + 6 * gap;
+              final columns = large
+                  ? 1
+                  : seven
+                  ? 7
+                  : 4;
               final width =
                   (constraints.maxWidth - gap * (columns - 1)) / columns;
-              final height = math.max(scaler.scale(44), width);
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final bucket in buckets)
-                    _dayCell(bucket, width: width, height: height),
+                  Text(
+                    large
+                        ? '每日记录'
+                        : seven
+                        ? '日期与每日里程'
+                        : '日期矩阵',
+                    style: type.micro.copyWith(color: colors.textMuted),
+                  ),
+                  const SizedBox(height: MileafSpace.s8),
+                  Wrap(
+                    key: const ValueKey('usage-daily-plot'),
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (final bucket in buckets)
+                        _dayCell(bucket, width: width, large: large),
+                    ],
+                  ),
                 ],
               );
             },
           ),
           const SizedBox(height: MileafSpace.s8),
+          Wrap(
+            spacing: MileafSpace.s12,
+            runSpacing: MileafSpace.s8,
+            children: [
+              for (final (value, label) in <(num?, String)>[
+                (0, '0 km'),
+                (1, '大于0且小于50 km'),
+                (50, '50至小于100 km'),
+                (100, '≥100 km'),
+                (null, '— 未知'),
+              ])
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _UsagePattern(value: value, color: colors.controlBorder),
+                    const SizedBox(width: MileafSpace.s4),
+                    Flexible(
+                      child: Text(
+                        label,
+                        style: type.micro.copyWith(color: colors.textMuted),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s8),
           Text(
-            '浅→深：0 / <50 / <100 / ≥100 km；未来日期不补零',
+            '点按日期查看当天行程；缺日为未知，未来日期不补零。',
             style: type.micro.copyWith(color: colors.textMuted),
           ),
         ],
@@ -420,7 +526,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
   Widget _dayCell(
     Map<String, dynamic> b, {
     required double width,
-    required double height,
+    required bool large,
   }) {
     final colors = context.colors;
     final type = context.type;
@@ -428,46 +534,74 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
       DateTime.parse(b['bucket_start'] as String),
     );
     final km = b['distance_km'] as num?;
-    final level = km == null
-        ? 0.0
-        : km == 0
-        ? 0.06
-        : km < 50
-        ? 0.18
-        : km < 100
-        ? 0.38
-        : 0.72;
-    final high = level > .5;
+    final at = DateTime.parse(b['bucket_start'] as String);
+    final selected = selectedDay == at;
+    final label =
+        '${local.month}月${local.day}日 ${km == null ? '未知里程' : '${usageValue(km)}公里'}';
     return Semantics(
       button: true,
-      label: '${local.month}月${local.day}日 ${usageValue(km)}公里',
+      selected: selected,
+      label: '$label，查看当天行程',
       excludeSemantics: true,
+      onTap: () => _selectDay(at, local),
       child: SizedBox(
         width: width,
-        height: height,
-        child: Material(
-          color: colors.accent.withValues(alpha: level),
-          borderRadius: MileafRadius.xsAll,
-          child: InkWell(
-            borderRadius: MileafRadius.xsAll,
-            onTap: () => _openDay(local),
-            child: Center(
-              child: Text(
-                '${local.month}/${local.day}',
-                style: type.micro.copyWith(
-                  // The strongest cell stays a mid blue in both modes, so its
-                  // 9px label is always dark ink: white would be 2.45:1 on
-                  // paper and 4.11:1 on the dark surface (AV06).
-                  color: high && colors.isDark
-                      ? colors.textOnAccent
-                      : colors.text,
-                ),
+        child: TextButton(
+          onPressed: () => _selectDay(at, local),
+          style: ButtonStyle(
+            animationDuration: Duration.zero,
+            minimumSize: const WidgetStatePropertyAll(
+              Size(MileafSpace.touch, MileafSpace.touch),
+            ),
+            padding: WidgetStatePropertyAll(
+              EdgeInsets.symmetric(
+                vertical: MileafSpace.s4,
+                horizontal: large ? MileafSpace.s8 : 0,
               ),
             ),
+            backgroundColor: WidgetStatePropertyAll(
+              selected ? colors.accentSoft : colors.surface,
+            ),
+            shape: const WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: MileafRadius.mdAll),
+            ),
+            side: WidgetStateProperty.resolveWith(
+              (states) => BorderSide(
+                color: states.contains(WidgetState.focused)
+                    ? colors.accentStrong
+                    : selected
+                    ? colors.accentStrong
+                    : colors.controlBorder,
+                width: states.contains(WidgetState.focused) || selected ? 2 : 1,
+              ),
+            ),
+            overlayColor: WidgetStatePropertyAll(colors.pressOverlay),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                large
+                    ? '${local.year}年${local.month}月${local.day}日'
+                    : '${local.month}/${local.day}',
+                style: type.micro.copyWith(color: colors.text),
+              ),
+              Text(
+                '${usageValue(km)}${large ? ' km' : ''}',
+                style: type.label.copyWith(color: colors.text),
+              ),
+              const SizedBox(height: MileafSpace.s4),
+              _UsagePattern(value: km, color: colors.controlBorder),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  void _selectDay(DateTime at, DateTime local) {
+    setState(() => selectedDay = at);
+    _openDay(local);
   }
 
   void _openDay(DateTime local) {
@@ -499,29 +633,39 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
         label: '驾驶记录时长',
         value: usageValue(d['driving_duration_min']),
         unit: '分钟',
+        note: _coverageNote(usageMap(d['coverage'])['duration']),
       ),
       StatisticsTopicFact(
         label: '每活跃日',
         value: usageValue(d['distance_per_active_day_km']),
         unit: 'km',
+        note: _coverageNote(usageMap(d['coverage'])['distance']),
       ),
       StatisticsTopicFact(
         label: '单程中位数',
         value: usageValue(d['distance_p50_km']),
         unit: 'km',
+        note: _coverageNote(usageMap(d['coverage'])['distance']),
       ),
       StatisticsTopicFact(
         label: '较长单程 P90',
         value: usageValue(d['distance_p90_km']),
         unit: 'km',
+        note: _coverageNote(usageMap(d['coverage'])['distance']),
       ),
       StatisticsTopicFact(
         label: '平均记录速度',
         value: usageValue(d['mean_speed_kmh']),
         unit: 'km/h',
+        note: _coverageNote(usageMap(d['coverage'])['speed']),
       ),
     ],
   );
+
+  String _coverageNote(Object? value) {
+    final coverage = usageMap(value);
+    return '有效 ${usageValue(coverage['valid_count'])} 趟，排除 ${usageValue(coverage['excluded_count'])} 趟';
+  }
 
   Widget _distanceSection(Map<String, dynamic> d) {
     final bins = usageItems(d['distance_bins']);
@@ -536,7 +680,8 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
             title:
                 '${usageValue(b['lower_km'])}–${b['upper_km'] == null ? '以上' : usageValue(b['upper_km'])} km',
             meta:
-                '${usageValue(b['drives'])} 趟 · ${usageValue(b['distance_km'])} km',
+                '${usageValue(b['drives'])} 趟，${usageValue(b['distance_km'])} km\n'
+                '配对估算\n${_coverageNote(usageMap(b['coverage'])['paired'])}',
             value: usageValue(b['consumption_wh_km']),
             unit: 'Wh/km',
             topLine: true,
@@ -567,82 +712,146 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     );
     final names = ['一', '二', '三', '四', '五', '六', '日'];
     final scaler = MediaQuery.textScalerOf(context);
-    final barArea = scaler.scale(72);
+    final barArea = MileafSpace.rhythmHeight;
+    final available =
+        math.min(
+          MediaQuery.sizeOf(context).width,
+          MileafBreakpoints.maxContent,
+        ) -
+        2 * MileafLayout.pageInset(context);
+    final tooWide = bins.any((b) {
+      final painter = TextPainter(
+        text: TextSpan(text: usageValue(b['distance_km']), style: type.micro),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      final tooWide = painter.width + MileafSpace.s8 > available / bins.length;
+      painter.dispose();
+      return tooWide;
+    });
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SectionHeader(title: '一周的用车节奏', range: 'km'),
         const SizedBox(height: MileafSpace.s4),
-        Text(
-          '按星期累计里程 · km',
-          style: type.micro.copyWith(color: colors.textMuted),
-        ),
+        Text('按星期累计里程', style: type.micro.copyWith(color: colors.textMuted)),
         const SizedBox(height: MileafSpace.s8),
-        SizedBox(
-          height: scaler.scale(120),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        if (MileafLayout.largeText(context) || tooWide)
+          for (final b in bins)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '周${names[((b['weekday'] as int) - 1).clamp(0, 6)]}  ${usageValue(b['distance_km'])} km',
+                    style: type.body,
+                  ),
+                  const SizedBox(height: MileafSpace.s8),
+                  LayoutBuilder(
+                    builder: (context, constraints) => Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: b['distance_km'] == 0
+                            ? MileafChartMetrics.barMaxWidth
+                            : b['distance_km'] == null
+                            ? 0
+                            : (b['distance_km'] as num).clamp(0, max) /
+                                  max *
+                                  constraints.maxWidth,
+                        height: b['distance_km'] == 0
+                            ? 1
+                            : MileafChartMetrics.barMaxWidth,
+                        color: colors.accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+        else ...[
+          SizedBox(
+            height:
+                barArea + scaler.scale(MileafType.microHeight) + MileafSpace.s4,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (final b in bins)
+                  Expanded(
+                    child: Semantics(
+                      label:
+                          '周${names[((b['weekday'] as int) - 1).clamp(0, 6).toInt()]} '
+                          '${usageValue(b['distance_km'])} 公里',
+                      excludeSemantics: true,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            usageValue(b['distance_km']),
+                            style: type.micro.copyWith(color: colors.textMuted),
+                          ),
+                          const SizedBox(height: MileafSpace.s4),
+                          Container(
+                            width: MileafChartMetrics.barMaxWidth,
+                            height: b['distance_km'] == 0
+                                ? 1
+                                : (b['distance_km'] as num? ?? 0).clamp(
+                                        0,
+                                        max,
+                                      ) /
+                                      max *
+                                      barArea,
+                            decoration: BoxDecoration(
+                              color: colors.accent,
+                              borderRadius: BorderRadius.circular(
+                                MileafChartMetrics.barRadius,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Container(height: 1, color: colors.line),
+          const SizedBox(height: MileafSpace.s4),
+          Row(
             children: [
               for (final b in bins)
                 Expanded(
-                  child: Semantics(
-                    label:
-                        '周${names[((b['weekday'] as int) - 1).clamp(0, 6).toInt()]} '
-                        '${usageValue(b['distance_km'])} 公里',
-                    excludeSemantics: true,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          usageValue(b['distance_km']),
-                          style: type.micro.copyWith(color: colors.textMuted),
-                        ),
-                        const SizedBox(height: MileafSpace.s4),
-                        Container(
-                          width: 12,
-                          height:
-                              (b['distance_km'] as num? ?? 0).clamp(0, max) /
-                              max *
-                              barArea,
-                          decoration: BoxDecoration(
-                            color: colors.accent,
-                            borderRadius: BorderRadius.circular(
-                              MileafChartMetrics.barRadius,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: Text(
+                    '周${names[((b['weekday'] as int) - 1).clamp(0, 6).toInt()]}',
+                    textAlign: TextAlign.center,
+                    style: type.micro.copyWith(color: colors.textFaint),
                   ),
                 ),
             ],
           ),
-        ),
-        Container(height: 1, color: colors.line),
-        const SizedBox(height: MileafSpace.s4),
-        Row(
-          children: [
-            for (final b in bins)
-              Expanded(
-                child: Text(
-                  '周${names[((b['weekday'] as int) - 1).clamp(0, 6).toInt()]}',
-                  textAlign: TextAlign.center,
-                  style: type.micro.copyWith(color: colors.textFaint),
-                ),
-              ),
-          ],
-        ),
+        ],
         const SizedBox(height: MileafSpace.s8),
         Text(
-          '按开始日分组 · 星期分布仅供观察，不自动判断通勤',
+          '按开始日分组。星期分布仅供观察，不自动判断通勤。',
           style: type.micro.copyWith(color: colors.textMuted),
         ),
+        for (final b in bins)
+          if (usageMap(usageMap(b['coverage'])['distance'])['excluded_count'] !=
+              0)
+            Text(
+              '周${names[((b['weekday'] as int) - 1).clamp(0, 6)]} ${_coverageNote(usageMap(b['coverage'])['distance'])}',
+              style: type.micro,
+            ),
       ],
     );
   }
 
   Widget _notesSection(Map<String, dynamic> d) => StatisticsTopicNotes(
     children: [
+      const SectionHeader(title: '口径'),
+      const Text('按开始日归期；日桶来自服务端日聚合，不从单次行程重算。'),
+      const SizedBox(height: MileafSpace.s12),
+      const SectionHeader(title: '覆盖'),
       Text(
         '候选 ${usageValue(usageMap(d['coverage'])['candidate_count'])} 趟；各指标有效集独立，中位数与P90直接使用完整查询结果。',
       ),
@@ -651,9 +860,79 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
           Text(
             '${entry.key}：有效 ${usageValue(usageMap(entry.value)['valid_count'])} / 排除 ${usageValue(usageMap(entry.value)['excluded_count'])}',
           ),
-      const Text('按开始日归期；日桶来自服务端日聚合，不从单次行程重算。'),
+      const SizedBox(height: MileafSpace.s12),
+      const SectionHeader(title: '来源'),
+      Text('用车分布 ${d['method'] ?? '—'}，版本 ${usageValue(d['version'])}'),
+      const SizedBox(height: MileafSpace.s12),
+      const SectionHeader(title: '时间'),
+      Text(
+        '统计截至 ${d['as_of'] ?? '—'}；站点时区 ${source.workspace.calendar!.identifier}',
+      ),
     ],
   );
+}
+
+/// Redundant non-colour encoding shared by dates and their exact legend.
+class _UsagePattern extends StatelessWidget {
+  const _UsagePattern({required this.value, required this.color});
+  final num? value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: CustomPaint(
+      size: const Size(MileafSpace.s24, MileafSpace.s12),
+      painter: _UsagePatternPainter(value, color),
+    ),
+  );
+}
+
+class _UsagePatternPainter extends CustomPainter {
+  const _UsagePatternPainter(this.value, this.color);
+  final num? value;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final bounds = (Offset.zero & size).deflate(.5);
+    canvas.drawRect(bounds, paint);
+    canvas.save();
+    canvas.clipRect(bounds);
+    if (value == null) {
+      canvas.drawLine(bounds.topLeft, bounds.bottomRight, paint);
+      canvas.drawLine(bounds.bottomLeft, bounds.topRight, paint);
+    } else if (value! > 0 && value! < 50) {
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        paint,
+      );
+    } else if (value! >= 50) {
+      for (var x = -size.height; x < size.width; x += MileafSpace.inline6) {
+        canvas.drawLine(
+          Offset(x, size.height),
+          Offset(x + size.height, 0),
+          paint,
+        );
+        if (value! >= 100) {
+          canvas.drawLine(
+            Offset(x, 0),
+            Offset(x + size.height, size.height),
+            paint,
+          );
+        }
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_UsagePatternPainter oldDelegate) =>
+      value != oldDelegate.value || color != oldDelegate.color;
 }
 
 class DrivingEvidencePage extends StatefulWidget {
@@ -764,35 +1043,93 @@ class _DrivingEvidencePageState extends State<DrivingEvidencePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.title)),
-    body: invalid
-        ? const Center(child: Text('车辆或会话已改变，请返回统计'))
-        : ListView(
-            padding: const EdgeInsets.all(18),
-            children: [
-              Text('完整匹配 ${usageValue(matched)} 趟 · 按开始日'),
-              Text('${query['from']} — ${query['to']}'),
-              if (error != null) Text(error!),
-              for (final d in items)
-                ListTile(
-                  title: Text(
-                    '${usageMap(d['start'])['display_name'] ?? '未知起点'} → ${usageMap(d['end'])['display_name'] ?? '未知终点'}',
+    body: SafeArea(
+      top: false,
+      child: MileafContent(
+        child: invalid
+            ? const Center(child: Text('车辆或会话已改变，请返回统计'))
+            : ListView(
+                padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+                children: [
+                  Text(
+                    '完整匹配 ${usageValue(matched)} 趟',
+                    style: context.type.title,
                   ),
-                  subtitle: Text(
-                    '${usageValue(d['distance_km'])} km · ${usageValue(d['duration_min'])} 分钟',
+                  Text('按开始日归期', style: context.type.micro),
+                  const SizedBox(height: MileafSpace.s8),
+                  Text(_rangeLabel(), style: context.type.label),
+                  const SizedBox(height: MileafSpace.s12),
+                  if (error != null)
+                    InlineBanner(message: error!, tone: BannerTone.error),
+                  if (!loading && error == null && items.isEmpty)
+                    const StateView(
+                      kind: StateViewKind.empty,
+                      title: '没有匹配行程',
+                      message: '当前筛选没有已完成的行程。可以返回调整日期或分组。',
+                    ),
+                  for (final d in items)
+                    MileafDataRow(
+                      title:
+                          '${usageMap(d['start'])['display_name'] ?? '未知起点'} → ${usageMap(d['end'])['display_name'] ?? '未知终点'}',
+                      titleMaxLines: MileafLayout.largeText(context) ? null : 2,
+                      meta:
+                          '${_recordTime(d)}\n${usageValue(d['duration_min'])} 分钟\n净电耗 ${usageValue(d['consumption_wh_km'])} Wh/km',
+                      value: d['distance_km'] == null
+                          ? null
+                          : usageValue(d['distance_km']),
+                      unit: 'km',
+                      topLine: true,
+                      showChevron: true,
+                      onTap: widget.onRecord == null
+                          ? null
+                          : () => widget.onRecord!(d['id'] as int),
+                    ),
+                  if (loading) ...[
+                    const MileafProgressLine(),
+                    const Text('正在读取行程证据'),
+                  ],
+                  if (error != null || cursor != null)
+                    TextButton(
+                      onPressed: loading
+                          ? null
+                          : () => load(more: items.isNotEmpty),
+                      child: Text(error != null ? '重试行程证据' : '加载更多行程'),
+                    ),
+                  StatisticsTopicNotes(
+                    children: [
+                      const SectionHeader(title: '口径'),
+                      const Text('沿用统计筛选；完整匹配数来自服务端，不从已加载分页重算。'),
+                      const SectionHeader(title: '来源'),
+                      for (final entry in query.entries)
+                        Text('${entry.key} ${entry.value}'),
+                    ],
                   ),
-                  onTap: widget.onRecord == null
-                      ? null
-                      : () => widget.onRecord!(d['id'] as int),
-                ),
-              if (loading) const Center(child: CircularProgressIndicator()),
-              if (error != null || cursor != null)
-                TextButton(
-                  onPressed: loading
-                      ? null
-                      : () => load(more: items.isNotEmpty),
-                  child: Text(error != null ? '重试行程证据' : '加载更多行程'),
-                ),
-            ],
-          ),
+                ],
+              ),
+      ),
+    ),
   );
+
+  String _rangeLabel() {
+    final zone = widget.source.workspace.calendar!;
+    final from = DateTime.tryParse(query['from'] ?? '');
+    final to = DateTime.tryParse(query['to'] ?? '');
+    return from == null || to == null
+        ? '期间未知'
+        : '${statisticsDate(zone.local(from))} 至 ${statisticsDate(zone.local(to.subtract(const Duration(microseconds: 1))))}';
+  }
+
+  String _recordTime(Map<String, dynamic> record) {
+    final zone = widget.source.workspace.calendar!;
+    final from = DateTime.tryParse(record['started_at'] as String? ?? '');
+    final to = DateTime.tryParse(record['ended_at'] as String? ?? '');
+    if (from == null) return '开始时间未知';
+    final start = zone.local(from);
+    String clock(DateTime d) =>
+        '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    final date = statisticsDate(start);
+    if (to == null) return '$date ${clock(start)}，结束时间未知';
+    final end = zone.local(to);
+    return '$date ${clock(start)}–${statisticsDate(end) == date ? '' : '${statisticsDate(end)} '}${clock(end)}';
+  }
 }

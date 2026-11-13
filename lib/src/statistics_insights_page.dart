@@ -243,26 +243,28 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     // U08 owns the long index and legacy route. Topic layouts migrate in U09.
     final body = Column(
       children: [
-        Padding(
-          padding: MileafLayout.pageHorizontal(context),
-          child: ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: Text(() {
-              if (key == 'range') return '独立6/12个本地月窗口';
-              final zone = workspace.calendar!;
-              String date(DateTime instant) {
-                final local = zone.local(instant);
-                return '${local.year}/${local.month}/${local.day}';
-              }
+        MileafContent(
+          child: Padding(
+            padding: MileafLayout.pageHorizontal(context),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text(() {
+                if (key == 'range') return '独立6/12个本地月窗口';
+                final zone = workspace.calendar!;
+                String date(DateTime instant) {
+                  final local = zone.local(instant);
+                  return '${local.year}/${local.month}/${local.day}';
+                }
 
-              return '${date(captured.window.from)} — ${date(captured.window.to)}';
-            }()),
-            subtitle: const Text('数据说明'),
-            children: [
-              Text(
-                '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
-              ),
-            ],
+                return '${date(captured.window.from)} — ${date(captured.window.to)}';
+              }()),
+              subtitle: const Text('数据说明'),
+              children: [
+                Text(
+                  '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
