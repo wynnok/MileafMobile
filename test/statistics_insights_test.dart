@@ -57,7 +57,10 @@ void main() {
           .dy,
       lessThanOrEqualTo(736),
     );
-    expect(find.textContaining('参照 20.0'), findsOneWidget);
+    expect(
+      find.textContaining('参照 9/1–9/28 20.0 km（差 0.0 km）'),
+      findsOneWidget,
+    );
     await tester.ensureVisible(find.text('节奏').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('节奏').first);

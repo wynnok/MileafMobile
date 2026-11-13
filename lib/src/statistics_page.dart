@@ -71,11 +71,11 @@ class _StatisticsEntryState extends State<StatisticsPage> {
       ),
     );
     final bar = widget.topBar;
-    if (bar == null) return page;
+    if (bar == null) return MileafContent(child: page);
     return Column(
       children: [
         bar,
-        Expanded(child: page),
+        Expanded(child: MileafContent(child: page)),
       ],
     );
   }
