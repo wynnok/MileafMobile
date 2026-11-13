@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart' show StatusChip;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -127,7 +128,7 @@ void main() {
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     failing = true;
-    await tester.tap(find.text('刷新补能统计'));
+    await tester.tap(find.byTooltip('刷新补能统计'));
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
@@ -236,7 +237,8 @@ void main() {
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
-    final metric = find.widgetWithText(ChoiceChip, '有效入电均价').hitTestable();
+    // P09：可见短词「均价」，完整口径由图标题保留（原 ChoiceChip 定位更新）。
+    final metric = find.widgetWithText(StatusChip, '均价').hitTestable();
     await tester.scrollUntilVisible(
       metric,
       180,

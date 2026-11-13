@@ -403,7 +403,8 @@ void main() {
       });
       await pumpReadingApp(tester, client);
       await openChargingTopic(tester);
-      final refresh = find.text('刷新补能统计');
+      // R09：刷新入口改为图标按钮；仅更新定位器，探测断言不变。
+      final refresh = find.byTooltip('刷新补能统计');
       await tester.ensureVisible(refresh);
       await tester.pumpAndSettle();
       armed = true;
