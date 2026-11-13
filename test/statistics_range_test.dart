@@ -134,7 +134,9 @@ Future<void> openRange(
 }
 
 void main() {
-  testWidgets('统计Tab隐藏时嵌入的长期续航不请求，可见时按30秒规则校验', (tester) async {
+  testWidgets('长期续航经展开入口建立后，统计Tab隐藏不请求，可见时按30秒规则校验', (tester) async {
+    // P15/U08交接：长期索引不再嵌入专题；先通过「展开长期续航」入口建立
+    // 专题路由，再保留隐藏不请求、可见后校验及30秒 TTL 等业务断言。
     var now = DateTime.utc(2026, 10, 28, 11);
     final reads = <Uri>[];
     await openStats(
@@ -143,7 +145,7 @@ void main() {
         if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
         if (r.url.path.endsWith('/summary')) return fixture('summary');
         if (r.url.path.endsWith('/meta')) {
-          // No insights overview: the long topics are embedded in the tab.
+          // No insights overview: the long topics live behind the index.
           return http.Response(
             jsonEncode(
               statisticsInsightsMeta(features: {'range_observations': true}),
@@ -170,7 +172,16 @@ void main() {
     );
     await tester.tap(find.text('长期'));
     await tester.pumpAndSettle();
-    expect(reads, isNotEmpty, reason: '前置：嵌入的长期续航确实读过');
+    await tester.tap(find.text('展开长期续航'));
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '前置：专题路由确实读过');
+    // 隐藏：关闭专题路由并把统计Tab切走；隐藏页面不取新数据（S03）。
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    // P15：返回长期索引时统计承载上下文保留（索引两入口仍在）；专题路由
+    // 重建沿 baseCommit 的既有路由结构。
+    expect(find.text('展开长期续航'), findsOneWidget);
+    expect(find.text('展开停放观察'), findsOneWidget);
     await tester.tap(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
     );
@@ -180,15 +191,26 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(reads, isEmpty, reason: '统计Tab隐藏时，嵌入专题不得在后台请求');
+    expect(reads, isEmpty, reason: '统计Tab隐藏时，长期续航不得在后台请求');
+    // 重新可见：经同一入口重建专题后按自己的30秒规则校验。
     await tester.tap(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('展开长期续航'));
+    await tester.pumpAndSettle();
+    final afterReopen = reads.length;
+    expect(afterReopen, greaterThan(0), reason: '重新可见后经入口重建专题并读取');
+    now = now.add(const Duration(seconds: 10));
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(reads, isNotEmpty, reason: '重新可见后按自己的30秒规则校验');
+    expect(reads.length, afterReopen, reason: '30秒内的后台/前台恢复不重新读取');
+    now = now.add(const Duration(minutes: 5));
+    background(tester);
+    foreground(tester);
+    await tester.pumpAndSettle();
+    expect(reads.length, greaterThan(afterReopen), reason: '超过30秒后按自己的规则重新校验');
     expect(tester.takeException(), isNull);
   });
 

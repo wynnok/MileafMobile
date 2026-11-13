@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -155,6 +156,124 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   }
 
   String value(Object? x) => x is num ? x.toStringAsFixed(1) : '—';
+
+  /// R06：趋势图例用真实编码色样，区分月中位数折线与P10–P90波动带。
+  Widget _legend(BuildContext context) {
+    final colors = context.colors;
+    final style = context.type.label.copyWith(color: colors.textMuted);
+    return Wrap(
+      spacing: MileafSpace.s16,
+      runSpacing: MileafSpace.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 16, height: 2, color: colors.accent),
+            const SizedBox(width: MileafSpace.s4),
+            // R03：大字下图例文字换行重排，色样固定，不横向溢出。
+            Flexible(child: Text('月中位数', style: style)),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 16,
+              height: 10,
+              decoration: BoxDecoration(
+                color: colors.accent.withValues(
+                  alpha: MileafChartMetrics.areaMaxOpacity,
+                ),
+                borderRadius: BorderRadius.circular(MileafRadius.xs),
+              ),
+            ),
+            const SizedBox(width: MileafSpace.s4),
+            Flexible(child: Text('P10–P90有效日波动带', style: style)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// R06.3/R06.4/R06.7：绘图区高度沿专题200（大字240留字面量，沿
+  /// mapHeight 先例）；轴文字应用完整TextScaler；点按/拖动映射与绘制
+  /// 共用同一刻度尺和轴留白；键盘左右与语义增减选择月份。
+  Widget _trendChart(
+    BuildContext context,
+    List<Map<String, dynamic>> rows, {
+    required CalendarContext calendar,
+    required bool large,
+    required _RangeScale scale,
+    required double leftPad,
+  }) {
+    void pick(double dx, double width) {
+      if (width <= leftPad) return;
+      setState(() {
+        selected = ((dx - leftPad) / (width - leftPad) * rows.length)
+            .floor()
+            .clamp(0, rows.length - 1);
+      });
+    }
+
+    return Semantics(
+      container: true,
+      label: '月续航走势图表，横向拖动或键盘左右键选择月份',
+      onIncrease: selected < rows.length - 1
+          ? () => setState(() => selected++)
+          : null,
+      onDecrease: selected > 0 ? () => setState(() => selected--) : null,
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+            return KeyEventResult.ignored;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+              selected > 0) {
+            setState(() => selected--);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+              selected < rows.length - 1) {
+            setState(() => selected++);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: LayoutBuilder(
+          builder: (context, box) => GestureDetector(
+            onTapDown: (p) => pick(p.localPosition.dx, box.maxWidth),
+            onHorizontalDragUpdate: (p) =>
+                pick(p.localPosition.dx, box.maxWidth),
+            child: SizedBox(
+              // R06.3：专题主图200；大字240与U09c专题主图一致。
+              height: large ? 240 : MileafSpace.detailChartHeight,
+              width: double.infinity,
+              child: CustomPaint(
+                key: const Key('range-observation-chart'),
+                size: Size(
+                  box.maxWidth,
+                  large ? 240 : MileafSpace.detailChartHeight,
+                ),
+                painter: _RangePainter(
+                  rows,
+                  selected.clamp(0, rows.length - 1),
+                  context.colors,
+                  calendar,
+                  context.type.micro.copyWith(color: context.colors.textFaint),
+                  MediaQuery.textScalerOf(context),
+                  large,
+                  scale,
+                  leftPad,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = widget.context;
@@ -245,11 +364,19 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                 ? null
                 : value(chosen!['median_range_km']),
             unit: 'km',
-            scale: compact
-                ? MetricValueScale.metricLg
-                : MetricValueScale.display,
+            // P10/R02：所选月中位数固定 metricLg 36；MileafNumber 在 null 时
+            // 自动降到 24 号「—」，缺失口径紧跟其后。
+            scale: MetricValueScale.metricLg,
           ),
-          const SizedBox(height: MileafSpace.s4),
+          if (chosen?['median_range_km'] == null)
+            Text(
+              '暂无有效月样本',
+              style: context.type.micro.copyWith(
+                color: context.colors.textMuted,
+              ),
+            )
+          else
+            const SizedBox(height: MileafSpace.s4),
           Text(
             '满电等效额定续航 · 记录估计 · 非电池健康检测',
             style: context.type.micro.copyWith(color: context.colors.textMuted),
@@ -276,38 +403,45 @@ class _RangeObservationPageState extends State<RangeObservationPage>
             style: context.type.label.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: MileafSpace.s8),
-          SizedBox(
-            height: MileafLayout.largeText(context) ? 220 : 200,
-            child: LayoutBuilder(
-              builder: (context, box) => GestureDetector(
-                onTapDown: (p) {
-                  final i = (p.localPosition.dx / box.maxWidth * rows.length)
-                      .floor()
-                      .clamp(0, rows.length - 1);
-                  setState(() => selected = i);
-                },
-                onHorizontalDragUpdate: (p) {
-                  final i = (p.localPosition.dx / box.maxWidth * rows.length)
-                      .floor()
-                      .clamp(0, rows.length - 1);
-                  setState(() => selected = i);
-                },
-                child: Semantics(
-                  label: '月续航走势图表，横向拖动选择月份',
-                  child: CustomPaint(
-                    key: const Key('range-observation-chart'),
-                    size: Size(box.maxWidth, 200),
-                    painter: _RangePainter(
-                      rows,
-                      selected.clamp(0, rows.length - 1),
-                      context.colors,
-                      c.workspace.calendar!,
-                      MileafLayout.largeText(context),
+          Builder(
+            builder: (chartContext) {
+              final large = MileafLayout.largeText(context);
+              final axisStyle = context.type.micro.copyWith(
+                color: context.colors.textFaint,
+              );
+              final scale = _RangeScale(rows, large);
+              final leftPad = scale.leftPadFor(
+                axisStyle,
+                MediaQuery.textScalerOf(context),
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _legend(chartContext),
+                  // R06.2：长期续航折线非零起点时可见标注轴范围，
+                  // 波动幅度相对该范围读取，不暗示电池健康。
+                  if (scale.low > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: MileafSpace.s4),
+                      child: Text(
+                        '纵轴 ${scale.low.toStringAsFixed(0)}–${scale.high.toStringAsFixed(0)} km，非零起点',
+                        style: context.type.micro.copyWith(
+                          color: context.colors.textMuted,
+                        ),
+                      ),
                     ),
+                  const SizedBox(height: MileafSpace.s8),
+                  _trendChart(
+                    chartContext,
+                    rows,
+                    calendar: c.workspace.calendar!,
+                    large: large,
+                    scale: scale,
+                    leftPad: leftPad,
                   ),
-                ),
-              ),
-            ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: MileafSpace.s8),
           Builder(
@@ -335,7 +469,14 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                     ),
                     const SizedBox(height: MileafSpace.s4),
                     Text(
-                      '中位 ${value(row['median_range_km'])} km · P10 ${value(row['p10_range_km'])} / P90 ${value(row['p90_range_km'])} km',
+                      '中位 ${value(row['median_range_km'])} km',
+                      style: context.type.body.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: MileafSpace.s4),
+                    Text(
+                      'P10 ${value(row['p10_range_km'])} / P90 ${value(row['p90_range_km'])} km',
                       style: context.type.body.copyWith(
                         color: context.colors.textMuted,
                       ),
@@ -347,6 +488,8 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                         color: context.colors.textMuted,
                       ),
                     ),
+                    // R01：读值到下钻动作8。
+                    const SizedBox(height: MileafSpace.s8),
                     Wrap(
                       children: [
                         TextButton(
@@ -429,11 +572,83 @@ class _RangeObservationPageState extends State<RangeObservationPage>
       children: content,
     );
     if (compact) return body;
-    return ListView(
-      padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
-      children: [body],
+    // R01：专题主体沿共享内容限宽560，与其他专题页一致；compact分支保留。
+    return MileafContent(
+      child: SingleChildScrollView(
+        padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
+        child: body,
+      ),
     );
   }
+}
+
+/// 长期续航趋势的共享刻度尺：量程与刻度文本由数据决定，绘制与命中映射
+/// 使用同一实例，避免轴留白与选月偏移分叉（对齐能耗条件点图的_BinScale）。
+class _RangeScale {
+  _RangeScale(List<Map<String, dynamic>> rows, bool largeText) {
+    final values = [
+      for (final r in rows)
+        for (final k in const [
+          'p10_range_km',
+          'median_range_km',
+          'p90_range_km',
+        ])
+          if (r[k] is num) (r[k] as num).toDouble(),
+    ];
+    if (values.isNotEmpty) {
+      low = (values.reduce(math.min) / 10).floor() * 10.0 - 10;
+      high = (values.reduce(math.max) / 10).ceil() * 10.0 + 10;
+    }
+    span = (high - low).abs() < .001 ? 1.0 : high - low;
+    // R06.4：大字减少刻度；无样本时不伪造刻度。
+    tickCount = largeText ? 2 : 3;
+    tickTexts = [
+      if (values.isNotEmpty)
+        for (var i = 0; i < tickCount; i++)
+          (low + span * i / (tickCount - 1)).toStringAsFixed(0),
+    ];
+  }
+
+  double low = 0, high = 10, span = 10;
+  late int tickCount;
+  late List<String> tickTexts;
+
+  /// R06.4：左侧留白按最长刻度宽 + 8，应用完整 TextScaler。
+  double leftPadFor(TextStyle style, TextScaler scaler) {
+    if (tickTexts.isEmpty) return 0;
+    var widest = 0.0;
+    for (final text in tickTexts) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      if (painter.width > widest) widest = painter.width;
+      painter.dispose();
+    }
+    return widest + MileafSpace.s8;
+  }
+
+  // R10：shouldRepaint 依赖值相等；同数据/同字号下跳过重绘。不引入新依赖。
+  @override
+  bool operator ==(Object other) =>
+      other is _RangeScale &&
+      other.low == low &&
+      other.high == high &&
+      other.tickCount == tickCount &&
+      _listEquals(other.tickTexts, tickTexts);
+
+  @override
+  int get hashCode => Object.hash(low, high, tickCount, tickTexts.length);
+}
+
+bool _listEquals(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 class _RangePainter extends CustomPainter {
@@ -442,53 +657,94 @@ class _RangePainter extends CustomPainter {
     this.selected,
     this.colors,
     this.calendar,
+    this.axisStyle,
+    this.textScaler,
     this.largeText,
+    this.scale,
+    this.leftPad,
   );
   final List<Map<String, dynamic>> rows;
   final int selected;
   final MileafColors colors;
   final CalendarContext calendar;
+  final TextStyle axisStyle;
+  final TextScaler textScaler;
   final bool largeText;
+
+  /// 与命中映射共享的刻度尺，保证点按位置与绘制槽位同源。
+  final _RangeScale scale;
+  final double leftPad;
+
+  TextPainter _measure(String text) => TextPainter(
+    text: TextSpan(text: text, style: axisStyle),
+    textDirection: TextDirection.ltr,
+    textScaler: textScaler,
+    maxLines: 1,
+  )..layout();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final values = [
-      for (final r in rows)
-        for (final k in ['p10_range_km', 'median_range_km', 'p90_range_km'])
-          if (r[k] is num) (r[k] as num).toDouble(),
-    ];
-    if (values.isEmpty) return;
-    final low = (values.reduce(math.min) / 10).floor() * 10.0 - 10;
-    final high = (values.reduce(math.max) / 10).ceil() * 10.0 + 10;
-    final left = largeText ? 0.0 : 34.0;
-    const top = 12.0;
-    final width = size.width - left - 8;
-    final height = size.height - 34;
-    if (width <= 0 || height <= 0) return;
-    double x(int i) => left + (i + .5) * width / rows.length;
-    double y(num n) => top + height - (n - low) / (high - low) * height;
-    // This painter never followed the text scaler: the label size steps once
-    // for large text and stays fixed otherwise.
-    final labelStyle = chartAxisLabelStyle(
-      color: colors.textFaint,
-      scaler: TextScaler.noScaling,
-      fontSize: largeText ? 11 : MileafChartMetrics.axisLabelSize,
-    );
-    void label(String text, Offset p) {
-      final t = TextPainter(
-        text: TextSpan(text: text, style: labelStyle),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-      )..layout();
-      t.paint(canvas, p);
-      t.dispose();
+    final low = scale.low, span = scale.span;
+    final tickPainters = [for (final text in scale.tickTexts) _measure(text)];
+    // R06.4：大字减少X标签到首末；端点留白给选中标记。
+    final xLabels = largeText
+        ? {0, rows.length - 1}
+        : {0, ((rows.length - 1) / 2).round(), rows.length - 1};
+    final xPainters = <int, TextPainter>{
+      for (final i in xLabels)
+        i: _measure(
+          '${calendar.local(DateTime.parse(rows[i]['bucket_start'] as String)).month}月',
+        ),
+    };
+    var tickHeight = 0.0, xHeight = 0.0;
+    for (final p in tickPainters) {
+      if (p.height > tickHeight) tickHeight = p.height;
     }
-
-    if (!largeText) {
-      for (var i = 0; i < 3; i++) {
-        final n = low + (high - low) * i / 2;
-        label(n.toStringAsFixed(0), Offset(0, y(n) - 6));
+    for (final p in xPainters.values) {
+      if (p.height > xHeight) xHeight = p.height;
+    }
+    // R06.4：底部按实际行高 + 8；顶部留白给选中标记（halo 8 + 余量4）。
+    final plotBottom = size.height - xHeight - MileafSpace.s8;
+    final plotTop = MileafChartMetrics.currentHalo + MileafSpace.s4;
+    final plotHeight = (plotBottom - plotTop).clamp(1.0, size.height);
+    if (rows.isEmpty || size.width <= leftPad) return;
+    final plotWidth = size.width - leftPad;
+    double x(int i) => leftPad + (i + .5) * plotWidth / rows.length;
+    double y(num n) => plotBottom - (n.toDouble() - low) / span * plotHeight;
+    // R06.5：基线加至多3条轻细网格线，只有数据/选中线需要高对比。
+    canvas.drawLine(
+      Offset(leftPad, plotBottom),
+      Offset(size.width, plotBottom),
+      Paint()..color = colors.line,
+    );
+    for (var i = 1; i < tickPainters.length; i++) {
+      final value = low + span * i / (scale.tickCount - 1);
+      final gridY = y(value);
+      if (gridY >= plotTop) {
+        canvas.drawLine(
+          Offset(leftPad, gridY),
+          Offset(size.width, gridY),
+          Paint()..color = colors.line,
+        );
       }
+    }
+    for (var i = 0; i < tickPainters.length; i++) {
+      final value = low + span * i / (scale.tickCount - 1);
+      final p = tickPainters[i];
+      p.paint(
+        canvas,
+        Offset(leftPad - MileafSpace.s4 - p.width, y(value) - p.height / 2),
+      );
+    }
+    var lastRight = double.negativeInfinity;
+    for (final entry in xPainters.entries) {
+      final p = entry.value;
+      final center = x(entry.key);
+      final left = (center - p.width / 2).clamp(leftPad, size.width - p.width);
+      // R06.3：轴标签以可读为先，与前一个重叠时跳过。
+      if (left < lastRight + MileafSpace.s4) continue;
+      p.paint(canvas, Offset(left, plotBottom + MileafSpace.s8));
+      lastRight = left + p.width;
     }
     bool known(int i) =>
         rows[i]['status'] == 'available' && rows[i]['median_range_km'] is num;
@@ -497,15 +753,6 @@ class _RangePainter extends CustomPainter {
         rows[i]['sample_status'] == 'adequate' &&
         rows[i]['p10_range_km'] is num &&
         rows[i]['p90_range_km'] is num;
-    final xLabels = largeText
-        ? {0, rows.length - 1}
-        : {0, ((rows.length - 1) / 2).round(), rows.length - 1};
-    for (final i in xLabels) {
-      final date = calendar.local(
-        DateTime.parse(rows[i]['bucket_start'] as String),
-      );
-      label('${date.month}月', Offset(x(i) - 10, top + height + 10));
-    }
     for (var i = 1; i < rows.length; i++) {
       if (adequate(i - 1) && adequate(i)) {
         final a = rows[i - 1], r = rows[i];
@@ -555,8 +802,18 @@ class _RangePainter extends CustomPainter {
           ..strokeWidth = MileafChartMetrics.lineStroke,
       );
     }
+    for (final p in [...tickPainters, ...xPainters.values]) {
+      p.dispose();
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _RangePainter old) => true;
+  bool shouldRepaint(covariant _RangePainter old) =>
+      old.selected != selected ||
+      old.rows != rows ||
+      old.largeText != largeText ||
+      old.textScaler != textScaler ||
+      old.axisStyle != axisStyle ||
+      old.scale != scale ||
+      old.leftPad != leftPad;
 }
