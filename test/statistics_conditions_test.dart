@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:mileaf/src/design/components/components.dart';
+
 import 'statistics_test.dart' show openStats, pickPeriod, fixture;
 import 'statistics_usage_test.dart' show usageClient, usageFixture, setCoverage;
 
@@ -94,10 +96,10 @@ void main() {
     expect(find.text('温度下的用车能耗'), findsOneWidget);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.widgetWithText(ChoiceChip, '[-5, 0) °C'),
+      find.widgetWithText(StatusChip, '−5至0°C').hitTestable(),
       120,
     );
-    expect(find.text('[-5, 0) °C'), findsWidgets);
+    expect(find.text('−5至0°C'), findsWidgets);
     await tester.scrollUntilVisible(find.textContaining('210 Wh/km'), -150);
     expect(find.textContaining('210 Wh/km'), findsWidgets);
     await tester.scrollUntilVisible(find.text('查看该温度组行程').hitTestable(), 200);
@@ -142,8 +144,8 @@ void main() {
       statisticsInsights: true,
     );
     await openConditions(tester);
-    await tester.scrollUntilVisible(find.text('[0, 5) °C').hitTestable(), 120);
-    await tester.tap(find.text('[0, 5) °C'));
+    await tester.scrollUntilVisible(find.text('0至5°C').hitTestable(), 120);
+    await tester.tap(find.text('0至5°C'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('0 Wh/km'), -120);
     expect(find.text('0 Wh/km'), findsOneWidget);
@@ -180,9 +182,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('未知温度 2 趟'), findsOneWidget);
     fail = true;
-    await tester.tap(find.text('刷新能耗条件'));
+    await tester.tap(find.byTooltip('刷新能耗条件'));
     await tester.pumpAndSettle();
-    expect(find.text('能耗条件读取失败，保留上次快照'), findsOneWidget);
+    expect(find.text('能耗条件读取失败，保留上次结果（2026-10-28T11:00:00Z）'), findsOneWidget);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
   });
   testWidgets('章节专题返回后切换期间仅按新期间请求', (tester) async {
