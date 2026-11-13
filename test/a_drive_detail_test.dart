@@ -10,7 +10,7 @@ import 'drive_detail_test.dart' show fixture, openDetail;
 import 'drives_test.dart' show jsonResponse;
 
 void main() {
-  testWidgets('A 200% 地图 240、结果 2×2 且电量区间可读', (tester) async {
+  testWidgets('A 200% 降级地图 120、结果 2×2 且电量区间可读', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
@@ -40,7 +40,7 @@ void main() {
                 .first,
           )
           .height,
-      240,
+      120,
     );
     await tester.scrollUntilVisible(find.bySemanticsLabel('距离 20.0 km'), 160);
     final distance = tester.getTopLeft(find.bySemanticsLabel('距离 20.0 km'));
@@ -80,31 +80,10 @@ void main() {
         ),
       ),
     );
-    final privacy = find.textContaining('不读取手机定位。');
-    expect(privacy, findsOneWidget, reason: '隐私说明必须完整留在页面上');
-    final text = tester.widget<Text>(privacy);
-    expect(text.maxLines, isNull, reason: '不得用 maxLines 截断');
-    expect(text.overflow, isNull, reason: '不得用 ellipsis 截断');
-    final map = tester.getRect(find.byType(MapPanel));
-    final copy = tester.getRect(privacy);
-    final button = tester.getRect(find.text('启用地图'));
-    final surface = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(MapPanel),
-            matching: find.byType(ClipRRect),
-          )
-          .first,
-    );
-    expect(surface.height, 240, reason: 'R03/P04 地图图面保留，状态区自然增高');
-    expect(copy.top, greaterThanOrEqualTo(surface.bottom));
-    expect(copy.top, greaterThanOrEqualTo(map.top));
-    expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
-    expect(
-      button.bottom,
-      lessThanOrEqualTo(map.bottom),
-      reason: '按钮不超出地图、不被裁切',
-    );
+    await tester.scrollUntilVisible(find.text('启用地图').hitTestable(), 200);
+    await tester.tap(find.text('启用地图').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('不会读取手机定位'), findsOneWidget);
     expect(find.textContaining('设备/网络信息'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

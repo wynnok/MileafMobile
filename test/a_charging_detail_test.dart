@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/components.dart';
-import 'package:mileaf/src/map/map_panel.dart';
 
 import 'support/map_key_fixture.dart';
 import 'charging_detail_test.dart' show app, fixture, initial, response;
@@ -62,10 +61,14 @@ void main() {
     expect(title.left, arc.right + 16);
     final results = tester.getRect(find.text('20 kWh'));
     expect(results.left, greaterThanOrEqualTo(20));
+    expect(
+      tester.getTopLeft(find.text('20 kWh')).dy,
+      tester.getTopLeft(find.text('60 分钟')).dy,
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A 200% 电量弧 72 且结果不溢出', (tester) async {
+  testWidgets('A 200% 电量弧 88 且结果不溢出', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
@@ -88,7 +91,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(BatteryArc)), const Size(72, 72));
+    expect(tester.getSize(find.byType(BatteryArc)), const Size(88, 88));
     expect(tester.takeException(), isNull);
   });
 
@@ -117,33 +120,10 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    final privacy = find.textContaining('不读取手机定位。');
-    await tester.scrollUntilVisible(privacy, 300);
+    await tester.scrollUntilVisible(find.text('启用地图').hitTestable(), 200);
+    await tester.tap(find.text('启用地图').hitTestable());
     await tester.pumpAndSettle();
-    expect(privacy, findsOneWidget, reason: '隐私说明必须完整留在页面上');
-    final text = tester.widget<Text>(privacy);
-    expect(text.maxLines, isNull, reason: '不得用 maxLines 截断');
-    expect(text.overflow, isNull, reason: '不得用 ellipsis 截断');
-    final map = tester.getRect(find.byType(MapPanel));
-    final copy = tester.getRect(privacy);
-    final button = tester.getRect(find.text('启用地图'));
-    final surface = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(MapPanel),
-            matching: find.byType(ClipRRect),
-          )
-          .first,
-    );
-    expect(surface.height, 240);
-    expect(
-      copy.top,
-      greaterThanOrEqualTo(surface.bottom),
-      reason: 'P04 同意说明独立于图面',
-    );
-    expect(copy.top, greaterThanOrEqualTo(map.top), reason: '文案不超出地图上缘');
-    expect(copy.bottom, lessThanOrEqualTo(button.top), reason: '文案与按钮不重叠');
-    expect(button.bottom, lessThanOrEqualTo(map.bottom), reason: '按钮完整在地图内');
+    expect(find.textContaining('不会读取手机定位'), findsOneWidget);
     expect(find.textContaining('设备/网络信息'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

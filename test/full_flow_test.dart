@@ -1,3 +1,5 @@
+import 'package:mileaf/src/drive_detail_page.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -110,7 +112,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('drive-1')));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #1'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 1,
+      ),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(find.textContaining('速度读数'), 250);
     expect(find.textContaining('速度读数'), findsOneWidget);
     await tester.tap(find.byType(BackButton));

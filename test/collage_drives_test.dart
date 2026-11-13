@@ -1,3 +1,5 @@
+import 'package:mileaf/src/drive_detail_page.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -34,6 +36,11 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
   });
 }

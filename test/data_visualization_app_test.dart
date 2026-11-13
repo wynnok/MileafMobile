@@ -57,10 +57,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('速度读数 10 km/h'), findsOneWidget);
       await tester.ensureVisible(find.text('后一个采样'));
-      await tester.tap(find.text('后一个采样'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('后一个采样').hitTestable());
       await tester.pump();
       expect(find.textContaining('速度读数 —'), findsOneWidget);
-      await tester.tap(find.text('后一个采样'));
+      await tester.ensureVisible(find.text('后一个采样'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('后一个采样').hitTestable());
       await tester.pump();
       expect(find.textContaining('速度读数 90 km/h'), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -1,0 +1,26 @@
+{
+  "charge-normal-light-360-100": {
+    "bodyHeight": 696.0,
+    "plotTop": 358.0,
+    "plotHeight": 200.0,
+    "visible": 200.0
+  },
+  "charge-normal-dark-360-100": {
+    "bodyHeight": 696.0,
+    "plotTop": 358.0,
+    "plotHeight": 200.0,
+    "visible": 200.0
+  },
+  "charge-expanded-light-360-100": {
+    "bodyHeight": 696.0,
+    "plotTop": 387.0,
+    "plotHeight": 200.0,
+    "visible": 200.0
+  },
+  "charge-expanded-dark-360-100": {
+    "bodyHeight": 696.0,
+    "plotTop": 387.0,
+    "plotHeight": 200.0,
+    "visible": 200.0
+  }
+}

@@ -1,3 +1,5 @@
+import 'package:mileaf/src/drive_detail_page.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -380,7 +382,7 @@ void main() {
     final offsetBeforeDetail = drivesOffset(tester);
     await tester.tap(find.byKey(const ValueKey('drive-14')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('行程 #'), findsOneWidget);
+    expect(find.byType(DriveDetailPage), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(drivesOffset(tester), closeTo(offsetBeforeDetail, 1));
@@ -1057,7 +1059,12 @@ void main() {
         .queryParameters['from'];
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
     requests.clear();
     // Cross the local midnight (and the cached day) while the detail covers
     // the list; the detail's own foreground pass bumps the workspace revision.
@@ -1105,7 +1112,12 @@ void main() {
     requests.clear();
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(
@@ -1117,7 +1129,12 @@ void main() {
     requests.clear();
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
     // Stay in the foreground inside the detail until the list cache expires.
     now = now.add(const Duration(minutes: 10));
     requests.clear();

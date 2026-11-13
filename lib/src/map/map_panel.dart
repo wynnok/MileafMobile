@@ -34,6 +34,9 @@ enum _MapStatus {
 }
 
 class MapPanel extends StatefulWidget {
+  /// P04 shared detail geometry, independent of text scaling.
+  static const detailHeight = 220.0;
+  static const sketchHeight = 120.0;
   const MapPanel({
     super.key,
     required this.scene,
@@ -45,7 +48,7 @@ class MapPanel extends StatefulWidget {
     this.onExpand,
     this.showControls = false,
     this.borderRadius = const BorderRadius.vertical(
-      bottom: Radius.circular(22),
+      bottom: Radius.circular(MileafRadius.lg),
     ),
   });
 
@@ -71,6 +74,7 @@ class _MapPanelState extends State<MapPanel> {
   int _generation = 0;
   int? _trial;
   String? _approval;
+  bool _retrySketch = false;
   MapKeyController? _keys;
   String? _keyStamp;
 
@@ -178,7 +182,10 @@ class _MapPanelState extends State<MapPanel> {
         trial: _trial,
       );
     }
-    setState(() => _status = _MapStatus.ready);
+    setState(() {
+      _status = _MapStatus.ready;
+      _retrySketch = false;
+    });
   }
 
   void _failed(MapFailure failure) {
@@ -191,7 +198,10 @@ class _MapPanelState extends State<MapPanel> {
     setState(() => _status = _MapStatus.failed);
   }
 
-  void _retry() => _reset();
+  void _retry() {
+    _retrySketch = true;
+    _reset();
+  }
 
   @override
   void dispose() {
@@ -206,7 +216,12 @@ class _MapPanelState extends State<MapPanel> {
     final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final mapHeight = widget.height.isFinite
+        final degraded =
+            (_status != _MapStatus.ready && _status != _MapStatus.loading) ||
+            (_status == _MapStatus.loading && _retrySketch);
+        final mapHeight = degraded && widget.height.isFinite
+            ? MapPanel.sketchHeight
+            : widget.height.isFinite
             ? widget.height
             : constraints.hasBoundedHeight
             ? constraints.maxHeight
@@ -215,43 +230,58 @@ class _MapPanelState extends State<MapPanel> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: mapHeight,
-              width: double.infinity,
-              child: ClipRRect(
-                borderRadius: widget.borderRadius,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _content(context),
-                      if (_status != _MapStatus.ready && widget.overlay != null)
-                        Positioned.fill(
-                          child: IgnorePointer(child: widget.overlay!),
-                        ),
-                      if (_status == _MapStatus.ready &&
-                          widget.onExpand != null)
-                        Positioned.fill(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: widget.onExpand,
+            if (_status == _MapStatus.empty)
+              _content(context)
+            else
+              SizedBox(
+                height: mapHeight,
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: widget.borderRadius,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerLow,
+                    ),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _content(context),
+                        if (_status != _MapStatus.ready &&
+                            widget.overlay != null)
+                          Positioned.fill(
+                            child: IgnorePointer(child: widget.overlay!),
                           ),
-                        ),
-                      if (_status == _MapStatus.ready) _chrome(context),
-                      if (_status == _MapStatus.loading) _loading(context),
-                      if (_status == _MapStatus.configuration)
-                        _configurationPanel(context),
-                      if (_status == _MapStatus.unsupported)
-                        _unsupportedPanel(context),
-                      if (_status == _MapStatus.failed) _failurePanel(context),
-                    ],
+                        if (_status == _MapStatus.ready &&
+                            widget.onExpand != null)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: widget.onExpand,
+                            ),
+                          ),
+                        if (_status == _MapStatus.ready) _chrome(context),
+                        if (_status == _MapStatus.loading) _loading(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            if (_status == _MapStatus.configuration)
+              _configurationPanel(context),
+            if (_status == _MapStatus.unsupported) _unsupportedPanel(context),
+            if (_status == _MapStatus.failed) _failurePanel(context),
+            if (_keys?.restartRequired == true)
+              Text(_keys!.status, style: context.type.micro),
+            if (widget.onExpand != null &&
+                degraded &&
+                _status != _MapStatus.consent)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: widget.onExpand,
+                  child: const Text('查看完整地图'),
+                ),
+              ),
             if (_status == _MapStatus.consent)
               Padding(
                 padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -324,7 +354,7 @@ class _MapPanelState extends State<MapPanel> {
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
               color: chip,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: MileafRadius.mdAll,
             ),
             child: Text('地图', style: theme.textTheme.labelSmall),
           ),
@@ -335,10 +365,15 @@ class _MapPanelState extends State<MapPanel> {
             top: 8,
             child: Material(
               color: chip,
-              shape: const CircleBorder(),
+              shape: const RoundedRectangleBorder(
+                borderRadius: MileafRadius.mdAll,
+              ),
               child: IconButton(
                 tooltip: '打开全屏地图',
-                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: MileafSpace.touch,
+                  minHeight: MileafSpace.touch,
+                ),
                 onPressed: widget.onExpand,
                 icon: const Icon(Icons.open_in_full, size: 19),
               ),
@@ -368,7 +403,7 @@ class _MapPanelState extends State<MapPanel> {
               _approval == null || _approval!.isEmpty
                   ? '© ${_platform.providerName}'
                   : '© ${_platform.providerName} $_approval',
-              style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+              style: context.type.micro,
             ),
           ),
         ),
@@ -386,10 +421,13 @@ class _MapPanelState extends State<MapPanel> {
     child: Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow
           .withValues(alpha: 0.94),
-      shape: const CircleBorder(),
+      shape: const RoundedRectangleBorder(borderRadius: MileafRadius.mdAll),
       child: IconButton(
         tooltip: tooltip,
-        visualDensity: VisualDensity.compact,
+        constraints: const BoxConstraints(
+          minWidth: MileafSpace.touch,
+          minHeight: MileafSpace.touch,
+        ),
         onPressed: onPressed,
         icon: Icon(icon, size: 20),
       ),
@@ -423,50 +461,42 @@ class _MapPanelState extends State<MapPanel> {
   Widget _consentCard(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
-    return _card(
-      context,
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
+      child: Row(
         children: [
-          Text(
-            '底图未启用 · 路线示意',
-            style: type.label.copyWith(
-              fontWeight: MileafType.weightSemiBold,
-              color: colors.text,
+          Expanded(
+            child: Text(
+              '底图未启用 · 路线示意',
+              style: type.label.copyWith(color: colors.text),
             ),
           ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            '加载后会向${_platform.providerName}发送 IP、设备/网络信息和当前地图范围；'
-            '不发送站点凭据，不读取手机定位。',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, MileafSpace.touch),
-              ),
-              onPressed: () => showMapConsentSheet(
-                context,
-                widget.consent,
-                providerName: _platform.providerName,
-              ),
-              child: const Text('启用地图'),
+          TextButton(
+            onPressed: () => showMapConsentSheet(
+              context,
+              widget.consent,
+              providerName: _platform.providerName,
             ),
+            child: const Text('启用地图'),
           ),
+          if (widget.onExpand != null)
+            IconButton(
+              tooltip: '查看完整地图',
+              constraints: const BoxConstraints(
+                minWidth: MileafSpace.touch,
+                minHeight: MileafSpace.touch,
+              ),
+              onPressed: widget.onExpand,
+              icon: const Icon(Icons.open_in_full),
+            ),
         ],
       ),
     );
   }
 
   Widget _unsupportedPanel(BuildContext context) {
-    return Positioned(
-      left: MileafSpace.s12,
-      right: MileafSpace.s12,
-      bottom: MileafSpace.s12,
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s8),
       child: _card(
         context,
         Text(
@@ -487,10 +517,8 @@ class _MapPanelState extends State<MapPanel> {
         ),
       );
 
-  Widget _configurationPanel(BuildContext context) => Positioned(
-    left: MileafSpace.s12,
-    right: MileafSpace.s12,
-    bottom: MileafSpace.s12,
+  Widget _configurationPanel(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: MileafSpace.s8),
     child: _card(
       context,
       Column(
@@ -512,10 +540,8 @@ class _MapPanelState extends State<MapPanel> {
 
   Widget _failurePanel(BuildContext context) {
     final type = context.type;
-    return Positioned(
-      left: MileafSpace.s12,
-      right: MileafSpace.s12,
-      bottom: MileafSpace.s12,
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s8),
       child: _card(
         context,
         Column(
@@ -542,12 +568,12 @@ class _MapPanelState extends State<MapPanel> {
     );
   }
 
-  /// Every in-map notice shares one surface: raised, 10 radius, 1px line.
+  /// Natural-height map notices share the raised surface and control radius.
   Widget _card(BuildContext context, Widget child) => Container(
     padding: const EdgeInsets.all(MileafSpace.s12),
     decoration: BoxDecoration(
       color: context.colors.surfaceRaised,
-      borderRadius: MileafRadius.smAll,
+      borderRadius: MileafRadius.mdAll,
       border: Border.all(color: context.colors.line),
     ),
     child: child,

@@ -437,7 +437,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
 
   String shortDay(DateTime t) {
     final d = workspace.calendar!.local(t);
-    return '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    return '${d.year}/${d.month}/${d.day}';
   }
 
   String place(String? p) => p == null || p.trim().isEmpty ? '未知地点' : p;
@@ -488,6 +488,11 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     );
   }
 
+  String clock(DateTime value) {
+    final local = widget.workspace.calendar!.local(value);
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _coverageBand(dto.DriveDetail d) {
     final colors = context.colors;
     final type = context.type;
@@ -502,22 +507,18 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${shortDay(d.startedAt)} · 最近行程',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
             '${place(d.start.displayName)} → ${place(d.end.displayName)}',
             style: type.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: MileafSpace.s4),
           Text(
-            '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}'
-            ' · ${number(d.distanceKm, 'km', decimals: 1)}'
-            ' · ${number(d.durationMin, '分钟')}',
-            style: type.body.copyWith(color: colors.textMuted),
+            '${shortDay(d.startedAt)} · ${clock(d.startedAt)} → '
+            '${d.endedAt == null
+                ? '进行中'
+                : shortDay(d.startedAt) == shortDay(d.endedAt!)
+                ? clock(d.endedAt!)
+                : '${shortDay(d.endedAt!)} ${clock(d.endedAt!)}'}',
+            style: type.micro.copyWith(color: colors.textMuted),
           ),
           const SizedBox(height: MileafSpace.s4),
           Text(
@@ -651,6 +652,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('行程记录 #${d.id}', style: type.micro),
                   Text(
                     '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
                     style: type.micro.copyWith(color: colors.textMuted),
@@ -704,7 +706,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     final inset = MileafLayout.pageInset(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('行程 #${widget.id}'),
+        title: const Text('行程详情'),
         actions: [
           IconButton(
             tooltip: '刷新行程明细',
@@ -718,243 +720,280 @@ class _DriveDetailPageState extends State<DriveDetailPage>
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => Future.wait([loadDetail(), loadSeries()]),
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (_) {
-            traceReady();
-            return false;
-          },
-          child: ListView(
-            key: viewportKey,
-            padding: EdgeInsets.zero,
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              MapPanel(
-                key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
-                scene: _mapScene(interactive: false),
-                consent: _mapConsent,
-                platform: _mapPlatform,
-                height: MileafLayout.mapHeight(context, normal: 320),
-                borderRadius: BorderRadius.zero,
-                onExpand: () => _openFullMap(context),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                child: Text(
-                  '行程地图',
-                  style: context.type.micro.copyWith(
-                    color: context.colors.textFaint,
+      body: MileafContent(
+        child: RefreshIndicator(
+          onRefresh: () => Future.wait([loadDetail(), loadSeries()]),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (_) {
+              traceReady();
+              return false;
+            },
+            child: ListView(
+              key: viewportKey,
+              padding: EdgeInsets.zero,
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                if (detail case final d?) _coverageBand(d),
+                const SizedBox(height: MileafSpace.s12),
+                MapPanel(
+                  key: ValueKey(
+                    'map:${owner.generation}:$vehicle:${widget.id}',
                   ),
+                  scene: _mapScene(interactive: false),
+                  consent: _mapConsent,
+                  platform: _mapPlatform,
+                  height: MapPanel.detailHeight,
+                  borderRadius: BorderRadius.zero,
+                  onExpand: () => _openFullMap(context),
                 ),
-              ),
-              if (detail case final d?) _coverageBand(d),
-              if (detailLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: MileafSpace.s20),
-                  child: MileafProgressLine(),
-                ),
-              if (detailError != null)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      InlineBanner(
-                        message: detailError!,
-                        tone: BannerTone.error,
-                        actionLabel: '重试行程明细',
-                        onAction: loadDetail,
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () {
-                            widget.onReturnToList?.call();
-                            Navigator.pop(context);
-                          },
-                          child: const Text('返回行程列表'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (seriesLoading && series == null)
                 Padding(
                   padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
                   child: Text(
-                    '正在读取轨迹采样',
+                    '行程地图',
                     style: context.type.micro.copyWith(
-                      color: context.colors.textMuted,
+                      color: context.colors.textFaint,
                     ),
                   ),
                 ),
-              if (seriesError != null && series == null)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                  child: Text(
-                    '轨迹采样暂不可用，可在行程采样区域重试',
-                    style: context.type.micro.copyWith(
-                      color: context.colors.textMuted,
+                if (detailLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: MileafSpace.s20),
+                    child: MileafProgressLine(),
+                  ),
+                if (detailError != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s8,
+                      inset,
+                      0,
                     ),
-                  ),
-                ),
-              if (detail case final d?)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    MileafSpace.s20,
-                    inset,
-                    0,
-                  ),
-                  child: _results(d),
-                ),
-              if (seriesLoading)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                  child: const MileafProgressLine(),
-                ),
-              if (seriesError != null)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                  child: InlineBanner(
-                    message: seriesError!,
-                    tone: BannerTone.error,
-                    actionLabel: '重试行程采样',
-                    onAction: loadSeries,
-                  ),
-                ),
-              if (series case final s?)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    MileafSpace.section,
-                    inset,
-                    0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (s.resolution != 'server_sampled')
-                        Text(
-                          '无采样数据',
-                          style: context.type.body.copyWith(
-                            color: context.colors.textMuted,
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        InlineBanner(
+                          message: detailError!,
+                          tone: BannerTone.error,
+                          actionLabel: '重试行程明细',
+                          onAction: loadDetail,
                         ),
-                      ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        shape: const Border(),
-                        collapsedShape: const Border(),
-                        title: Text(
-                          '采样数据说明',
-                          style: context.type.body.copyWith(
-                            color: context.colors.textMuted,
-                          ),
-                        ),
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              s.resolution == 'server_sampled'
-                                  ? '服务端采样 ${s.points} 点'
-                                  : '无采样数据',
-                              style: context.type.micro.copyWith(
-                                color: context.colors.textMuted,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: MileafSpace.s8,
-                        runSpacing: MileafSpace.s8,
-                        children: [
-                          for (var i = 0; i < _sampleMetrics.length; i++)
-                            StatusChip(
-                              label: _sampleMetrics[i].label,
-                              selected: metric == i,
-                              onTap: () => setState(() => metric = i),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: MileafSpace.s12),
-                      SampleChart(
-                        plotObserverKey: defaultCurveKey,
-                        points: [
-                          for (final p in s.series)
-                            (
-                              p.t,
-                              switch (metric) {
-                                0 => p.speedKmh,
-                                1 => p.batteryLevel,
-                                _ => p.elevationM,
-                              },
-                            ),
-                        ],
-                        label: _sampleMetrics[metric].label,
-                        title: _sampleMetrics[metric].title,
-                        subtitle: '点按图形读值',
-                        unit: _sampleMetrics[metric].unit,
-                        timestamp: time,
-                        selectedIndex: selectedSample,
-                        onSelected: (i) => setState(() => selectedSample = i),
-                      ),
-                      if (metric != 1)
                         Align(
                           alignment: Alignment.centerLeft,
                           child: TextButton(
-                            onPressed: () => setState(() => paired = !paired),
-                            child: Text(paired ? '收起电量对照' : '对照电量'),
+                            onPressed: () {
+                              widget.onReturnToList?.call();
+                              Navigator.pop(context);
+                            },
+                            child: const Text('返回行程列表'),
                           ),
                         ),
-                      if (paired && metric != 1)
-                        SampleChart(
-                          points: [
-                            for (final p in s.series) (p.t, p.batteryLevel),
+                      ],
+                    ),
+                  ),
+                if (seriesLoading && series == null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s8,
+                      inset,
+                      0,
+                    ),
+                    child: Text(
+                      '正在读取轨迹采样',
+                      style: context.type.micro.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
+                  ),
+                if (seriesError != null && series == null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s8,
+                      inset,
+                      0,
+                    ),
+                    child: Text(
+                      '轨迹采样暂不可用，可在行程采样区域重试',
+                      style: context.type.micro.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
+                  ),
+                if (detail case final d?)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s20,
+                      inset,
+                      0,
+                    ),
+                    child: _results(d),
+                  ),
+                if (seriesLoading)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s8,
+                      inset,
+                      0,
+                    ),
+                    child: const MileafProgressLine(),
+                  ),
+                if (seriesError != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s8,
+                      inset,
+                      0,
+                    ),
+                    child: InlineBanner(
+                      message: seriesError!,
+                      tone: BannerTone.error,
+                      actionLabel: '重试行程采样',
+                      onAction: loadSeries,
+                    ),
+                  ),
+                if (series case final s?)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.section,
+                      inset,
+                      0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (s.resolution != 'server_sampled')
+                          Text(
+                            '无采样数据',
+                            style: context.type.body.copyWith(
+                              color: context.colors.textMuted,
+                            ),
+                          ),
+                        ChipRow(
+                          children: [
+                            for (var i = 0; i < _sampleMetrics.length; i++)
+                              StatusChip(
+                                label: _sampleMetrics[i].label,
+                                selected: metric == i,
+                                onTap: () => setState(() => metric = i),
+                              ),
                           ],
-                          label: '电量',
+                        ),
+                        const SizedBox(height: MileafSpace.s12),
+                        SampleChart(
+                          plotObserverKey: defaultCurveKey,
+                          points: [
+                            for (final p in s.series)
+                              (
+                                p.t,
+                                switch (metric) {
+                                  0 => p.speedKmh,
+                                  1 => p.batteryLevel,
+                                  _ => p.elevationM,
+                                },
+                              ),
+                          ],
+                          label: _sampleMetrics[metric].label,
+                          title: _sampleMetrics[metric].title,
                           subtitle: '点按图形读值',
-                          unit: '%',
-                          timestamp: time,
+                          unit: _sampleMetrics[metric].unit,
+                          timestamp: clock,
+                          readoutTimestamp: time,
+                          height: MileafSpace.detailChartHeight,
+                          showYAxis: true,
+                          yRange: metric == 1 ? (0, 100) : null,
                           selectedIndex: selectedSample,
                           onSelected: (i) => setState(() => selectedSample = i),
-                          plotKey: const ValueKey('paired-sample-chart'),
                         ),
-                    ],
+                        ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          shape: const Border(),
+                          collapsedShape: const Border(),
+                          title: Text(
+                            '采样数据说明',
+                            style: context.type.body.copyWith(
+                              color: context.colors.textMuted,
+                            ),
+                          ),
+                          children: [
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                s.resolution == 'server_sampled'
+                                    ? '服务端采样 ${s.points} 点'
+                                    : '无采样数据',
+                                style: context.type.micro.copyWith(
+                                  color: context.colors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (metric != 1)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: () => setState(() => paired = !paired),
+                              child: Text(paired ? '收起电量对照' : '对照电量'),
+                            ),
+                          ),
+                        if (paired && metric != 1)
+                          SampleChart(
+                            points: [
+                              for (final p in s.series) (p.t, p.batteryLevel),
+                            ],
+                            label: '电量',
+                            subtitle: '点按图形读值',
+                            unit: '%',
+                            timestamp: clock,
+                            readoutTimestamp: time,
+                            height: MileafSpace.detailChartHeight,
+                            showYAxis: true,
+                            selectedIndex: selectedSample,
+                            onSelected: (i) =>
+                                setState(() => selectedSample = i),
+                            yRange: (0, 100),
+                            plotKey: const ValueKey('paired-sample-chart'),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              if (detail case final d?)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    MileafSpace.section,
-                    inset,
-                    0,
+                if (detail case final d?)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.section,
+                      inset,
+                      0,
+                    ),
+                    child: _batterySection(d),
                   ),
-                  child: _batterySection(d),
-                ),
-              if (detail case final d?)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    MileafSpace.section,
-                    inset,
-                    0,
+                if (detail case final d?)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.section,
+                      inset,
+                      0,
+                    ),
+                    child: _techSection(d),
                   ),
-                  child: _techSection(d),
-                ),
-              if (detail case final d?)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    MileafSpace.s20,
-                    inset,
-                    MileafSpace.s24,
+                if (detail case final d?)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s20,
+                      inset,
+                      MileafSpace.s24,
+                    ),
+                    child: _consumptionFootnote(context, d),
                   ),
-                  child: _consumptionFootnote(context, d),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

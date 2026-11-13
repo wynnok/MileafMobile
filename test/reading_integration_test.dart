@@ -1,3 +1,5 @@
+import 'package:mileaf/src/drive_detail_page.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -166,7 +168,13 @@ void main() {
     await bring(tester, records);
     await tester.tap(records.first);
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget, reason: '打开的是证据列表第一条行程');
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+      reason: '打开的是证据列表第一条行程',
+    );
 
     // 5. Returning keeps the statistics period, position and point.
     await tester.binding.handlePopRoute();
@@ -237,7 +245,12 @@ void main() {
     await bring(tester, records);
     await tester.tap(records.first);
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
     // The drive detail is the only visible page; crossing the local midnight
     // bumps the workspace revision behind the topic and the detail routes.
     seen.clear();

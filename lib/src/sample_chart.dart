@@ -20,6 +20,10 @@ class SampleChart extends StatelessWidget {
     this.plotObserverKey,
     this.title,
     this.subtitle,
+    this.height = 120,
+    this.showYAxis = false,
+    this.yRange,
+    this.readoutTimestamp,
   });
   final List<(DateTime, num?)> points;
   final String label, unit;
@@ -32,6 +36,10 @@ class SampleChart extends StatelessWidget {
   /// Chart title (e.g. 速度过程); falls back to the metric label.
   final String? title;
   final String? subtitle;
+  final double height;
+  final bool showYAxis;
+  final (double, double)? yRange;
+  final String Function(DateTime)? readoutTimestamp;
 
   String _value(num? value) {
     if (value == null) return '—';
@@ -61,14 +69,17 @@ class SampleChart extends StatelessWidget {
       semanticsLabel: '$label过程图表',
       selectedIndex: selected,
       onSelected: onSelected,
-      height: 120,
+      height: height,
+      showYAxis: showYAxis,
+      yRange: yRange,
       tickLabel: (time) {
         final local = timestamp(time);
         return local;
       },
       readout: (index) {
         if (index < 0 || index >= points.length) return '$label读数 —';
-        return '$label读数 ${_value(points[index].$2)}';
+        final at = readoutTimestamp?.call(points[index].$1);
+        return '${at == null ? '' : '$at\n'}$label读数 ${_value(points[index].$2)}';
       },
       emptyMessage: '没有采样点',
       plotKey: plotKey,

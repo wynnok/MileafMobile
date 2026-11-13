@@ -1,3 +1,5 @@
+import 'package:mileaf/src/drive_detail_page.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -452,7 +454,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('行程 #17'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DriveDetailPage && widget.id == 17,
+      ),
+      findsOneWidget,
+    );
   });
   testWidgets('游标翻页失败保留记录，重试按ID去重且刷新清除后续页，304保留快照', (tester) async {
     var failing = true;

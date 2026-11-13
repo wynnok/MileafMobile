@@ -52,7 +52,7 @@ Future<void> openDetail(
 }
 
 void main() {
-  testWidgets('详情地图全出血并先于路线与结果', (tester) async {
+  testWidgets('U07 路线摘要先于紧凑降级地图与结果', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -76,11 +76,11 @@ void main() {
     final result = tester.getRect(find.bySemanticsLabel('距离 20.0 km'));
     final viewWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
-    expect(map.top, lessThan(route.top));
+    expect(route.top, lessThan(map.top));
     expect(route.top, lessThan(result.top));
-    expect(map.left, 0);
-    expect(map.width, viewWidth);
-    expect(map.height, 320);
+    expect(map.left, (viewWidth - map.width) / 2);
+    expect(map.width, viewWidth.clamp(0, 560));
+    expect(map.height, 120);
   });
 
   testWidgets('电耗口径行保留负值本次值与真实零参照并提供口径说明', (tester) async {
@@ -425,7 +425,7 @@ void main() {
       expect(r.url.path, '/prefix/v1/drives/1');
       return jsonResponse(jsonEncode(fixture('drive-detail')));
     });
-    expect(find.text('行程 #1'), findsOneWidget);
+    expect(find.text('行程详情'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.bySemanticsLabel('净电耗 188 Wh/km').hitTestable(),
       160,
@@ -499,14 +499,14 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近行程').hitTestable(), 300);
     await tester.tap(find.text('最近行程').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsOneWidget);
+    expect(find.text('行程详情'), findsOneWidget);
     expect(find.textContaining('记录已不可用'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('没有采样点'), 250);
     expect(find.text('没有采样点'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('返回行程列表'), -250);
     await tester.tap(find.text('返回行程列表'));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #17'), findsNothing);
+    expect(find.text('行程详情'), findsNothing);
   });
   testWidgets('详情条件304保留，series刷新失败只保留该区域快照，点选按真实时间', (tester) async {
     var refresh = false;
@@ -573,7 +573,7 @@ void main() {
     await tester.tap(find.byTooltip('刷新行程明细'));
     await tester.pumpAndSettle();
     expect(find.text('站点访问口令'), findsOneWidget);
-    expect(find.text('行程 #1'), findsNothing);
+    expect(find.text('行程详情'), findsNothing);
   });
   testWidgets('车辆归属不符拒绝明细，返回后切车旧详情迟到不能污染新车', (tester) async {
     var refresh = false;
@@ -600,7 +600,7 @@ void main() {
     await tester.pumpAndSettle();
     slow.complete(jsonResponse(jsonEncode(fixture('drive-detail'))));
     await tester.pumpAndSettle();
-    expect(find.text('行程 #1'), findsNothing);
+    expect(find.text('行程详情'), findsNothing);
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
   });
   testWidgets('默认未启用底图时详情和采样可读，显示路线示意且没有研发占位文案', (tester) async {

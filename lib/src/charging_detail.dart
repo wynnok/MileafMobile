@@ -310,7 +310,6 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     final items = [
       '充入电池 ${number(d.energyAddedKwh, 'kWh')}',
       '费用 ${widget.currency.amountValue(d.cost)}',
-      ?widget.currency.amountNote,
       '时长 ${number(d.durationMin, '分钟')}',
     ];
     final large = MileafLayout.largeText(context);
@@ -383,12 +382,17 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               ],
             )
           else
-            Wrap(
-              spacing: MileafSpace.s16,
-              runSpacing: MileafSpace.s8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [for (final item in items) resultItem(item)],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < items.length; index++) ...[
+                  if (index > 0) const SizedBox(width: MileafSpace.s12),
+                  Expanded(child: resultItem(items[index])),
+                ],
+              ],
             ),
+          if (widget.currency.amountNote case final note?)
+            Text(note, style: type.micro),
           const SizedBox(height: MileafSpace.s12),
         ],
       ),
@@ -415,316 +419,328 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          // Every block carries the page inset itself (R04/P05: the SOC arc
-          // row is a same-background block, not a dark hero).
-          padding: EdgeInsets.zero,
-          children: [
-            if (detailLoading) const LinearProgressIndicator(),
-            if (detailError != null)
-              _inset(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(liveRegion: true, child: Text(detailError!)),
-                    if (!unavailable)
-                      TextButton(
-                        onPressed: detailLoading
-                            ? null
-                            : () => loadDetail(force: true),
-                        child: const Text('重试充电明细'),
-                      ),
-                  ],
-                ),
-              ),
-            if (unavailable)
-              _inset(
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('返回上一页'),
-                  ),
-                ),
-              ),
-            if (detail case final d?) ...[
-              _inset(
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: MileafSpace.s8,
-                    bottom: MileafSpace.s8,
-                  ),
-                  child: Text(
-                    d.location.displayName?.trim().isNotEmpty == true
-                        ? d.location.displayName!
-                        : '未知地点',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              ),
-              _inset(
-                Text(
-                  workspace.calendar!
-                      .local(d.startedAt)
-                      .toString()
-                      .substring(0, 16)
-                      .replaceAll('-', '/'),
-                  style: context.type.micro,
-                ),
-              ),
-              _inset(
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+        child: MileafContent(
+          child: ListView(
+            // Every block carries the page inset itself (R04/P05: the SOC arc
+            // row is a same-background block, not a dark hero).
+            padding: EdgeInsets.zero,
+            children: [
+              if (detailLoading) const MileafProgressLine(),
+              if (detailError != null)
+                _inset(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BatteryArc(
-                        level: d.endSoc,
-                        start: d.startSoc,
-                        showLabel: false,
-                      ),
-                      const SizedBox(width: MileafSpace.s16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('电量区间', style: context.type.label),
-                            Text(
-                              '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
-                              style: context.type.metricMd,
-                            ),
-                            Text(
-                              d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
-                              style: context.type.micro,
-                            ),
-                            Text(
-                              d.isDc == null
-                                  ? '充电类型未知'
-                                  : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
-                              style: context.type.micro,
-                            ),
-                          ],
+                      Semantics(liveRegion: true, child: Text(detailError!)),
+                      if (!unavailable)
+                        TextButton(
+                          onPressed: detailLoading
+                              ? null
+                              : () => loadDetail(force: true),
+                          child: const Text('重试充电明细'),
                         ),
-                      ),
                     ],
                   ),
                 ),
-              ),
-              _results(d),
-            ],
-            if (seriesLoading) const LinearProgressIndicator(),
-            if (seriesError != null)
-              _inset(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(liveRegion: true, child: Text(seriesError!)),
-                    TextButton(
-                      onPressed: seriesLoading
-                          ? null
-                          : () => loadSeries(force: true),
-                      child: const Text('重试充电曲线'),
+              if (unavailable)
+                _inset(
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('返回上一页'),
                     ),
-                  ],
-                ),
-              ),
-            if (!ownershipMismatch && expandedSeries != null)
-              _inset(
-                ExpandedChargingCurve(
-                  key: ValueKey(
-                    '${widget.id}:${identityHashCode(expandedSeries)}',
-                  ),
-                  series: expandedSeries!,
-                  calendar: workspace.calendar!,
-                ),
-              )
-            else if (!ownershipMismatch && series != null)
-              _inset(
-                ChargingCurve(
-                  key: ValueKey('${widget.id}:${identityHashCode(series)}'),
-                  series: series!,
-                  calendar: workspace.calendar!,
-                ),
-              ),
-            if (detail case final d?) ...[
-              _inset(
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: MileafSpace.s8,
-                    bottom: MileafSpace.inline6,
-                  ),
-                  child: Text(
-                    '充电地点',
-                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),
-              ),
-              _inset(
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: MapPanel(
-                    key: ValueKey(
-                      'charging-map:${owner.generation}:$vehicle:${widget.id}',
+              if (detail case final d?) ...[
+                _inset(
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: MileafSpace.s8,
+                      bottom: MileafSpace.s8,
                     ),
-                    scene: placeScene(
-                      location: MapCoordinate(
-                        d.location.lat?.toDouble(),
-                        d.location.lon?.toDouble(),
-                      ),
-                      brightness: Theme.of(context).brightness,
-                      interactive: false,
+                    child: Text(
+                      d.location.displayName?.trim().isNotEmpty == true
+                          ? d.location.displayName!
+                          : '未知地点',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    consent: _mapConsent,
-                    platform: _mapPlatform,
-                    height: MileafLayout.mapHeight(context, normal: 180),
-                    borderRadius: BorderRadius.circular(MileafRadius.lg),
                   ),
                 ),
-              ),
-            ],
-            if (detail case final d?) ...[
-              _section(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('两类能量', style: Theme.of(context).textTheme.titleSmall),
-                    Text('充入电池 ${number(d.energyAddedKwh, 'kWh')}'),
-                    Text('电网侧'),
-                    Text(
-                      d.energyUsedKwh == null
-                          ? '—'
-                          : '${d.energyUsedKwh!.toStringAsFixed(2)} kWh',
-                    ),
-                    const Text('两类能量分别记录，不相加。'),
-                  ],
+                _inset(
+                  Text(
+                    workspace.calendar!
+                        .local(d.startedAt)
+                        .toString()
+                        .substring(0, 16)
+                        .replaceAll('-', '/'),
+                    style: context.type.micro,
+                  ),
                 ),
-              ),
-              _inset(
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('过程数据说明'),
-                  children: [
-                    if (expandedDetail?.processMetrics case final process?)
-                      _section(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('原始功率峰值 ${number(process.powerMaxKw, 'kW')}'),
-                            Text(
-                              '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
-                            ),
-                            Text(
-                              '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
-                            ),
-                            for (final window in process.socWindows)
+                _inset(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: MileafSpace.s8,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        BatteryArc(
+                          level: d.endSoc,
+                          start: d.startSoc,
+                          showLabel: false,
+                          size: MileafBatteryMetrics.size,
+                        ),
+                        const SizedBox(width: MileafSpace.s16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('电量区间', style: context.type.label),
                               Text(
-                                !d.isActive &&
-                                        window.status == 'available' &&
-                                        window.elapsedSeconds != null
-                                    ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
-                                    : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
+                                '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
+                                style: context.type.metricMd,
                               ),
-                            const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
-                          ],
+                              Text(
+                                d.isActive ? '充电进行中，当前指标不代表最终结果' : '充电已结束',
+                                style: context.type.micro,
+                              ),
+                              Text(
+                                d.isDc == null
+                                    ? '充电类型未知'
+                                    : '充电类型 ${d.isDc! ? 'DC' : 'AC'}',
+                                style: context.type.micro,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    if (expandedDetail != null &&
-                        expandedDetail!.processMetrics == null)
-                      const Text('原始充电过程指标暂不可用。'),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              if (expandedDetail case final extra?) ...[
-                _section(
-                  child: Column(
+                _results(d),
+              ],
+              if (seriesLoading) const MileafProgressLine(),
+              if (seriesError != null)
+                _inset(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '这一次的账',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Semantics(liveRegion: true, child: Text(seriesError!)),
+                      TextButton(
+                        onPressed: seriesLoading
+                            ? null
+                            : () => loadSeries(force: true),
+                        child: const Text('重试充电曲线'),
                       ),
-                      Text('已记录费用 ${widget.currency.amountValue(d.cost)}'),
-                      if (widget.currency.amountNote case final note?)
-                        Text(note),
-                      Text(
-                        '每入电 kWh ${widget.currency.amountValue(extra.unitCostAdded?.value)}/kWh',
-                      ),
-                      Text(
-                        '每网侧 kWh ${widget.currency.amountValue(extra.unitCostGrid?.value)}/kWh',
-                      ),
-                      const Text('均价按服务端有效配对计算；费用未知不代表免费。'),
                     ],
                   ),
                 ),
+              if (!ownershipMismatch && expandedSeries != null)
+                _inset(
+                  ExpandedChargingCurve(
+                    key: ValueKey(
+                      '${widget.id}:${identityHashCode(expandedSeries)}',
+                    ),
+                    series: expandedSeries!,
+                    calendar: workspace.calendar!,
+                  ),
+                )
+              else if (!ownershipMismatch && series != null)
+                _inset(
+                  ChargingCurve(
+                    key: ValueKey('${widget.id}:${identityHashCode(series)}'),
+                    series: series!,
+                    calendar: workspace.calendar!,
+                  ),
+                ),
+              if (detail case final d?) ...[
+                _inset(
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: MileafSpace.s8,
+                      bottom: MileafSpace.inline6,
+                    ),
+                    child: Text(
+                      '充电地点',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ),
+                _inset(
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: MapPanel(
+                      key: ValueKey(
+                        'charging-map:${owner.generation}:$vehicle:${widget.id}',
+                      ),
+                      scene: placeScene(
+                        location: MapCoordinate(
+                          d.location.lat?.toDouble(),
+                          d.location.lon?.toDouble(),
+                        ),
+                        brightness: Theme.of(context).brightness,
+                        interactive: false,
+                      ),
+                      consent: _mapConsent,
+                      platform: _mapPlatform,
+                      height: MileafLayout.mapHeight(context, normal: 180),
+                      borderRadius: BorderRadius.circular(MileafRadius.lg),
+                    ),
+                  ),
+                ),
+              ],
+              if (detail case final d?) ...[
                 _section(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '车辆与环境',
+                        '两类能量',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
+                      Text('充入电池 ${number(d.energyAddedKwh, 'kWh')}'),
+                      Text('电网侧'),
                       Text(
-                        '室外温度均值 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
+                        d.energyUsedKwh == null
+                            ? '—'
+                            : '${d.energyUsedKwh!.toStringAsFixed(2)} kWh',
                       ),
+                      const Text('两类能量分别记录，不相加。'),
+                    ],
+                  ),
+                ),
+                _inset(
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('过程数据说明'),
+                    children: [
+                      if (expandedDetail?.processMetrics case final process?)
+                        _section(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '原始功率峰值 ${number(process.powerMaxKw, 'kW')}',
+                              ),
+                              Text(
+                                '记录平均功率 ${number(process.powerTimeWeightedKw, 'kW')}',
+                              ),
+                              Text(
+                                '有效采样 ${process.powerValidSamples} 点 · 覆盖 ${decimal(process.observedSeconds)} 秒 · 未覆盖 ${decimal(process.uncoveredSeconds)} 秒',
+                              ),
+                              for (final window in process.socWindows)
+                                Text(
+                                  !d.isActive &&
+                                          window.status == 'available' &&
+                                          window.elapsedSeconds != null
+                                      ? '${window.thresholdPrecision == 'exact' ? '记录达到' : '记录跨越'} ${window.startObservedSoc ?? '—'}% → ${window.endObservedSoc ?? '—'}% · ${decimal(window.elapsedSeconds! / 60)} 分钟'
+                                      : '20% → 80% 记录用时不可用：${windowReason(d.isActive ? 'incomplete_session' : window.status)}',
+                                ),
+                              const Text('结果来自原始记录；抽样曲线不用于计算峰值或时长。'),
+                            ],
+                          ),
+                        ),
+                      if (expandedDetail != null &&
+                          expandedDetail!.processMetrics == null)
+                        const Text('原始充电过程指标暂不可用。'),
+                    ],
+                  ),
+                ),
+                if (expandedDetail case final extra?) ...[
+                  _section(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '这一次的账',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        Text('已记录费用 ${widget.currency.amountValue(d.cost)}'),
+                        if (widget.currency.amountNote case final note?)
+                          Text(note),
+                        Text(
+                          '每入电 kWh ${widget.currency.amountValue(extra.unitCostAdded?.value)}/kWh',
+                        ),
+                        Text(
+                          '每网侧 kWh ${widget.currency.amountValue(extra.unitCostGrid?.value)}/kWh',
+                        ),
+                        const Text('均价按服务端有效配对计算；费用未知不代表免费。'),
+                      ],
+                    ),
+                  ),
+                  _section(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '车辆与环境',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        Text(
+                          '室外温度均值 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
+                        ),
+                        Text(
+                          extra.capabilities?.fields['start_rated_range_km'] ==
+                                      true &&
+                                  extra
+                                          .capabilities
+                                          ?.fields['end_rated_range_km'] ==
+                                      true
+                              ? '额定续航 ${number(extra.startRatedRangeKm, 'km')} → ${number(extra.endRatedRangeKm, 'km')}'
+                              : '额定续航未受站点支持',
+                        ),
+                        Text(
+                          extra.capabilities?.fields['start_ideal_range_km'] ==
+                                      true &&
+                                  extra
+                                          .capabilities
+                                          ?.fields['end_ideal_range_km'] ==
+                                      true
+                              ? '理想续航 ${number(extra.startIdealRangeKm, 'km')} → ${number(extra.endIdealRangeKm, 'km')}'
+                              : '理想续航未受站点支持',
+                        ),
+                        Text('充电器品牌 ${extra.charger?.fastChargerBrand ?? '—'}'),
+                        Text('充电器类型 ${extra.charger?.fastChargerType ?? '—'}'),
+                        Text('充电线 ${extra.charger?.connChargeCable ?? '—'}'),
+                        if (extra.charger?.sourceSampleAt != null)
+                          Text(
+                            '充电器记录时间 ${time(extra.charger!.sourceSampleAt)}',
+                          ),
+                        const Text('温度为室外均值；续航是额定或理想口径，不代表实际可达距离。'),
+                      ],
+                    ),
+                  ),
+                ],
+                _section(
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('更多充电信息'),
+                    childrenPadding: const EdgeInsets.only(top: 12),
+                    expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('充电记录 #${d.id}'),
+                      Text('开始 ${time(d.startedAt)}'),
+                      Text('结束 ${time(d.endedAt)}'),
+                      if (d.location.geofence != null)
+                        Text('围栏：${d.location.geofence}'),
+                      if (d.location.address != null &&
+                          d.location.address != d.location.displayName)
+                        Text('地址：${d.location.address}'),
                       Text(
-                        extra.capabilities?.fields['start_rated_range_km'] ==
-                                    true &&
-                                extra
-                                        .capabilities
-                                        ?.fields['end_rated_range_km'] ==
-                                    true
-                            ? '额定续航 ${number(extra.startRatedRangeKm, 'km')} → ${number(extra.endRatedRangeKm, 'km')}'
-                            : '额定续航未受站点支持',
+                        '平均外温 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
                       ),
+                      Text('充电相数 ${d.chargerPhasesMode ?? '—'}'),
                       Text(
-                        extra.capabilities?.fields['start_ideal_range_km'] ==
-                                    true &&
-                                extra
-                                        .capabilities
-                                        ?.fields['end_ideal_range_km'] ==
-                                    true
-                            ? '理想续航 ${number(extra.startIdealRangeKm, 'km')} → ${number(extra.endIdealRangeKm, 'km')}'
-                            : '理想续航未受站点支持',
+                        '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
                       ),
-                      Text('充电器品牌 ${extra.charger?.fastChargerBrand ?? '—'}'),
-                      Text('充电器类型 ${extra.charger?.fastChargerType ?? '—'}'),
-                      Text('充电线 ${extra.charger?.connChargeCable ?? '—'}'),
-                      if (extra.charger?.sourceSampleAt != null)
-                        Text('充电器记录时间 ${time(extra.charger!.sourceSampleAt)}'),
-                      const Text('温度为室外均值；续航是额定或理想口径，不代表实际可达距离。'),
+                      const Text('历史数据按站点记录展示；— 表示缺失，不代表零。'),
                     ],
                   ),
                 ),
               ],
-              _section(
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('更多充电信息'),
-                  childrenPadding: const EdgeInsets.only(top: 12),
-                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('充电记录 #${d.id}'),
-                    Text('开始 ${time(d.startedAt)}'),
-                    Text('结束 ${time(d.endedAt)}'),
-                    if (d.location.geofence != null)
-                      Text('围栏：${d.location.geofence}'),
-                    if (d.location.address != null &&
-                        d.location.address != d.location.displayName)
-                      Text('地址：${d.location.address}'),
-                    Text(
-                      '平均外温 ${number(d.outsideTempCAvg, '°C', temperature: true)}',
-                    ),
-                    Text('充电相数 ${d.chargerPhasesMode ?? '—'}'),
-                    Text(
-                      '车辆 ID $vehicle · 时区：${workspace.calendar?.identifier ?? 'UTC'}',
-                    ),
-                    const Text('历史数据按站点记录展示；— 表示缺失，不代表零。'),
-                  ],
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     ),
@@ -778,27 +794,27 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
     final choice = choices.firstWhere((entry) => entry.$1 == metric);
     final available = widget.series.capabilities.fields;
     final events = widget.series.stateEvents;
-    final controls = Wrap(
-      spacing: 8,
+    final controls = ChipRow(
       children: [
         for (final entry in choices)
-          if (entry.$1 == 'power' ||
-              entry.$1 == 'soc' ||
-              available[entry.$1] == true)
-            ChoiceChip(
-              label: Text('${entry.$2} ${entry.$3}'),
+          if ((socAxis || (entry.$1 != 'power' && entry.$1 != 'soc')) &&
+              (entry.$1 == 'power' ||
+                  entry.$1 == 'soc' ||
+                  available[entry.$1] == true))
+            StatusChip(
+              label: '${entry.$2} ${entry.$3}',
               selected: metric == entry.$1,
-              onSelected: (_) => setState(() => metric = entry.$1),
+              onTap: () => setState(() => metric = entry.$1),
             ),
-        ChoiceChip(
-          label: const Text('按时间'),
+        StatusChip(
+          label: '按时间',
           selected: !socAxis,
-          onSelected: (_) => setState(() => socAxis = false),
+          onTap: () => setState(() => socAxis = false),
         ),
-        ChoiceChip(
-          label: const Text('按电量'),
+        StatusChip(
+          label: '按电量',
           selected: socAxis,
-          onSelected: (_) => setState(() => socAxis = true),
+          onTap: () => setState(() => socAxis = true),
         ),
       ],
     );
@@ -820,7 +836,16 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                   ),
                 ],
                 semanticsLabel: '${choice.$2}充电曲线',
-                controls: controls,
+                controls: ChipRow(
+                  children: [
+                    for (final entry in choices.take(2))
+                      StatusChip(
+                        label: '${entry.$2} ${entry.$3}',
+                        selected: metric == entry.$1,
+                        onTap: () => setState(() => metric = entry.$1),
+                      ),
+                  ],
+                ),
                 plotKey: const Key('charging-time-chart'),
                 selectedIndex: selected,
                 onSelected: (index) => setState(() => selected = index),
@@ -857,8 +882,8 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                   ),
                 ),
               if (points.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
                   children: [
                     TextButton(
                       onPressed: selected > 0
@@ -893,12 +918,20 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                 else ...[
                   LayoutBuilder(
                     builder: (context, constraints) {
+                      final scaler = MediaQuery.textScalerOf(context);
+                      final chartSize = Size(
+                        constraints.maxWidth,
+                        MileafSpace.detailChartHeight +
+                            scaler.scale(MileafType.microSize),
+                      );
+                      final values = points.map(reading).toList();
+                      final plot = _ChargingSocPainter.bounds(chartSize, [
+                        ...values,
+                        if (metric == 'soc') 100,
+                      ], scaler);
                       void pick(Offset local) {
-                        final soc =
-                            ((local.dx - 38) /
-                                    (constraints.maxWidth - 56) *
-                                    100)
-                                .clamp(0, 100);
+                        final soc = ((local.dx - plot.left) / plot.width * 100)
+                            .clamp(0, 100);
                         int? nearest;
                         for (var index = 0; index < points.length; index++) {
                           final value = points[index].soc;
@@ -942,10 +975,10 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                               pick(event.localPosition),
                           child: CustomPaint(
                             key: const Key('charging-soc-chart'),
-                            size: Size(constraints.maxWidth, 160),
+                            size: chartSize,
                             painter: _ChargingSocPainter(
                               points: points,
-                              values: points.map(reading).toList(),
+                              values: values,
                               selected: selected,
                               color: Theme.of(context).colorScheme.primary,
                               grid: Theme.of(context)
@@ -954,9 +987,8 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
                               text: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant,
-                              scale:
-                                  MediaQuery.textScalerOf(context).scale(10) /
-                                  10,
+                              scaler: scaler,
+                              socMetric: metric == 'soc',
                             ),
                           ),
                         ),
@@ -994,6 +1026,7 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
               ],
             ),
           ),
+        if (!socAxis) controls,
         ExpansionTile(
           title: const Text('曲线数据说明'),
           children: [
@@ -1143,13 +1176,37 @@ class _ChargingSocPainter extends CustomPainter {
     required this.color,
     required this.grid,
     required this.text,
-    required this.scale,
+    required this.scaler,
+    required this.socMetric,
   });
   final List<expanded.ChargePoint> points;
   final List<num?> values;
   final int selected;
   final Color color, grid, text;
-  final double scale;
+  final TextScaler scaler;
+  final bool socMetric;
+
+  static Rect bounds(Size size, List<num?> values, TextScaler scaler) {
+    final style = chartAxisLabelStyle(color: Colors.black, scaler: scaler);
+    double width = 0;
+    final painter = TextPainter(textDirection: TextDirection.ltr);
+    for (final value in [0, 1, ...values.whereType<num>()]) {
+      painter.text = TextSpan(text: value.toStringAsFixed(0), style: style);
+      painter.layout();
+      width = math.max(width, painter.width);
+    }
+    painter.text = TextSpan(text: '100%', style: style);
+    painter.layout();
+    final edge = painter.width / 2 + MileafSpace.s8;
+    final labelHeight = painter.height;
+    painter.dispose();
+    return Rect.fromLTRB(
+      width + MileafSpace.s8,
+      labelHeight / 2 + MileafSpace.s8,
+      size.width - edge,
+      size.height - labelHeight - MileafSpace.s8,
+    );
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1161,7 +1218,10 @@ class _ChargingSocPainter extends CustomPainter {
         .max(0, known.isEmpty ? 1 : known.reduce(math.max))
         .toDouble();
     if (high == low) high = low + 1;
-    final plot = Rect.fromLTRB(38, 8, size.width - 18, size.height - 25);
+    if (socMetric) {
+      high = 100;
+    }
+    final plot = bounds(size, [...values, if (socMetric) 100], scaler);
     double x(num soc) => plot.left + plot.width * soc / 100;
     double y(num value) =>
         plot.bottom - plot.height * (value - low) / (high - low);
@@ -1169,21 +1229,21 @@ class _ChargingSocPainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: value,
-          // Self-drawn labels use the product family and the declared CJK
-          // fallback, never a hardcoded substitute family.
-          style: TextStyle(
-            fontFamily: MileafType.family,
-            fontFamilyFallback: MileafType.fallback,
-            fontSize: 10 * math.min(scale, 1.5),
-            color: text,
-          ),
+          style: chartAxisLabelStyle(color: text, scaler: scaler),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      painter.paint(canvas, offset);
+      painter.paint(
+        canvas,
+        Offset(
+          offset.dx.clamp(0, size.width - painter.width),
+          offset.dy.clamp(0, size.height - painter.height),
+        ),
+      );
+      painter.dispose();
     }
 
-    for (final fraction in [0.0, .5, 1.0]) {
+    for (final fraction in [0.0, if (scaler.scale(14) < 21) .5, 1.0]) {
       final yy = plot.bottom - plot.height * fraction;
       canvas.drawLine(
         Offset(plot.left, yy),
@@ -1192,11 +1252,11 @@ class _ChargingSocPainter extends CustomPainter {
       );
       label(
         (low + (high - low) * fraction).toStringAsFixed(0),
-        Offset(0, yy - 7),
+        Offset(0, yy - scaler.scale(MileafType.microSize) / 2),
       );
       label(
         '${(fraction * 100).toInt()}%',
-        Offset(x(fraction * 100) - (fraction == 1 ? 20 : 0), plot.bottom + 6),
+        Offset(x(fraction * 100), plot.bottom + MileafSpace.s8),
       );
     }
     Offset? previous;
@@ -1264,18 +1324,17 @@ class _ChargingCurveState extends State<ChargingCurve> {
           ],
           semanticsLabel: power ? '功率充电曲线' : '电量充电曲线',
           plotKey: const Key('charging-time-chart'),
-          controls: Wrap(
-            spacing: 8,
+          controls: ChipRow(
             children: [
-              ChoiceChip(
-                label: const Text('功率 kW'),
+              StatusChip(
+                label: '功率 kW',
                 selected: power,
-                onSelected: (_) => setState(() => power = true),
+                onTap: () => setState(() => power = true),
               ),
-              ChoiceChip(
-                label: const Text('电量 %'),
+              StatusChip(
+                label: '电量 %',
                 selected: !power,
-                onSelected: (_) => setState(() => power = false),
+                onTap: () => setState(() => power = false),
               ),
             ],
           ),

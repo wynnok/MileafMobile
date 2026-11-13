@@ -155,8 +155,6 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     expect(find.text('启用地图'), findsOneWidget);
-    final privacy = find.textContaining('不读取手机定位。');
-    expect(tester.widget<Text>(privacy).maxLines, isNull, reason: '不再限制行数');
     final surface = tester.getRect(
       find
           .descendant(
@@ -165,7 +163,7 @@ void main() {
           )
           .first,
     );
-    expect(surface.height, 300, reason: '图面高度不受文字缩放影响');
+    expect(surface.height, 120, reason: 'P04 降级图面120，状态行自然增高');
     await tester.ensureVisible(find.text('启用地图'));
     await tester.pumpAndSettle();
     final panel = tester.getRect(find.byType(MapPanel));
@@ -197,12 +195,14 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('不读取手机定位。'), findsOneWidget);
     expect(find.text('启用地图'), findsOneWidget);
     await tester.ensureVisible(find.text('启用地图'));
     await tester.pumpAndSettle();
     expect(find.text('启用地图').hitTestable(), findsOneWidget);
     expect(fake.builds, 0);
+    await tester.tap(find.text('启用地图'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('不会读取手机定位'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
