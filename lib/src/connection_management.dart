@@ -163,7 +163,7 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
                     color: context.colors.textMuted,
                   ),
                 ),
-                const SizedBox(height: MileafSpace.s20),
+                const SizedBox(height: MileafSpace.s16),
                 TextFormField(
                   controller: _address,
                   enabled: !_busy,
@@ -214,7 +214,7 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
                   child: const Text('取消编辑'),
                 ),
               ],
-              const SizedBox(height: MileafSpace.s40),
+              const SizedBox(height: MileafSpace.s32),
               Text('本机访问', style: context.type.label),
               const SizedBox(height: MileafSpace.s8),
               Text(

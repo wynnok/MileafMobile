@@ -37,84 +37,84 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('登录行笺')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(MileafLayout.pageInset(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: MileafWordmark(markSize: 32),
-              ),
-              const SizedBox(height: MileafSpace.s20),
-              Text('登录行笺', style: context.type.title),
-              const SizedBox(height: MileafSpace.s4),
-              Text(
-                session.site!.uri.toString(),
-                style: context.type.label.copyWith(
-                  color: context.colors.textMuted,
+        child: MileafContent(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(MileafLayout.pageInset(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: MileafWordmark(markSize: 32),
                 ),
-              ),
-              TextButton(
-                onPressed: session.loading
-                    ? null
-                    : () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (routeContext) => ConnectionPage(
-                            api: session.api,
-                            initialAddress: session.site!.uri.toString(),
-                            onConnected: (address) {
-                              session.useSite(address);
-                              Navigator.of(routeContext).pop();
-                            },
+                const SizedBox(height: MileafSpace.s24),
+                Text(
+                  session.site!.uri.toString(),
+                  style: context.type.label.copyWith(
+                    color: context.colors.textMuted,
+                  ),
+                ),
+                TextButton(
+                  onPressed: session.loading
+                      ? null
+                      : () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (routeContext) => ConnectionPage(
+                              api: session.api,
+                              initialAddress: session.site!.uri.toString(),
+                              onConnected: (address) {
+                                session.useSite(address);
+                                Navigator.of(routeContext).pop();
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                child: const Text('编辑服务地址'),
-              ),
+                  child: const Text('编辑服务地址'),
+                ),
 
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _password,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                enabled: !session.loading,
-                decoration: const InputDecoration(labelText: '站点访问口令'),
-                onFieldSubmitted: (_) {
-                  if (session.canLogin) _login();
-                },
-              ),
-              const SizedBox(height: MileafSpace.s24),
-              FilledButton(
-                onPressed: session.canLogin ? _login : null,
-                child: Text(session.loading ? '正在登录…' : '登录'),
-              ),
-              TextButton(
-                onPressed: session.canLogin
-                    ? () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => SetupPage(session: session),
+                const SizedBox(height: MileafSpace.s24),
+                TextFormField(
+                  controller: _password,
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  enabled: !session.loading,
+                  decoration: const InputDecoration(labelText: '站点访问口令'),
+                  onFieldSubmitted: (_) {
+                    if (session.canLogin) _login();
+                  },
+                ),
+                const SizedBox(height: MileafSpace.s24),
+                FilledButton(
+                  onPressed: session.canLogin ? _login : null,
+                  child: Text(session.loading ? '正在登录…' : '登录'),
+                ),
+                TextButton(
+                  onPressed: session.canLogin
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => SetupPage(session: session),
+                          ),
+                        )
+                      : null,
+                  child: const Text('首次设置站点口令'),
+                ),
+                if (session.message != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        session.message!,
+                        style: context.type.body.copyWith(
+                          color: context.colors.error,
                         ),
-                      )
-                    : null,
-                child: const Text('首次设置站点口令'),
-              ),
-              if (session.message != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      session.message!,
-                      style: context.type.body.copyWith(
-                        color: context.colors.error,
                       ),
                     ),
                   ),
-                ),
-              if (session.retryAfter != null) const Text('服务要求等待后再试；不会自动重试。'),
-            ],
+                if (session.retryAfter != null) const Text('服务要求等待后再试；不会自动重试。'),
+              ],
+            ),
           ),
         ),
       ),
@@ -148,29 +148,31 @@ class VehiclePage extends StatelessWidget {
       ],
     ),
     body: SafeArea(
-      child: ListView(
-        padding: EdgeInsets.all(MileafLayout.pageInset(context)),
-        children: [
-          if (session.loading) const MileafProgressLine(),
-          if (session.message != null) ...[
-            Semantics(liveRegion: true, child: Text(session.message!)),
-            TextButton(
-              onPressed: session.loading ? null : session.loadVehicles,
-              child: const Text('重试车辆读取'),
-            ),
+      child: MileafContent(
+        child: ListView(
+          padding: EdgeInsets.all(MileafLayout.pageInset(context)),
+          children: [
+            if (session.loading) const MileafProgressLine(),
+            if (session.message != null) ...[
+              Semantics(liveRegion: true, child: Text(session.message!)),
+              TextButton(
+                onPressed: session.loading ? null : session.loadVehicles,
+                child: const Text('重试车辆读取'),
+              ),
+            ],
+            if (!session.loading &&
+                session.message == null &&
+                session.vehicles.isEmpty)
+              const Text('此站点暂无车辆，请检查 TeslaMate 的车辆记录后刷新。'),
+            for (final vehicle in session.vehicles)
+              MileafDataRow(
+                title: vehicleName(vehicle),
+                meta: '车辆 ID ${vehicle.id}',
+                topLine: true,
+                bottomLine: true,
+              ),
           ],
-          if (!session.loading &&
-              session.message == null &&
-              session.vehicles.isEmpty)
-            const Text('此站点暂无车辆，请检查 TeslaMate 的车辆记录后刷新。'),
-          for (final vehicle in session.vehicles)
-            MileafDataRow(
-              title: vehicleName(vehicle),
-              meta: '车辆 ID ${vehicle.id}',
-              topLine: true,
-              bottomLine: true,
-            ),
-        ],
+        ),
       ),
     ),
   );

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'number_format.dart';
+import 'design/components/components.dart';
+import 'design/layout.dart';
+import 'design/icons.dart';
+import 'design/semantic.dart';
+import 'design/tokens.dart';
+import 'design/typography.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,39 +112,57 @@ class _CurrencyPageState extends State<CurrencyPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('站点币种')),
-    body: ListenableBuilder(
-      listenable: widget.settings,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text('后端没有币种信息。此设置仅添加币种代码标签，不换汇、不改变费用数字。请确保站点所有记录使用同一币种。'),
-          const Text('仅保存当前连接的普通偏好，不修改数据库。'),
-          if (error != null) Semantics(liveRegion: true, child: Text(error!)),
-          if (saving) const LinearProgressIndicator(),
-          for (final code in <String?>[
-            null,
-            'CNY',
-            'USD',
-            'EUR',
-            'GBP',
-            'JPY',
-            'HKD',
-            'TWD',
-            'AUD',
-            'CAD',
-            'CHF',
-            'SGD',
-            'KRW',
-          ])
-            ListTile(
-              title: Text(code ?? '未配置（币种未知）'),
-              selected: widget.settings.code == code,
-              trailing: widget.settings.code == code
-                  ? const Icon(Icons.check)
-                  : null,
-              onTap: saving ? null : () => select(code),
-            ),
-        ],
+    body: SafeArea(
+      child: MileafContent(
+        child: ListenableBuilder(
+          listenable: widget.settings,
+          builder: (context, _) => ListView(
+            padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
+            children: [
+              const Text('后端没有币种信息。此设置仅添加币种代码标签，不换汇、不改变费用数字。请确保站点所有记录使用同一币种。'),
+              const SizedBox(height: MileafSpace.s8),
+              Text('仅保存当前连接的普通偏好，不修改数据库。', style: context.type.micro),
+              const SizedBox(height: MileafSpace.s12),
+              if (error != null)
+                Semantics(liveRegion: true, child: Text(error!)),
+              if (saving) ...[
+                Semantics(
+                  liveRegion: true,
+                  child: Text('正在保存币种偏好…', style: context.type.micro),
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                const MileafProgressLine(),
+              ],
+              for (final code in <String?>[
+                null,
+                'CNY',
+                'USD',
+                'EUR',
+                'GBP',
+                'JPY',
+                'HKD',
+                'TWD',
+                'AUD',
+                'CAD',
+                'CHF',
+                'SGD',
+                'KRW',
+              ])
+                MileafDataRow(
+                  title: code ?? '未配置（币种未知）',
+                  enabled: !saving,
+                  selected: widget.settings.code == code,
+                  badge: widget.settings.code == code
+                      ? MileafIcon(
+                          MileafIconName.check,
+                          color: context.colors.accentStrong,
+                        )
+                      : null,
+                  onTap: saving ? null : () => select(code),
+                ),
+            ],
+          ),
+        ),
       ),
     ),
   );

@@ -194,7 +194,7 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
   /// built-in caret, never a supplied `trailing` (Spec §0).
   Widget _chevron(BuildContext context, bool expanded) => AnimatedRotation(
     turns: expanded ? _chevronExpanded : _chevronFolded,
-    duration: MileafLayout.motion(context, MileafDurations.enter),
+    duration: MileafLayout.motion(context, MileafDurations.value),
     curve: MileafCurves.enter,
     child: MileafIcon(
       MileafIconName.chevron,
@@ -215,6 +215,10 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
     final type = context.type;
     final colors = context.colors;
     return ExpansionTile(
+      expansionAnimationStyle: const AnimationStyle(
+        duration: Duration.zero,
+        reverseDuration: Duration.zero,
+      ),
       title: Text(
         title,
         style: type.body.copyWith(
@@ -240,7 +244,7 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
     final saved = keys.savedKey;
     return [
       _statusLine(context, keys),
-      const SizedBox(height: MileafSpace.s20),
+      const SizedBox(height: MileafSpace.s16),
       ..._keyBlock(context, keys),
       if (saved != null) ...[
         const SizedBox(height: MileafSpace.s12),

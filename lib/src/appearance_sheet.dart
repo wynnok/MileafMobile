@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'appearance.dart';
+import 'design/components/components.dart';
 import 'design/icons.dart';
-import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -10,9 +10,9 @@ import 'design/typography.dart';
 Future<void> showAppearanceSheet(
   BuildContext context,
   AppearanceController controller,
-) => showModalBottomSheet<void>(
+) => showMileafSheet<void>(
   context: context,
-  showDragHandle: false,
+  title: '外观',
   builder: (_) => _AppearanceSheet(controller: controller),
 );
 
@@ -39,54 +39,31 @@ class _AppearanceSheetState extends State<_AppearanceSheet> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            MileafLayout.pageInset(context),
-            MileafSpace.s12,
-            MileafLayout.pageInset(context),
-            MileafSpace.s24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.lineStrong,
-                    borderRadius: MileafRadius.fullAll,
-                  ),
-                ),
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('默认跟随系统。切换后立即生效，并保存在本机。', style: type.micro),
+          const SizedBox(height: MileafSpace.s12),
+          for (final mode in MileafAppearance.values)
+            _AppearanceRow(
+              mode: mode,
+              selected: widget.controller.mode == mode,
+              onTap: () => select(mode),
+            ),
+          if (error != null) ...[
+            const SizedBox(height: MileafSpace.s8),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                error!,
+                style: type.micro.copyWith(color: colors.error),
               ),
-              const SizedBox(height: MileafSpace.s20),
-              Text('外观', style: type.title),
-              const SizedBox(height: MileafSpace.s4),
-              Text('默认跟随系统。切换后立即生效，并保存在本机。', style: type.micro),
-              const SizedBox(height: MileafSpace.s12),
-              for (final mode in MileafAppearance.values)
-                _AppearanceRow(
-                  mode: mode,
-                  selected: widget.controller.mode == mode,
-                  onTap: () => select(mode),
-                ),
-              if (error != null) ...[
-                const SizedBox(height: MileafSpace.s8),
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    error!,
-                    style: type.body.copyWith(color: colors.error),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -104,41 +81,17 @@ class _AppearanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final type = context.type;
-    return Semantics(
-      button: true,
+    return MileafDataRow(
+      title: mode.label,
       selected: selected,
-      label: mode.label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: MileafRadius.smAll,
-        highlightColor: colors.accentSoft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  mode.label,
-                  style: type.body.copyWith(
-                    color: selected ? colors.accentStrong : colors.text,
-                    fontWeight: selected
-                        ? MileafType.weightSemiBold
-                        : MileafType.weightRegular,
-                  ),
-                ),
-              ),
-              if (selected)
-                MileafIcon(
-                  MileafIconName.check,
-                  size: MileafIconMetrics.nav,
-                  color: colors.accent,
-                ),
-            ],
-          ),
-        ),
-      ),
+      badge: selected
+          ? MileafIcon(
+              MileafIconName.check,
+              size: MileafIconMetrics.nav,
+              color: context.colors.accentStrong,
+            )
+          : null,
+      onTap: onTap,
     );
   }
 }

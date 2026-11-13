@@ -45,73 +45,79 @@ class _SetupPageState extends State<SetupPage> {
         child: Scaffold(
           appBar: AppBar(title: const Text('首次初始化站点')),
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(MileafLayout.pageInset(context)),
-              child: Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: MileafWordmark(markSize: 32),
-                    ),
-                    const SizedBox(height: MileafSpace.s20),
-                    Text('首次初始化站点', style: context.type.title),
-                    const SizedBox(height: MileafSpace.s4),
-                    Text(
-                      session.site!.uri.toString(),
-                      style: context.type.label.copyWith(
-                        color: context.colors.textMuted,
+            child: MileafContent(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(MileafLayout.pageInset(context)),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: MileafWordmark(markSize: 32),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('仅适用于尚未设置访问口令的站点。已有站点请返回登录。'),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      enabled: !session.loading,
-                      decoration: const InputDecoration(labelText: '新站点口令'),
-                      validator: (value) => (value?.runes.length ?? 0) < 10
-                          ? '口令至少需要 10 个字符'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmation,
-                      obscureText: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      enabled: !session.loading,
-                      decoration: const InputDecoration(labelText: '再次输入口令'),
-                      validator: (value) =>
-                          value != _password.text ? '两次输入的口令不一致' : null,
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: session.canLogin ? _initialize : null,
-                      child: Text(session.loading ? '正在初始化…' : '设置口令并登录'),
-                    ),
-                    TextButton(
-                      onPressed: session.loading
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: const Text('返回登录'),
-                    ),
-                    if (session.message != null)
-                      Semantics(
-                        liveRegion: true,
-                        child: Text(
-                          session.message!,
-                          style: context.type.body.copyWith(
-                            color: context.colors.error,
-                          ),
+                      const SizedBox(height: MileafSpace.s24),
+                      Text(
+                        session.site!.uri.toString(),
+                        style: context.type.label.copyWith(
+                          color: context.colors.textMuted,
                         ),
                       ),
-                  ],
+                      const SizedBox(height: MileafSpace.s16),
+                      const Text('仅适用于尚未设置访问口令的站点。已有站点请返回登录。'),
+                      const SizedBox(height: MileafSpace.s24),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enabled: !session.loading,
+                        decoration: const InputDecoration(
+                          labelText: '新站点口令',
+                          errorMaxLines: 4,
+                        ),
+                        validator: (value) => (value?.runes.length ?? 0) < 10
+                            ? '口令至少需要 10 个字符'
+                            : null,
+                      ),
+                      const SizedBox(height: MileafSpace.s16),
+                      TextFormField(
+                        controller: _confirmation,
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enabled: !session.loading,
+                        decoration: const InputDecoration(
+                          labelText: '再次输入口令',
+                          errorMaxLines: 4,
+                        ),
+                        validator: (value) =>
+                            value != _password.text ? '两次输入的口令不一致' : null,
+                      ),
+                      const SizedBox(height: MileafSpace.s24),
+                      FilledButton(
+                        onPressed: session.canLogin ? _initialize : null,
+                        child: Text(session.loading ? '正在初始化…' : '设置口令并登录'),
+                      ),
+                      TextButton(
+                        onPressed: session.loading
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text('返回登录'),
+                      ),
+                      if (session.message != null)
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            session.message!,
+                            style: context.type.body.copyWith(
+                              color: context.colors.error,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'appearance.dart';
 import 'reading_scope.dart';
 import 'design/components/icon_button.dart';
+import 'design/components/data_row.dart';
+import 'design/components/sheet.dart';
 import 'design/components/nav_bar.dart';
 import 'design/components/top_bar.dart';
 import 'design/icons.dart';
@@ -117,9 +119,9 @@ class _WorkspacePageState extends State<WorkspacePage> {
   /// Vehicle switching lives here; the only refresh for the vehicle list is
   /// inside this sheet, so no second refresh competes with the page action.
   Future<void> openVehicleSheet() async {
-    final id = await showModalBottomSheet<int>(
+    final id = await showMileafSheet<int>(
       context: context,
-      isScrollControlled: true,
+      title: '选择车辆',
       builder: (_) => _VehicleSheet(
         session: widget.session,
         selectedId: workspace.selectedId,
@@ -339,116 +341,41 @@ class _VehicleSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final type = context.type;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: session,
-        builder: (context, _) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            MileafLayout.pageInset(context),
-            MileafSpace.s12,
-            MileafLayout.pageInset(context),
-            MileafSpace.s24,
+    return ListenableBuilder(
+      listenable: session,
+      builder: (context, _) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: MileafIconButton(
+              icon: MileafIconName.refresh,
+              tooltip: '刷新车辆',
+              onPressed: session.loading
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      session.loadVehicles();
+                    },
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.lineStrong,
-                    borderRadius: MileafRadius.fullAll,
-                  ),
-                ),
-              ),
-              const SizedBox(height: MileafSpace.s8),
-              Row(
-                children: [
-                  Expanded(child: Text('选择车辆', style: type.title)),
-                  MileafIconButton(
-                    icon: MileafIconName.refresh,
-                    tooltip: '刷新车辆',
-                    color: session.loading ? null : colors.textMuted,
-                    onPressed: session.loading
-                        ? null
-                        : () {
-                            Navigator.pop(context);
-                            session.loadVehicles();
-                          },
-                  ),
-                ],
-              ),
-              if (session.loading)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: MileafSpace.s8),
-                  child: MileafProgressLine(),
-                ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final vehicle in session.vehicles)
-                      Semantics(
-                        button: true,
-                        selected: vehicle.id == selectedId,
-                        label: vehicleName(vehicle),
-                        child: InkWell(
-                          onTap: () => Navigator.pop(context, vehicle.id),
-                          highlightColor: colors.accentSoft,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              minHeight: MileafSpace.rowMin,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        vehicleName(vehicle),
-                                        style: type.body.copyWith(
-                                          color: vehicle.id == selectedId
-                                              ? colors.accentStrong
-                                              : colors.text,
-                                          fontWeight: vehicle.id == selectedId
-                                              ? MileafType.weightSemiBold
-                                              : MileafType.weightRegular,
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: MileafSpace.inline2,
-                                      ),
-                                      Text(
-                                        '车辆 ID ${vehicle.id}',
-                                        style: type.micro,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (vehicle.id == selectedId)
-                                  MileafIcon(
-                                    MileafIconName.check,
-                                    size: MileafIconMetrics.nav,
-                                    color: colors.accent,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+          if (session.loading) const MileafProgressLine(),
+          for (final vehicle in session.vehicles)
+            MileafDataRow(
+              title: vehicleName(vehicle),
+              meta: '车辆 ID ${vehicle.id}',
+              selected: vehicle.id == selectedId,
+              badge: vehicle.id == selectedId
+                  ? MileafIcon(
+                      MileafIconName.check,
+                      size: MileafIconMetrics.nav,
+                      color: context.colors.accentStrong,
+                    )
+                  : null,
+              onTap: () => Navigator.pop(context, vehicle.id),
+            ),
+        ],
       ),
     );
   }

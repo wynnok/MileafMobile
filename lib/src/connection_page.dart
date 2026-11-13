@@ -136,109 +136,104 @@ class _ConnectionPageState extends State<ConnectionPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('行笺 Mileaf')),
+    appBar: AppBar(title: const Text('连接你的站点')),
     body: SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(MileafLayout.pageInset(context)),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: MileafWordmark(markSize: 32),
+      child: MileafContent(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(MileafLayout.pageInset(context)),
+          child: Form(
+            key: _form,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: MileafWordmark(markSize: 32),
+                ),
+                const SizedBox(height: MileafSpace.s24),
+                Text(
+                  '输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。',
+                  style: context.type.body.copyWith(
+                    color: context.colors.textMuted,
                   ),
-                  const SizedBox(height: MileafSpace.s20),
-                  Text('连接你的站点', style: context.type.title),
-                  const SizedBox(height: MileafSpace.s8),
-                  Text(
-                    '输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。',
-                    style: context.type.body.copyWith(
-                      color: context.colors.textMuted,
-                    ),
+                ),
+                const SizedBox(height: MileafSpace.s24),
+                TextFormField(
+                  controller: _address,
+                  enabled: !_loading && !_savingTrust,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    errorMaxLines: 4,
+                    labelText: '服务根地址',
+                    hintText: 'https://example.com/mileaf',
                   ),
-                  const SizedBox(height: MileafSpace.s24),
-                  TextFormField(
-                    controller: _address,
-                    enabled: !_loading && !_savingTrust,
-                    keyboardType: TextInputType.url,
-                    autocorrect: false,
-                    decoration: const InputDecoration(
-                      errorMaxLines: 4,
-                      labelText: '服务根地址',
-                      hintText: 'https://example.com/mileaf',
-                    ),
-                    validator: (value) {
-                      try {
-                        SiteAddress.parse(value ?? '');
-                        return null;
-                      } on FormatException catch (error) {
-                        return error.message;
-                      }
-                    },
-                    onChanged: (_) => _loadTrust(),
-                    onFieldSubmitted: (_) {
-                      if (!_loading && !_loadingTrust) _check();
-                    },
+                  validator: (value) {
+                    try {
+                      SiteAddress.parse(value ?? '');
+                      return null;
+                    } on FormatException catch (error) {
+                      return error.message;
+                    }
+                  },
+                  onChanged: (_) => _loadTrust(),
+                  onFieldSubmitted: (_) {
+                    if (!_loading && !_loadingTrust) _check();
+                  },
+                ),
+                const SizedBox(height: MileafSpace.s12),
+                Text(
+                  '推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。',
+                  style: context.type.micro.copyWith(
+                    color: context.colors.textMuted,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。',
-                    style: context.type.micro.copyWith(
-                      color: context.colors.textMuted,
-                    ),
+                ),
+                if (_site?.uri.scheme == 'http') ...[
+                  const SizedBox(height: MileafSpace.s12),
+                  const Text(
+                    'HTTP 会明文传输口令、token 和车辆数据。仅在你信任的私网或 VPN 使用；App 无法验证 VPN 或网络是否安全。',
                   ),
-                  if (_site?.uri.scheme == 'http') ...[
-                    const SizedBox(height: 12),
-                    const Text(
-                      'HTTP 会明文传输口令、token 和车辆数据。仅在你信任的私网或 VPN 使用；App 无法验证 VPN 或网络是否安全。',
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('我确认此站点使用可信网络'),
-                      subtitle: Text(_site!.uri.toString()),
-                      value: _trusted,
-                      onChanged: _loading || _loadingTrust
-                          ? null
-                          : (value) => _setTrust(value ?? false),
-                    ),
-                  ],
-                  const SizedBox(height: MileafSpace.s24),
-                  FilledButton(
-                    onPressed: _loading || _loadingTrust ? null : _check,
-                    child: Text(_loading ? '正在检查…' : '检查连接'),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('我确认此站点使用可信网络'),
+                    subtitle: Text(_site!.uri.toString()),
+                    value: _trusted,
+                    onChanged: _loading || _loadingTrust
+                        ? null
+                        : (value) => _setTrust(value ?? false),
                   ),
-                  if (_healthySite != null && widget.onConnected != null)
-                    TextButton(
-                      onPressed: () => widget.onConnected!(_healthySite!),
-                      child: const Text('登录此站点'),
-                    ),
-                  if (_loading)
-                    const Padding(
-                      padding: EdgeInsets.only(top: MileafSpace.s8),
-                      child: MileafProgressLine(),
-                    ),
-                  if (_message != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: Semantics(
-                        liveRegion: true,
-                        child: Text(
-                          _message!,
-                          style: context.type.body.copyWith(
-                            color: _healthySite != null
-                                ? context.colors.accentStrong
-                                : context.colors.error,
-                          ),
+                ],
+                const SizedBox(height: MileafSpace.s24),
+                FilledButton(
+                  onPressed: _loading || _loadingTrust ? null : _check,
+                  child: Text(_loading ? '正在检查…' : '检查连接'),
+                ),
+                if (_healthySite != null && widget.onConnected != null)
+                  TextButton(
+                    onPressed: () => widget.onConnected!(_healthySite!),
+                    child: const Text('登录此站点'),
+                  ),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: MileafSpace.s8),
+                    child: MileafProgressLine(),
+                  ),
+                if (_message != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: MileafSpace.s16),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _message!,
+                        style: context.type.body.copyWith(
+                          color: _healthySite != null
+                              ? context.colors.accentStrong
+                              : context.colors.error,
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),
