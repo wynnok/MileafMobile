@@ -8,6 +8,7 @@ import 'charging_cost_contract.g.dart' as cost_dto;
 import 'currency.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
+import 'design/motion.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -159,6 +160,8 @@ Future<void> showChargingCostSheet(
     sheetAnimationStyle: AnimationStyle(
       duration: MileafLayout.motion(context, MileafDurations.sheet),
       reverseDuration: MileafLayout.motion(context, MileafDurations.sheet),
+      curve: MileafCurves.sheet,
+      reverseCurve: MileafCurves.sheet,
     ),
     builder: (_) =>
         _ChargingCostSheet(workspace: workspace, currency: currency, id: id),
@@ -405,7 +408,6 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
         : _billingEnergy(d.energyAddedKwh, d.energyUsedKwh);
     final p = price;
     final unit = '${widget.currency.code ?? '账本币种'} / kWh';
-    final stackedUnit = MileafLayout.largeText(context);
     final gap8 = const SizedBox(height: MileafSpace.s8);
     return PopScope(
       canPop: !saving,
@@ -440,18 +442,24 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   ),
                   const SizedBox(height: MileafSpace.s4),
                   Text(
-                    '${workspace.calendar!.local(d.startedAt).toString().substring(0, 16).replaceAll('-', '/')} · 充电 #${d.id}',
+                    workspace.calendar!
+                        .local(d.startedAt)
+                        .toString()
+                        .substring(0, 16)
+                        .replaceAll('-', '/'),
                     style: type.micro.copyWith(color: colors.textMuted),
                   ),
-                  const SizedBox(height: MileafSpace.s20),
+                  Text(
+                    '充电 #${d.id}',
+                    style: type.micro.copyWith(color: colors.textMuted),
+                  ),
+                  const SizedBox(height: MileafSpace.s24),
                   Text('充电单价', style: type.label),
-                  if (stackedUnit) ...[
-                    const SizedBox(height: MileafSpace.s4),
-                    Text(
-                      unit,
-                      style: type.body.copyWith(color: colors.textMuted),
-                    ),
-                  ],
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    unit,
+                    style: type.micro.copyWith(color: colors.textMuted),
+                  ),
                   gap8,
                   Semantics(
                     label: '充电单价，$unit',
@@ -473,10 +481,8 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                       decoration: InputDecoration(
                         hintText: '请输入单价',
                         constraints: const BoxConstraints(
-                          minHeight: MileafSpace.rowMin,
+                          minHeight: MileafSpace.inputMinHeight,
                         ),
-                        suffixText: stackedUnit ? null : unit,
-                        suffixStyle: type.body,
                         errorText:
                             fieldError ??
                             (showValidation ? _priceError(input.text) : null),
@@ -490,9 +496,19 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                     widget.currency.code == null
                         ? '请按 TeslaMate 原账本币种填写；当前未配置币种标签。'
                         : '币种标签来自本机设置，请与 TeslaMate 原账本保持一致。',
-                    style: type.body.copyWith(color: colors.textMuted),
+                    style: type.micro.copyWith(color: colors.textMuted),
                   ),
                   const SizedBox(height: MileafSpace.section),
+                  Text(
+                    '计费电量 ${energy?.canonical ?? '—'} kWh',
+                    style: type.body,
+                  ),
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    '按两类电量的较大可用值计费，最终费用以服务端为准。',
+                    style: type.micro.copyWith(color: colors.textMuted),
+                  ),
+                  const SizedBox(height: MileafSpace.s12),
                   Text(
                     '预估费用',
                     style: type.label.copyWith(color: colors.textMuted),
@@ -520,17 +536,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                       style: type.body,
                     ),
                   ],
-                  gap8,
-                  Text(
-                    '计费电量 ${energy?.canonical ?? '—'} kWh',
-                    style: type.body,
-                  ),
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    '按两类电量的较大可用值计费，最终费用以服务端为准。',
-                    style: type.body.copyWith(color: colors.textMuted),
-                  ),
-                  const SizedBox(height: MileafSpace.s20),
+                  const SizedBox(height: MileafSpace.s24),
                   Text('仅补录本次充电。保存后无法在 App 中修改；单价不会设为默认值。', style: type.body),
                   const SizedBox(height: MileafSpace.s12),
                 ],
@@ -562,8 +568,9 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   MileafButton(
                     label: '查询最新结果',
                     expand: true,
-                    loading: loading,
-                    onPressed: () => read(recovery: true),
+                    loading:
+                        loading && !MediaQuery.disableAnimationsOf(context),
+                    onPressed: loading ? null : () => read(recovery: true),
                   )
                 else if (blocked || d == null && !loading)
                   MileafButton(
@@ -575,9 +582,13 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   MileafButton(
                     label: '确认补录',
                     expand: true,
-                    loading: saving,
+                    loading: saving && !MediaQuery.disableAnimationsOf(context),
                     onPressed:
-                        !loading && fieldError == null && p != null && eligible
+                        !saving &&
+                            !loading &&
+                            fieldError == null &&
+                            p != null &&
+                            eligible
                         ? submit
                         : null,
                   ),
