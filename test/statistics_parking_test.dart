@@ -19,14 +19,15 @@ Map<String, dynamic> aggregate({bool empty = false}) => {
   'observed_hours': empty ? 0 : 12,
   'soc_change_pp': empty ? null : -2,
   'soc_change_pp_per_24h': empty ? null : -4,
-  'online_hours': 2,
-  'asleep_hours': 6,
-  'offline_hours': 1,
-  'unknown_hours': 3,
-  'online_share': 1 / 6,
-  'asleep_share': .5,
-  'offline_share': 1 / 12,
-  'unknown_share': .25,
+  // 无有效窗口时无观测小时：状态小时与占比同步归零，分母与图形自洽。
+  'online_hours': empty ? 0 : 2,
+  'asleep_hours': empty ? 0 : 6,
+  'offline_hours': empty ? 0 : 1,
+  'unknown_hours': empty ? 0 : 3,
+  'online_share': empty ? null : 1 / 6,
+  'asleep_share': empty ? null : .5,
+  'offline_share': empty ? null : 1 / 12,
+  'unknown_share': empty ? null : .25,
   'excluded_by_reason': {'missing_soc': 1},
 };
 Map<String, dynamic> parkingResponse(
@@ -52,10 +53,15 @@ Map<String, dynamic> parkingResponse(
           'soc_change_pp': missing ? null : change,
         },
   ],
-  'matched_windows': 4,
-  'next_cursor': uri.queryParameters.containsKey('cursor') ? null : 'page2',
+  'matched_windows': empty ? 0 : 4,
+  // 无有效窗口时无已匹配窗口证据，也不发下一页。
+  'next_cursor': empty
+      ? null
+      : uri.queryParameters.containsKey('cursor')
+      ? null
+      : 'page2',
   'items': [
-    if (!uri.queryParameters.containsKey('cursor'))
+    if (!empty && !uri.queryParameters.containsKey('cursor'))
       for (final quality in ['complete', 'partial_state_coverage', 'excluded'])
         {
           'window_id': quality,
@@ -92,7 +98,7 @@ Map<String, dynamic> parkingResponse(
           'offline_hours': 1,
           'unknown_hours': 3,
         },
-    if (uri.queryParameters.containsKey('cursor'))
+    if (!empty && uri.queryParameters.containsKey('cursor'))
       {
         'window_id': uri.queryParameters.containsKey('cursor')
             ? 'open-tail'
@@ -234,7 +240,9 @@ void main() {
     expect(find.textContaining('0.0 pp'), findsWidgets);
   });
 
-  testWidgets('统计Tab隐藏时嵌入的停放观察不请求，可见后才校验', (tester) async {
+  testWidgets('停放观察经展开入口建立后，统计Tab隐藏不请求，可见后才校验', (tester) async {
+    // P15/U08交接：长期索引不再嵌入专题；先通过「展开停放观察」入口建立
+    // 专题路由，再保留隐藏不请求、重新可见后才校验等业务断言（S03）。
     final reads = <Uri>[];
     await openStats(
       tester,
@@ -242,7 +250,7 @@ void main() {
         if (r.url.path.endsWith('/vehicles')) return fixture('vehicles');
         if (r.url.path.endsWith('/summary')) return fixture('summary');
         if (r.url.path.endsWith('/meta')) {
-          // No insights overview: the long topics are embedded in the tab.
+          // No insights overview: the long topics live behind the index.
           return http.Response(
             jsonEncode(
               statisticsInsightsMeta(features: {'parking_observations': true}),
@@ -262,7 +270,16 @@ void main() {
     );
     await tester.tap(find.text('长期'));
     await tester.pumpAndSettle();
-    expect(reads, isNotEmpty, reason: '前置：嵌入的停放观察确实读过');
+    await tester.tap(find.text('展开停放观察'));
+    await tester.pumpAndSettle();
+    expect(reads, isNotEmpty, reason: '前置：专题路由确实读过');
+    // 隐藏：关闭专题路由并把统计Tab切走；隐藏页面不取新数据（S03）。
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    // P15：返回长期索引时统计承载上下文保留（索引两入口仍在）；专题路由
+    // 重建沿 baseCommit 的既有路由结构。
+    expect(find.text('展开长期续航'), findsOneWidget);
+    expect(find.text('展开停放观察'), findsOneWidget);
     await tester.tap(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
     );
@@ -271,15 +288,17 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(reads, isEmpty, reason: '统计Tab隐藏时，嵌入专题不得在后台请求');
+    expect(reads, isEmpty, reason: '统计Tab隐藏时，停放观察不得在后台请求');
     await tester.tap(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('展开停放观察'));
+    await tester.pumpAndSettle();
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(reads, isNotEmpty, reason: '重新可见后才校验');
+    expect(reads.length, greaterThan(0), reason: '重新可见后才校验');
     expect(tester.takeException(), isNull);
   });
 
@@ -323,7 +342,8 @@ void main() {
     final requests = <Uri>[];
     await openParking(tester, requests);
     expect(find.textContaining('停放SOC变化'), findsWidgets);
-    expect(find.text('仅代表有效观测窗口'), findsOneWidget);
+    // R04/P11：深底Hero移除，限定文案改为同底就近说明。
+    expect(find.textContaining('不预测未来24小时'), findsOneWidget);
     expect(find.text('数据说明'), findsWidgets);
     expect(find.textContaining('查询生成：'), findsNothing);
     await tester.pumpAndSettle();
