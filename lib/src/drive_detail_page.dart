@@ -420,7 +420,10 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         line,
-        if (referenceLoading) const LinearProgressIndicator(),
+        if (referenceLoading)
+          MediaQuery.disableAnimationsOf(context)
+              ? const Text('正在读取历史参照…')
+              : const LinearProgressIndicator(),
         if (referenceError != null)
           Row(
             children: [

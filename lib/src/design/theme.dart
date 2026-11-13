@@ -95,7 +95,12 @@ ThemeData mileafTheme(Brightness brightness) {
         vertical: MileafSpace.s12,
       ),
       labelStyle: type.label,
-      floatingLabelStyle: type.label.copyWith(color: colors.accentStrong),
+      // InputDecorator applies a 0.75 floating-label transform. Compensate
+      // before TextScaler so the final label retains its R05 13px role.
+      floatingLabelStyle: type.label.copyWith(
+        fontSize: MileafType.labelSize / 0.75,
+        color: colors.accentStrong,
+      ),
       hintStyle: type.body.copyWith(color: colors.textFaint),
       errorStyle: type.body.copyWith(
         fontSize: MileafType.detailSize,
@@ -229,17 +234,19 @@ ThemeData mileafTheme(Brightness brightness) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        // Keep disabled foreground/background in sync on the first frame.
+        animationDuration: Duration.zero,
         backgroundColor: colors.accentStrong,
         foregroundColor: colors.textOnAccent,
         disabledBackgroundColor: colors.line,
         disabledForegroundColor: colors.textFaint,
         textStyle: type.body.copyWith(
-          fontWeight: MileafType.weightSemiBold,
+          fontWeight: MileafType.weightMedium,
           letterSpacing: 0,
         ),
-        minimumSize: const Size(0, MileafSpace.touch),
-        padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),
-        shape: const RoundedRectangleBorder(borderRadius: MileafRadius.smAll),
+        minimumSize: const Size(0, MileafSpace.primaryButtonHeight),
+        padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s16),
+        shape: const RoundedRectangleBorder(borderRadius: MileafRadius.mdAll),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(

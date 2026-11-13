@@ -7,6 +7,7 @@ import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'focus_ring.dart';
 
 enum ChartSeriesStyle { line, area, bars, stem, reference }
 
@@ -39,10 +40,10 @@ List<List<int>> chartRuns(List<num?> values) {
   return runs;
 }
 
-/// Stem positions: null and real zero are both empty slots (no hairline).
+/// Known values keep their slot, including a baseline mark for real zero.
 List<int> chartStemIndices(List<num?> values) => [
   for (var i = 0; i < values.length; i++)
-    if (values[i] != null && values[i] != 0) i,
+    if (values[i] != null) i,
 ];
 
 /// A sampled time chart: line/area, bars and reference series in one widget.
@@ -340,57 +341,59 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 }
                 return KeyEventResult.ignored;
               },
-              child: Semantics(
-                container: true,
-                label: widget.semanticsLabel,
-                value: _reading(selected),
-                increasedValue: selected < widget.times.length - 1
-                    ? _reading(selected + 1)
-                    : null,
-                decreasedValue: selected > 0 ? _reading(selected - 1) : null,
-                onIncrease: selected < widget.times.length - 1
-                    ? () => _select(selected + 1)
-                    : null,
-                onDecrease: selected > 0 ? () => _select(selected - 1) : null,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) {
-                    _focus.requestFocus();
-                    selectAt(details.localPosition);
-                  },
-                  onHorizontalDragStart: (details) {
-                    _focus.requestFocus();
-                    selectAt(details.localPosition);
-                  },
-                  onHorizontalDragUpdate: (details) =>
-                      selectAt(details.localPosition),
-                  child: SizedBox(
-                    key: widget.plotKey,
-                    // R06：盒子高度按实际绘制范围给足——顶轴留白 +
-                    // 绘图区 + 底部 X 轴行高，大字下随文字增高，不截字。
-                    height: plot.top + math.max(1.0, plotHeight) + bottom,
-                    child: CustomPaint(
-                      size: Size(constraints.maxWidth, plotHeight),
-                      painter: _ChartPainter(
-                        times: widget.times,
-                        series: widget.series,
-                        selected: selected,
-                        plot: plot,
-                        progress: 1,
-                        primary: onHero ? colors.accentHero : colors.accent,
-                        reference: colors.reference,
-                        axis: faint,
-                        // Spec §8: the only horizontal grid line is the zero
-                        // baseline — `line` on paper, heroText 12% on a hero.
-                        baseline: onHero
-                            ? colors.heroText.withValues(alpha: .12)
-                            : colors.line,
-                        scaler: MediaQuery.textScalerOf(context),
-                        yRange: widget.yRange,
-                        showYAxis: widget.showYAxis,
-                        showXAxis: widget.showXAxis,
-                        tick: _tick,
-                        largeText: MileafLayout.largeText(context),
+              child: MileafFocusRing(
+                child: Semantics(
+                  container: true,
+                  label: widget.semanticsLabel,
+                  value: _reading(selected),
+                  increasedValue: selected < widget.times.length - 1
+                      ? _reading(selected + 1)
+                      : null,
+                  decreasedValue: selected > 0 ? _reading(selected - 1) : null,
+                  onIncrease: selected < widget.times.length - 1
+                      ? () => _select(selected + 1)
+                      : null,
+                  onDecrease: selected > 0 ? () => _select(selected - 1) : null,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (details) {
+                      _focus.requestFocus();
+                      selectAt(details.localPosition);
+                    },
+                    onHorizontalDragStart: (details) {
+                      _focus.requestFocus();
+                      selectAt(details.localPosition);
+                    },
+                    onHorizontalDragUpdate: (details) =>
+                        selectAt(details.localPosition),
+                    child: SizedBox(
+                      key: widget.plotKey,
+                      // R06：盒子高度按实际绘制范围给足——顶轴留白 +
+                      // 绘图区 + 底部 X 轴行高，大字下随文字增高，不截字。
+                      height: plot.top + math.max(1.0, plotHeight) + bottom,
+                      child: CustomPaint(
+                        size: Size(constraints.maxWidth, plotHeight),
+                        painter: _ChartPainter(
+                          times: widget.times,
+                          series: widget.series,
+                          selected: selected,
+                          plot: plot,
+                          progress: 1,
+                          primary: onHero ? colors.accentHero : colors.accent,
+                          reference: colors.reference,
+                          axis: faint,
+                          // Spec §8: the only horizontal grid line is the zero
+                          // baseline — `line` on paper, heroText 12% on a hero.
+                          baseline: onHero
+                              ? colors.heroText.withValues(alpha: .12)
+                              : colors.line,
+                          scaler: MediaQuery.textScalerOf(context),
+                          yRange: widget.yRange,
+                          showYAxis: widget.showYAxis,
+                          showXAxis: widget.showXAxis,
+                          tick: _tick,
+                          largeText: MileafLayout.largeText(context),
+                        ),
                       ),
                     ),
                   ),
@@ -567,7 +570,7 @@ class _ChartMessage extends StatelessWidget {
   );
 }
 
-/// Daily charging stems: discrete vertical hairlines; zero and null are empty.
+/// Daily charging stems with baseline marks for zero and gaps for null.
 class StemChart extends StatelessWidget {
   const StemChart({
     super.key,

@@ -274,15 +274,17 @@ Future<void> openChargingTopic(WidgetTester tester) async {
 
 /// Taps the charging topic's own plot and returns the bucket it reports.
 Future<void> tapChargingPlot(WidgetTester tester, double fraction) async {
-  final chart = find.byType(TimeSeriesChart).first;
-  await tester.ensureVisible(chart);
+  final plot = find.byKey(const ValueKey('charging-topic-plot'));
+  await tester.scrollUntilVisible(plot.hitTestable(), 120);
   await tester.pumpAndSettle();
-  await tapPlot(tester, fraction);
+  final rect = tester.getRect(plot);
+  await tester.tapAt(Offset(rect.left + rect.width * fraction, rect.center.dy));
+  await tester.pumpAndSettle();
 }
 
 /// Presses the topic's own refresh action, scrolling back up to it first.
 Future<void> refreshChargingTopic(WidgetTester tester) async {
-  final button = find.text('刷新补能统计');
+  final button = find.byTooltip('刷新补能统计');
   for (var i = 0; i < 6 && button.evaluate().isEmpty; i++) {
     await tester.drag(find.byType(Scrollable).last, const Offset(0, 300));
     await tester.pumpAndSettle();

@@ -398,35 +398,37 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
               }
               return KeyEventResult.ignored;
             },
-            child: LayoutBuilder(
-              builder: (context, constraints) => GestureDetector(
-                onTapDown: (p) => _pickBin(
-                  p.localPosition.dx,
-                  constraints.maxWidth,
-                  leftPad,
-                  bins.length,
-                ),
-                onHorizontalDragUpdate: (p) => _pickBin(
-                  p.localPosition.dx,
-                  constraints.maxWidth,
-                  leftPad,
-                  bins.length,
-                ),
-                child: SizedBox(
-                  key: const ValueKey('conditions-plot'),
-                  height: large ? 240 : 200,
-                  width: double.infinity,
-                  child: CustomPaint(
-                    painter: _TemperaturePlot(
-                      bins,
-                      selected,
-                      colors,
-                      axisStyle,
-                      valueStyle,
-                      MediaQuery.textScalerOf(context),
-                      large,
-                      scale,
-                      leftPad,
+            child: MileafFocusRing(
+              child: LayoutBuilder(
+                builder: (context, constraints) => GestureDetector(
+                  onTapDown: (p) => _pickBin(
+                    p.localPosition.dx,
+                    constraints.maxWidth,
+                    leftPad,
+                    bins.length,
+                  ),
+                  onHorizontalDragUpdate: (p) => _pickBin(
+                    p.localPosition.dx,
+                    constraints.maxWidth,
+                    leftPad,
+                    bins.length,
+                  ),
+                  child: SizedBox(
+                    key: const ValueKey('conditions-plot'),
+                    height: large ? 240 : 200,
+                    width: double.infinity,
+                    child: CustomPaint(
+                      painter: _TemperaturePlot(
+                        bins,
+                        selected,
+                        colors,
+                        axisStyle,
+                        valueStyle,
+                        MediaQuery.textScalerOf(context),
+                        large,
+                        scale,
+                        leftPad,
+                      ),
                     ),
                   ),
                 ),

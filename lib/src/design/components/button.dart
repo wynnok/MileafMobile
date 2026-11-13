@@ -72,7 +72,7 @@ class _MileafButtonState extends State<MileafButton> {
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (loading) ...[
+        if (loading && !MediaQuery.disableAnimationsOf(context)) ...[
           SizedBox(
             width: 16,
             height: 16,
@@ -125,7 +125,9 @@ class _MileafButtonState extends State<MileafButton> {
                 borderRadius: MileafRadius.mdAll,
                 border: Border.all(
                   color: _focused
-                      ? colors.focusRing
+                      ? kind == MileafButtonKind.primary
+                            ? colors.textOnAccent
+                            : colors.focusRing
                       : border ?? Colors.transparent,
                   width: _focused ? 2 : 1,
                 ),

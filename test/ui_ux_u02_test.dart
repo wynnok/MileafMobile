@@ -306,18 +306,22 @@ void main() {
       final border =
           (tester
                           .widget<Container>(
-                            find.descendant(
-                              of: find.byType(MileafButton),
-                              matching: find.byType(Container),
-                            )
-                            .first,
+                            find
+                                .descendant(
+                                  of: find.byType(MileafButton),
+                                  matching: find.byType(Container),
+                                )
+                                .first,
                           )
-                          .decoration! as BoxDecoration)
-              .border! as Border;
+                          .decoration!
+                      as BoxDecoration)
+                  .border!
+              as Border;
       expect(border.top.width, 2, reason: 'R05 焦点即时 2px 外环');
       expect(
         border.top.color,
-        const MileafColors.dark().focusRing,
+        // R04: primary uses an inverse boundary against its accent fill.
+        const MileafColors.dark().textOnAccent,
       );
     });
 

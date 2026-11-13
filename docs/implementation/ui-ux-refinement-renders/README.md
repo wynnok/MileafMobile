@@ -1,5 +1,56 @@
 # UI/UX 精修正式 Flutter 图册
 
+## U12 最终集成图册（2026-11-13）
+
+当前产品输入为 `main@dce498e` 加 U12 共享呈现修复，完整源文件哈希、图像文件与 SHA-256 由 [u12-manifest.json](u12-manifest.json) 固定。最终命令结果见 [U12记录](../ui-ux-refinement/U12.md)。后文 U01–U03 的来源/统计保留为历史图册记录。
+
+当前产品图册共1431张（核心1413＋阅读恢复18），历史U01/before共419张，根目录PNG总数1850。最终集成重新运行下列14条核心入口。输出复用原有归属目录，数据、字体、viewport、safeArea与各包交接和源码一致。
+
+| 入口 `test/<文件>.dart` | 输出参数 | 输出目录（相对此根） | PNG数 |
+| --- | --- | --- | --- |
+| design_gallery_render_test | MILEAF_RENDER_OUTPUT | components | 12 |
+| ui_ux_u03_test | MILEAF_RENDER_OUTPUT | components | 4 |
+| ui_ux_u04_test | MILEAF_RENDER_OUTPUT | u04 | 47 |
+| ui_ux_u05_test | MILEAF_RENDER_OUTPUT | u05 | 51 |
+| ui_ux_u06_test | MILEAF_RENDER_OUTPUT | U06 | 94 |
+| ui_ux_u07_test | MILEAF_RENDER_OUTPUT | U07 | 147 |
+| ui_ux_u08_test | MILEAF_U08_RENDER_OUTPUT | gallery | 120 |
+| ui_ux_u09a_test | MILEAF_U09A_RENDER_OUTPUT | 根目录，入口写gallery | 124 |
+| ui_ux_u09b_test | MILEAF_U09B_RENDER_OUTPUT | 根目录，入口写gallery | 54 |
+| ui_ux_u09c_test | MILEAF_U09C_RENDER_OUTPUT | 根目录，入口写gallery | 54 |
+| ui_ux_u09d_test | MILEAF_U09D_RENDER_OUTPUT | 根目录，入口写gallery | 56 |
+| ui_ux_u09e_test | MILEAF_U09E_RENDER_OUTPUT | 根目录，入口写gallery | 88 |
+| ui_ux_u10_test | MILEAF_U10_RENDER_OUTPUT | flows | 308 |
+| ui_ux_u11_test | MILEAF_RENDER_OUTPUT | U11 | 254 |
+
+上表的components两入口合并计为一组共享组件集合，实际命令14条。各条完整命令格式为 `./tool/flutterw test --no-pub test/<文件>.dart --reporter expanded --dart-define=<输出参数>=docs/implementation/ui-ux-refinement-renders/<输出目录> '--dart-define=MILEAF_RENDER_FONT=/System/Library/Fonts/Supplemental/Arial Unicode.ttf'`。输出为根目录的五个专题省略最后的目录后缀。执行严格串行，各命令退出码和测试统计在U12记录；第一次补丁后的试跑随后用最终固定产品全部复生成。
+
+### 覆盖与目视
+
+P01→u04、P02→u05、P03→U06、P04/P05→U07、P06→u08、P07–P11→u09a–e、P12/P13/P16→flows/u10、P14→U11，P15随对应页面完整滚动/证据/展开机位。components覆盖角色、焦点/禁用/长文与图表边界。各包机位/HTTP数据细节沿包记录，正式字体的图片保留完整TextScaler与合成夹具。
+
+U12本人逐张打开下列关键图，其余未列文件没有逐张人工目视，由同源矩阵尺寸/异常/终点动作断言验证。
+
+| 实际打开文件 | 观察 |
+| --- | --- |
+| u04/overview-normal-light-360-100-top.png | 深底车况为锚点，今日三项可查，主图起始可见 |
+| u05/drives-normal-light-360-100-top.png | 第一条完整、下一条起始可见，零基线标记与读值保持 |
+| U06/charging-normal-light-360-100-top.png | 费用/覆盖紧凑，第一记录完整，0日基线点可辨 |
+| U07/drive-normal-light-360-100-first.png | 地图/三结果/过程图顺序完整，ready图面为fake |
+| U07/charge-normal-light-360-100-first.png | SOC横排、三结果、功率与精确读值/采样动作同屏 |
+| gallery/u08-statistics-normal-light-360-100-top.png | 结论/真实参照/主图与专题第一行可见 |
+| gallery/u09a-usage-normal-light-360-100-top.png | 四列日期矩阵、0/未知/分档图案区分 |
+| gallery/u09b-conditions-normal-light-360-100-top.png | 小样本及非因果就近，点图与无样本槽清楚 |
+| gallery/u09c-charging-normal-light-360-100-top.png | 覆盖分母、电量/费用控件与真实0可读 |
+| gallery/u09d-range-normal-light-360-100-top.png | 独立月份、非健康限定、非零轴范围与波动带清楚 |
+| gallery/u09e-parking-normal-light-360-100-top.png | 正负同轴，百分点及非预测说明就近 |
+| flows/u10-connect-light-360-100-top.png | 服务地址、HTTPS说明与单一主操作清楚 |
+| U11/cost-normal-light-360-100-first.png | 常驻币种、单价/电量/预估/后果/动作同一流 |
+
+本机图册支持静态呈现与受控动作证据。G01具名用户视觉决定仍待验。真实系统字体、原生键盘、读屏、真实底图/CRS/网络、设备性能和真实站点/Grafana按G09与#11/#16/#17验收。
+
+## U01–U03 历史来源与记录
+
 2026-11-12，当前收录 U01 正式候选、U02 共享组件图册与 U03 图表状态板，U01 用户视觉决定按「按候选继续」授权保持待验。U01 收尾已完成：全量 591 通过 / 12 跳过 / 0 失败，图册由收尾会话重新生成并核对为 316 + 96 张。U02 已交付共享系统收敛与 `components/` 三条画廊（12 张）。U03 已交付图表/状态/动效基础与 `components/chart-states-*` 状态板（4 张），全量 618 通过 / 13 跳过 / 0 失败（含 U03 新增 11 条回归与 1 条 opt-in 渲染用例）。任务状态见[总控记录](../ui-ux-refinement/README.md)、[U01 交接](../ui-ux-refinement/U01.md)、[U02 交接](../ui-ux-refinement/U02.md)与 [U03 交接](../ui-ux-refinement/U03.md)。
 
 ## 来源与范围
@@ -77,3 +128,9 @@ U01 收尾会话重新生成后实际打开 8 张（另回看总控早前抽样�
 普通360×800、100%机位采用 body 相对坐标。总控读取最终 JSON，行程 body 高620、首记录492–580；统计 body 高620、专题第一行509–617；充电详情 body 高696、图框335–577，其中绘图区高200。C10 的“第二条正文可见”已在自动化中按规格§5 P02 口径落实为“第二条记录起始≥24 可见”，实测 25.0，见 [U01 交接](../ui-ux-refinement/U01.md)。
 
 旧图对照来自 `docs/implementation/readability-renders/`，当前抽样只证明本机正式 Flutter 的静态布局。真实字体、系统键盘、读屏、真实地图/CRS/网络、设备性能和真实站点/Grafana沿 G09 与 #11/#16/#17 待验。G01 用户视觉决定仍待用户裁定；U02/U03 全局收敛及其余页面迁移状态见总控与逐包记录。
+
+## U12 阅读恢复补验
+
+新增 `reading/` 18张，核心1413张加阅读18张得到1431张当前产品图片。原始参考419张保留，总PNG1850张。入口为 `test/reading_restore_render_test.dart`，完整命令与旧定位器修正见U12记录。overview/统计各浅深100/200共8张；补能自定义日期控制与返回后原选点各4张；多页行程恢复浅100/深200共2张。日期取消和选点恢复通过真实点击/滚动断言，概览机位在返回后回滚核对期间。
+
+U12另逐张打开 `flows/u10-edit-dark-320-200-keyboard-action.png`、`U11/cost-maximum-dark-320-200-action.png`，确认320/200%主操作在模拟键盘上方可达。打开 `reading/charging-topic-dark-200.png`，确认3/6原选点读值；`reading/drives-restored-dark-200.png`保留已显示全部行程、末记录和数据说明入口。

@@ -649,8 +649,8 @@ void main() {
       expect(chartRuns([null, null]), isEmpty);
     });
 
-    test('stem 的零与 null 都留空', () {
-      expect(chartStemIndices([1, 0, null, 2, 0.0, 3]), [0, 3, 5]);
+    test('stem 真实零画基线标记，null留空', () {
+      expect(chartStemIndices([1, 0, null, 2, 0.0, 3]), [0, 1, 3, 4, 5]);
     });
 
     final times = [for (var i = 0; i < 5; i++) DateTime(2026, 10, 1 + i)];

@@ -613,31 +613,35 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
           }
           return KeyEventResult.ignored;
         },
-        child: LayoutBuilder(
-          builder: (context, box) => GestureDetector(
-            onTapDown: (p) => pick(p.localPosition.dx, box.maxWidth),
-            onHorizontalDragUpdate: (p) =>
-                pick(p.localPosition.dx, box.maxWidth),
-            child: SizedBox(
-              // R06.3：专题主图200；大字240沿U09b/c/d专题主图先例。
-              height: large ? 240 : MileafSpace.detailChartHeight,
-              width: double.infinity,
-              child: CustomPaint(
-                key: const Key('parking-trend-chart'),
-                size: Size(
-                  box.maxWidth,
-                  large ? 240 : MileafSpace.detailChartHeight,
-                ),
-                painter: _ParkingPainter(
-                  rows,
-                  selected.clamp(0, rows.length - 1),
-                  calendar,
-                  context.colors,
-                  context.type.micro.copyWith(color: context.colors.textFaint),
-                  MediaQuery.textScalerOf(context),
-                  large,
-                  scale,
-                  leftPad,
+        child: MileafFocusRing(
+          child: LayoutBuilder(
+            builder: (context, box) => GestureDetector(
+              onTapDown: (p) => pick(p.localPosition.dx, box.maxWidth),
+              onHorizontalDragUpdate: (p) =>
+                  pick(p.localPosition.dx, box.maxWidth),
+              child: SizedBox(
+                // R06.3：专题主图200；大字240沿U09b/c/d专题主图先例。
+                height: large ? 240 : MileafSpace.detailChartHeight,
+                width: double.infinity,
+                child: CustomPaint(
+                  key: const Key('parking-trend-chart'),
+                  size: Size(
+                    box.maxWidth,
+                    large ? 240 : MileafSpace.detailChartHeight,
+                  ),
+                  painter: _ParkingPainter(
+                    rows,
+                    selected.clamp(0, rows.length - 1),
+                    calendar,
+                    context.colors,
+                    context.type.micro.copyWith(
+                      color: context.colors.textFaint,
+                    ),
+                    MediaQuery.textScalerOf(context),
+                    large,
+                    scale,
+                    leftPad,
+                  ),
                 ),
               ),
             ),

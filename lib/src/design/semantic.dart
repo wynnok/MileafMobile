@@ -172,7 +172,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
   bool get heroAsCard => (_lStar(hero) - _lStar(canvas)).abs() > 20;
 
   /// Focus ring is the only 2px accent stroke.
-  Color get focusRing => accent.withValues(alpha: .6);
+  Color get focusRing => accentStrong;
 
   /// 4% (dark) / 6% (light) press overlay on content rows.
   Color get pressOverlay =>

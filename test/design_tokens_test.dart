@@ -366,7 +366,8 @@ void main() {
       expect([pct(dark.accentSoft)], [16]);
       expect(light.accentSoft, MileafPalette.accentSoftLight);
       expect([pct(dark.pressOverlay), pct(light.pressOverlay)], [4, 6]);
-      expect(pct(dark.focusRing), 60);
+      // R04/R05 supersede the old 60% overlay with a ≥3:1 focus boundary.
+      expect(dark.focusRing, dark.accentStrong);
     });
 
     test('accentStrong 参与 copyWith 与主题插值', () {

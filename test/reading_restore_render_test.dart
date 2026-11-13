@@ -50,7 +50,13 @@ Future<void> _chip(WidgetTester tester, Type page, String label) async {
     of: find.byType(page),
     matching: find.widgetWithText(StatusChip, label),
   );
-  await tester.ensureVisible(chip);
+  await tester.scrollUntilVisible(
+    chip.hitTestable(),
+    160,
+    scrollable: find
+        .descendant(of: find.byType(page), matching: find.byType(Scrollable))
+        .first,
+  );
   await tester.pumpAndSettle();
   await tester.tap(chip);
   await tester.pumpAndSettle();
@@ -115,6 +121,16 @@ void main() {
             );
             await _select(tester, '行程');
             await _select(tester, '概览');
+            await tester.scrollUntilVisible(
+              find.widgetWithText(StatusChip, '近7天').hitTestable(),
+              -160,
+              scrollable: find
+                  .descendant(
+                    of: find.byType(OverviewPage),
+                    matching: find.byType(Scrollable),
+                  )
+                  .first,
+            );
             expect(
               tester
                   .widget<StatusChip>(

@@ -456,7 +456,10 @@ class _StatisticsViewState extends State<_StatisticsView>
               ),
             ),
             if (calendar.fallback) const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
-            if (loading) const LinearProgressIndicator(),
+            if (loading)
+              MediaQuery.disableAnimationsOf(context)
+                  ? const Text('正在读取统计…')
+                  : const LinearProgressIndicator(),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),
               TextButton(

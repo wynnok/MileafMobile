@@ -18,3 +18,4 @@ export 'sheet.dart';
 export 'soc_interval.dart';
 export 'state_view.dart';
 export 'top_bar.dart';
+export 'focus_ring.dart';

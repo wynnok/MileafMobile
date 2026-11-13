@@ -226,3 +226,118 @@
 | G08 数据库/税务 | 当前无入口 | 数据库运维、专项税务报表 | 首版范围外 |
 
 本表没有把历史2026-10-25的“未提供”沿用为0.3现状，也没有把候选写成已支持。真实地图/真实字体/键盘/读屏/真实性能/站点与Grafana口径对账均仍待G09和#11/#16/#17证据。
+
+## U12 最终迁移闭环（2026-11-13）
+
+以上104行保留 U00 基线事实。下表逐项登记最终归宿，实际输入为 dce498e 加 U12 共享呈现修复，测试由最终全量统一复验，详细结果见 [U12.md](U12.md)。数据来源/可见条件沿原行，独立 Spec 审查逐项核对104项，没有发现丢失的主要归宿。
+
+B01 已由 U08 恢复「全部指标 → 原始统计」入口，保留当前 selection、驾驶/充电旧图形、净毛电耗与 AC/DC 时间分布。B02 以旧/扩展契约页内完整曲线、采样与时间/SOC轴入口闭合既有能力，现有实现没有独立曲线路由。H01 隐藏概览比较读取由 U04 的可见性检查收口，H02 overview continuation 沿 U08 的 meta 选择分支和跨页回归核对。
+
+P03 使用 U06 用户批准的摘要→每日补能→最近记录→电量/次数/时长→构成环顺序。G09 及原“未支持/候选”清单保留其实际边界。
+
+| 能力 ID | 接收包 | 最终主要归宿 | 具名测试文件 |
+| --- | --- | --- | --- |
+| V01-01 | U04 | P01车况 | overview_test.dart |
+| V01-02 | U04 | P01车况电池弧 | a_overview_test.dart |
+| V01-03 | U04 | P01唯一display | overview_a_regression_test.dart |
+| V01-04 | U04 | P01今日 | overview_briefing_test.dart |
+| V01-05 | U04 | P01今日 | overview_briefing_test.dart |
+| V01-06 | U04 | P01今日 | overview_briefing_test.dart |
+| V01-07 | U04 | P01周期摘要+里程图 | overview_visualization_test.dart |
+| V01-08 | U04 | P01电耗图 | overview_visualization_test.dart |
+| V01-09 | U04 | P01驾驶与补能明细 | overview_briefing_test.dart |
+| V01-10 | U04 | P01驾驶与补能明细 | overview_briefing_test.dart |
+| V01-11 | U04 | P01补能图/读值 | overview_visualization_test.dart |
+| V01-12 | U04 | P01驾驶与补能明细 | overview_briefing_test.dart |
+| V01-13 | U04 | P01费用图/读值 | overview_verification_test.dart |
+| V01-14 | U04 | P01补能账本 | overview_verification_test.dart |
+| V01-15 | U04 | P01补能账本 | overview_briefing_test.dart |
+| V01-16 | U04 | P01补能账本 | overview_verification_test.dart |
+| V01-17 | U04 | P01费用覆盖明细 | overview_verification_test.dart |
+| V01-18 | U04 | P01比较/依据 | overview_verification_test.dart |
+| V01-19 | U04 | P01最近行程→P04 | a_overview_test.dart |
+| V01-20 | U04 | P01最近充电→P05 | a_overview_test.dart |
+| V01-21 | U04 | P01车辆说明 | overview_test.dart |
+| V01-22 | U04 | P01继续探索→P06专题 | overview_statistics_reading_test.dart |
+| V02-01 | U05 | P02记录行 | drives_test.dart |
+| V02-02 | U05 | P02记录行 | a_drives_test.dart |
+| V02-03 | U05 | P02紧凑汇总 | collage_drives_test.dart |
+| V02-04 | U05 | P02节奏读值→记录 | reading_continuity_test.dart |
+| V02-05 | U05 | P02期间/分页 | reading_integration_test.dart |
+| V03-01 | U07 | P04地图→P15全图 | map_platform_test.dart |
+| V03-02 | U07 | P04过程图 | drive_detail_test.dart |
+| V03-03 | U07 | P04主指标 | a_drive_detail_test.dart |
+| V03-04 | U07 | P04其他指标 | drive_detail_test.dart |
+| V03-05 | U07 | P04环境指标 | drive_detail_test.dart |
+| V03-06 | U07 | P04电量/说明 | a_drive_detail_test.dart |
+| V03-07 | U07 | P04摘要+数据说明 | drive_detail_test.dart |
+| V03-08 | U07 | P04限定与依据 | overview_verification_test.dart |
+| V04-01 | U06 | P03最近记录 | charging_test.dart |
+| V04-02 | U06 | P03记录行SOC | a_charging_test.dart |
+| V04-03 | U06 | P03正在充电/记录 | charging_expansion_test.dart |
+| V04-04 | U06 | P03全部记录→P15 | charging_reading_test.dart |
+| V04-05 | U06 | P03紧凑摘要/每日图 | charging_expansion_test.dart |
+| V04-06 | U06 | P03地点账目→P15 | charging_expansion_test.dart |
+| V05-01 | U07 | P05曲线（独立完整曲线路由见B02） | charging_detail_test.dart |
+| V05-02 | U07 | P05横向SOC摘要 | a_charging_detail_test.dart |
+| V05-03 | U07 | P05结果+其他指标 | charging_detail_test.dart |
+| V05-04 | U07 | P05结果/说明 | charging_detail_test.dart |
+| V05-05 | U07 | P05曲线限定/说明 | charging_expansion_test.dart |
+| V05-06 | U07 | P05账目说明 | charging_expansion_test.dart |
+| V05-07 | U07 | P05其他指标 | charging_expansion_test.dart |
+| V05-08 | U07 | P05地图/数据说明 | collage_charging_detail_test.dart |
+| V05-09 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-10 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-11 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-12 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-13 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-14 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-15 | U07 | P05过程指标切换 | charging_expansion_test.dart（扩展曲线场景） |
+| V05-16 | U07 | P05曲线控制/读值 | charging_expansion_test.dart（按电量切换） |
+| V05-17 | U07 | P05过程事件/说明 | charging_expansion_test.dart（事件展开） |
+| V06-01 | U08 / U09c | P06主结论/主图 | statistics_insights_test.dart |
+| V06-02 | U08 / U09c | P06完整指标入口（U08核对） | statistics_test.dart |
+| V06-03 | U08 / U09c | P06完整指标入口（U08核对） | statistics_test.dart |
+| V06-04 | U08 / U09c | P06完整指标索引 | statistics_test.dart |
+| V06-05 | U08 / U09c | P06结论/依据 | statistics_insights_test.dart |
+| V06-06 | U08 / U09c | P06更多指标 | statistics_insights_test.dart |
+| V07-01 | U08 / U09c | P09主图 | statistics_charging_test.dart |
+| V07-02 | U08 / U09c | P09费用/均价图 | charging_statistics_test.dart |
+| V07-03 | U08 / U09c | P09证据 | statistics_charging_test.dart |
+| V07-04 | U08 / U09c | P09→P15记录 | charging_reading_test.dart |
+| V08-01 | U08 / U09c | P09补能结构 | charging_statistics_test.dart |
+| V08-02 | U08 / U09c | P06完整指标→补能结构 | statistics_test.dart |
+| V08-03 | U06 | P03记录后构成环 | charging_method_test.dart、share_ring_test.dart |
+| X03-01 | U09a | P07结果/证据 | statistics_usage_test.dart |
+| X03-02 | U09a | P07证据 | statistics_usage_test.dart |
+| X03-03 | U09a | P07主图/分组 | statistics_usage_test.dart |
+| X03-04 | U09a | P15行程证据 | statistics_usage_test.dart |
+| X03-05 | U09b | P08点图/证据 | statistics_conditions_test.dart |
+| X03-06 | U09d | P10趋势/读值 | statistics_range_test.dart |
+| X03-07 | U09d | P10证据/说明 | statistics_range_test.dart |
+| X03-08 | U09e | P11主图 | statistics_parking_test.dart |
+| X03-09 | U09e | P11分布/证据 | statistics_parking_test.dart |
+| X03-10 | U09e | P11证据 | statistics_parking_test.dart |
+| CE-01 | U11 | P03/P05入口→P14共用表单 | charging_cost_test.dart |
+| CE-02 | U11 | P14预检 | charging_cost_test.dart |
+| CE-03 | U11 | P14表单 | charging_cost_test.dart、number_format_test.dart |
+| CE-04 | U11 | P14动作/发起页成功反馈 | charging_cost_test.dart |
+| CE-05 | U11 | P14就近状态 | charging_cost_test.dart |
+| CE-06 | U11 | P03/P05与其他费用视图 | charging_cost_refresh_test.dart、overview_statistics_reading_test.dart |
+| MAP-01 | U07 / U10 | P12本机配置 | map_key_page_test.dart、map_key_test.dart |
+| MAP-02 | U07 / U10 | P12申请帮助 | map_key_page_test.dart |
+| MAP-03 | U07 / U10 | P12地图隐私 | map_platform_test.dart、map_key_page_test.dart |
+| MAP-04 | U07 / U10 | P04/P05/P15地图 | map_platform_test.dart、collage_charging_detail_test.dart |
+| CFG-01 | U10 | P12设置 | settings_navigation_test.dart |
+| CFG-02 | U10 | P12外观 | appearance_shell_test.dart |
+| CFG-03 | U10 | P12币种 | charging_test.dart、settings_navigation_test.dart |
+| CFG-04 | U10 | P12服务信息 | overview_test.dart、settings_navigation_test.dart |
+| AUTH-01 | U10 | P13连接 | widget_test.dart、setup_test.dart |
+| AUTH-02 | U10 | P13登录 | session_test.dart |
+| AUTH-03 | U10 | P13初始化 | setup_test.dart |
+| AUTH-04 | U10 | P13连接管理 | connection_management_test.dart |
+| VEH-01 | U10 | P16车辆流程 | session_test.dart、full_flow_test.dart |
+| VEH-02 | U10 | P16车辆弹层 | reading_continuity_test.dart |
+| NAV-01 | 共享 / 各页面 | P01/P02/P03/P06外壳 | reading_continuity_test.dart、reading_integration_test.dart |
+| NAV-02 | 共享 / 各页面 | P01/P02/P03/P06/P16 | overview_statistics_reading_test.dart |
+| STATE-01 | 共享 / 各页面 | P01–P16原资源位置 | business_recovery_test.dart、overview_verification_test.dart |

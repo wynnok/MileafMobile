@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'drive_detail_test.dart' show openDetail, fixture;
 import 'drives_test.dart' show jsonResponse;
@@ -88,7 +89,8 @@ void main() {
     );
     expect(await tester.runAsync(ready), 0);
     await scrollPageTo(tester, find.byKey(const ValueKey('sample-chart')), 160);
-    await tester.ensureVisible(find.byKey(const ValueKey('sample-chart')));
+    // Readiness observes the complete default chart, including its readout.
+    await tester.ensureVisible(find.byType(TimeSeriesChart));
     await tester.pumpAndSettle();
     expect(await tester.runAsync(ready), 1);
     await tester.runAsync(() async {

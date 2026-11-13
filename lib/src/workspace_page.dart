@@ -188,7 +188,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
       }
       final selected = workspace.selectedId;
       if (selected == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(
+          body: Center(
+            child: MediaQuery.disableAnimationsOf(context)
+                ? const Text('正在加载车辆…')
+                : const CircularProgressIndicator(),
+          ),
+        );
       }
       final vehicle = widget.session.vehicles
           .where((v) => v.id == selected)

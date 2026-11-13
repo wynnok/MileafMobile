@@ -172,7 +172,7 @@ void main() {
         tester,
       ) async {
         final colors = _colors(brightness);
-        // Two empty slots (a real zero and a null) between five slots with data.
+        // R06: five known slots include two real-zero baseline marks.
         const values = <num?>[10, 0, null, 4, 7, 0];
         final probe = await pumpChart(
           tester,
@@ -183,9 +183,21 @@ void main() {
         final stems = probe.columns(colors.accent);
         expect(
           stems,
-          hasLength(3),
-          reason: '${brightness.name}: 零与缺失都不画竖线，只应有 3 根实色竖线',
+          hasLength(5),
+          reason: '${brightness.name}: 三根竖线和两个真实零标记，缺失留空',
         );
+        final heights = [
+          for (final stem in stems)
+            probe
+                    .bounds(
+                      colors.accent,
+                      where: (x, _) => x >= stem.from && x <= stem.to,
+                    )!
+                    .height /
+                probeScale,
+        ];
+        expect(heights.where((height) => height > 20), hasLength(3));
+        expect(heights.where((height) => height <= 20), hasLength(2));
         for (final stem in stems) {
           expect(
             stem.to - stem.from + 1,
@@ -200,7 +212,7 @@ void main() {
           );
           expect(
             solid,
-            greaterThan(120),
+            greaterThan(heights[stems.indexOf(stem)] > 20 ? 120 : 0),
             reason: '${brightness.name}: 整根竖线都应是强调色实色，而不是 35% 淡化',
           );
           final topmost = probe
@@ -461,8 +473,7 @@ void main() {
       testWidgets('${brightness.name}：竖线里被选中的真实零用零值点，不用当前端点', (tester) async {
         final colors = _colors(brightness);
         final halo = compositeOver(colors.accent, .2, colors.canvas);
-        // Index 1 is a real zero, index 2 is missing: neither draws a stem, so
-        // the selection marker is the only thing on screen for them.
+        // R06: zero has a baseline mark, while missing retains an empty slot.
         final probe = await pumpChart(
           tester,
           brightness: brightness,

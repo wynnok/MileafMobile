@@ -240,31 +240,35 @@ class _RangeObservationPageState extends State<RangeObservationPage>
           }
           return KeyEventResult.ignored;
         },
-        child: LayoutBuilder(
-          builder: (context, box) => GestureDetector(
-            onTapDown: (p) => pick(p.localPosition.dx, box.maxWidth),
-            onHorizontalDragUpdate: (p) =>
-                pick(p.localPosition.dx, box.maxWidth),
-            child: SizedBox(
-              // R06.3：专题主图200；大字240与U09c专题主图一致。
-              height: large ? 240 : MileafSpace.detailChartHeight,
-              width: double.infinity,
-              child: CustomPaint(
-                key: const Key('range-observation-chart'),
-                size: Size(
-                  box.maxWidth,
-                  large ? 240 : MileafSpace.detailChartHeight,
-                ),
-                painter: _RangePainter(
-                  rows,
-                  selected.clamp(0, rows.length - 1),
-                  context.colors,
-                  calendar,
-                  context.type.micro.copyWith(color: context.colors.textFaint),
-                  MediaQuery.textScalerOf(context),
-                  large,
-                  scale,
-                  leftPad,
+        child: MileafFocusRing(
+          child: LayoutBuilder(
+            builder: (context, box) => GestureDetector(
+              onTapDown: (p) => pick(p.localPosition.dx, box.maxWidth),
+              onHorizontalDragUpdate: (p) =>
+                  pick(p.localPosition.dx, box.maxWidth),
+              child: SizedBox(
+                // R06.3：专题主图200；大字240与U09c专题主图一致。
+                height: large ? 240 : MileafSpace.detailChartHeight,
+                width: double.infinity,
+                child: CustomPaint(
+                  key: const Key('range-observation-chart'),
+                  size: Size(
+                    box.maxWidth,
+                    large ? 240 : MileafSpace.detailChartHeight,
+                  ),
+                  painter: _RangePainter(
+                    rows,
+                    selected.clamp(0, rows.length - 1),
+                    context.colors,
+                    calendar,
+                    context.type.micro.copyWith(
+                      color: context.colors.textFaint,
+                    ),
+                    MediaQuery.textScalerOf(context),
+                    large,
+                    scale,
+                    leftPad,
+                  ),
                 ),
               ),
             ),
