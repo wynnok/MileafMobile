@@ -11,13 +11,21 @@ import '../typography.dart';
 /// near the end — never a 0→76 % progress bar. Unknown bounds draw no segment
 /// and print `—`; a real 0 % stays a real 0.
 class SocIntervalBar extends StatelessWidget {
-  const SocIntervalBar({super.key, required this.start, required this.end});
+  const SocIntervalBar({
+    super.key,
+    required this.start,
+    required this.end,
+    this.compact = false,
+  });
 
   /// 出发电量 (start of the trip/charge) in percent.
   final num? start;
 
   /// 到达电量 (end of the trip/charge) in percent.
   final num? end;
+
+  /// The containing record supplies vertical padding in compact mode.
+  final bool compact;
 
   static const double _trackHeight = 8;
 
@@ -52,7 +60,9 @@ class SocIntervalBar extends StatelessWidget {
               final width = constraints.maxWidth;
               return Container(
                 height: _trackHeight,
-                margin: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+                margin: EdgeInsets.symmetric(
+                  vertical: compact ? 0 : MileafSpace.s8,
+                ),
                 decoration: BoxDecoration(
                   color: colors.lineStrong,
                   borderRadius: MileafRadius.xsAll,

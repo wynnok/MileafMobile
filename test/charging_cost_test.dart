@@ -160,7 +160,7 @@ void main() {
     await tapCostAction(tester, '确认补录');
     expect(find.text('该充电记录已不可用'), findsOneWidget);
     await tapCostAction(tester, '关闭');
-    expect(find.text('充电 #1 · 查看详情'), findsNothing);
+    expect(find.byKey(const ValueKey('charge-1')), findsNothing);
     expect(find.text('补录费用'), findsNothing);
     expect(site.writes, hasLength(1));
   });
@@ -180,7 +180,7 @@ void main() {
       site.reads.where((r) => r.url.queryParameters['cursor'] == 'page2'),
       hasLength(2),
     );
-    expect(find.text('充电 #2 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-2')), findsOneWidget);
     expect(find.text('补录费用'), findsNothing);
   });
   testWidgets('写入成功后汇总读取失败仍保持成功，不能再次补录', (tester) async {

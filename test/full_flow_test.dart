@@ -117,9 +117,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电 #1 · 查看详情'), 250);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('charge-1')),
+      250,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电 #1 · 查看详情'));
+    await tester.tap(find.byKey(const ValueKey('charge-1')));
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('两类能量'), 180);

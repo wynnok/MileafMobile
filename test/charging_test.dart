@@ -165,7 +165,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('充电 #9 · 查看详情'));
+    await tester.ensureVisible(find.byKey(const ValueKey('charge-9')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('加载更多充电'));
     await tester.pumpAndSettle();
@@ -179,7 +179,7 @@ void main() {
     await tester.drag(find.byType(ListView).last, const Offset(0, -200));
     await tester.pumpAndSettle();
     expect(requests.length, 2);
-    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     recover = true;
     await tester.scrollUntilVisible(find.text('重试充电'), -300);
     await tester.tap(find.text('重试充电'));
@@ -259,7 +259,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('充入电池 20 kWh'), findsWidgets);
+    expect(find.textContaining('入电 20 kWh'), findsWidgets);
     expect(find.textContaining('电网侧 22 kWh'), findsWidgets);
     expect(find.textContaining('费用 12'), findsWidgets);
     expect(find.textContaining('币种未记录'), findsWidgets);
@@ -306,8 +306,11 @@ void main() {
     await tester.scrollUntilVisible(find.text('重试充电'), -300);
     await tester.tap(find.text('重试充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电 #7 · 查看详情'), 300);
-    expect(find.text('充电 #7 · 查看详情'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('charge-7')),
+      300,
+    );
+    expect(find.byKey(const ValueKey('charge-7')), findsOneWidget);
     expect(
       requests.last.url.queryParameters['cursor'],
       'MjAyNi0wMy0xNVQxMTowMDowMCswMDowMHw4',
@@ -318,7 +321,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(requests.last.url.queryParameters.containsKey('cursor'), isFalse);
     expect(requests.last.headers['if-none-match'], '"charges"');
-    expect(find.text('充电 #7 · 查看详情'), findsNothing);
+    expect(find.byKey(const ValueKey('charge-7')), findsNothing);
   });
   testWidgets('历史日期含首尾且跨DST使用日历边界，区间改变清除旧内容', (tester) async {
     final requests = <http.Request>[];
@@ -435,9 +438,12 @@ void main() {
     await tester.pumpAndSettle();
     old.complete(jsonResponse(chargingFixture()));
     await tester.pumpAndSettle();
-    expect(find.text('充电 #9 · 查看详情'), findsNothing);
-    await tester.scrollUntilVisible(find.text('充电 #77 · 查看详情'), 300);
-    expect(find.text('充电 #77 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('charge-77')),
+      300,
+    );
+    expect(find.byKey(const ValueKey('charge-77')), findsOneWidget);
     now = DateTime.utc(2026, 3, 31, 0, 1);
     background(tester);
     foreground(tester);
@@ -494,10 +500,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(
-      find.text('充电 #9 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-9')).hitTestable(),
       200,
     );
-    await tester.tap(find.text('充电 #9 · 查看详情').hitTestable());
+    await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
     await tester.binding.handlePopRoute();

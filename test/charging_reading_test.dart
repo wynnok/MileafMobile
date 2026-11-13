@@ -562,7 +562,7 @@ void main() {
     await openLedger(tester, site);
     await tester.tap(find.text('全部记录'));
     await tester.pumpAndSettle();
-    expect(find.text('费用 — · 币种未记录'), findsWidgets);
+    expect(find.text('费用 —，币种未记录'), findsWidgets);
     // A real entry from another main entry: the ledger tab stays hidden.
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
@@ -595,7 +595,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     expect(ledgerReads(site), greaterThan(0));
-    expect(find.text('费用 — · 币种未记录'), findsWidgets);
+    expect(find.text('费用 —，币种未记录'), findsWidgets);
     // A failed deferred refresh stays pending instead of silently keeping the
     // old cost until the next TTL.
     await tester.tap(find.text('概览').last);
@@ -604,7 +604,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     expect(ledgerReads(site), greaterThan(0));
-    expect(find.text('费用 27.5 · 币种未记录'), findsOneWidget);
+    expect(find.text('费用 27.5，币种未记录'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -704,7 +704,7 @@ void main() {
     await tester.tap(find.text('全部记录'));
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
     site.failCursor = 'p2';
@@ -713,7 +713,7 @@ void main() {
     await tester.pumpAndSettle();
     // The first page came back, the second did not: the pages already read
     // stay on screen instead of collapsing to the first one.
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('重试充电'),
       300,
@@ -754,8 +754,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
-    expect(find.text('充电 #35 · 查看详情'), findsNothing);
-    expect(find.text('充电 #34 · 查看详情'), findsNothing);
+    expect(find.byKey(const ValueKey('charge-35')), findsNothing);
+    expect(find.byKey(const ValueKey('charge-34')), findsNothing);
     await tester.scrollUntilVisible(
       find.text('已到最后一条'),
       300,
@@ -806,7 +806,7 @@ void main() {
     await tester.tap(find.text('费用未知').last);
     await tester.pumpAndSettle();
     expect(find.text('匹配 2 次充电'), findsOneWidget);
-    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('补录费用').first,
       200,
@@ -821,8 +821,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('费用已补录'), findsOneWidget);
     expect(find.text('匹配 1 次充电'), findsOneWidget);
-    expect(find.text('充电 #9 · 查看详情'), findsNothing);
-    expect(find.text('充电 #32 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsNothing);
+    expect(find.byKey(const ValueKey('charge-32')), findsOneWidget);
     expect(
       ledgerOffset(tester),
       lessThanOrEqualTo(ledgerScroll(tester).maxScrollExtent),
@@ -838,12 +838,12 @@ void main() {
     await readLedgerToEnd(tester);
     final offset = ledgerOffset(tester);
     await tester.scrollUntilVisible(
-      find.text('充电 #9 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-9')).hitTestable(),
       -300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电 #9 · 查看详情').hitTestable());
+    await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
     await tester.pumpAndSettle();
     await openCostSheet(tester);
     await tester.enterText(find.byType(TextField).last, '1.25');
@@ -871,14 +871,14 @@ void main() {
       ),
       isNotEmpty,
     );
-    expect(find.text('费用 27.5 · 币种未记录'), findsOneWidget);
+    expect(find.text('费用 27.5，币种未记录'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('已到最后一条'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('已到最后一条'), findsOneWidget);
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     expect(ledgerOffset(tester), closeTo(offset, 400));
     expect(tester.takeException(), isNull);
   });
@@ -920,7 +920,7 @@ void main() {
       isEmpty,
     );
     expect(ledgerOffset(tester), closeTo(offset, 400));
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     expect(find.text('加载更多充电'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('已到最后一条'),
@@ -1070,7 +1070,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('地点搜索：家'), findsNothing);
-    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1080,7 +1080,7 @@ void main() {
     await tester.tap(find.text('全部记录'));
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     // The server starts repeating a cursor in the middle of the range.
     site.repeatedCursor = 'p2';
     await tester.tap(find.text('概览').last);
@@ -1093,7 +1093,7 @@ void main() {
       lessThanOrEqualTo(4),
       reason: '重复游标必须终止翻页',
     );
-    expect(find.text('充电 #34 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('分页游标未前进'),
       300,
@@ -1109,7 +1109,7 @@ void main() {
     await openLedger(tester, site, now: () => now);
     await tester.tap(find.text('全部记录'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电 #9 · 查看详情').hitTestable());
+    await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
     await tester.pumpAndSettle();
     // Cross the local midnight while the ledger sits under its own detail.
     now = DateTime.utc(2026, 3, 31, 0, 30);

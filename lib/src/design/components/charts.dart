@@ -60,6 +60,7 @@ class TimeSeriesChart extends StatefulWidget {
     required this.semanticsLabel,
     this.subtitle,
     this.controls,
+    this.headerTrailing,
     this.height,
     this.plotKey,
     this.tickLabel,
@@ -84,6 +85,9 @@ class TimeSeriesChart extends StatefulWidget {
   final String semanticsLabel;
   final String? subtitle;
   final Widget? controls;
+
+  /// Responsive controls beside a short heading, stacked at large text sizes.
+  final Widget? headerTrailing;
   final double? height;
   final Key? plotKey;
   final String Function(DateTime)? tickLabel;
@@ -198,6 +202,24 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           Text(widget.subtitle!, style: type.label.copyWith(color: faint)),
       ],
     );
+    final heading = widget.headerTrailing == null
+        ? header
+        : MileafLayout.largeText(context)
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              const SizedBox(height: MileafSpace.s8),
+              widget.headerTrailing!,
+            ],
+          )
+        : Row(
+            children: [
+              header,
+              const SizedBox(width: MileafSpace.s12),
+              Expanded(child: widget.headerTrailing!),
+            ],
+          );
     final legend = widget.series.length > 1
         ? Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),
@@ -219,7 +241,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          header,
+          heading,
           if (widget.controls != null) ...[
             const SizedBox(height: MileafSpace.s8),
             widget.controls!,
@@ -232,11 +254,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (legend == null || MileafLayout.largeText(context))
-          header
+          heading
         else
           Row(
             children: [
-              Expanded(child: header),
+              Expanded(child: heading),
               legend,
             ],
           ),
@@ -556,6 +578,7 @@ class StemChart extends StatelessWidget {
     required this.semanticsLabel,
     this.subtitle,
     this.controls,
+    this.headerTrailing,
     this.height,
     this.plotKey,
     this.selectedIndex,
@@ -575,6 +598,9 @@ class StemChart extends StatelessWidget {
   final String semanticsLabel;
   final String? subtitle;
   final Widget? controls;
+
+  /// Responsive controls beside a short heading, stacked at large text sizes.
+  final Widget? headerTrailing;
   final double? height;
   final Key? plotKey;
   final int? selectedIndex;
@@ -597,6 +623,7 @@ class StemChart extends StatelessWidget {
     semanticsLabel: semanticsLabel,
     subtitle: subtitle,
     controls: controls,
+    headerTrailing: headerTrailing,
     height: height,
     plotKey: plotKey,
     selectedIndex: selectedIndex,

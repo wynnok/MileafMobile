@@ -17,19 +17,14 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     expect(find.text('已知充电费用'), findsOneWidget);
-    expect(find.textContaining('费用覆盖'), findsOneWidget);
+    expect(find.textContaining('费用有记录'), findsOneWidget);
     expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
+    final dailyTop = tester.getTopLeft(find.text('每日补能')).dy;
+    expect(tester.getTopLeft(find.text('已知充电费用')).dy, lessThan(dailyTop));
+    await tester.scrollUntilVisible(find.text('补入电池'), 160);
     expect(find.text('补入电池'), findsOneWidget);
     expect(find.text('充电次数'), findsOneWidget);
     expect(find.text('记录时长'), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.text('已知充电费用')).dy,
-      lessThan(tester.getTopLeft(find.text('补入电池')).dy),
-    );
-    expect(
-      tester.getTopLeft(find.text('补入电池')).dy,
-      lessThan(tester.getTopLeft(find.text('每日补能')).dy),
-    );
     expect(tester.takeException(), isNull);
   });
 

@@ -2,37 +2,37 @@
   {
     "scene": "normal-dark",
     "bodyHeight": 620.0,
-    "firstTop": 644.0,
-    "firstBottom": 852.0,
-    "requiredFirstHeight": 208.0,
-    "visibleFirstHeight": 0,
-    "targetMet": false
+    "firstTop": 486.0,
+    "firstBottom": 618.0,
+    "requiredFirstHeight": 132.0,
+    "visibleFirstHeight": 132.0,
+    "targetMet": true
   },
   {
     "scene": "normal-light",
     "bodyHeight": 620.0,
-    "firstTop": 644.0,
-    "firstBottom": 852.0,
-    "requiredFirstHeight": 208.0,
-    "visibleFirstHeight": 0,
-    "targetMet": false
+    "firstTop": 486.0,
+    "firstBottom": 618.0,
+    "requiredFirstHeight": 132.0,
+    "visibleFirstHeight": 132.0,
+    "targetMet": true
   },
   {
     "scene": "active-dark",
     "bodyHeight": 620.0,
-    "firstTop": 716.0,
-    "firstBottom": 924.0,
+    "firstTop": 558.0,
+    "firstBottom": 690.0,
     "requiredFirstHeight": 44,
-    "visibleFirstHeight": 0,
-    "targetMet": false
+    "visibleFirstHeight": 62.0,
+    "targetMet": true
   },
   {
     "scene": "active-light",
     "bodyHeight": 620.0,
-    "firstTop": 716.0,
-    "firstBottom": 924.0,
+    "firstTop": 558.0,
+    "firstBottom": 690.0,
     "requiredFirstHeight": 44,
-    "visibleFirstHeight": 0,
-    "targetMet": false
+    "visibleFirstHeight": 62.0,
+    "targetMet": true
   }
 ]

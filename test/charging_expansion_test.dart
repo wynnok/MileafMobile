@@ -589,7 +589,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('仅看 2026年3月29日'), findsOneWidget);
-    expect(find.textContaining('2026-03-28 23:10:00'), findsOneWidget);
+    expect(find.textContaining('2026-03-28 23:10'), findsOneWidget);
   });
 
   testWidgets('地点账目点击后以稳定地点键查询整个匹配集', (tester) async {
@@ -681,11 +681,11 @@ void main() {
     await tester.tap(find.text('全部记录'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('充电 #9 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-9')).hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
   });
 
   testWidgets('旧查询统计迟到不会覆盖新地点搜索结果', (tester) async {
@@ -758,13 +758,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
+    expect(find.textContaining('费用有记录 0 / 8'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('补入电池'), 160);
     expect(find.bySemanticsLabel(RegExp('补入电池 —')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('记录时长 —.*非等待时间')), findsOneWidget);
-    expect(find.textContaining('费用有记录 0 / 8'), findsOneWidget);
     free = true;
+    await tester.scrollUntilVisible(find.byTooltip('刷新充电').hitTestable(), -160);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp(r'有效入电均价 0')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('记录时长'), 160);
     expect(find.bySemanticsLabel(RegExp('记录时长 0 分钟.*非等待时间')), findsOneWidget);
   });
 
@@ -914,12 +918,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('匹配 2 次充电'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('充电 #10 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-10')).hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('充电 #10 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-10')), findsOneWidget);
     expect(
       requests.any((url) => url.queryParameters['cursor'] == 'page-two'),
       isTrue,
@@ -972,11 +976,11 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('充电 #9 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-9')).hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('充电 #9 · 查看详情'), findsOneWidget);
+    expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('未提供充电扩展能力').hitTestable(),
       -200,

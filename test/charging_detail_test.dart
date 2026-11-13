@@ -156,10 +156,10 @@ void main() {
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('充电 #8 · 查看详情').hitTestable(),
+      find.byKey(const ValueKey('charge-8')).hitTestable(),
       200,
     );
-    await tester.tap(find.text('充电 #8 · 查看详情').hitTestable());
+    await tester.tap(find.byKey(const ValueKey('charge-8')).hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
     expect(find.text('充电进行中，当前指标不代表最终结果'), findsOneWidget);

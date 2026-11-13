@@ -75,6 +75,40 @@ void main() {
         tester.getTopLeft(find.text('我的补能方式')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
     expect(recentTop, lessThan(methodTop));
+    tester.state<ScrollableState>(scroll).position.jumpTo(0);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('补入电池'), 160, scrollable: scroll);
+    await tester.pumpAndSettle();
+    final readingsTop =
+        tester.getTopLeft(find.text('补入电池')).dy +
+        tester.state<ScrollableState>(scroll).position.pixels;
+    expect(readingsTop, greaterThan(recentTop));
+    expect(readingsTop, lessThan(methodTop));
+  });
+  testWidgets('U06 列表隐藏ID，详情说明保留ID与精确时间', (tester) async {
+    final client = aGalleryClient();
+    addTearDown(client.close);
+    await tester.pumpWidget(app(client, now: () => cNow));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('充电').last);
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('charge-9'));
+    await tester.scrollUntilVisible(row.hitTestable(), 120);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('充电 #9'), findsNothing);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.text('充电详情'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('更多充电信息').hitTestable(), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多充电信息'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('充电记录 #9'), 100);
+    expect(find.text('充电记录 #9'), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'^开始 .*\d{2}:\d{2}:\d{2}')),
+      findsOneWidget,
+    );
   });
   testWidgets('U06 正式字体矩阵与首屏预算实测', (tester) async {
     tester.view.devicePixelRatio = 1;
@@ -179,6 +213,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('充电').last);
       await tester.pumpAndSettle();
+      if (scenario == 'normal' && scale == 1.3) {
+        expect(
+          tester.getSize(find.text('均价')).height,
+          lessThanOrEqualTo(18 * scale + .5),
+        );
+        expect(
+          tester.getTopLeft(find.text('均价')).dy,
+          greaterThan(tester.getTopLeft(find.text('电量')).dy),
+        );
+      }
       final prefix =
           '$output/charging-$scenario-${mode.name}-${size.width.round()}-${(scale * 100).round()}${safeZero ? '-safe0' : ''}';
       final scroll = find
@@ -214,6 +258,12 @@ void main() {
               (scenario == 'active' ? first.top + 44 : first.bottom) + offset <=
               viewport.bottom,
         });
+        final requiredBottom = scenario == 'active'
+            ? first.top + 44
+            : first.bottom;
+        expect(requiredBottom + offset, lessThanOrEqualTo(viewport.bottom));
+        final recent = tester.getRect(find.text('最近的充电'));
+        expect(recent.bottom + offset, lessThanOrEqualTo(viewport.bottom));
         debugPrint(
           'U06 ${mode.name} body=$viewport first=$first offset=$offset',
         );
