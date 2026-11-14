@@ -504,54 +504,87 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     ],
   );
   Widget insightHeader() {
+    final large = MileafLayout.largeText(context);
+    final actions = <Widget>[
+      TextButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _AllMetricsPage(
+              timezone: workspace.calendar!.identifier,
+              onTopic: (key) {
+                Navigator.of(context).pop();
+                selectTopic(key);
+              },
+            ),
+          ),
+        ),
+        child: const Text('全部指标'),
+      ),
+    ];
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
-        MileafSpace.s8,
+        topic == 'overview' ? 0 : MileafSpace.s8,
         MileafLayout.pageInset(context),
         0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MileafNavigationRow(
-            title: Text(
-              topic == 'overview'
-                  ? '统计'
-                  : const {
-                          'usage': '用车节奏',
-                          'energy': '能耗',
-                          'charging': '补能',
-                          'long': '长期观察',
-                          'range': '长期续航',
-                          'parking': '停放观察',
-                          'legacy': '原始统计指标',
-                        }[topic] ??
-                        '统计专题',
-            ),
-            onBack: topic == 'overview' ? null : () => selectTopic('overview'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => _AllMetricsPage(
-                      timezone: workspace.calendar!.identifier,
-                      onTopic: (key) {
-                        Navigator.of(context).pop();
-                        selectTopic(key);
-                      },
-                    ),
+          if (topic == 'overview')
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: MileafSpace.s12,
+              runSpacing: MileafSpace.s4,
+              children: [
+                SizedBox(
+                  width: large ? double.infinity : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('统计', style: context.type.pageTitle),
+                      const SizedBox(height: MileafSpace.inline2),
+                      Text(
+                        _periodLabel(),
+                        style: context.type.label.copyWith(
+                          color: context.colors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text('全部指标'),
+                ...actions,
+              ],
+            )
+          else ...[
+            MileafNavigationRow(
+              title: Text(
+                const {
+                      'usage': '用车节奏',
+                      'energy': '能耗',
+                      'charging': '补能',
+                      'long': '长期观察',
+                      'range': '长期续航',
+                      'parking': '停放观察',
+                      'legacy': '原始统计指标',
+                    }[topic] ??
+                    '统计专题',
               ),
-            ],
+              onBack: () => selectTopic('overview'),
+              actions: actions,
+            ),
+            Text(
+              _periodLabel(),
+              style: context.type.label.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+          ],
+          SizedBox(
+            height: topic == 'overview' ? MileafSpace.s4 : MileafSpace.s8,
           ),
-          Text(
-            _periodLabel(),
-            style: context.type.label.copyWith(color: context.colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s8),
           StatisticsPeriodControls(
             selection: selection,
             calendar: workspace.calendar!,
@@ -660,53 +693,55 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     }
     final data = current;
     if (data == null) {
-      return Column(
-        children: [
-          insightHeader(),
-          Expanded(
-            child: topic == 'long'
-                ? longTopics()
-                : topic != 'overview' &&
-                      features != null &&
-                      widget.topics.containsKey(topic)
-                ? widget.topics[topic]!(topicContext())
-                : topic != 'overview'
-                ? widget.legacyBuilder(selection)
-                : Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+      final content = topic == 'long'
+          ? longTopics()
+          : topic != 'overview' &&
+                features != null &&
+                widget.topics.containsKey(topic)
+          ? widget.topics[topic]!(topicContext())
+          : topic != 'overview'
+          ? widget.legacyBuilder(selection)
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (busy) ...[
+                    const MileafProgressLine(),
+                    const Text('正在读取统计'),
+                  ],
+                  if (error != null) Text(error!),
+                  TextButton(
+                    onPressed: () => load(force: true),
+                    child: const Text('重试统计'),
+                  ),
+                  if (error != null)
+                    Wrap(
+                      spacing: MileafSpace.s8,
+                      runSpacing: MileafSpace.s4,
+                      alignment: WrapAlignment.center,
                       children: [
-                        if (busy) ...[
-                          const MileafProgressLine(),
-                          const Text('正在读取统计'),
-                        ],
-                        if (error != null) Text(error!),
-                        TextButton(
-                          onPressed: () => load(force: true),
-                          child: const Text('重试统计'),
-                        ),
-                        if (error != null)
-                          Wrap(
-                            spacing: MileafSpace.s8,
-                            runSpacing: MileafSpace.s4,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              for (final entry in const {
-                                'usage': '节奏',
-                                'energy': '能耗',
-                                'charging': '补能',
-                                'long': '长期',
-                              }.entries)
-                                TextButton(
-                                  onPressed: () => selectTopic(entry.key),
-                                  child: Text(entry.value),
-                                ),
-                            ],
+                        for (final entry in const {
+                          'usage': '节奏',
+                          'energy': '能耗',
+                          'charging': '补能',
+                          'long': '长期',
+                        }.entries)
+                          TextButton(
+                            onPressed: () => selectTopic(entry.key),
+                            child: Text(entry.value),
                           ),
                       ],
                     ),
-                  ),
-          ),
+                ],
+              ),
+            );
+      if (topic == 'overview' && MileafLayout.largeText(context)) {
+        return ListView(children: [insightHeader(), content]);
+      }
+      return Column(
+        children: [
+          insightHeader(),
+          Expanded(child: content),
         ],
       );
     }
@@ -728,7 +763,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
     return Column(
       children: [
-        insightHeader(),
+        if (topic != 'overview' || !MileafLayout.largeText(context))
+          insightHeader(),
         Expanded(
           child: topic == 'long'
               ? longTopics()
@@ -739,6 +775,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               : ListView(
                   padding: EdgeInsets.zero,
                   children: [
+                    if (MileafLayout.largeText(context)) insightHeader(),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),

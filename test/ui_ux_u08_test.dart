@@ -233,6 +233,8 @@ void main() {
             }
             expect(tester.state<ScrollableState>(list).position.extentAfter, 0);
             if (scenario == 'normal' && scale == 2 && size.width == 768) {
+              await tester.drag(list, const Offset(0, 10000));
+              await tester.pumpAndSettle();
               await tester.tap(find.widgetWithText(TextButton, '全部指标'));
               await tester.pumpAndSettle();
               expect(
@@ -253,15 +255,14 @@ void main() {
             if (scenario == 'normal' &&
                 scale == 2 &&
                 (size.width == 320 || size.width == 768)) {
-              for (
-                var attempt = 0;
-                find.text('长期').hitTestable().evaluate().isEmpty &&
-                    attempt < 40;
-                attempt++
-              ) {
-                await tester.drag(list, const Offset(0, 60));
-                await tester.pumpAndSettle();
-              }
+              await tester.drag(list, const Offset(0, 10000));
+              await tester.pumpAndSettle();
+              await tester.scrollUntilVisible(
+                find.text('长期'),
+                120,
+                scrollable: list,
+              );
+              await tester.pumpAndSettle();
               await tester.tap(find.text('长期').hitTestable());
               await tester.pumpAndSettle();
               await save('long-index');
