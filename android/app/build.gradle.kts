@@ -37,6 +37,8 @@ android {
 
     buildTypes {
         release {
+            // AMap embeds final resource IDs that are incompatible with R8 resource shrinking.
+            isShrinkResources = false
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
