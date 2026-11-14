@@ -1,5 +1,7 @@
 # 整体 UI/UX 优化实施 Tickets
 
+> 2026-11-14 接续说明。U00–U12 已集成本地，事实见 [U12](../implementation/ui-ux-refinement/U12.md)。本日只读查询的 #27–#40 仍为 OPEN，下文任务状态保留发布时记录。新一轮 [F00–F12 草案](apple-design-renewal-tickets.md)处于待确认、待发布状态。
+
 2026-11-12，状态为confirmed。用户确认文档正式化与GitHub发布。U00–U12共13个产品任务待开始。设计规则见[规格](ui-ux-refinement.md)，执行步骤与测试文件见[交付手册](ui-ux-refinement-delivery.md)，取舍见[ADR0011](../adr/0011-ui-ux-refinement.md)。
 
 ## 任务及依赖

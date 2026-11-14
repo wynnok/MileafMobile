@@ -1,5 +1,7 @@
 # 行笺 UI/UX 优化：实施任务与验收手册
 
+> 2026-11-14 接续说明。U00–U12 本地交付见 [U12](../implementation/ui-ux-refinement/U12.md)，下文保留原批次合同。下一轮 [Apple 风格焕新交付手册](apple-design-renewal-delivery.md)为 proposed，待用户确认后用于新批次。
+
 GitHub正式增量Spec为[#27](https://github.com/wynnok/MileafMobile/issues/27)，U00–U12映射见[实施Tickets](ui-ux-refinement-tickets.md)。
 
 版本1.0，2026-11-12。状态为confirmed，产品实施U00–U12待开始。配套[规格](ui-ux-refinement.md)、[Tickets](ui-ux-refinement-tickets.md)及[审计](../product/ui-ux-refinement-audit.md)。

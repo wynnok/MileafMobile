@@ -1,5 +1,7 @@
 # 以统一排版和任务层级推进整体 UI/UX 精修
 
+> 2026-11-14 接续说明。U00–U12 已进入当前 main，本地集成事实见 [U12](../implementation/ui-ux-refinement/U12.md)。下文为发布时决定及状态。下一轮方案见 [ADR0012](0012-apple-design-renewal.md)，目前为 proposed，待用户确认。
+
 - 日期为2026-11-12，状态为accepted。用户已确认设计文档更新范围及GitHub发布。
 - 实施基线为main的2f8755c。代表页面视觉待验，产品实施待开始。
 - 正式依据见[整体规格](../specs/ui-ux-refinement.md)、[实施任务](../specs/ui-ux-refinement-tickets.md)和[交付手册](../specs/ui-ux-refinement-delivery.md)。

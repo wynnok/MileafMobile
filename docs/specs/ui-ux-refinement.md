@@ -1,5 +1,7 @@
 # 行笺 UI/UX 全面优化规格：克制、精致、有秩序
 
+> 2026-11-14 接续说明。U00–U12 的代码与本地交付已进入 main，事实见 [U12](../implementation/ui-ux-refinement/U12.md)及后续提交。下文状态为 2026-11-12 发布时记录。新一轮 [Apple 风格焕新规格](apple-design-renewal.md)为 proposed，待用户确认后按其明确增量接续。
+
 GitHub正式增量Spec为[#27](https://github.com/wynnok/MileafMobile/issues/27)，U00–U12映射见[实施Tickets](ui-ux-refinement-tickets.md)。
 
 版本1.0，2026-11-12。实施基线为 `main` / `2f8755c`。
