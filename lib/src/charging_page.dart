@@ -1254,7 +1254,7 @@ class _ChargingPageState extends State<ChargingPage>
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
-        MileafSpace.s24,
+        MileafSpace.s16,
         MileafLayout.pageInset(context),
         0,
       ),
@@ -1297,46 +1297,16 @@ class _ChargingPageState extends State<ChargingPage>
                 showDay(DateTime(local.year, local.month, local.day));
               },
         activationLabel: '查看这一天的充电',
-        headerTrailing: LayoutBuilder(
-          builder: (context, constraints) {
-            final label = TextPainter(
-              text: TextSpan(text: '均价', style: context.type.label),
-              textDirection: TextDirection.ltr,
-              textScaler: MediaQuery.textScalerOf(context),
-            )..layout();
-            final horizontalInset = MileafSpace.s12 + const BorderSide().width;
-            final minimumWidth = label.width + horizontalInset * 2;
-            label.dispose();
-            final capacity =
-                ((constraints.maxWidth + MileafSpace.s8) /
-                        (minimumWidth + MileafSpace.s8))
-                    .floor();
-            final fourColumns =
-                capacity >= 4 &&
-                !MileafLayout.largeText(context) &&
-                MediaQuery.sizeOf(context).width > 320;
-            final columns = fourColumns
-                ? 4
-                : capacity >= 2
-                ? 2
-                : 1;
-            return ChipRow(
-              children: [
-                for (final (index, entry) in entries.indexed)
-                  SizedBox(
-                    width:
-                        (constraints.maxWidth -
-                            MileafSpace.s8 * (columns - 1)) /
-                        columns,
-                    child: StatusChip(
-                      label: entry.$1,
-                      selected: chartMetric == index,
-                      onTap: () => setState(() => chartMetric = index),
-                    ),
-                  ),
-              ],
-            );
-          },
+        headerTrailing: ChipRow(
+          equalWidth: true,
+          children: [
+            for (final (index, entry) in entries.indexed)
+              StatusChip(
+                label: entry.$1,
+                selected: chartMetric == index,
+                onTap: () => setState(() => chartMetric = index),
+              ),
+          ],
         ),
       ),
     );
@@ -1696,7 +1666,7 @@ class _ChargingPageState extends State<ChargingPage>
   }
 
   Widget _periodRow() {
-    Widget chip(String label, int days) => StatusChip(
+    StatusChip chip(String label, int days) => StatusChip(
       label: label,
       selected: widget.filter.first == null && recentDays == days,
       onTap: () {
@@ -1712,44 +1682,25 @@ class _ChargingPageState extends State<ChargingPage>
     final end = zone.local(to.subtract(const Duration(microseconds: 1)));
     final range =
         '${start.year}/${start.month}/${start.day}–${end.year}/${end.month}/${end.day}';
-    final date = TextButton(
-      onPressed: filterDates,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, MileafSpace.touch),
-        padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
-        visualDensity: VisualDensity.compact,
-      ),
-      child: Semantics(
-        label: '选择充电日期，$range，按${expandedAvailable ? '结束' : '开始'}时间归期',
-        excludeSemantics: true,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final date = StatusChip(
+      label: '自定义日期',
+      selected: widget.filter.first != null,
+      semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}时间归期',
+      onTap: filterDates,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ChipRow(
           children: [
-            Text('日期', style: context.type.label),
-            Text(range, style: context.type.micro),
+            if (expandedAvailable) ...[chip('近30天', 30), chip('近7天', 7)],
+            date,
           ],
         ),
-      ),
-    );
-    if (!expandedAvailable) {
-      return Align(alignment: Alignment.centerLeft, child: date);
-    }
-    if (MileafLayout.largeText(context)) {
-      return Wrap(
-        spacing: MileafSpace.s8,
-        runSpacing: MileafSpace.s8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ChipRow(children: [chip('近30天', 30), chip('近7天', 7)]),
-          date,
+        if (widget.filter.first != null || !expandedAvailable) ...[
+          const SizedBox(height: MileafSpace.s8),
+          Text(range, style: context.type.micro),
         ],
-      );
-    }
-    return Row(
-      children: [
-        ChipRow(children: [chip('近30天', 30), chip('近7天', 7)]),
-        const SizedBox(width: MileafSpace.s8),
-        Expanded(child: date),
       ],
     );
   }
@@ -2051,7 +2002,7 @@ class _ChargingPageState extends State<ChargingPage>
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
-        MileafSpace.s24,
+        MileafSpace.s16,
         MileafLayout.pageInset(context),
         0,
       ),

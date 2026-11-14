@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'design/components/components.dart';
+import 'design/tokens.dart';
 import 'workspace.dart';
 
 enum StatisticsPeriod { week, recent, month, year, custom }
@@ -119,48 +120,51 @@ class StatisticsPeriodControls extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('自定义统计日期'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ChipRow(
-                  alignment: WrapCrossAlignment.start,
-                  children: [
-                    for (final preset in const {
-                      StatisticsPeriod.week: '本周',
-                      StatisticsPeriod.recent: '近7天',
-                      StatisticsPeriod.month: '本月',
-                      StatisticsPeriod.year: '本年',
-                    }.entries)
-                      ActionChip(
-                        label: Text(preset.value),
-                        onPressed: () => Navigator.pop(
-                          context,
-                          StatisticsSelection(period: preset.key),
+          content: SizedBox(
+            width: MileafBreakpoints.sheetMax - MileafSpace.s24 * 2,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ChipRow(
+                    alignment: WrapCrossAlignment.start,
+                    children: [
+                      for (final preset in const {
+                        StatisticsPeriod.week: '本周',
+                        StatisticsPeriod.recent: '近7天',
+                        StatisticsPeriod.month: '本月',
+                        StatisticsPeriod.year: '本年',
+                      }.entries)
+                        StatusChip(
+                          label: preset.value,
+                          onTap: () => Navigator.pop(
+                            context,
+                            StatisticsSelection(period: preset.key),
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。'),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: start,
-                  decoration: const InputDecoration(labelText: '开始日期'),
-                  keyboardType: TextInputType.datetime,
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: end,
-                  decoration: const InputDecoration(labelText: '结束日期（含）'),
-                  keyboardType: TextInputType.datetime,
-                ),
-                if (error != null) ...[
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  Text(error!),
+                  const Text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。'),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: start,
+                    decoration: const InputDecoration(labelText: '开始日期'),
+                    keyboardType: TextInputType.datetime,
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: end,
+                    decoration: const InputDecoration(labelText: '结束日期（含）'),
+                    keyboardType: TextInputType.datetime,
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(error!),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           actions: [
@@ -211,41 +215,45 @@ class StatisticsPeriodControls extends StatelessWidget {
     end.dispose();
   }
 
-  /// Two quick ranges plus the 日期 sheet action, all A chips; custom/week/year
-  /// stay reachable from the sheet. Chips wrap instead of scrolling at 200%.
+  /// Quick periods and the shared custom-date entry, with a visible custom range.
   @override
-  Widget build(BuildContext context) => ChipRow(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      StatusChip(
-        label: '本月',
-        selected: selection.period == StatisticsPeriod.month,
-        onTap: () => onChanged(
-          const StatisticsSelection(period: StatisticsPeriod.month),
+      ChipRow(
+        children: [
+          StatusChip(
+            label: '本月',
+            selected: selection.period == StatisticsPeriod.month,
+            onTap: () => onChanged(
+              const StatisticsSelection(period: StatisticsPeriod.month),
+            ),
+          ),
+          StatusChip(
+            label: '近7天',
+            selected: selection.period == StatisticsPeriod.recent,
+            onTap: () => onChanged(
+              const StatisticsSelection(period: StatisticsPeriod.recent),
+            ),
+          ),
+          StatusChip(
+            label: '自定义日期',
+            selected: switch (selection.period) {
+              StatisticsPeriod.week ||
+              StatisticsPeriod.year ||
+              StatisticsPeriod.custom => true,
+              _ => false,
+            },
+            onTap: () => custom(context),
+          ),
+        ],
+      ),
+      if (selection.period == StatisticsPeriod.custom) ...[
+        const SizedBox(height: MileafSpace.s8),
+        Text(
+          '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
         ),
-      ),
-      StatusChip(
-        label: '近7天',
-        selected: selection.period == StatisticsPeriod.recent,
-        onTap: () => onChanged(
-          const StatisticsSelection(period: StatisticsPeriod.recent),
-        ),
-      ),
-      StatusChip(
-        label: switch (selection.period) {
-          StatisticsPeriod.week => '本周',
-          StatisticsPeriod.year => '本年',
-          StatisticsPeriod.custom =>
-            '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
-          _ => '日期',
-        },
-        selected: switch (selection.period) {
-          StatisticsPeriod.week ||
-          StatisticsPeriod.year ||
-          StatisticsPeriod.custom => true,
-          _ => false,
-        },
-        onTap: () => custom(context),
-      ),
+      ],
     ],
   );
 }

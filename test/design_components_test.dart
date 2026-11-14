@@ -516,6 +516,53 @@ void main() {
   });
 
   group('StatusChip / 按钮', () {
+    testWidgets('共享轨道切换保留选中语义，四指标窄屏大字重排且可点', (tester) async {
+      final semantics = tester.ensureSemantics();
+
+      for (final scale in [1.0, 2.0]) {
+        var selected = 0;
+        await pumpComponent(
+          tester,
+          StatefulBuilder(
+            builder: (context, update) => ChipRow(
+              equalWidth: true,
+              children: [
+                for (final (index, label) in ['里程', '电耗', '补能', '费用'].indexed)
+                  StatusChip(
+                    label: label,
+                    selected: selected == index,
+                    onTap: () => update(() => selected = index),
+                  ),
+              ],
+            ),
+          ),
+          width: 320,
+          scale: scale,
+        );
+        expect(tester.takeException(), isNull);
+        final first = tester.getRect(find.widgetWithText(StatusChip, '里程'));
+        final third = tester.getRect(find.widgetWithText(StatusChip, '补能'));
+        expect(first.height, greaterThanOrEqualTo(44));
+        expect(third.top, greaterThanOrEqualTo(first.bottom));
+        await tester.tap(find.text('费用'));
+        await tester.pumpAndSettle();
+        expect(selected, 3);
+        expect(
+          tester.getSemantics(find.byType(StatusChip).last),
+          matchesSemantics(
+            label: '费用',
+            isButton: true,
+            hasEnabledState: true,
+            isEnabled: true,
+            hasSelectedState: true,
+            isSelected: true,
+          ),
+        );
+        expect(tester.takeException(), isNull);
+      }
+      semantics.dispose();
+    });
+
     testWidgets('chip 触控 44、选中过渡 160ms，选中与禁用状态可用', (tester) async {
       var taps = 0;
       await pumpComponent(

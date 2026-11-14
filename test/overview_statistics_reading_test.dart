@@ -461,6 +461,16 @@ void main() {
     );
     await tester.tap(find.widgetWithText(StatusChip, '近7天'));
     await tester.pumpAndSettle();
+    await tester.drag(
+      find
+          .descendant(
+            of: find.byType(OverviewPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(StatusChip, '费用'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('点按读值').hitTestable(), 220);

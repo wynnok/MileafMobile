@@ -14,9 +14,11 @@ class StatusChip extends StatefulWidget {
     this.onTap,
     this.enabled = true,
     this.onHero = false,
+    this.semanticLabel,
   });
 
   final String label;
+  final String? semanticLabel;
   final bool selected;
   final VoidCallback? onTap;
   final bool enabled;
@@ -35,17 +37,11 @@ class _StatusChipState extends State<StatusChip> {
     final type = context.type;
     final selected = widget.selected;
     final enabled = widget.enabled && widget.onTap != null;
-    // Selected label and stroke are text / edge signals: `accentStrong` on the
-    // paper, hero text with an `accentHero` stroke on the dark hero (§7.1).
     final onHero = widget.onHero;
-    final selectedTint = colors.heroText.withValues(alpha: .12);
-    final idleTint = colors.heroText.withValues(alpha: .04);
-    final background = selected
-        ? (onHero ? selectedTint : colors.surface)
-        : (onHero ? idleTint : Colors.transparent);
-    final border = selected
-        ? (onHero ? colors.heroText : colors.textMuted)
-        : (onHero ? colors.heroText.withValues(alpha: .16) : colors.line);
+    final grouped = ChipTrackScope.maybeOf(context);
+    final background = grouped || !selected
+        ? Colors.transparent
+        : colors.segmentSelected;
     final Color foreground;
     if (!widget.enabled) {
       foreground = colors.textFaint.withValues(alpha: .38);
@@ -62,8 +58,7 @@ class _StatusChipState extends State<StatusChip> {
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: MileafRadius.mdAll,
-        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(MileafSpace.s8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -73,7 +68,10 @@ class _StatusChipState extends State<StatusChip> {
           Flexible(
             child: Text(
               widget.label,
-              style: type.label.copyWith(color: foreground),
+              style: type.label.copyWith(
+                color: foreground,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -82,8 +80,8 @@ class _StatusChipState extends State<StatusChip> {
     return Semantics(
       button: widget.onTap != null,
       selected: selected,
-      enabled: widget.enabled,
-      label: widget.label,
+      enabled: enabled,
+      label: widget.semanticLabel ?? widget.label,
       excludeSemantics: true,
       child: Focus(
         onFocusChange: (value) => setState(() => _focused = value),
@@ -111,7 +109,14 @@ class _StatusChipState extends State<StatusChip> {
                           border: Border.all(color: colors.focusRing, width: 2),
                         )
                       : null,
-                  child: chip,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      chip,
+                      if (selected && !grouped)
+                        const Positioned.fill(child: ChipSelectionMark()),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -120,4 +125,37 @@ class _StatusChipState extends State<StatusChip> {
       ),
     );
   }
+}
+
+/// Marks chips whose selected surface is painted once by the shared track.
+class ChipTrackScope extends InheritedWidget {
+  const ChipTrackScope({super.key, required super.child});
+
+  static bool maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ChipTrackScope>() != null;
+
+  @override
+  bool updateShouldNotify(ChipTrackScope oldWidget) => false;
+}
+
+class ChipSelectionMark extends StatelessWidget {
+  const ChipSelectionMark({super.key});
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: MileafSpace.s4),
+        child: Container(
+          width: MileafSpace.s12,
+          height: MileafSpace.inline2,
+          decoration: BoxDecoration(
+            color: context.colors.accentStrong,
+            borderRadius: BorderRadius.circular(MileafSpace.inline2),
+          ),
+        ),
+      ),
+    ),
+  );
 }

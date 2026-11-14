@@ -1002,9 +1002,13 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.textContaining('2026/3/25–2026/3/31').hitTestable(),
+      find.text('自定义日期').hitTestable(),
       -300,
       scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp('自定义日期，2026/3/25–2026/3/31')),
+      findsOneWidget,
     );
     expect(find.textContaining('仅看'), findsNothing);
     expect(find.text('返回完整区间'), findsNothing);

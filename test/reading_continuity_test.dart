@@ -354,7 +354,7 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     });
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/02/01');
@@ -606,7 +606,7 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     }, now: () => now);
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/03/01');
@@ -1187,7 +1187,7 @@ void main() {
       );
     });
     requests.clear();
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/02/01');

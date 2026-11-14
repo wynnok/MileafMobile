@@ -794,27 +794,37 @@ class _ExpandedChargingCurveState extends State<ExpandedChargingCurve> {
     final choice = choices.firstWhere((entry) => entry.$1 == metric);
     final available = widget.series.capabilities.fields;
     final events = widget.series.stateEvents;
-    final controls = ChipRow(
+    final controls = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final entry in choices)
-          if ((socAxis || (entry.$1 != 'power' && entry.$1 != 'soc')) &&
-              (entry.$1 == 'power' ||
-                  entry.$1 == 'soc' ||
-                  available[entry.$1] == true))
-            StatusChip(
-              label: '${entry.$2} ${entry.$3}',
-              selected: metric == entry.$1,
-              onTap: () => setState(() => metric = entry.$1),
-            ),
-        StatusChip(
-          label: '按时间',
-          selected: !socAxis,
-          onTap: () => setState(() => socAxis = false),
+        ChipRow(
+          children: [
+            for (final entry in choices)
+              if ((socAxis || (entry.$1 != 'power' && entry.$1 != 'soc')) &&
+                  (entry.$1 == 'power' ||
+                      entry.$1 == 'soc' ||
+                      available[entry.$1] == true))
+                StatusChip(
+                  label: '${entry.$2} ${entry.$3}',
+                  selected: metric == entry.$1,
+                  onTap: () => setState(() => metric = entry.$1),
+                ),
+          ],
         ),
-        StatusChip(
-          label: '按电量',
-          selected: socAxis,
-          onTap: () => setState(() => socAxis = true),
+        const SizedBox(height: MileafSpace.s8),
+        ChipRow(
+          children: [
+            StatusChip(
+              label: '按时间',
+              selected: !socAxis,
+              onTap: () => setState(() => socAxis = false),
+            ),
+            StatusChip(
+              label: '按电量',
+              selected: socAxis,
+              onTap: () => setState(() => socAxis = true),
+            ),
+          ],
         ),
       ],
     );

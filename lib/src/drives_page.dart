@@ -600,14 +600,10 @@ class _DrivesPageState extends State<DrivesPage>
       selected: custom == null && recentDays == 7,
       onTap: () => selectDays(7),
     );
-    final dateAction = TextButton(
-      onPressed: chooseDates,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, MileafSpace.touch),
-        padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
-        visualDensity: VisualDensity.compact,
-      ),
-      child: const Text('日期'),
+    final dateAction = StatusChip(
+      label: '自定义日期',
+      selected: custom != null,
+      onTap: chooseDates,
     );
     return ChipRow(children: [recent, week, dateAction]);
   }

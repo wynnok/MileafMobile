@@ -208,7 +208,7 @@ void main() {
       await tester.tap(find.text('充电'));
       await tester.pumpAndSettle();
       if (range != 'default') {
-        await tester.tap(find.text('日期'));
+        await tester.tap(find.text('自定义日期'));
         await tester.pumpAndSettle();
         await tester.enterText(
           find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
@@ -338,7 +338,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
@@ -486,7 +486,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),

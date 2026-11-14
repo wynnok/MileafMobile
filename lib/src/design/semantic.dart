@@ -44,6 +44,12 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// Input and actionable boundaries use an opaque neutral with measured contrast.
   Color get controlBorder => textMuted;
 
+  /// Neutral inset track and its single selected surface.
+  Color get segmentTrack =>
+      isDark ? surfaceRaised : MileafPalette.segmentTrackLight;
+  Color get segmentSelected =>
+      isDark ? MileafPalette.segmentSelectedDark : surface;
+
   /// Dark: neutral cold black, one accent for graphics and text.
   const MileafColors.dark()
     : isDark = true,

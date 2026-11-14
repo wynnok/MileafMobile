@@ -390,6 +390,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     int selected,
     ValueChanged<int> onSelected,
   ) => ChipRow(
+    equalWidth: true,
     children: [
       for (var i = 0; i < labels.length; i++)
         StatusChip(

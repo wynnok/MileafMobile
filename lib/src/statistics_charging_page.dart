@@ -351,45 +351,15 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
   /// 可见短词沿 P09，完整口径由图标题、系列名与读屏保留。
   Widget _metricControls() {
     const short = ['电量', '费用', '均价', '次数'];
-    Widget chip(int i) => StatusChip(
+    StatusChip chip(int i) => StatusChip(
       label: short[i],
       selected: metric == i,
       onTap: () => setState(() => metric = i),
     );
-    Widget track(Widget child) => DecoratedBox(
-      decoration: BoxDecoration(
-        color: context.colors.surfaceRaised,
-        borderRadius: MileafRadius.mdAll,
-      ),
-      child: child,
+    return ChipRow(
+      equalWidth: true,
+      children: [for (var i = 0; i < short.length; i++) chip(i)],
     );
-    final width = MediaQuery.sizeOf(context).width;
-    final large = MileafLayout.largeText(context);
-    if (large || width < MileafBreakpoints.wide) {
-      // 320宽或150%+：2×2，短词不再挤压。
-      return track(
-        Column(
-          children: [
-            Row(
-              children: [
-                Expanded(child: chip(0)),
-                const SizedBox(width: MileafSpace.s8),
-                Expanded(child: chip(1)),
-              ],
-            ),
-            const SizedBox(height: MileafSpace.s4),
-            Row(
-              children: [
-                Expanded(child: chip(2)),
-                const SizedBox(width: MileafSpace.s8),
-                Expanded(child: chip(3)),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-    return ChipRow(children: [for (var i = 0; i < short.length; i++) chip(i)]);
   }
 
   @override

@@ -265,7 +265,7 @@ void main() {
               as BoxDecoration;
       expect(
         decoration.color,
-        const MileafColors.dark().surface,
+        const MileafColors.dark().segmentSelected,
         reason: '禁动效下选中底色 1ms 内到达终态（160ms 过渡下此处仍是起始色）',
       );
     });

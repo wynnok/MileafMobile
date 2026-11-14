@@ -24,6 +24,9 @@ abstract final class MileafPalette {
 
   /// 浅色中性：canvas / surface。
   static const paper50 = Color(0xFFF4F5F7);
+  static const segmentTrackLight = Color(0xFFE6E9ED);
+  static const segmentSelectedDark = Color(0xFF343C46);
+
   static const paper0 = Color(0xFFFFFFFF);
 
   /// 深色正文与 hero 内三级文字。

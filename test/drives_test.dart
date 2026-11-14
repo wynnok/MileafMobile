@@ -171,7 +171,7 @@ void main() {
       },
     );
     final before = statsCount;
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '2020/01/01');
     await tester.enterText(find.byType(TextField).at(1), '2026/03/30');
@@ -390,7 +390,7 @@ void main() {
         );
       }, now: () => now);
       if (range != 'default') {
-        await tester.tap(find.text('日期'));
+        await tester.tap(find.text('自定义日期'));
         await tester.pumpAndSettle();
         final inputs = find.byType(TextField);
         await tester.enterText(inputs.at(0), '2026/03/29');
@@ -536,7 +536,7 @@ void main() {
       calendar: () async => CalendarContext(zone),
     );
     expect(find.text('这段时间还没有行程'), findsOneWidget);
-    await tester.tap(find.text('日期'));
+    await tester.tap(find.text('自定义日期'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2024/03/09');

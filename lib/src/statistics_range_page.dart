@@ -337,9 +337,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
       else ...[
         if (!compact) ...[
           const SizedBox(height: MileafSpace.s16),
-          Wrap(
-            spacing: MileafSpace.s8,
-            runSpacing: MileafSpace.s8,
+          ChipRow(
             children: [
               for (final m in [6, 12])
                 StatusChip(

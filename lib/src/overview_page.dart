@@ -1176,37 +1176,25 @@ class _OverviewPageState extends State<OverviewPage>
     return last < 0 ? 0 : last;
   }
 
-  Widget _metricTabs() => LayoutBuilder(
-    builder: (context, constraints) {
-      final twoColumns =
-          MileafLayout.largeText(context) ||
-          MediaQuery.sizeOf(context).width <= 320;
-      final columns = twoColumns ? 2 : 4;
-      final cellWidth =
-          (constraints.maxWidth - MileafSpace.s8 * (columns - 1)) / columns;
-      return ChipRow(
-        children: [
-          for (final (m, label) in [
-            (_Metric.distance, '里程'),
-            (_Metric.net, '电耗'),
-            (_Metric.charge, '补能'),
-            (_Metric.cost, '费用'),
-          ])
-            SizedBox(
-              width: cellWidth,
-              child: StatusChip(
-                label: label,
-                selected: metric == m,
-                onTap: () => setState(() {
-                  metric = m;
-                  chartSelection = null;
-                  chartSelectionAt = null;
-                }),
-              ),
-            ),
-        ],
-      );
-    },
+  Widget _metricTabs() => ChipRow(
+    equalWidth: true,
+    children: [
+      for (final (m, label) in [
+        (_Metric.distance, '里程'),
+        (_Metric.net, '电耗'),
+        (_Metric.charge, '补能'),
+        (_Metric.cost, '费用'),
+      ])
+        StatusChip(
+          label: label,
+          selected: metric == m,
+          onTap: () => setState(() {
+            metric = m;
+            chartSelection = null;
+            chartSelectionAt = null;
+          }),
+        ),
+    ],
   );
 
   Widget _auxReadout() {

@@ -64,16 +64,8 @@ http.Response fixture(String name) => http.Response(
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
 
-/// 打开日期 sheet 的动作胶囊。标签随当前期间变化（日期/本周/本年/起止日），
-/// 因此按文本而不是 lib 内的 key 定位。
-Finder dateAction() => find.byWidgetPredicate(
-  (widget) =>
-      widget is StatusChip &&
-      (widget.label == '日期' ||
-          widget.label == '本周' ||
-          widget.label == '本年' ||
-          widget.label.contains(' 至 ')),
-);
+/// All periods share the same stable custom-date entry label.
+Finder dateAction() => find.widgetWithText(StatusChip, '自定义日期');
 
 Future<void> tapDateAction(WidgetTester tester) async {
   await tester.tap(dateAction());
@@ -86,7 +78,7 @@ Future<void> pickPeriod(WidgetTester tester, String label) async {
   await tester.tap(
     find.descendant(
       of: find.byType(AlertDialog),
-      matching: find.widgetWithText(ActionChip, label),
+      matching: find.widgetWithText(StatusChip, label),
     ),
   );
   await tester.pumpAndSettle();
@@ -397,7 +389,7 @@ void main() {
     expect(queries.last['bucket'], 'month');
     await custom(tester, '2026-01-01', '2026-01-31');
     expect(queries.last['bucket'], 'day');
-    await tester.tap(find.textContaining('2026-01-01 至 2026-01-31'));
+    await tester.tap(dateAction());
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '结束日期（含）'),
@@ -406,7 +398,7 @@ void main() {
     await tester.tap(find.text('应用区间'));
     await tester.pumpAndSettle();
     expect(queries.last['bucket'], 'week');
-    await tester.tap(find.textContaining('2026-01-01 至 2026-02-01'));
+    await tester.tap(dateAction());
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '结束日期（含）'),
@@ -415,7 +407,7 @@ void main() {
     await tester.tap(find.text('应用区间'));
     await tester.pumpAndSettle();
     expect(queries.last['bucket'], 'week');
-    await tester.tap(find.textContaining('2026-01-01 至 2026-06-29'));
+    await tester.tap(dateAction());
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '结束日期（含）'),
@@ -436,7 +428,7 @@ void main() {
     await custom(tester, '2026-03-08', '2026-03-08');
     expect(queries.last['from'], '2026-03-08T05:00:00.000Z');
     expect(queries.last['to'], '2026-03-09T04:00:00.000Z');
-    await tester.tap(find.textContaining('2026-03-08 至 2026-03-08'));
+    await tester.tap(dateAction());
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '开始日期'),
@@ -463,7 +455,7 @@ void main() {
     expect(queries.last['from'], '2024-03-16T00:00:00.000Z');
     expect(queries.last['to'], '2026-03-16T00:00:00.000Z');
     final before = queries.length;
-    await tester.tap(find.textContaining('2024-03-16 至 2026-03-15'));
+    await tester.tap(dateAction());
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '开始日期'),

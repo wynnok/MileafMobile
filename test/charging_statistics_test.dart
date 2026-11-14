@@ -189,7 +189,8 @@ void main() {
       requests.skip(count).map((r) => r.url.queryParameters['kind']).toList(),
       ['charging'],
     );
-    await tester.tap(find.textContaining('2026-03-08 至 2026-03-08'));
+    await tapDateAction(tester);
+    // The shared date entry opens the same editor.
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '开始日期'),
@@ -237,7 +238,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.widgetWithText(ActionChip, '本年'),
+          matching: find.widgetWithText(StatusChip, '本年'),
         ),
       );
       await tester.pumpAndSettle();
@@ -264,9 +265,9 @@ void main() {
       expect(find.bySemanticsLabel('行程数 49 次'), findsOneWidget);
       expect(find.textContaining('保留上次快照'), findsNothing);
       expect(
-        find.widgetWithText(StatusChip, '本年'),
+        find.widgetWithText(StatusChip, '自定义日期'),
         findsOneWidget,
-        reason: '驾驶统计沿用同一年区间，控件显示当前为 本年',
+        reason: '驾驶统计沿用同一年区间，日期入口保持统一名称',
       );
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();

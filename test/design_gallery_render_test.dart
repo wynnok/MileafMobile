@@ -296,7 +296,7 @@ class _Gallery extends StatelessWidget {
                     children: [
                       StatusChip(label: '近30天', selected: true),
                       StatusChip(label: '近7天'),
-                      StatusChip(label: '日期'),
+                      StatusChip(label: '自定义日期'),
                     ],
                   ),
                   const SizedBox(height: 16),
