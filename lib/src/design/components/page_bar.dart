@@ -23,9 +23,15 @@ class MileafNavigationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final large = MileafLayout.largeText(context);
+    final inset = MileafLayout.pageInset(context);
     final actionRow = Row(mainAxisSize: MainAxisSize.min, children: actions);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
+      // Let the invisible hit padding extend into the page margin, so the
+      // chevron and action text share the content's visible edges.
+      padding: EdgeInsetsDirectional.only(
+        start: inset - (onBack != null ? MileafSpace.s12 : 0),
+        end: inset - (actions.isNotEmpty ? MileafSpace.s12 : 0),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,13 +40,11 @@ class MileafNavigationRow extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: MileafSpace.s56),
             child: Row(
               children: [
-                if (onBack != null) ...[
+                if (onBack != null)
                   SizedBox.square(
                     dimension: MileafSpace.touch,
                     child: _NavigationBackButton(onPressed: onBack!),
                   ),
-                  const SizedBox(width: MileafSpace.s4),
-                ],
                 Expanded(
                   child: DefaultTextStyle(
                     style: context.type.title.copyWith(
@@ -68,6 +72,10 @@ AppBar mileafPageBar(
 }) {
   final canPop = ModalRoute.of(context)?.impliesAppBarDismissal ?? false;
   final large = MileafLayout.largeText(context);
+  final contentWidth = math.min(
+    MediaQuery.sizeOf(context).width - MediaQuery.paddingOf(context).horizontal,
+    MileafBreakpoints.maxContent,
+  );
   final painter =
       TextPainter(
         text: TextSpan(text: title.data, style: context.type.title),
@@ -76,9 +84,10 @@ AppBar mileafPageBar(
       )..layout(
         maxWidth: math.max(
           1,
-          MediaQuery.sizeOf(context).width -
-              MileafSpace.s24 -
-              (canPop ? MileafSpace.touch + MileafSpace.s4 : 0) -
+          contentWidth -
+              2 * MileafLayout.pageInset(context) -
+              (canPop ? MileafSpace.touch - MileafSpace.s12 : 0) +
+              (actions.isNotEmpty ? MileafSpace.s12 : 0) -
               (large ? 0 : actions.length * MileafSpace.s56),
         ),
       );
@@ -93,10 +102,12 @@ AppBar mileafPageBar(
     // AppBar caps its inherited text scaler; preserve the user's full scale.
     title: MediaQuery(
       data: MediaQuery.of(context),
-      child: MileafNavigationRow(
-        title: title,
-        onBack: canPop ? () => Navigator.maybePop(context) : null,
-        actions: actions,
+      child: MileafContent(
+        child: MileafNavigationRow(
+          title: title,
+          onBack: canPop ? () => Navigator.maybePop(context) : null,
+          actions: actions,
+        ),
       ),
     ),
   );

@@ -521,91 +521,92 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         child: const Text('全部指标'),
       ),
     ];
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        topic == 'overview' ? 0 : MileafSpace.s8,
-        MileafLayout.pageInset(context),
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (topic == 'overview')
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: MileafSpace.s12,
-              runSpacing: MileafSpace.s4,
-              children: [
-                SizedBox(
-                  width: large ? double.infinity : null,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('统计', style: context.type.pageTitle),
-                      const SizedBox(height: MileafSpace.inline2),
-                      Text(
-                        _periodLabel(),
-                        style: context.type.label.copyWith(
-                          color: context.colors.textMuted,
-                        ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (topic != 'overview')
+          MileafNavigationRow(
+            title: Text(
+              const {
+                    'usage': '用车节奏',
+                    'energy': '能耗',
+                    'charging': '补能',
+                    'long': '长期观察',
+                    'range': '长期续航',
+                    'parking': '停放观察',
+                    'legacy': '原始统计指标',
+                  }[topic] ??
+                  '统计专题',
+            ),
+            onBack: () => selectTopic('overview'),
+            actions: actions,
+          ),
+        Padding(
+          padding: MileafLayout.pageHorizontal(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (topic == 'overview')
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: MileafSpace.s12,
+                  runSpacing: MileafSpace.s4,
+                  children: [
+                    SizedBox(
+                      width: large ? double.infinity : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('统计', style: context.type.pageTitle),
+                          const SizedBox(height: MileafSpace.inline2),
+                          Text(
+                            _periodLabel(),
+                            style: context.type.label.copyWith(
+                              color: context.colors.textMuted,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                    ...actions,
+                  ],
+                )
+              else ...[
+                Text(
+                  _periodLabel(),
+                  style: context.type.label.copyWith(
+                    color: context.colors.textMuted,
                   ),
                 ),
-                ...actions,
               ],
-            )
-          else ...[
-            MileafNavigationRow(
-              title: Text(
-                const {
-                      'usage': '用车节奏',
-                      'energy': '能耗',
-                      'charging': '补能',
-                      'long': '长期观察',
-                      'range': '长期续航',
-                      'parking': '停放观察',
-                      'legacy': '原始统计指标',
-                    }[topic] ??
-                    '统计专题',
+              SizedBox(
+                height: topic == 'overview' ? MileafSpace.s4 : MileafSpace.s8,
               ),
-              onBack: () => selectTopic('overview'),
-              actions: actions,
-            ),
-            Text(
-              _periodLabel(),
-              style: context.type.label.copyWith(
-                color: context.colors.textMuted,
+              StatisticsPeriodControls(
+                selection: selection,
+                calendar: workspace.calendar!,
+                now: workspace.session.now(),
+                editor: readingEditor,
+                onChanged: (s) {
+                  setState(() {
+                    selection = s;
+                    current = null;
+                    reference = null;
+                    charging = null;
+                    loadedWindow = null;
+                    point = 0;
+                    pointAt = null;
+                    pointTouched = false;
+                  });
+                  load();
+                },
               ),
-            ),
-          ],
-          SizedBox(
-            height: topic == 'overview' ? MileafSpace.s4 : MileafSpace.s8,
+            ],
           ),
-          StatisticsPeriodControls(
-            selection: selection,
-            calendar: workspace.calendar!,
-            now: workspace.session.now(),
-            editor: readingEditor,
-            onChanged: (s) {
-              setState(() {
-                selection = s;
-                current = null;
-                reference = null;
-                charging = null;
-                loadedWindow = null;
-                point = 0;
-                pointAt = null;
-                pointTouched = false;
-              });
-              load();
-            },
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
