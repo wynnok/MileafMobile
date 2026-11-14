@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+
 import 'api.dart';
 import 'currency.dart';
 import 'design/components/components.dart';
@@ -1891,7 +1892,7 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('服务信息')),
+    appBar: mileafPageBar(context, title: const Text('服务信息')),
     body: SafeArea(
       child: MileafContent(
         child: ListView(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 import 'number_format.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -111,7 +112,7 @@ class _CurrencyPageState extends State<CurrencyPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('站点币种')),
+    appBar: mileafPageBar(context, title: const Text('站点币种')),
     body: SafeArea(
       child: MileafContent(
         child: ListenableBuilder(

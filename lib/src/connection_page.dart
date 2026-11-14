@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'design/components/page_bar.dart';
+
 import 'api.dart';
 import 'design/brand_mark.dart';
 import 'design/layout.dart';
@@ -136,7 +138,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('连接你的站点')),
+    appBar: mileafPageBar(context, title: const Text('连接你的站点')),
     body: SafeArea(
       child: MileafContent(
         child: SingleChildScrollView(

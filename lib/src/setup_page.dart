@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'design/components/page_bar.dart';
+
 import 'design/brand_mark.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
@@ -43,7 +45,7 @@ class _SetupPageState extends State<SetupPage> {
       return PopScope(
         canPop: !session.loading,
         child: Scaffold(
-          appBar: AppBar(title: const Text('首次初始化站点')),
+          appBar: mileafPageBar(context, title: const Text('初始化站点')),
           body: SafeArea(
             child: MileafContent(
               child: SingleChildScrollView(

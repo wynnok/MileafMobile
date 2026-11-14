@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+
 import 'number_format.dart';
 
 import 'api.dart';
@@ -708,7 +709,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   Widget build(BuildContext context) {
     final inset = MileafLayout.pageInset(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: mileafPageBar(
+        context,
         title: const Text('行程详情'),
         actions: [
           IconButton(

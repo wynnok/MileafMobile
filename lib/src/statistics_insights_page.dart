@@ -54,7 +54,9 @@ class StatisticsInsightsPage extends StatefulWidget {
     required this.initialSelection,
     this.topics = const {},
     this.initialTopic = 'overview',
+    this.topBar,
   });
+  final Widget? topBar;
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
   final Widget Function(StatisticsSelection selection) legacyBuilder;
@@ -291,7 +293,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             return child!;
           },
           child: Scaffold(
-            appBar: AppBar(
+            appBar: mileafPageBar(
+              routeContext,
               title: Text(
                 const {
                       'usage': '节奏',
@@ -501,7 +504,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     ],
   );
   Widget insightHeader() {
-    final large = MileafLayout.largeText(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -512,34 +514,23 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: MileafSpace.s12,
-            runSpacing: MileafSpace.s4,
-            children: [
-              if (topic != 'overview')
-                BackButton(
-                  color: context.colors.textMuted,
-                  onPressed: () => selectTopic('overview'),
-                ),
-              SizedBox(
-                width: large ? double.infinity : null,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('统计', style: context.type.pageTitle),
-                    const SizedBox(height: MileafSpace.inline2),
-                    Text(
-                      _periodLabel(),
-                      style: context.type.label.copyWith(
-                        color: context.colors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          MileafNavigationRow(
+            title: Text(
+              topic == 'overview'
+                  ? '统计'
+                  : const {
+                          'usage': '用车节奏',
+                          'energy': '能耗',
+                          'charging': '补能',
+                          'long': '长期观察',
+                          'range': '长期续航',
+                          'parking': '停放观察',
+                          'legacy': '原始统计指标',
+                        }[topic] ??
+                        '统计专题',
+            ),
+            onBack: topic == 'overview' ? null : () => selectTopic('overview'),
+            actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -556,7 +547,11 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               ),
             ],
           ),
-          const SizedBox(height: MileafSpace.s4),
+          Text(
+            _periodLabel(),
+            style: context.type.label.copyWith(color: context.colors.textMuted),
+          ),
+          const SizedBox(height: MileafSpace.s8),
           StatisticsPeriodControls(
             selection: selection,
             calendar: workspace.calendar!,
@@ -597,10 +592,24 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (topic == 'overview' && widget.topBar != null) widget.topBar!,
+      Expanded(
+        child: SafeArea(
+          top: topic != 'overview',
+          bottom: false,
+          child: MileafContent(child: buildContent(context)),
+        ),
+      ),
+    ],
+  );
+
+  Widget buildContent(BuildContext context) {
     if (features != null && features!['driving_coverage'] != true) {
       return Column(
         children: [
+          if (topic != 'overview') insightHeader(),
           if (error != null)
             Row(
               children: [
@@ -1408,7 +1417,7 @@ class _AllMetricsPage extends StatelessWidget {
   final ValueChanged<String> onTopic;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('全部指标与口径')),
+    appBar: mileafPageBar(context, title: const Text('全部指标与口径')),
     body: MileafContent(
       child: ListView(
         padding: MileafLayout.pagePadding(context),

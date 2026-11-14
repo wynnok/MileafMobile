@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 import 'design/brand_mark.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -35,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final session = widget.session;
     return Scaffold(
-      appBar: AppBar(title: const Text('登录行笺')),
+      appBar: mileafPageBar(context, title: const Text('登录行笺')),
       body: SafeArea(
         child: MileafContent(
           child: SingleChildScrollView(
@@ -132,7 +133,8 @@ class VehiclePage extends StatelessWidget {
   final VoidCallback onSettings;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
+    appBar: mileafPageBar(
+      context,
       title: const Text('站点车辆'),
       actions: [
         IconButton(

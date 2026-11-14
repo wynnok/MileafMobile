@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../design/components/page_bar.dart';
+
 import 'map_consent.dart';
 import 'map_panel.dart';
 import 'map_platform.dart';
@@ -18,7 +20,7 @@ class DriveMapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('行程地图')),
+    appBar: mileafPageBar(context, title: const Text('行程地图')),
     body: MapPanel(
       scene: scene,
       consent: consent,

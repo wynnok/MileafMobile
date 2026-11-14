@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 import 'api.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -114,7 +115,7 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('站点连接')),
+    appBar: mileafPageBar(context, title: const Text('站点连接')),
     body: SafeArea(
       child: MileafContent(
         child: SingleChildScrollView(

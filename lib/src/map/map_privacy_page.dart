@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+
 import 'package:flutter/services.dart';
 
 import '../design/components/components.dart';
@@ -150,7 +152,7 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
       builder: (context, _) => PopScope(
         canPop: !(keys?.busy ?? false),
         child: Scaffold(
-          appBar: AppBar(title: const Text('地图')),
+          appBar: mileafPageBar(context, title: const Text('地图')),
           body: SafeArea(
             top: false,
             child: SingleChildScrollView(

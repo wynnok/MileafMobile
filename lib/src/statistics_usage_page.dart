@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+
 import 'design/components/components.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
@@ -1042,7 +1043,7 @@ class _DrivingEvidencePageState extends State<DrivingEvidencePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.title)),
+    appBar: mileafPageBar(context, title: Text(widget.title)),
     body: SafeArea(
       top: false,
       child: MileafContent(

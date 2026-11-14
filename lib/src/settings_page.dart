@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 import 'appearance.dart';
 import 'appearance_sheet.dart';
 import 'connection_management.dart';
@@ -76,7 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('设置')),
+    appBar: mileafPageBar(context, title: const Text('设置')),
     body: SafeArea(
       child: MileafContent(
         child: ListView(

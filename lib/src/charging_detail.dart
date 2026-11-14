@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+
 import 'api.dart';
 import 'charging_cost.dart';
 
@@ -403,7 +404,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.currency,
     builder: (context, _) => Scaffold(
-      appBar: AppBar(
+      appBar: mileafPageBar(
+        context,
         title: const Text('充电详情'),
         actions: [
           IconButton(

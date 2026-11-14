@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+
 import 'api.dart';
 import 'charging_page.dart';
 import 'charging_detail.dart';
@@ -296,7 +297,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
         context,
         MaterialPageRoute(
           builder: (context) => Scaffold(
-            appBar: AppBar(title: const Text('补能记录')),
+            appBar: mileafPageBar(context, title: const Text('补能记录')),
             body: ChargingPage(
               workspace: scope.workspace,
               currency: scope.currency,

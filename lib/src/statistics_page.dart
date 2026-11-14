@@ -48,6 +48,7 @@ class _StatisticsEntryState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     final page = StatisticsInsightsPage(
+      topBar: widget.topBar,
       workspace: widget.workspace,
       currency: widget.currency,
       initialSelection: widget.initialSelection,
@@ -70,14 +71,7 @@ class _StatisticsEntryState extends State<StatisticsPage> {
         initialSelection: selection,
       ),
     );
-    final bar = widget.topBar;
-    if (bar == null) return MileafContent(child: page);
-    return Column(
-      children: [
-        bar,
-        Expanded(child: MileafContent(child: page)),
-      ],
-    );
+    return page;
   }
 }
 
