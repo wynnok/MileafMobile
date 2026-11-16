@@ -6,7 +6,7 @@
 
 | 冻结点 | 含义 | SHA |
 | --- | --- | --- |
-| FP0 | AP00 完成：在途改动与设计文档两次提交已落地，集成分支已建，AP00 交付物已提交 | 2b7bf2f（AP00 提交） |
+| FP0 | AP00 完成：在途改动与设计文档两次提交已落地，集成分支已建，AP00 交付物已提交，W1 工作树已建 | 7cf8dd4（AP00 + FP0 登记） |
 | FP1 | W1（AP01、AP06）合入 | 待登记 |
 | FP2 | W2（AP02–AP05）合入，共享 API 唯一清单 | 待登记 |
 | FP3 | AP07 经用户视觉裁定后冻结 | 待登记 |
@@ -33,8 +33,8 @@
 
 | 票 | 工作树目录 | 分支 | 输入冻结点 | 状态 |
 | --- | --- | --- | --- | --- |
-| AP01 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap01 | codex/apple-polish-ap01 | FP0 | 待创建（W1） |
-| AP06 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap06 | codex/apple-polish-ap06 | FP0 | 待创建（W1） |
+| AP01 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap01 | codex/apple-polish-ap01 | FP0 | 已创建（W1），依赖已备 |
+| AP06 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap06 | codex/apple-polish-ap06 | FP0 | 已创建（W1），依赖已备 |
 | AP02 | 待登记 | codex/apple-polish-ap02 | FP1 | 待创建（W2） |
 | AP03 | 待登记 | codex/apple-polish-ap03 | FP1 | 待创建（W2） |
 | AP04 | 待登记 | codex/apple-polish-ap04 | FP1 | 待创建（W2） |
