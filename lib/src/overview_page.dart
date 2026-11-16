@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-
 import 'api.dart';
 import 'currency.dart';
 import 'design/components/components.dart';
@@ -558,14 +557,13 @@ class _OverviewPageState extends State<OverviewPage>
     _ => '状态未知',
   };
 
-  // P01/R04: both appearances share the same compact status surface.
-  // MileafHero retains the historical full-bleed dark form for other callers.
+  // P01/R13: both appearances share the same compact content surface.
   Widget _statusSurface(Widget child) => MileafContent(
     padding: MileafLayout.pageHorizontal(context),
     child: Material(
       key: const ValueKey('overview-status'),
       color: context.colors.hero,
-      borderRadius: BorderRadius.circular(MileafRadius.lg),
+      borderRadius: MileafRadius.surfaceAll,
       clipBehavior: Clip.antiAlias,
       child: child,
     ),
@@ -1072,44 +1070,62 @@ class _OverviewPageState extends State<OverviewPage>
     final evidence = isCharging
         ? ranges['charging']?.current
         : ranges['driving']?.current;
-    String readout(int index) {
-      final value = index < values.length ? values[index] : null;
+    _PointReading point(int index) {
+      final raw = index < values.length ? values[index] : null;
       final stamp = tickLabelAt(times, index);
-      final currentReading = switch (metric) {
-        _Metric.cost => '$stamp · ${widget.currency.amountValue(value)}',
-        _Metric.net =>
-          value == null
-              ? '$stamp · —'
-              : '$stamp · ${value.toStringAsFixed(0)} Wh/km',
-        _ =>
-          value == null
-              ? '$stamp · —'
-              : '$stamp · ${value.toStringAsFixed(1)} $unit',
-      };
+      final isCost = metric == _Metric.cost;
+      final decimals = metric == _Metric.net ? 0 : 1;
+      String text(num value) => isCost
+          ? widget.currency.amountValue(value)
+          : value.toStringAsFixed(decimals);
+      String amount(num value) =>
+          isCost ? text(value) : '${text(value)} $unit';
+      String signed(num value) => isCost
+          ? '${value >= 0 ? '+' : '-'}${widget.currency.amountValue(value.abs())}'
+          : '${value >= 0 ? '+' : ''}${value.toStringAsFixed(decimals)} $unit';
+      final valueText = raw == null ? '—' : text(raw);
+      final unitText = raw == null || isCost ? null : unit;
+      var semantic =
+          '$stamp，$valueText${unitText == null ? '' : ' $unitText'}';
       final previous = reference?.elementAtOrNull(index);
-      if (value == null || previous == null) return currentReading;
-      final referenceReading =
-          '${_rangeText(comparisonRange?.previous)} '
-          '${previous.toStringAsFixed(metric == _Metric.net ? 0 : 1)} $unit';
-      final comparable =
-          metric != _Metric.net ||
-          (pairedAvailable &&
-              results['driving'] != null &&
-              comparisonResult != null &&
-              canCompare(
-                results['driving']!.body,
-                comparisonResult!.body,
-                workspace.calendar!,
-                period == OverviewPeriod.month
-                    ? StatisticsPeriod.month
-                    : StatisticsPeriod.custom,
-              ));
-      if (!comparable) {
-        return '$currentReading\n$referenceReading\n口径或覆盖待核验，仅展示原值';
+      String? referenceText, deltaText, note;
+      if (raw != null && previous != null) {
+        final label = period == OverviewPeriod.month ? '上月同期' : '前一区间';
+        final comparable =
+            metric != _Metric.net ||
+            (pairedAvailable &&
+                results['driving'] != null &&
+                comparisonResult != null &&
+                canCompare(
+                  results['driving']!.body,
+                  comparisonResult!.body,
+                  workspace.calendar!,
+                  period == OverviewPeriod.month
+                      ? StatisticsPeriod.month
+                      : StatisticsPeriod.custom,
+                ));
+        final range = _rangeText(comparisonRange?.previous);
+        referenceText = range == null
+            ? '$label ${amount(previous)}'
+            : '$label $range，${amount(previous)}';
+        final referenceSemantic = '${range ?? label} ${amount(previous)}';
+        if (!comparable) {
+          note = '口径或覆盖待核验，仅展示原值';
+          semantic = '$semantic\n$referenceSemantic\n$note';
+        } else {
+          deltaText = '差 ${signed(raw - previous)}';
+          semantic = '$semantic\n$referenceSemantic\n$deltaText';
+        }
       }
-      final difference = value - previous;
-      return '$currentReading\n$referenceReading\n'
-          '差 ${difference >= 0 ? '+' : ''}${difference.toStringAsFixed(metric == _Metric.net ? 0 : 1)} $unit';
+      return _PointReading(
+        day: stamp,
+        value: valueText,
+        unit: unitText,
+        delta: deltaText,
+        reference: referenceText,
+        note: note,
+        semantic: semantic,
+      );
     }
 
     return TimeSeriesChart(
@@ -1148,10 +1164,25 @@ class _OverviewPageState extends State<OverviewPage>
         chartSelection = index;
         chartSelectionAt = index < times.length ? times[index] : null;
       }),
-      readout: readout,
-      trailing: Text(
-        '点按读值',
-        style: context.type.label.copyWith(color: context.colors.textFaint),
+      readout: (index) => point(index).semantic,
+      readoutBuilder: (index) => KeyedSubtree(
+        key: const ValueKey('overview-chart-reading'),
+        child: AnimatedSwitcher(
+          duration: MileafLayout.motion(context, MileafDurations.value),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          // Only the incoming reading is laid out: the block takes its final
+          // height at once, so a metric with no reference never shifts the
+          // plate below it after the fade.
+          layoutBuilder: (current, _) => current ?? const SizedBox.shrink(),
+          // R06.6: dragging across points must not animate the numbers, so
+          // the key follows the metric, not the point. Only a metric change
+          // crossfades; a new point redraws in place.
+          child: _ChartReading(
+            key: ValueKey(metric.name),
+            reading: point(index),
+          ),
+        ),
       ),
       subtitle: '${_rangeText(evidence) ?? ''}\n$unit',
       tickLabel: (time) {
@@ -1198,29 +1229,92 @@ class _OverviewPageState extends State<OverviewPage>
     ],
   );
 
-  Widget _auxReadout() {
+  /// One cell of the period ledger. The label is spelled out because the
+  /// shared default stops at the value and would drop the currency caveat,
+  /// which is part of the number's meaning here.
+  Widget _readingCell(
+    String label, {
+    Key? key,
+    String? value,
+    String? unit,
+    String? note,
+  }) => MetricBlock(
+    key: key,
+    label: label,
+    value: value,
+    unit: unit,
+    note: note,
+    scale: MetricValueScale.metricMd,
+    semanticLabel:
+        '$label ${value ?? '—'}${unit == null ? '' : ' $unit'}'
+        '${note == null ? '' : '，$note'}',
+  );
+
+  /// Period totals stay a ledger: one hairline, a quiet caption, four cells on
+  /// the shared grid, and the caveats as a single closing paragraph instead of
+  /// interleaved lines. The cost coverage sits on the cost cell, because it is
+  /// that number's limitation, not a page-level footnote.
+  Widget _readingPlate() {
+    final colors = context.colors;
+    final type = context.type;
     final paired = enhancedDriving(results['driving']);
     final net = pairedAvailable
         ? paired?.totals.netConsumptionPaired.valueWhKm
         : driving?.totals.consumptionWhKmNet;
     final expanded = enhancedCharging;
     final cost = expanded?.totals.cost ?? charging?.totals.cost;
-    final note = widget.currency.amountNote;
     final coverage = expanded == null || expanded.totals.sessions == 0
         ? null
-        : '${expanded.totals.costKnownSessions}/${expanded.totals.sessions} 次';
-    final parts = <String>[
-      '净电耗 ${net == null ? '—' : '${net.toStringAsFixed(0)} Wh/km'}',
-      '已知费用 ${widget.currency.amountValue(cost)}',
-      '补能 ${number(charging?.totals.energyAddedKwh, 'kWh', decimals: 2)}',
-      '驾驶 ${driving?.totals.drives ?? '—'} 趟',
-      ?note,
-      if (coverage != null) '费用已知 $coverage，缺失不表示免费',
-      '净电耗与驾驶消耗为估算',
+        : '${expanded.totals.costKnownSessions}/${expanded.totals.sessions} 次已记录';
+    final energy = charging?.totals.energyAddedKwh;
+    final costNote = [
+      widget.currency.amountNote,
+      coverage,
+    ].nonNulls.join('，');
+    final cells = [
+      _readingCell(
+        '净电耗',
+        key: const ValueKey('overview-plate-net'),
+        value: net?.toStringAsFixed(0),
+        unit: net == null ? null : 'Wh/km',
+      ),
+      _readingCell(
+        '已知费用',
+        key: const ValueKey('overview-plate-cost'),
+        value: cost == null ? null : widget.currency.amountValue(cost),
+        note: costNote,
+      ),
+      _readingCell(
+        '补能',
+        key: const ValueKey('overview-plate-energy'),
+        value: energy == null ? null : grouped(energy, decimals: 2),
+        unit: energy == null ? null : 'kWh',
+      ),
+      _readingCell(
+        '驾驶',
+        key: const ValueKey('overview-plate-drives'),
+        value: driving?.totals.drives.toString(),
+        unit: driving == null ? null : '趟',
+      ),
     ];
-    return Text(
-      parts.join('\n'),
-      style: context.type.body.copyWith(color: context.colors.textMuted),
+    return Padding(
+      key: const ValueKey('overview-reading-plate'),
+      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Divider(height: 1, thickness: 1, color: colors.line),
+          const SizedBox(height: MileafSpace.s12),
+          Text('本期', style: type.label.copyWith(color: colors.textMuted)),
+          const SizedBox(height: MileafSpace.s8),
+          MetricGrid(children: cells),
+          const SizedBox(height: MileafSpace.s12),
+          Text(
+            '缺失的费用不表示免费。净电耗与驾驶消耗为估算。',
+            style: type.micro.copyWith(color: colors.textMuted),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1231,8 +1325,7 @@ class _OverviewPageState extends State<OverviewPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           mainChart(),
-          const SizedBox(height: MileafSpace.s8),
-          if (driving != null || charging != null) _auxReadout(),
+          if (driving != null || charging != null) _readingPlate(),
         ],
       ),
     );
@@ -1764,7 +1857,10 @@ class _OverviewPageState extends State<OverviewPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            ?topBar,
+            if (topBar != null)
+              topBar
+            else
+              SizedBox(height: MileafLayout.rootTopClearance(context)),
             if (data != null)
               _hero(data!)
             else if (loading)
@@ -1773,7 +1869,12 @@ class _OverviewPageState extends State<OverviewPage>
               _heroEmpty(),
             MileafContent(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(inset, 0, inset, MileafSpace.s24),
+                padding: EdgeInsets.fromLTRB(
+                  inset,
+                  0,
+                  inset,
+                  MileafLayout.rootNavigationClearance(context),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1827,6 +1928,108 @@ class _OverviewPageState extends State<OverviewPage>
       );
     },
   );
+}
+
+/// One selected point, split into roles so the date, the value and the
+/// reference each keep a single place on screen.
+class _PointReading {
+  const _PointReading({
+    required this.day,
+    required this.value,
+    this.unit,
+    this.delta,
+    this.reference,
+    this.note,
+    required this.semantic,
+  });
+
+  final String day;
+  final String? value;
+  final String? unit;
+  final String? delta;
+  final String? reference;
+  final String? note;
+
+  /// The chart's live-region sentence; it states the same value, reference and
+  /// difference that are drawn above it.
+  final String semantic;
+}
+
+/// The reading under the plot: date and hint, one dominant value, then the
+/// comparison as its own right-hand column. A page change of metric or point
+/// crossfades the whole block for 120ms (0ms under reduce motion).
+class _ChartReading extends StatelessWidget {
+  const _ChartReading({super.key, required this.reading});
+
+  final _PointReading reading;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final type = context.type;
+    final large = MileafLayout.largeText(context);
+    Widget micro(String text) =>
+        Text(text, style: type.micro.copyWith(color: colors.textMuted));
+    final day = Text(
+      reading.day,
+      style: type.label.copyWith(color: colors.textMuted),
+    );
+    final hint = Text(
+      '点按读值',
+      style: type.micro.copyWith(color: colors.textFaint),
+    );
+    final head = large
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              day,
+              const SizedBox(height: MileafSpace.inline6),
+              hint,
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(child: day),
+              const SizedBox(width: MileafSpace.s8),
+              hint,
+            ],
+          );
+    final value = MileafNumber(
+      value: reading.value,
+      unit: reading.unit,
+      scale: MetricValueScale.metricMd,
+    );
+    final reference = reading.reference;
+    final delta = reading.delta == null
+        ? null
+        : Text(reading.delta!, style: type.label.copyWith(color: colors.text));
+    // R06.6 order: the reference names the period, the difference answers it.
+    // Both sit under the value on their own lines — 24 → 12 → 14 — so the
+    // block keeps one rhythm at every width instead of squeezing a long
+    // reference beside the difference on narrow screens.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        head,
+        const SizedBox(height: MileafSpace.inline6),
+        value,
+        if (reference != null) ...[
+          const SizedBox(height: MileafSpace.s8),
+          micro(reference),
+        ],
+        if (delta != null) ...[
+          SizedBox(
+            height: reference == null ? MileafSpace.s8 : MileafSpace.inline6,
+          ),
+          delta,
+        ],
+        if (reading.note != null) ...[
+          const SizedBox(height: MileafSpace.s4),
+          micro(reading.note!),
+        ],
+      ],
+    );
+  }
 }
 
 class MetaPage extends StatefulWidget {

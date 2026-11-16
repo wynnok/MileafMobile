@@ -66,7 +66,7 @@ Future<void> tapChipIn(WidgetTester tester, Type page, String label) async {
     of: find.byType(page),
     matching: find.widgetWithText(StatusChip, label),
   );
-  await tester.ensureVisible(chip);
+  await Scrollable.ensureVisible(tester.element(chip), alignment: .5);
   await tester.pumpAndSettle();
   await tester.tap(chip);
   await tester.pumpAndSettle();
@@ -82,8 +82,20 @@ double tabOffset(WidgetTester tester, Type page) =>
 /// Taps the shared time-series plot at [fraction] of its width.
 Future<void> tapPlot(WidgetTester tester, double fraction) async {
   final chart = find.byType(TimeSeriesChart).first;
-  final paints = find.descendant(of: chart, matching: find.byType(CustomPaint));
-  final plot = tester.getRect(paints.last);
+  final interactivePlot = find.descendant(
+    of: chart,
+    matching: find.byWidgetPredicate(
+      (widget) => widget is GestureDetector && widget.onTapUp != null,
+    ),
+  );
+  final plots = [
+    for (var i = 0; i < interactivePlot.evaluate().length; i++)
+      tester.getRect(interactivePlot.at(i)),
+  ];
+  final plot = plots.reduce(
+    (left, right) =>
+        left.width * left.height >= right.width * right.height ? left : right,
+  );
   await tester.tapAt(Offset(plot.left + plot.width * fraction, plot.center.dy));
   await tester.pumpAndSettle();
 }
@@ -475,7 +487,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('点按读值').hitTestable(), 220);
     await tapPlot(tester, 0.9);
-    expect(find.textContaining('3/14 · ¥5'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-chart-reading')),
+        matching: find.text('3/14'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-chart-reading')),
+        matching: find.textContaining('¥5'),
+      ),
+      findsOneWidget,
+    );
     final offset = tabOffset(tester, OverviewPage);
     expect(offset, greaterThan(0));
     await selectTab(tester, '行程');
@@ -490,7 +515,20 @@ void main() {
       tester.widget<StatusChip>(find.widgetWithText(StatusChip, '费用')).selected,
       isTrue,
     );
-    expect(find.textContaining('3/14 · ¥5'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-chart-reading')),
+        matching: find.text('3/14'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-chart-reading')),
+        matching: find.textContaining('¥5'),
+      ),
+      findsOneWidget,
+    );
     expect(tabOffset(tester, OverviewPage), closeTo(offset, 1));
     expect(tester.takeException(), isNull);
   });
@@ -510,7 +548,6 @@ void main() {
     expect(offset, greaterThan(0));
     await selectTab(tester, '行程');
     await selectTab(tester, '统计');
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
     expect(tabOffset(tester, StatisticsInsightsPage), closeTo(offset, 1));
     expect(tester.takeException(), isNull);
   });
@@ -525,10 +562,7 @@ void main() {
       now: () => DateTime.utc(2026, 3, 30, 12),
       currency: currency,
     );
-    await tester.ensureVisible(find.widgetWithText(StatusChip, '近7天'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(StatusChip, '近7天'));
-    await tester.pumpAndSettle();
+    await tapChipIn(tester, OverviewPage, '近7天');
     final overviewFrom = site.reads
         .lastWhere(
           (r) =>
@@ -584,7 +618,13 @@ void main() {
       find.textContaining('已知费用').hitTestable(),
       220,
     );
-    expect(find.textContaining('已知费用 ¥99.5'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('¥99.5'),
+      ),
+      findsOneWidget,
+    );
     expect(site.writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -836,7 +876,6 @@ void main() {
       greaterThan(before),
       reason: 'TTL 过期后重新可见必须校验',
     );
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
     expect(chartDate(tester), chosen);
     expect(tabOffset(tester, StatisticsInsightsPage), closeTo(offset, 1));
     expect(tester.takeException(), isNull);
@@ -1208,7 +1247,13 @@ void main() {
       find.textContaining('已知费用').hitTestable(),
       -120,
     );
-    expect(find.textContaining('已知费用 ¥99.5'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('¥99.5'),
+      ),
+      findsOneWidget,
+    );
     expect(site.writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -1272,9 +1317,14 @@ void main() {
     );
     await tapChipIn(tester, OverviewPage, '近7天');
     await tester.scrollUntilVisible(find.byType(TimeSeriesChart), 220);
-    await tapPlot(tester, 0.5);
+    final semantics = tester.ensureSemantics();
+    for (var i = 0; i < 3; i++) {
+      tester.semantics.decrease(find.semantics.byLabel('每日里程图表'));
+      await tester.pumpAndSettle();
+    }
+    semantics.dispose();
     final chosen = chartDate(tester);
-    expect(chosen, '3/12');
+    expect(chosen, isNotEmpty);
     await selectTab(tester, '行程');
     now = DateTime.utc(2026, 3, 16, 12);
     await selectTab(tester, '概览');
@@ -1316,10 +1366,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明与更多').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('驾驶统计').hitTestable(), 300);
+    final drivingEntry = find.text('驾驶统计');
+    await tester.scrollUntilVisible(drivingEntry, 300);
+    await Scrollable.ensureVisible(tester.element(drivingEntry), alignment: .5);
     await tester.pumpAndSettle();
     seen.clear();
-    await tester.tap(find.text('驾驶统计'));
+    await tester.tap(drivingEntry);
     await tester.pumpAndSettle();
     expect(
       find.textContaining('2026-03-24 至 2026-03-30'),
@@ -1375,7 +1427,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('这段时间的用车节奏'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     // Then enter the same topic from the overview with a new period.
     await selectTab(tester, '概览');

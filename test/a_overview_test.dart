@@ -126,7 +126,17 @@ void main() {
     final value = tester.getRect(find.textContaining('1,198.6'));
     final chartTitle = tester.getRect(find.text('每日里程'));
     expect(chartTitle.top - value.bottom, lessThan(160), reason: '本月块不应留下整块空白');
-    expect(find.textContaining('净电耗 158 Wh/km\n已知费用 ¥186.4'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('驾驶'), 200);
+    await tester.pumpAndSettle();
+    final plate = find.byKey(const ValueKey('overview-reading-plate'));
+    expect(
+      find.descendant(of: plate, matching: find.textContaining('158')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: plate, matching: find.text('¥186.4')),
+      findsOneWidget,
+    );
     expect(find.textContaining('8/9 次'), findsOneWidget);
   });
 
@@ -178,7 +188,7 @@ void main() {
       // 旧断言一律期望 heroText — 它编码的是「概览 top bar 永远在 hero 内」这个
       // 被 ADR 0006 D4 推翻的决定。浅色 hero 成卡片后品牌行回到纸面（Spec §6.4），
       // 字标必须用纸面正文色；深色仍留在 hero 内，故仍是 heroText。
-      final wordmark = tester.widget<Text>(find.text('行笺').first);
+      final wordmark = tester.widget<Text>(find.text('概览').first);
       expect(
         wordmark.style?.color,
         mode == MileafAppearance.dark ? colors.heroText : colors.text,
@@ -207,17 +217,24 @@ void main() {
           );
           final status = find.byKey(const ValueKey('overview-status'));
           final box = tester.getRect(status);
-          final bar = tester.getRect(find.byType(MileafTopBar));
+          final bar = tester.getRect(
+            find.byKey(const ValueKey('root-top-bar-surface')),
+          );
           final inset = width >= 390 ? 24.0 : 20.0;
           expect(box.left, inset);
           expect(box.right, width - inset);
-          expect(box.top, bar.bottom);
+          expect(box.top, greaterThanOrEqualTo(bar.bottom));
           expect(
-            find.descendant(of: status, matching: find.text('行笺')),
+            box.top - bar.bottom,
+            inInclusiveRange(0, MileafSpace.s8),
+            reason: '状态卡在顶栏下方 0–8px 的既定内容间距内',
+          );
+          expect(
+            find.descendant(of: status, matching: find.text('概览')),
             findsNothing,
           );
           final material = tester.widget<Material>(status);
-          expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
+          expect(material.borderRadius, MileafRadius.surfaceAll);
           final divider = tester.getRect(
             find.descendant(of: status, matching: find.byType(Divider)).first,
           );

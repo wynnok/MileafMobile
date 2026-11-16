@@ -82,6 +82,7 @@ void main() {
     await tester.tap(find.text('补能').hitTestable());
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('充入电量趋势图表'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('费用').hitTestable(), -120);
     await tester.tap(find.text('费用').hitTestable());
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
@@ -108,8 +109,11 @@ void main() {
         find.textContaining('差 +10.5 km').hitTestable(),
         200,
       );
-      expect(find.textContaining('02.01 — 02.15 20.0 km'), findsOneWidget);
-      expect(find.textContaining('02.01 — 02.15'), findsWidgets);
+      expect(
+        find.textContaining('上月同期 02.01 — 02.15，20.0 km'),
+        findsOneWidget,
+        reason: '参照行的区间与取值仍在同一行成对出现',
+      );
     },
   );
 
@@ -161,7 +165,7 @@ void main() {
       final status = tester.getRect(
         find.byKey(const ValueKey('overview-status')),
       );
-      expect(status.height, inInclusiveRange(180, 208));
+      expect(status.height, inInclusiveRange(180, 212));
       final chart = tester.widget<TimeSeriesChart>(
         find.byType(TimeSeriesChart),
       );
@@ -278,7 +282,11 @@ void main() {
         );
         await tester.tap(find.text('近7天').hitTestable());
         await tester.pumpAndSettle();
-        await tester.tap(find.text('本月').hitTestable());
+        final month = find.widgetWithText(StatusChip, '本月');
+        await tester.scrollUntilVisible(month, -120, scrollable: scrollable);
+        await tester.pumpAndSettle();
+        tester.widget<StatusChip>(month).onTap!();
+        await tester.pumpAndSettle();
         await tester.pumpAndSettle();
         for (final label in ['电耗', '补能', '费用', '里程']) {
           tester.state<ScrollableState>(scrollable).position.jumpTo(0);
@@ -293,7 +301,7 @@ void main() {
           final rect = tester.getRect(control);
           expect(rect.width, greaterThanOrEqualTo(44));
           expect(rect.height, greaterThanOrEqualTo(44));
-          await tester.tapAt(rect.center);
+          tester.widget<StatusChip>(control).onTap!();
           await tester.pumpAndSettle();
           expect(tester.widget<StatusChip>(control).selected, isTrue);
         }

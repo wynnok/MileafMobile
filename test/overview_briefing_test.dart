@@ -28,11 +28,21 @@ void main() {
       ),
       briefing: true,
     );
-    expect(find.textContaining('已知费用 72'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('72'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('币种未记录'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('费用').hitTestable(), 150);
+    await tester.scrollUntilVisible(find.text('费用'), 150);
+    await Scrollable.ensureVisible(
+      tester.element(find.text('费用')),
+      alignment: .5,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('费用').hitTestable());
+    await tester.tap(find.text('费用'));
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -99,7 +109,13 @@ void main() {
         briefing: true,
         currencyPreferences: currency,
       );
-      expect(find.textContaining('已知费用 ¥0'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('overview-reading-plate')),
+          matching: find.text('¥0'),
+        ),
+        findsOneWidget,
+      );
       await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
       await tester.pumpAndSettle();
       await tester.tap(find.text('数据说明与更多'));
@@ -146,6 +162,10 @@ void main() {
     fail = false;
     final previousCalls = List<String>.from(calls);
     await tester.scrollUntilVisible(find.text('重试补能'), -120);
+    await Scrollable.ensureVisible(
+      tester.element(find.text('重试补能')),
+      alignment: .5,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('重试补能'));
     for (var i = 0; i < 8; i++) {

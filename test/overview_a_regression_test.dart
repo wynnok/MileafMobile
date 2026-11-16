@@ -77,14 +77,24 @@ void main() {
     expect(find.text('2 分钟前'), findsOneWidget);
     expect(find.textContaining('（币种未知）'), findsNothing);
     expect(find.textContaining('（缺失）'), findsNothing);
-    expect(find.textContaining('已知费用 186.4'), findsOneWidget);
+    final plate = find.byKey(const ValueKey('overview-reading-plate'));
+    expect(
+      find.descendant(of: plate, matching: find.text('186.4')),
+      findsOneWidget,
+    );
     expect(find.textContaining('币种未记录'), findsOneWidget);
     expect(find.textContaining('326880'), findsNothing);
   });
 
   testWidgets('A 概览已知币种时显示符号且不出现币种未记录', (tester) async {
     await openOverview(tester, currency: 'CNY');
-    expect(find.textContaining('已知费用 ¥186.4'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('¥186.4'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('币种未记录'), findsNothing);
   });
 
@@ -98,8 +108,16 @@ void main() {
 
   testWidgets('A 概览部分缺失显示破折号，不补零', (tester) async {
     await openOverview(tester, scenario: 'missing');
-    expect(find.textContaining('净电耗 —'), findsOneWidget);
-    expect(find.textContaining('—'), findsWidgets);
+    final net = find.byKey(const ValueKey('overview-plate-net'));
+    expect(
+      find.descendant(of: net, matching: find.text('净电耗')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: net, matching: find.text('—')),
+      findsOneWidget,
+      reason: '缺失的净电耗落在自己的格子里，不补零',
+    );
     expect(find.textContaining('0 Wh/km'), findsNothing);
     expect(tester.takeException(), isNull);
   });

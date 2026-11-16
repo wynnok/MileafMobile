@@ -68,6 +68,7 @@ class TimeSeriesChart extends StatefulWidget {
     this.selectedIndex,
     this.onSelected,
     this.readout,
+    this.readoutBuilder,
     this.trailing,
     this.note,
     this.onHero = false,
@@ -95,6 +96,12 @@ class TimeSeriesChart extends StatefulWidget {
   final int? selectedIndex;
   final ValueChanged<int>? onSelected;
   final String Function(int index)? readout;
+
+  /// Replaces the plain reading with a composed view of the same point, for
+  /// pages that need the date, value and reference in separate roles. The
+  /// [readout] sentence remains the live-region label, so the visible and the
+  /// spoken reading cannot diverge.
+  final Widget Function(int index)? readoutBuilder;
   final Widget? trailing;
   final String? note;
   final bool onHero;
@@ -402,55 +409,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             );
           },
         ),
-        const SizedBox(height: MileafSpace.inline6),
-        Semantics(
-          container: true,
-          explicitChildNodes: true,
-          liveRegion: true,
-          child: MileafLayout.largeText(context)
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _reading(selected),
-                      style: type.body.copyWith(
-                        color: onHero ? colors.heroText : colors.text,
-                      ),
-                    ),
-                    if (widget.trailing != null)
-                      DefaultTextStyle.merge(
-                        style: type.label.copyWith(color: faint),
-                        child: widget.trailing!,
-                      ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _reading(selected),
-                        style: type.body.copyWith(
-                          color: onHero ? colors.heroText : colors.text,
-                        ),
-                      ),
-                    ),
-                    if (widget.onActivateSelected != null &&
-                        !MileafLayout.largeText(context))
-                      TextButton(
-                        onPressed: widget.onActivateSelected,
-                        child: Text(
-                          '看当天',
-                          semanticsLabel: widget.activationLabel,
-                        ),
-                      ),
-                    if (widget.trailing != null)
-                      DefaultTextStyle.merge(
-                        style: type.label.copyWith(color: faint),
-                        child: widget.trailing!,
-                      ),
-                  ],
-                ),
-        ),
+        // R06.6/§1.4: the plot keeps 8 from its reading.
+        const SizedBox(height: MileafSpace.s8),
+        _readingBlock(context, selected),
         if (widget.onActivateSelected != null &&
             MileafLayout.largeText(context))
           Align(
@@ -467,6 +428,58 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           ),
       ],
     );
+  }
+
+  /// The selected point's reading. A page may supply a composed view through
+  /// [TimeSeriesChart.readoutBuilder]; the plain sentence then stays the single
+  /// live-region label so the spoken reading never drifts from the visible one.
+  Widget _readingBlock(BuildContext context, int selected) {
+    final colors = context.colors;
+    final type = context.type;
+    final faint = widget.onHero ? colors.heroFaint : colors.textFaint;
+    final sentence = _reading(selected);
+    final reading = widget.readoutBuilder == null
+        ? Text(
+            sentence,
+            style: type.body.copyWith(
+              color: widget.onHero ? colors.heroText : colors.text,
+            ),
+          )
+        : widget.readoutBuilder!(selected);
+    final trailing = widget.trailing == null
+        ? null
+        : DefaultTextStyle.merge(
+            style: type.label.copyWith(color: faint),
+            child: widget.trailing!,
+          );
+    // The live region covers the reading alone: the drill action stays a
+    // sibling so a page that supplies both a builder and an action keeps the
+    // button reachable instead of silently excluding it.
+    final node = Semantics(
+      container: true,
+      explicitChildNodes: widget.readoutBuilder == null,
+      liveRegion: true,
+      label: widget.readoutBuilder == null ? null : sentence,
+      excludeSemantics: widget.readoutBuilder != null,
+      child: reading,
+    );
+    final large = MileafLayout.largeText(context);
+    return large
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [node, ?trailing],
+          )
+        : Row(
+            children: [
+              Expanded(child: node),
+              if (widget.onActivateSelected != null)
+                TextButton(
+                  onPressed: widget.onActivateSelected,
+                  child: Text('看当天', semanticsLabel: widget.activationLabel),
+                ),
+              ?trailing,
+            ],
+          );
   }
 
   Color _seriesColor(ChartSeries series, MileafColors colors) =>
