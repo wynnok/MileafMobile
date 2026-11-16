@@ -19,7 +19,6 @@ class SampleChart extends StatelessWidget {
     this.plotKey = const ValueKey('sample-chart'),
     this.plotObserverKey,
     this.title,
-    this.subtitle,
     this.height = 120,
     this.showYAxis = false,
     this.yRange,
@@ -35,7 +34,6 @@ class SampleChart extends StatelessWidget {
 
   /// Chart title (e.g. 速度过程); falls back to the metric label.
   final String? title;
-  final String? subtitle;
   final double height;
   final bool showYAxis;
   final (double, double)? yRange;
@@ -58,7 +56,6 @@ class SampleChart extends StatelessWidget {
     final chart = TimeSeriesChart(
       title: title ?? label,
       unit: unit,
-      subtitle: subtitle,
       times: [for (final point in points) point.$1],
       series: [
         ChartSeries(
@@ -83,6 +80,8 @@ class SampleChart extends StatelessWidget {
       },
       emptyMessage: '没有采样点',
       plotKey: plotKey,
+      // 提示语跟着读值走，占窗口槽位会被读成「这张图覆盖的时间」。
+      trailing: onSelected == null ? null : const Text('点按图形读值'),
     );
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,8 +89,6 @@ class SampleChart extends StatelessWidget {
         plotObserverKey == null
             ? chart
             : KeyedSubtree(key: plotObserverKey, child: chart),
-        if (points.isNotEmpty)
-          Text(unit, style: type.micro.copyWith(color: colors.textFaint)),
         if (points.isNotEmpty && onSelected != null)
           Wrap(
             alignment: WrapAlignment.end,
@@ -126,33 +123,26 @@ class SampleChart extends StatelessWidget {
               style: type.micro.copyWith(color: colors.textMuted),
             ),
           ),
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          shape: const Border(),
-          collapsedShape: const Border(),
-          title: Text(
-            '$label数据说明',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
+        MileafDisclosure(
+          label: '$label数据说明',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
                 '连线仅为采样示意，不代表连续观测；缺失值断线，不补点或补零。',
                 style: type.micro.copyWith(color: colors.textMuted),
               ),
-            ),
-            if (values.isNotEmpty)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
+              if (values.isNotEmpty) ...[
+                const SizedBox(height: MileafSpace.s4),
+                Text(
                   '$label采样：${points.length} 点；已知 ${values.length} 点；'
                   '范围 ${_value(values.reduce(math.min))} 至 '
                   '${_value(values.reduce(math.max))}，不是原始极值。',
                   style: type.micro.copyWith(color: colors.textFaint),
                 ),
-              ),
-          ],
+              ],
+            ],
+          ),
         ),
       ],
     );

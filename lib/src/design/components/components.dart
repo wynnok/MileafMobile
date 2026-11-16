@@ -7,6 +7,8 @@ export 'composition_bar.dart';
 export 'copy_row.dart';
 export 'category_bars.dart';
 export 'data_row.dart';
+export 'disclosure.dart';
+export 'fact_list.dart';
 export 'hero.dart';
 export 'icon_button.dart';
 export 'map_frame.dart';

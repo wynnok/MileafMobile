@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-
 import 'number_format.dart';
 
 import 'api.dart';
@@ -63,7 +62,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   bool detailLoading = false, seriesLoading = false;
   stats.DrivingStats? reference;
   String? referenceError;
-  bool referenceLoading = false, paired = false;
+  bool referenceLoading = false, batteryPaired = false;
   int referenceSequence = 0, selectedSample = 0;
   DateTime? referenceFrom, referenceTo;
   String? referenceZone;
@@ -614,92 +613,99 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     );
   }
 
+  /// 字段名 → 值 → 单位各占一个角色：值靠右排成一列，单位小一档，
+  /// 缺失值只出「—」不配单位（与概览读数表同一口径）。
   Widget _techSection(dto.DriveDetail d) {
     final colors = context.colors;
     final type = context.type;
+    String? value(num? raw, {int decimals = 0}) =>
+        raw == null ? null : grouped(raw, decimals: decimals);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SectionHeader(title: '驾驶与环境'),
         const SizedBox(height: MileafSpace.s4),
-        Text(
-          '平均速度 ${number(d.speedAvgKmh, 'km/h')}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        Text(
-          '最高速度 ${number(d.speedMaxKmh, 'km/h')}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        Text(
-          '车外均温 ${number(d.outsideTempCAvg, '°C', decimals: 1)}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        Text(
-          '车内均温 ${number(d.insideTempCAvg, '°C', decimals: 1)}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        Text(
-          '最大功率 ${number(d.powerMaxKw, 'kW')}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          shape: const Border(),
-          collapsedShape: const Border(),
-          title: Text(
-            '更多行程指标',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('行程记录 #${d.id}', style: type.micro),
-                  Text(
-                    '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                  for (final endpoint in [('起点', d.start), ('终点', d.end)]) ...[
-                    if (endpoint.$2.geofence?.trim().isNotEmpty == true &&
-                        endpoint.$2.geofence != endpoint.$2.displayName)
-                      Text(
-                        '${endpoint.$1}围栏：${endpoint.$2.geofence}',
-                        style: type.micro.copyWith(color: colors.textMuted),
-                      ),
-                    if (endpoint.$2.address?.trim().isNotEmpty == true &&
-                        endpoint.$2.address != endpoint.$2.displayName &&
-                        endpoint.$2.address != endpoint.$2.geofence)
-                      Text(
-                        '${endpoint.$1}地址：${endpoint.$2.address}',
-                        style: type.micro.copyWith(color: colors.textMuted),
-                      ),
-                  ],
-                  Text(
-                    '净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}',
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                  Text(
-                    '起点电量 ${number(d.start.batteryLevel, '%')}',
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                  Text(
-                    '终点电量 ${number(d.end.batteryLevel, '%')}',
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                  Text(
-                    '续航口径：${d.rangeKind == 'rated'
-                        ? '额定'
-                        : d.rangeKind == 'ideal'
-                        ? '理想（ideal）'
-                        : '未知'}；以上为服务端公制结果，未二次换算',
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                ],
-              ),
+        MileafFactList(
+          key: const ValueKey('drive-facts'),
+          facts: [
+            MileafFact(
+              label: '平均速度',
+              value: value(d.speedAvgKmh),
+              unit: 'km/h',
             ),
+            MileafFact(
+              label: '最高速度',
+              value: value(d.speedMaxKmh),
+              unit: 'km/h',
+            ),
+            MileafFact(
+              label: '车外均温',
+              value: value(d.outsideTempCAvg, decimals: 1),
+              unit: '°C',
+            ),
+            MileafFact(
+              label: '车内均温',
+              value: value(d.insideTempCAvg, decimals: 1),
+              unit: '°C',
+            ),
+            MileafFact(label: '最大功率', value: value(d.powerMaxKw), unit: 'kW'),
           ],
+        ),
+        const SizedBox(height: MileafSpace.s8),
+        MileafDisclosure(
+          // 与「对照电量」同一档：动作行比脚注行实一档，不读成表里的第六行。
+          label: '更多行程指标',
+          meta: '记录、端点电量与口径',
+          emphasis: true,
+          topLine: true,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('行程记录 #${d.id}', style: type.micro),
+                Text(
+                  '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                for (final endpoint in [('起点', d.start), ('终点', d.end)]) ...[
+                  if (endpoint.$2.geofence?.trim().isNotEmpty == true &&
+                      endpoint.$2.geofence != endpoint.$2.displayName)
+                    Text(
+                      '${endpoint.$1}围栏：${endpoint.$2.geofence}',
+                      style: type.micro.copyWith(color: colors.textMuted),
+                    ),
+                  if (endpoint.$2.address?.trim().isNotEmpty == true &&
+                      endpoint.$2.address != endpoint.$2.displayName &&
+                      endpoint.$2.address != endpoint.$2.geofence)
+                    Text(
+                      '${endpoint.$1}地址：${endpoint.$2.address}',
+                      style: type.micro.copyWith(color: colors.textMuted),
+                    ),
+                ],
+                Text(
+                  '净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                Text(
+                  '起点电量 ${number(d.start.batteryLevel, '%')}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                Text(
+                  '终点电量 ${number(d.end.batteryLevel, '%')}',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+                Text(
+                  '续航口径：${d.rangeKind == 'rated'
+                      ? '额定'
+                      : d.rangeKind == 'ideal'
+                      ? '理想（ideal）'
+                      : '未知'}；以上为服务端公制结果，未二次换算',
+                  style: type.micro.copyWith(color: colors.textMuted),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -904,7 +910,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                           ],
                           label: _sampleMetrics[metric].label,
                           title: _sampleMetrics[metric].title,
-                          subtitle: '点按图形读值',
                           unit: _sampleMetrics[metric].unit,
                           timestamp: clock,
                           readoutTimestamp: time,
@@ -914,55 +919,57 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                           selectedIndex: selectedSample,
                           onSelected: (i) => setState(() => selectedSample = i),
                         ),
-                        ExpansionTile(
-                          tilePadding: EdgeInsets.zero,
-                          shape: const Border(),
-                          collapsedShape: const Border(),
-                          title: Text(
-                            '采样数据说明',
-                            style: context.type.body.copyWith(
-                              color: context.colors.textMuted,
-                            ),
-                          ),
-                          children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                s.resolution == 'server_sampled'
-                                    ? '服务端采样 ${s.points} 点'
-                                    : '无采样数据',
-                                style: context.type.micro.copyWith(
-                                  color: context.colors.textMuted,
-                                ),
+                        MileafDisclosure(
+                          label: '采样数据说明',
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              s.resolution == 'server_sampled'
+                                  ? '服务端采样 ${s.points} 点'
+                                  : '无采样数据',
+                              style: context.type.micro.copyWith(
+                                color: context.colors.textMuted,
                               ),
                             ),
-                          ],
-                        ),
-                        if (metric != 1)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: () => setState(() => paired = !paired),
-                              child: Text(paired ? '收起电量对照' : '对照电量'),
-                            ),
                           ),
-                        if (paired && metric != 1)
-                          SampleChart(
-                            points: [
-                              for (final p in s.series) (p.t, p.batteryLevel),
-                            ],
-                            label: '电量',
-                            subtitle: '点按图形读值',
-                            unit: '%',
-                            timestamp: clock,
-                            readoutTimestamp: time,
-                            height: MileafSpace.detailChartHeight,
-                            showYAxis: true,
-                            selectedIndex: selectedSample,
-                            onSelected: (i) =>
-                                setState(() => selectedSample = i),
-                            yRange: (0, 100),
-                            plotKey: const ValueKey('paired-sample-chart'),
+                        ),
+                        // 电量对照是这张图的追加动作，不是又一条脚注：上方 1px
+                        // 分隔线把它与「图表 + 数据说明」分开，标签用正文色，
+                        // 展开后就地长出第二张图，不跳到别的页面。
+                        if (metric != 1)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: MileafSpace.s12,
+                            ),
+                            child: MileafDisclosure(
+                              key: const ValueKey('battery-pair'),
+                              // 动作行：动词 + 对象（R12），说明行才用名词短语。
+                              label: '对照电量',
+                              meta: '与速度过程同屏',
+                              emphasis: true,
+                              topLine: true,
+                              expanded: batteryPaired,
+                              onExpandedChanged: (value) =>
+                                  setState(() => batteryPaired = value),
+                              child: SampleChart(
+                                points: [
+                                  for (final p in s.series)
+                                    (p.t, p.batteryLevel),
+                                ],
+                                label: '电量',
+                                title: '电量过程',
+                                unit: '%',
+                                timestamp: clock,
+                                readoutTimestamp: time,
+                                height: MileafSpace.detailChartHeight,
+                                showYAxis: true,
+                                selectedIndex: selectedSample,
+                                onSelected: (i) =>
+                                    setState(() => selectedSample = i),
+                                yRange: (0, 100),
+                                plotKey: const ValueKey('paired-sample-chart'),
+                              ),
+                            ),
                           ),
                       ],
                     ),

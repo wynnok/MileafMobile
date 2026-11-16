@@ -306,6 +306,7 @@ void main() {
       expect(target, findsOneWidget);
       expect(tester.takeException(), isNull);
     }
+    // 事实表把字段名与值拆成两个排版角色，读屏与断言都按整行的语义读值。
     for (final text in [
       '平均速度 10 km/h',
       '最高速度 90 km/h',
@@ -313,7 +314,7 @@ void main() {
       '车外均温 15.0 °C',
       '车内均温 21.0 °C',
     ]) {
-      final target = find.textContaining(text).hitTestable();
+      final target = find.bySemanticsLabel(text).hitTestable();
       await tester.scrollUntilVisible(target, 120);
       expect(target, findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -431,8 +432,11 @@ void main() {
       160,
     );
     expect(find.bySemanticsLabel('净电耗 188 Wh/km'), findsWidgets);
-    await tester.scrollUntilVisible(find.textContaining('最高速度 90'), 200);
-    expect(find.textContaining('最高速度 90 km/h'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('最高速度 90 km/h'),
+      200,
+    );
+    expect(find.bySemanticsLabel('最高速度 90 km/h'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
