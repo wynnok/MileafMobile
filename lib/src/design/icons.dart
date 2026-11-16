@@ -26,6 +26,15 @@ enum MileafIconName {
   close,
   check,
   copy,
+  calendar,
+  more,
+  expand,
+  chevronDown,
+  back,
+  plus,
+  minus,
+  moon,
+  offline,
 }
 
 class MileafIcon extends StatelessWidget {
@@ -248,6 +257,92 @@ class _MileafIconPainter extends CustomPainter {
               Radius.circular(x(2)),
             ),
           );
+      case MileafIconName.calendar:
+        // 日历：圆角 body + 两个顶部挂耳 + 三个日点。
+        path
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(x(4.5), y(5.5), x(15), y(14)),
+              Radius.circular(x(2.5)),
+            ),
+          )
+          ..moveTo(x(8), y(5.5))
+          ..lineTo(x(8), y(3.5))
+          ..moveTo(x(16), y(5.5))
+          ..lineTo(x(16), y(3.5));
+        filled.addAll([
+          (at(8, 11.5), .9),
+          (at(12, 11.5), .9),
+          (at(16, 11.5), .9),
+        ]);
+      case MileafIconName.more:
+        // 三点横向省略号。
+        filled.addAll([(at(6, 12), 1.4), (at(12, 12), 1.4), (at(18, 12), 1.4)]);
+      case MileafIconName.expand:
+        // 四角外向括号：展开。
+        path
+          ..moveTo(x(8.5), y(4.5))
+          ..lineTo(x(4.5), y(4.5))
+          ..lineTo(x(4.5), y(8.5))
+          ..moveTo(x(15.5), y(4.5))
+          ..lineTo(x(19.5), y(4.5))
+          ..lineTo(x(19.5), y(8.5))
+          ..moveTo(x(4.5), y(15.5))
+          ..lineTo(x(4.5), y(19.5))
+          ..lineTo(x(8.5), y(19.5))
+          ..moveTo(x(19.5), y(15.5))
+          ..lineTo(x(19.5), y(19.5))
+          ..lineTo(x(15.5), y(19.5));
+      case MileafIconName.chevronDown:
+        path
+          ..moveTo(x(5.8), y(9.4))
+          ..lineTo(x(12), y(15.6))
+          ..lineTo(x(18.2), y(9.4));
+      case MileafIconName.back:
+        // 左向返回 chevron（与既有 chevron 同字重镜像）。
+        path
+          ..moveTo(x(15.6), y(5.8))
+          ..lineTo(x(9.4), y(12))
+          ..lineTo(x(15.6), y(18.2));
+      case MileafIconName.plus:
+        path
+          ..moveTo(x(12), y(5))
+          ..lineTo(x(12), y(19))
+          ..moveTo(x(5), y(12))
+          ..lineTo(x(19), y(12));
+      case MileafIconName.minus:
+        path
+          ..moveTo(x(5), y(12))
+          ..lineTo(x(19), y(12));
+      case MileafIconName.moon:
+        // 月牙：外弧圆心 (13.5,12) r6.8 顺时针过右侧，内弧圆心 (9.5,12)
+        // r6.8 逆时针过右侧；两端为两圆交点 (±2, ±6.5)。
+        // atan(6.5/2) ≈ 1.2793 rad。
+        path.addArc(
+          Rect.fromCircle(center: at(13.5, 12), radius: x(6.8)),
+          -1.8623,
+          3.7246,
+        );
+        path.addArc(
+          Rect.fromCircle(center: at(9.5, 12), radius: x(6.8)),
+          1.2793,
+          -2.5586,
+        );
+      case MileafIconName.offline:
+        // 双层上弧 + 斜线：离线/无网络。
+        path.addArc(
+          Rect.fromCircle(center: at(12, 14), radius: x(7)),
+          math.pi,
+          math.pi,
+        );
+        path.addArc(
+          Rect.fromCircle(center: at(12, 15.5), radius: x(3.5)),
+          math.pi,
+          math.pi,
+        );
+        path
+          ..moveTo(x(4.5), y(4.5))
+          ..lineTo(x(19.5), y(19.5));
     }
     canvas.drawPath(path, paint);
     final fill = Paint()..color = color;
