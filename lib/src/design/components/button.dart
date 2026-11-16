@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../icons.dart';
+import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -33,6 +34,7 @@ class MileafButton extends StatefulWidget {
 
 class _MileafButtonState extends State<MileafButton> {
   bool _focused = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -105,35 +107,47 @@ class _MileafButtonState extends State<MileafButton> {
       enabled: enabled,
       label: label,
       value: loading ? '正在处理' : null,
-      child: Focus(
-        onFocusChange: (value) => setState(() => _focused = value),
-        child: Material(
-          color: background,
-          borderRadius: MileafRadius.mdAll,
-          child: InkWell(
-            onTap: enabled ? onPressed : null,
-            borderRadius: MileafRadius.mdAll,
-            highlightColor: highlight,
-            child: Container(
-              constraints: BoxConstraints(
-                minHeight: kind == MileafButtonKind.primary
-                    ? MileafSpace.primaryButtonHeight
-                    : MileafSpace.touch,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s16),
-              decoration: BoxDecoration(
+      child: Listener(
+        onPointerDown: enabled ? (_) => setState(() => _pressed = true) : null,
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed && !MileafLayout.reduceMotion(context) ? .98 : 1,
+          duration: MileafLayout.motion(context, MileafDurations.press),
+          curve: Curves.easeOut,
+          child: Focus(
+            onFocusChange: (value) => setState(() => _focused = value),
+            child: Material(
+              color: background,
+              borderRadius: MileafRadius.mdAll,
+              child: InkWell(
+                onTap: enabled ? onPressed : null,
                 borderRadius: MileafRadius.mdAll,
-                border: Border.all(
-                  color: _focused
-                      ? kind == MileafButtonKind.primary
-                            ? colors.textOnAccent
-                            : colors.focusRing
-                      : border ?? Colors.transparent,
-                  width: _focused ? 2 : 1,
+                highlightColor: highlight,
+                child: Container(
+                  constraints: BoxConstraints(
+                    minHeight: kind == MileafButtonKind.primary
+                        ? MileafSpace.primaryButtonHeight
+                        : MileafLayout.touchTarget(context),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MileafSpace.s16,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: MileafRadius.mdAll,
+                    border: Border.all(
+                      color: _focused
+                          ? kind == MileafButtonKind.primary
+                                ? colors.textOnAccent
+                                : colors.focusRing
+                          : border ?? Colors.transparent,
+                      width: _focused ? 2 : 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: child,
                 ),
               ),
-              alignment: Alignment.center,
-              child: child,
             ),
           ),
         ),

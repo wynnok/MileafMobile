@@ -24,12 +24,14 @@ class MileafNavigationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final large = MileafLayout.largeText(context);
     final inset = MileafLayout.pageInset(context);
+    final backHitInset =
+        (MileafLayout.touchTarget(context) - MileafIconMetrics.nav) / 2;
     final actionRow = Row(mainAxisSize: MainAxisSize.min, children: actions);
     return Padding(
       // Let the invisible hit padding extend into the page margin, so the
       // chevron and action text share the content's visible edges.
       padding: EdgeInsetsDirectional.only(
-        start: inset - (onBack != null ? MileafSpace.s12 : 0),
+        start: inset - (onBack != null ? backHitInset : 0),
         end: inset - (actions.isNotEmpty ? MileafSpace.s12 : 0),
       ),
       child: Column(
@@ -42,15 +44,21 @@ class MileafNavigationRow extends StatelessWidget {
               children: [
                 if (onBack != null)
                   SizedBox.square(
-                    dimension: MileafSpace.touch,
+                    dimension: MileafLayout.touchTarget(context),
                     child: _NavigationBackButton(onPressed: onBack!),
                   ),
                 Expanded(
-                  child: DefaultTextStyle(
-                    style: context.type.title.copyWith(
-                      color: context.colors.text,
+                  child: Transform.translate(
+                    offset: Offset(
+                      onBack == null ? 0 : -(backHitInset - MileafSpace.s12),
+                      0,
                     ),
-                    child: title,
+                    child: DefaultTextStyle(
+                      style: context.type.navigationTitle.copyWith(
+                        color: context.colors.text,
+                      ),
+                      child: title,
+                    ),
                   ),
                 ),
                 if (!large) actionRow,
@@ -58,7 +66,13 @@ class MileafNavigationRow extends StatelessWidget {
             ),
           ),
           if (large && actions.isNotEmpty)
-            Align(alignment: AlignmentDirectional.centerEnd, child: actionRow),
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: actionRow,
+              ),
+            ),
         ],
       ),
     );
@@ -78,7 +92,7 @@ AppBar mileafPageBar(
   );
   final painter =
       TextPainter(
-        text: TextSpan(text: title.data, style: context.type.title),
+        text: TextSpan(text: title.data, style: context.type.navigationTitle),
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
       )..layout(
@@ -86,7 +100,12 @@ AppBar mileafPageBar(
           1,
           contentWidth -
               2 * MileafLayout.pageInset(context) -
-              (canPop ? MileafSpace.touch - MileafSpace.s12 : 0) +
+              (canPop
+                  ? MileafLayout.touchTarget(context) -
+                        (MileafLayout.touchTarget(context) -
+                                MileafIconMetrics.nav) /
+                            2
+                  : 0) +
               (actions.isNotEmpty ? MileafSpace.s12 : 0) -
               (large ? 0 : actions.length * MileafSpace.s56),
         ),
@@ -146,8 +165,8 @@ class _NavigationBackButtonState extends State<_NavigationBackButton> {
         color: context.colors.textMuted,
         style: ButtonStyle(
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          minimumSize: const WidgetStatePropertyAll(
-            Size.square(MileafSpace.touch),
+          minimumSize: WidgetStatePropertyAll(
+            Size.square(MileafLayout.touchTarget(context)),
           ),
           side: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.focused)

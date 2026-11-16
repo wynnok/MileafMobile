@@ -126,7 +126,7 @@ ThemeData mileafTheme(Brightness brightness) {
       modalBackgroundColor: colors.surface,
       modalBarrierColor: colors.scrim,
       elevation: 0,
-      shape: const RoundedRectangleBorder(borderRadius: MileafRadius.lgTop),
+      shape: const RoundedRectangleBorder(borderRadius: MileafRadius.sheetTop),
       clipBehavior: Clip.antiAlias,
     ),
     dialogTheme: DialogThemeData(
@@ -220,7 +220,10 @@ ThemeData mileafTheme(Brightness brightness) {
           fontSize: MileafType.bodySize,
           letterSpacing: 0,
         ),
-        minimumSize: const Size(MileafSpace.touch, MileafSpace.touch),
+        minimumSize: const Size(
+          MileafSpace.touchAndroid,
+          MileafSpace.touchAndroid,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
         shape: const RoundedRectangleBorder(borderRadius: MileafRadius.smAll),
       ),
@@ -228,7 +231,10 @@ ThemeData mileafTheme(Brightness brightness) {
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         foregroundColor: colors.textMuted,
-        minimumSize: const Size(MileafSpace.touch, MileafSpace.touch),
+        minimumSize: const Size(
+          MileafSpace.touchAndroid,
+          MileafSpace.touchAndroid,
+        ),
         shape: const RoundedRectangleBorder(borderRadius: MileafRadius.fullAll),
       ),
     ),
@@ -257,7 +263,7 @@ ThemeData mileafTheme(Brightness brightness) {
           fontWeight: MileafType.weightSemiBold,
           letterSpacing: 0,
         ),
-        minimumSize: const Size(0, MileafSpace.touch),
+        minimumSize: const Size(0, MileafSpace.touchAndroid),
         padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s20),
         shape: const RoundedRectangleBorder(borderRadius: MileafRadius.smAll),
       ),

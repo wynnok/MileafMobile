@@ -100,7 +100,6 @@ void main() {
       (url) => url.path.endsWith('/charging-sessions'),
     );
     expect(sessionRequest.queryParameters['charging_type'], 'dc');
-    expect(find.text('充电记录'), findsOneWidget);
     expect(find.textContaining('类型：DC'), findsOneWidget);
   });
 

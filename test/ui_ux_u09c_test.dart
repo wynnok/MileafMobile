@@ -349,7 +349,9 @@ void main() {
         final plot = tester.getRect(
           find.byKey(const ValueKey('charging-topic-plot')),
         );
-        final bodyTop = tester.getRect(find.byType(AppBar).last).bottom;
+        final bodyTop = tester
+            .getRect(find.byType(MileafNavigationRow).last)
+            .bottom;
         final visible =
             math.min(plot.bottom, size.height - 24) -
             math.max(plot.top, bodyTop);

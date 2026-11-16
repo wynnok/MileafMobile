@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:http/io_client.dart';
 import 'src/api.dart';
 import 'src/appearance.dart';
 import 'src/design/theme.dart';
+import 'src/design/display_preferences.dart';
 import 'src/performance_trace.dart';
 import 'src/map/map_consent.dart';
 import 'src/map/map_key.dart';
@@ -34,8 +36,15 @@ Future<void> main() async {
   await mapKeys.restore();
   final appearance = AppearanceController(PreferenceAppearanceStore());
   await appearance.restore();
+  final displayPreferences = DisplayPreferencesController();
+  unawaited(displayPreferences.start());
   runApp(
-    MileafApp(mapConsent: mapConsent, mapKeys: mapKeys, appearance: appearance),
+    MileafApp(
+      mapConsent: mapConsent,
+      mapKeys: mapKeys,
+      appearance: appearance,
+      displayPreferences: displayPreferences,
+    ),
   );
 }
 
@@ -53,6 +62,7 @@ class MileafApp extends StatefulWidget {
     this.calendar,
     this.currencyPreferences,
     this.appearance,
+    this.displayPreferences,
   });
   final http.Client? client;
   final MapConsentController? mapConsent;
@@ -65,6 +75,7 @@ class MileafApp extends StatefulWidget {
   final CurrencyPreferenceStore? currencyPreferences;
   final Future<CalendarContext> Function()? calendar;
   final AppearanceController? appearance;
+  final DisplayPreferencesController? displayPreferences;
   @override
   State<MileafApp> createState() => _MileafAppState();
 }
@@ -83,6 +94,8 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
   late final mapPlatform = widget.mapPlatform ?? defaultMapPlatform();
   late final appearance =
       widget.appearance ?? AppearanceController(PreferenceAppearanceStore());
+  late final displayPreferences =
+      widget.displayPreferences ?? DisplayPreferencesController();
   late final _api = MileafApi(_client, trustStore: widget.trustStore);
   late final session = SessionController(
     _api,
@@ -96,6 +109,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
     session.restore();
     if (widget.mapKeys == null) mapKeys.restore();
     if (widget.appearance == null) appearance.restore();
+    if (widget.displayPreferences == null) displayPreferences.start();
   }
 
   @override
@@ -103,6 +117,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       PerformanceTrace.beginResume();
       session.validateExpiry();
+      displayPreferences.refresh();
     }
   }
 
@@ -112,6 +127,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
     session.dispose();
     if (widget.mapKeys == null) mapKeys.dispose();
     if (widget.appearance == null) appearance.dispose();
+    if (widget.displayPreferences == null) displayPreferences.dispose();
 
     if (widget.client == null) _client.close();
     super.dispose();
@@ -146,9 +162,12 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
                 statusBarColor: Colors.transparent,
                 systemNavigationBarColor: Colors.transparent,
               ),
-          child: MapKeyScope(
-            controller: mapKeys,
-            child: child ?? const SizedBox.shrink(),
+          child: DisplayPreferencesScope(
+            controller: displayPreferences,
+            child: MapKeyScope(
+              controller: mapKeys,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         );
       },

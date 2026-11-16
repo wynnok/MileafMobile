@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/workspace.dart';
 
@@ -421,7 +422,9 @@ void main() {
         final plot = tester.getRect(
           find.byKey(const Key('parking-trend-chart')),
         );
-        final bodyTop = tester.getRect(find.byType(AppBar).last).bottom;
+        final bodyTop = tester
+            .getRect(find.byType(MileafNavigationRow).last)
+            .bottom;
         final visible =
             math.min(plot.bottom, size.height - 24) -
             math.max(plot.top, bodyTop);

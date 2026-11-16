@@ -8,24 +8,27 @@ import '../tokens.dart';
 import '../typography.dart';
 import 'icon_button.dart';
 
-/// Bottom sheet: top radius 20, scrim, 36×4 handle, 18 title, 44 close.
+/// Bottom sheet: top radius 28, scrim, 36×4 handle, 20 title, 44 close.
 ///
-/// Transition follows R07: 240ms easeOutCubic, zero when reduce motion is on
-/// (U03 动效基础；U02 交接的弹层时长校准).
+/// Transition follows R16 M05 and collapses to zero under reduce motion.
 Future<T?> showMileafSheet<T>({
   required BuildContext context,
   required String title,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
 }) {
-  final duration = MileafLayout.motion(context, MileafDurations.sheet);
+  final duration = MileafLayout.motion(context, MileafDurations.sheetIn);
+  final reverseDuration = MileafLayout.motion(
+    context,
+    MileafDurations.sheetOut,
+  );
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
     showDragHandle: false,
     sheetAnimationStyle: AnimationStyle(
       duration: duration,
-      reverseDuration: duration,
+      reverseDuration: reverseDuration,
       curve: MileafCurves.sheet,
       reverseCurve: MileafCurves.sheet,
     ),

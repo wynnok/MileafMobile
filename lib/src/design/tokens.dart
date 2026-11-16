@@ -59,8 +59,10 @@ abstract final class MileafPalette {
   static const lineStrongDark = Color(0x24F2F4F7); // 14%
   static const lineLight = Color(0x1A0E1319); // 14,19,25 · 10%
   static const lineStrongLight = Color(0x290E1319); // 16%
-  static const navDark = Color(0xE00A0B0D); // 10,11,13 · 88%
-  static const navLight = Color(0xEBFFFFFF); // 92%
+  static const navDark = Color(0xE60A0B0D); // 10,11,13 · 90%
+  static const navLight = Color(0xE0FFFFFF); // 88%
+  static const navHighlightDark = Color(0x1AFFFFFF); // 10%
+  static const navHighlightLight = Color(0x59FFFFFF); // 35%
   static const scrimDark = Color(0x80000000); // 50%
   static const scrimLight = Color(0x590E1319); // 35%
   static const skeletonDark = Color(0x12F2F4F7); // 7%
@@ -70,6 +72,47 @@ abstract final class MileafPalette {
   static const pressOverlayDark = Color(0x0AF2F4F7); // 4%
   static const pressOverlayLight = Color(0x0F0E1319); // 6%
   static const accentFocus = Color(0x9964A8FF); // 60%
+
+  /// 液态玻璃底栏（ADR 0013）。四组值分别是「玻璃体上下沿」、顶部高光、
+  /// 下沿弯月增厚、选中镜片，以及内外两圈受光边缘。
+  ///
+  /// 浅色以白、深色以近黑叠色，因此玻璃只会把浅色内容提亮、把深色内容压暗，
+  /// 正文对比不会被自身透明度吃掉；合成实测见 liquid_glass_nav_test 的 L04。
+  static const glassLightTop = Color(0x66FFFFFF); // 白 · 40%
+  static const glassLightBottom = Color(0x8FFFFFFF); // 白 · 56%
+  static const glassLightSheen = Color(0x8CFFFFFF); // 白 · 55%
+  static const glassLightMeniscus = Color(0x2EFFFFFF); // 白 · 18%
+  static const glassLightLensTop = Color(0x8CFFFFFF); // 白 · 55%
+  static const glassLightLensBottom = Color(0x66FFFFFF); // 白 · 40%
+
+  static const glassDarkTop = Color(0x7A0A0B0D); // 10,11,13 · 48%
+  static const glassDarkBottom = Color(0xA00A0B0D); // 63%
+  static const glassDarkSheen = Color(0x24FFFFFF); // 白 · 14%
+  static const glassDarkMeniscus = Color(0x59000000); // 黑 · 35%
+  static const glassDarkLensTop = Color(0x26FFFFFF); // 白 · 15%
+  static const glassDarkLensBottom = Color(0x1AFFFFFF); // 白 · 10%
+
+  static const glassRimLightTop = Color(0xE6FFFFFF); // 90%
+  static const glassRimLightSide = Color(0x52FFFFFF); // 32%
+  static const glassRimLightBottom = Color(0x42FFFFFF); // 26%
+
+  /// 浅色玻璃的内缘必须更暗：玻璃压在亮内容上时，折射让边缘收暗。
+  static const glassInnerLight = Color(0x1F0E1319); // 14,19,25 · 12%
+
+  static const glassRimDarkTop = Color(0x59FFFFFF); // 35%
+  static const glassRimDarkSide = Color(0x29FFFFFF); // 16%
+  static const glassRimDarkBottom = Color(0x1AFFFFFF); // 10%
+  static const glassInnerDark = Color(0x1FFFFFFF); // 12%
+
+  static const glassLensRimLightTop = Color(0xF0FFFFFF); // 94%
+  static const glassLensRimLightSide = Color(0x59FFFFFF); // 35%
+  static const glassLensRimLightBottom = Color(0x29FFFFFF); // 16%
+  static const glassLensInnerLight = Color(0x1C0E1319); // 14,19,25 · 11%
+
+  static const glassLensRimDarkTop = Color(0x4DFFFFFF); // 30%
+  static const glassLensRimDarkSide = Color(0x24FFFFFF); // 14%
+  static const glassLensRimDarkBottom = Color(0x14FFFFFF); // 8%
+  static const glassLensInnerDark = Color(0x17FFFFFF); // 9%
 }
 
 /// 4px base spacing. Named steps are the only values pages may use.
@@ -80,7 +123,7 @@ abstract final class MileafSpace {
   static const inline6 = 6.0;
   static const inline10 = 10.0;
   static const row14 = 14.0;
-  static const section = 28.0;
+  static const section = 32.0;
 
   static const s4 = 4.0;
   static const s8 = 8.0;
@@ -104,6 +147,7 @@ abstract final class MileafSpace {
   /// Text input floor (R05: 最小52，字16).
   static const inputMinHeight = 52.0;
   static const touch = 44.0;
+  static const touchAndroid = 48.0;
   static const navHeight = 64.0;
   static const primaryButtonHeight = 48.0;
   static const rhythmHeight = 88.0;
@@ -125,12 +169,16 @@ abstract final class MileafRadius {
   static const sm = 10.0;
   static const md = 12.0;
   static const lg = 20.0;
+  static const surface = 24.0;
+  static const sheet = 28.0;
   static const full = 999.0;
 
   static const xsAll = BorderRadius.all(Radius.circular(xs));
   static const smAll = BorderRadius.all(Radius.circular(sm));
   static const mdAll = BorderRadius.all(Radius.circular(md));
+  static const surfaceAll = BorderRadius.all(Radius.circular(surface));
   static const lgTop = BorderRadius.vertical(top: Radius.circular(lg));
+  static const sheetTop = BorderRadius.vertical(top: Radius.circular(sheet));
   static const fullAll = BorderRadius.all(Radius.circular(full));
 }
 
@@ -140,20 +188,28 @@ abstract final class MileafDurations {
   /// R07：按压 100ms easeOut（中性覆盖层，由 InkWell 高光承载）。
   static const press = Duration(milliseconds: 100);
 
-  /// R07：互斥选中 / 折叠 / 读值反馈 160ms。
-  static const tab = Duration(milliseconds: 160);
+  /// R16 M02：互斥选中移动 180ms。
+  static const selection = Duration(milliseconds: 180);
+
+  /// R16 M03：内容经过顶栏时，仅叠色在 120ms 内收敛。
+  static const chrome = Duration(milliseconds: 120);
+
+  /// R16 M06：折叠 chevron 160ms。保留 tab 别名供既有调用迁移。
+  static const chevron = Duration(milliseconds: 160);
+  static const tab = chevron;
 
   /// 180ms 整页入场时长。`MileafPageEnter` 已改为即时直出（U03，ADR0011），
   /// 仅剩 `map/map_privacy_page.dart`（U10 范围）的自绘折叠 chevron 消费；
   /// U10 在 P12 迁移该 chevron 后删除本 token 与 `MileafCurves.enter`。
   static const enter = Duration(milliseconds: 180);
 
-  /// R07：弹层 240ms easeOutCubic（showMileafSheet 的框架路由转场，
-  /// charging_cost 的自管转场消费）。
-  static const sheet = Duration(milliseconds: 240);
+  /// R16 M05：弹层进入 280ms、退出 220ms。
+  static const sheetIn = Duration(milliseconds: 280);
+  static const sheetOut = Duration(milliseconds: 220);
+  static const sheet = sheetIn;
 
-  /// R07：局部快照更新 160ms easeOut，一次 opacity 过渡，数值即时正确。
-  static const value = Duration(milliseconds: 160);
+  /// R16 M08：局部快照更新 120ms，数值在首帧即时正确。
+  static const value = Duration(milliseconds: 120);
 }
 
 /// Only two shadow levels exist: sheet/overlay and toast.
@@ -173,39 +229,117 @@ abstract final class MileafElevation {
   static const toast = [
     BoxShadow(color: Color(0x40000000), offset: Offset(0, 6), blurRadius: 20),
   ];
+  static const navigationDark = [
+    BoxShadow(color: Color(0x47000000), offset: Offset(0, 4), blurRadius: 16),
+  ];
+  static const navigationLight = [
+    BoxShadow(color: Color(0x1A0E1319), offset: Offset(0, 4), blurRadius: 16),
+  ];
+
+  /// 浮动玻璃离页面的距离：一层柔和大范围晕影 + 一道贴合边缘的窄影。
+  static const glassNavigationLight = [
+    BoxShadow(
+      color: Color(0x1A0E1319),
+      offset: Offset(0, 10),
+      blurRadius: 28,
+      spreadRadius: -6,
+    ),
+    BoxShadow(
+      color: Color(0x0F0E1319),
+      offset: Offset(0, 2),
+      blurRadius: 6,
+      spreadRadius: -2,
+    ),
+  ];
+  static const glassNavigationDark = [
+    BoxShadow(
+      color: Color(0x59000000),
+      offset: Offset(0, 10),
+      blurRadius: 28,
+      spreadRadius: -6,
+    ),
+    BoxShadow(
+      color: Color(0x33000000),
+      offset: Offset(0, 2),
+      blurRadius: 6,
+      spreadRadius: -2,
+    ),
+  ];
+  static const glassLensLight = [
+    BoxShadow(color: Color(0x140E1319), offset: Offset(0, 2), blurRadius: 10),
+    BoxShadow(color: Color(0x0A0E1319), offset: Offset(0, 1), blurRadius: 3),
+  ];
+  static const glassLensDark = [
+    BoxShadow(color: Color(0x33000000), offset: Offset(0, 2), blurRadius: 10),
+    BoxShadow(color: Color(0x1F000000), offset: Offset(0, 1), blurRadius: 3),
+  ];
+}
+
+abstract final class MileafMaterialMetrics {
+  const MileafMaterialMetrics._();
+
+  static const navigationBlur = 18.0;
+
+  /// 液态玻璃：更重的模糊与轻微过饱和，让背后的色块融成光而不是可读内容。
+  static const glassBlur = 36.0;
+  static const glassSaturation = 1.35;
+
+  /// 受光边缘以物理像素为单位的倍数，缩放后仍是一条线。
+  static const glassRimStroke = 1.2;
+  static const glassInnerStroke = 0.9;
+  static const glassLensRimStroke = 1.0;
+
+  /// 顶部高光覆盖范围与下沿弯月起点的相对高度。
+  static const glassSheenReach = .52;
+  static const glassMeniscusStart = .58;
+
+  /// 内缘细线从多高开始出现（只压在下半圈）。
+  static const glassInnerReach = .42;
+
+  /// 挖孔投影的外扩余量，要盖住最大偏移（10）与最大模糊（28）。
+  static const glassShadowMargin = 96.0;
+
+  /// BoxShadow.blurRadius 与 MaskFilter sigma 的换算。
+  static const glassShadowSigmaScale = .5;
+
+  /// 镜片移动时的起步横向拉伸（L05）。
+  static const glassLensStretch = 1.06;
 }
 
 /// Font sizes, line heights, weights and tracking from Spec §3.2.
 abstract final class MileafType {
   const MileafType._();
 
-  static const displaySize = 48.0;
-  static const displayHeight = 52.0;
+  static const displaySize = 40.0;
+  static const displayHeight = 46.0;
   static const displayTracking = -0.02;
 
-  static const metricLgSize = 36.0;
-  static const metricLgHeight = 42.0;
+  static const metricLgSize = 32.0;
+  static const metricLgHeight = 38.0;
   static const metricLgTracking = -0.02;
 
   static const metricMdSize = 24.0;
   static const metricMdHeight = 30.0;
   static const metricMdTracking = -0.02;
 
-  static const pageTitleSize = 22.0;
-  static const pageTitleHeight = 28.0;
+  static const pageTitleSize = 28.0;
+  static const pageTitleHeight = 34.0;
 
   static const navLabelSize = 12.0;
   static const navLabelHeight = 16.0;
 
-  static const titleSize = 18.0;
-  static const titleHeight = 26.0;
+  static const titleSize = 20.0;
+  static const titleHeight = 28.0;
   static const titleTracking = 0.0;
 
-  static const bodySize = 16.0;
-  static const bodyHeight = 24.0;
+  static const navigationTitleSize = 18.0;
+  static const navigationTitleHeight = 26.0;
 
-  static const labelSize = 13.0;
-  static const labelHeight = 18.0;
+  static const bodySize = 17.0;
+  static const bodyHeight = 25.0;
+
+  static const labelSize = 14.0;
+  static const labelHeight = 20.0;
   static const labelTracking = 0.0;
 
   static const microSize = 12.0;

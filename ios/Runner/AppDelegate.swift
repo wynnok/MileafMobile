@@ -15,6 +15,9 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "AmapIosPlugin") {
       AmapIosPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "DisplayPreferencesPlugin") {
+      DisplayPreferencesPlugin.register(with: registrar)
+    }
   }
 }
 

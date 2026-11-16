@@ -44,6 +44,7 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
+    await tester.scrollUntilVisible(find.textContaining('本月 · 2026年10月'), 80);
     expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
     await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
@@ -72,6 +73,11 @@ void main() {
     expect(find.textContaining('Asia/Shanghai'), findsWidgets);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('本月 · 2026年10月'),
+      -160,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
   });
   testWidgets('统计能力读取失败时仍可阅读旧统计', (tester) async {
@@ -223,6 +229,11 @@ void main() {
     );
     await pickPeriod(tester, '本周');
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '全部指标').hitTestable(),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.widgetWithText(TextButton, '全部指标'));
     await tester.pumpAndSettle();
     // C03: every metric entry is a topic, never a second equal-weight tab bar.

@@ -297,7 +297,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('加载更多充电'), 400);
+    await tester.scrollUntilVisible(find.text('加载更多充电'), 500);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -80));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('加载更多充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.textContaining('保留已加载记录'), -300);
@@ -316,6 +318,7 @@ void main() {
       'MjAyNi0wMy0xNVQxMTowMDowMCswMDowMHw4',
     );
     await tester.scrollUntilVisible(find.byTooltip('刷新充电').hitTestable(), -100);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 160));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电').hitTestable());
     await tester.pumpAndSettle();
@@ -510,6 +513,7 @@ void main() {
     await tester.pumpAndSettle();
     empty = true;
     await tester.scrollUntilVisible(find.byTooltip('刷新充电'), -400);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 160));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();

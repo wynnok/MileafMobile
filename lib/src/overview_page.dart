@@ -1184,7 +1184,9 @@ class _OverviewPageState extends State<OverviewPage>
           ),
         ),
       ),
-      subtitle: '${_rangeText(evidence) ?? ''}\n$unit',
+      // 单位与区间各归其位：单位是标题旁的度量，区间是右端的窗口。折成
+      // 两行时「km」会孤零零挂在日期下面，像第二个区间。
+      subtitle: _rangeText(evidence),
       tickLabel: (time) {
         final local = workspace.calendar!.local(time);
         return '${local.month}/${local.day}';

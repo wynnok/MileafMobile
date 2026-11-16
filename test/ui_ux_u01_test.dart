@@ -16,7 +16,7 @@ import 'package:mileaf/src/design/typography.dart';
 import 'drives_test.dart' show openDrives, jsonResponse;
 
 void main() {
-  testWidgets('R02 正式组件以36号周期主值和16号正文阅读', (tester) async {
+  testWidgets('R12 正式组件以32号周期主值和17号正文阅读', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: mileafTheme(Brightness.light),
@@ -36,9 +36,9 @@ void main() {
         ),
       ),
     );
-    expect(tester.widget<Text>(find.text('期间')).style!.fontSize, 16);
+    expect(tester.widget<Text>(find.text('期间')).style!.fontSize, 17);
     final number = tester.widget<Text>(find.text('1,280.6 km'));
-    expect(number.textSpan!.style!.fontSize, 36);
+    expect(number.textSpan!.style!.fontSize, 32);
   });
   testWidgets('P02 首条记录完整且第二条起始可见', (tester) async {
     tester.view.physicalSize = const Size(360, 800);

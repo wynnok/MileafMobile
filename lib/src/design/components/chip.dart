@@ -5,7 +5,7 @@ import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 
-/// 44px chip with a 44px touch target; selection fades in over 160ms (R07).
+/// 44px chip with a 44px touch target; selection settles over 180ms (R16).
 class StatusChip extends StatefulWidget {
   const StatusChip({
     super.key,
@@ -51,10 +51,9 @@ class _StatusChipState extends State<StatusChip> {
       foreground = onHero ? colors.heroMuted : colors.textMuted;
     }
     final chip = AnimatedContainer(
-      // R07 互斥选中：160ms easeOutCubic 底色淡入，控件尺寸固定；禁用动效归零。
-      duration: MileafLayout.motion(context, MileafDurations.tab),
+      duration: MileafLayout.motion(context, MileafDurations.selection),
       curve: Curves.easeOutCubic,
-      constraints: const BoxConstraints(minHeight: MileafSpace.touch),
+      constraints: BoxConstraints(minHeight: MileafLayout.touchTarget(context)),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       decoration: BoxDecoration(
         color: background,
@@ -86,7 +85,9 @@ class _StatusChipState extends State<StatusChip> {
       child: Focus(
         onFocusChange: (value) => setState(() => _focused = value),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: MileafSpace.touch),
+          constraints: BoxConstraints(
+            minHeight: MileafLayout.touchTarget(context),
+          ),
           child: Center(
             widthFactor: 1,
             heightFactor: 1,

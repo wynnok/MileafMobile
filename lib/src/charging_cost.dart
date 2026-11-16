@@ -158,8 +158,8 @@ Future<void> showChargingCostSheet(
     enableDrag: false,
     constraints: const BoxConstraints(maxWidth: MileafBreakpoints.sheetMax),
     sheetAnimationStyle: AnimationStyle(
-      duration: MileafLayout.motion(context, MileafDurations.sheet),
-      reverseDuration: MileafLayout.motion(context, MileafDurations.sheet),
+      duration: MileafLayout.motion(context, MileafDurations.sheetIn),
+      reverseDuration: MileafLayout.motion(context, MileafDurations.sheetOut),
       curve: MileafCurves.sheet,
       reverseCurve: MileafCurves.sheet,
     ),

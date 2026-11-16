@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'overview_a_regression_test.dart' show openOverview;
 
@@ -111,6 +112,30 @@ void main() {
       find.descendant(of: find.byKey(plate), matching: find.text('234.70')),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('概览图表头：单位与区间各归其位，不再折成两行', (tester) async {
+    await openOverview(tester, currency: 'CNY');
+    final chart = tester.widget<TimeSeriesChart>(
+      find.byType(TimeSeriesChart).first,
+    );
+    expect(chart.unit, 'km');
+    expect(chart.subtitle, '10.01 — 10.26', reason: '区间不再把单位折进字符串');
+    final frame = find.byType(TimeSeriesChart).first;
+    final title = tester.getRect(
+      find.descendant(of: frame, matching: find.text('每日里程')),
+    );
+    final unit = tester.getRect(
+      find.descendant(of: frame, matching: find.text('km')),
+    );
+    final range = tester.getRect(
+      find.descendant(of: frame, matching: find.text('10.01 — 10.26')),
+    );
+    // 名称 → 度量 → 窗口同一行：单位紧贴标题，窗口落在右端。
+    expect(unit.center.dy, closeTo(title.center.dy, 2));
+    expect(range.center.dy, closeTo(title.center.dy, 2));
+    expect(range.left, greaterThan(unit.right));
     expect(tester.takeException(), isNull);
   });
 }

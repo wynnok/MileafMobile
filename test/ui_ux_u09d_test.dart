@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'statistics_range_test.dart' show rangeResponse;
@@ -352,7 +353,9 @@ void main() {
         final plot = tester.getRect(
           find.byKey(const Key('range-observation-chart')),
         );
-        final bodyTop = tester.getRect(find.byType(AppBar).last).bottom;
+        final bodyTop = tester
+            .getRect(find.byType(MileafNavigationRow).last)
+            .bottom;
         final visible =
             math.min(plot.bottom, size.height - 24) -
             math.max(plot.top, bodyTop);

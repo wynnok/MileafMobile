@@ -38,7 +38,7 @@ Future<void> pumpComponent(
 
 void main() {
   group('MileafHero', () {
-    testWidgets('深色锚点为实色、无光晕且状态栏为浅色图标', (tester) async {
+    testWidgets('深色车况为同调实色卡片、无光晕且语义可达', (tester) async {
       final semantics = tester.ensureSemantics();
       await pumpComponent(
         tester,
@@ -68,16 +68,13 @@ void main() {
         ),
         findsNothing,
       );
-      final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
-        find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,
-      );
-      expect(region.value.statusBarIconBrightness, Brightness.light);
+      expect(material.borderRadius, MileafRadius.surfaceAll);
       expect(find.bySemanticsLabel(RegExp('车况')), findsOneWidget);
       expect(tester.takeException(), isNull);
       semantics.dispose();
     });
 
-    testWidgets('浅色页仍使用深色 hero', (tester) async {
+    testWidgets('浅色页使用普通内容表面 hero', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
@@ -92,10 +89,10 @@ void main() {
             .first,
       );
       expect(material.color, const MileafColors.light().hero);
-      expect(material.color, isNot(const MileafColors.light().canvas));
+      expect(material.color, const MileafColors.light().surface);
     });
 
-    testWidgets('浅色 hero 是 12 外边距、20 圆角、无描边无阴影的卡片', (tester) async {
+    testWidgets('浅色 hero 是 12 外边距、24 圆角、无描边无阴影的卡片', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
@@ -112,7 +109,7 @@ void main() {
       final material = tester.widget<Material>(cardFinder);
       expect(card.left - hero.left, MileafSpace.cardInset);
       expect(hero.right - card.right, MileafSpace.cardInset);
-      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
+      expect(material.borderRadius, MileafRadius.surfaceAll);
       expect(material.shape, isNull);
       expect(material.elevation, 0, reason: '卡片 hero 只有底色，不加阴影');
       expect(material.color, const MileafColors.light().hero);
@@ -134,7 +131,7 @@ void main() {
       );
     });
 
-    testWidgets('深色 hero 仍满幅贴边且声明浅色状态栏图标', (tester) async {
+    testWidgets('深色 hero 同样采用 12 外边距和 24 圆角', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 200, child: Text('320 km'))),
@@ -146,17 +143,13 @@ void main() {
             matching: find.byType(Material),
           )
           .first;
-      expect(tester.getRect(cardFinder), hero, reason: '满幅形态没有外边距');
-      expect(tester.widget<Material>(cardFinder).borderRadius, isNull);
-      final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
-        find
-            .descendant(
-              of: find.byType(MileafHero),
-              matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
-            )
-            .first,
+      final card = tester.getRect(cardFinder);
+      expect(card.left - hero.left, MileafSpace.cardInset);
+      expect(hero.right - card.right, MileafSpace.cardInset);
+      expect(
+        tester.widget<Material>(cardFinder).borderRadius,
+        MileafRadius.surfaceAll,
       );
-      expect(region.value.statusBarIconBrightness, Brightness.light);
     });
 
     testWidgets('浅色卡片 hero 在 320 宽与 200% 下不横向溢出', (tester) async {
@@ -372,7 +365,7 @@ void main() {
   });
 
   group('MileafCopyRow', () {
-    testWidgets('默认态：标签、可选择值与 44×44 复制按钮', (tester) async {
+    testWidgets('默认态：标签、可选择值与平台命中区复制按钮', (tester) async {
       var copies = 0;
       String? payload;
       await pumpComponent(
@@ -396,7 +389,10 @@ void main() {
       );
       final button = find.byTooltip('复制高德控制台链接');
       expect(button, findsOneWidget);
-      expect(tester.getSize(button), const Size.square(MileafSpace.touch));
+      expect(
+        tester.getSize(button),
+        const Size.square(MileafSpace.touchAndroid),
+      );
       await tester.tap(button);
       expect(copies, 1);
       // copyText 可以不同于显示值：显示短域名，复制完整 URL。
@@ -766,7 +762,7 @@ void main() {
       expect(find.text('10/2 · 0 kWh'), findsOneWidget);
     });
 
-    testWidgets('多系列显示图例，参照用虚线标签', (tester) async {
+    testWidgets('单测量 + 参照：图例只标注位置指认不出的虚线', (tester) async {
       await pumpComponent(
         tester,
         TimeSeriesChart(
@@ -786,10 +782,166 @@ void main() {
             ),
           ],
           semanticsLabel: '里程走势图表',
+          controls: const ChipRow(children: [StatusChip(label: '里程')]),
+          readout: (index) => '第${index + 1}天',
         ),
       );
-      expect(find.text('本期'), findsOneWidget);
+      // 实心系列已由标题和指标控件命名两次，图例只留虚线那一条。
       expect(find.text('参照'), findsOneWidget);
+      expect(find.text('本期'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('多测量时图例只列名字，不画同色色块', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '净 / 毛电耗',
+          unit: 'Wh/km',
+          times: times,
+          series: const [
+            ChartSeries(label: '净电耗', values: [10, 20, 30, 40, 50]),
+            ChartSeries(label: '毛电耗', values: [12, 22, 32, 42, 52]),
+          ],
+          semanticsLabel: '净电耗与毛电耗图表',
+        ),
+      );
+      expect(find.text('净电耗'), findsOneWidget);
+      expect(find.text('毛电耗'), findsOneWidget);
+      // 绘图区只拿得到一个主色，两条线同色；同色色块等于宣称它们相同。
+      expect(find.byKey(const ValueKey('chart-legend-mark-净电耗')), findsNothing);
+      expect(find.byKey(const ValueKey('chart-legend-mark-毛电耗')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('图例排在指标控件之下、绘图区之上', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '每日里程',
+          unit: 'km',
+          subtitle: '10.01 — 10.05',
+          times: times,
+          series: const [
+            ChartSeries(label: '里程', values: [10, 20, 30, 40, 50]),
+            ChartSeries(
+              label: '上月同期',
+              values: [8, 18, 28, 38, 48],
+              style: ChartSeriesStyle.reference,
+            ),
+          ],
+          semanticsLabel: '每日里程图表',
+          controls: const ChipRow(children: [StatusChip(label: '里程')]),
+          readout: (index) => '第${index + 1}天',
+        ),
+      );
+      final controls = tester.getRect(find.byType(ChipRow));
+      final legend = tester.getRect(
+        find.byKey(const ValueKey('chart-legend-mark-上月同期')),
+      );
+      final plot = tester.getRect(find.byType(CustomPaint).last);
+      expect(legend.top, greaterThanOrEqualTo(controls.bottom));
+      expect(legend.bottom, lessThanOrEqualTo(plot.top));
+      expect(find.text('里程'), findsOneWidget, reason: '实心系列不再重复命名');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('320 宽 130% 长区间不横向溢出', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '速度过程',
+          unit: 'km/h',
+          subtitle: '2025/12/28—2026/1/3',
+          times: times,
+          series: const [
+            ChartSeries(label: '速度', values: [10, 20, 30, 40, 50]),
+          ],
+          semanticsLabel: '速度过程图表',
+          readout: (index) => '第${index + 1}天',
+        ),
+        width: 320,
+        scale: 1.3,
+      );
+      expect(tester.takeException(), isNull);
+      final chart = tester.getRect(find.byType(TimeSeriesChart));
+      final range = tester.getRect(find.text('2025/12/28—2026/1/3'));
+      expect(range.right, lessThanOrEqualTo(chart.right));
+      expect(find.text('km/h'), findsOneWidget);
+    });
+
+    testWidgets('标题、单位、区间同排且各归其位', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '每日里程',
+          unit: 'km',
+          subtitle: '10.01 — 10.26',
+          times: times,
+          series: const [
+            ChartSeries(label: '里程', values: [10, 20, 30, 40, 50]),
+          ],
+          semanticsLabel: '每日里程图表',
+          readout: (index) => '第${index + 1}天',
+        ),
+      );
+      final title = tester.getRect(find.text('每日里程'));
+      final unit = tester.getRect(find.text('km'));
+      final range = tester.getRect(find.text('10.01 — 10.26'));
+      // 同一行：单位贴着标题，区间落在右端，三者不各自折行。
+      expect(unit.center.dy, closeTo(title.center.dy, 2));
+      expect(range.center.dy, closeTo(title.center.dy, 2));
+      expect(unit.left, greaterThan(title.right));
+      expect(range.left, greaterThan(unit.right));
+      expect(
+        range.right,
+        closeTo(tester.getRect(find.byType(TimeSeriesChart)).right, .5),
+        reason: '区间右端与绘图区右沿同线',
+      );
+    });
+
+    testWidgets('200% 字号：区间落到标题下一行并与标题同一左缘', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '每日里程',
+          unit: 'km',
+          subtitle: '10.01 — 10.26',
+          times: times,
+          series: const [
+            ChartSeries(label: '里程', values: [10, 20, 30, 40, 50]),
+          ],
+          semanticsLabel: '每日里程图表',
+          readout: (index) => '第${index + 1}天',
+        ),
+        scale: 2,
+      );
+      final title = tester.getRect(find.text('每日里程'));
+      final range = tester.getRect(find.text('10.01 — 10.26'));
+      expect(range.top, greaterThanOrEqualTo(title.bottom));
+      expect(range.left, closeTo(title.left, .5));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('headerTrailing 控件排在标题之下，不与标题挤同一行', (tester) async {
+      await pumpComponent(
+        tester,
+        TimeSeriesChart(
+          title: '每日补能',
+          unit: 'kWh',
+          times: times,
+          series: const [
+            ChartSeries(label: '补能', values: [10, 20, 30, 40, 50]),
+          ],
+          semanticsLabel: '每日补能图表',
+          headerTrailing: const Text('控件行'),
+          readout: (index) => '第${index + 1}天',
+        ),
+      );
+      final title = tester.getRect(find.text('每日补能'));
+      final trailing = tester.getRect(find.text('控件行'));
+      expect(trailing.top, greaterThanOrEqualTo(title.bottom));
+      expect(trailing.left, closeTo(title.left, .5));
       expect(tester.takeException(), isNull);
     });
 
@@ -1048,7 +1200,11 @@ void main() {
         Color? textColor(String label) =>
             tester.widget<Text>(find.text(label)).style?.color;
         expect(textColor('概览'), colors.accentStrong, reason: '选中导航标签是文字');
-        expect(textColor('行程'), colors.textFaint, reason: '未选导航标签');
+        expect(
+          textColor('行程'),
+          colors.textMuted,
+          reason: '未选导航标签：玻璃底需要比 textFaint 深一档（ADR 0013 L04）',
+        );
         expect(textColor('本月'), colors.text, reason: '选中 chip 标签是文字');
         expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');
         expect(textColor('取消'), colors.text, reason: 'secondary 用正文色');

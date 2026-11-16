@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import 'package:flutter/services.dart';
 
 import '../design/components/components.dart';
@@ -196,7 +195,7 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
   /// built-in caret, never a supplied `trailing` (Spec §0).
   Widget _chevron(BuildContext context, bool expanded) => AnimatedRotation(
     turns: expanded ? _chevronExpanded : _chevronFolded,
-    duration: MileafLayout.motion(context, MileafDurations.value),
+    duration: MileafLayout.motion(context, MileafDurations.chevron),
     curve: MileafCurves.enter,
     child: MileafIcon(
       MileafIconName.chevron,

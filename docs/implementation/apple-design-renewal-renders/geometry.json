@@ -1,0 +1,224 @@
+{
+  "logical_size": "390x844",
+  "pixel_ratio": 2,
+  "text_scale": 1,
+  "safe_area": {
+    "top": 24,
+    "bottom": 24
+  },
+  "timezone": "Asia/Shanghai",
+  "fixture": "cGalleryClient / CostSite",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "overview-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "status": {
+      "left": 24.0,
+      "top": 104.0,
+      "right": 366.0,
+      "bottom": 315.0,
+      "width": 342.0,
+      "height": 211.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "drives-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "first_record": {
+      "left": 24.0,
+      "top": 578.0,
+      "right": 366.0,
+      "bottom": 667.0,
+      "width": 342.0,
+      "height": 89.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "statistics-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "chart": {
+      "left": 24.0,
+      "top": 290.0,
+      "right": 366.0,
+      "bottom": 579.0,
+      "width": 342.0,
+      "height": 289.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "charging-detail-dark": {
+    "battery_arc": {
+      "left": 24.0,
+      "top": 150.0,
+      "right": 112.0,
+      "bottom": 238.0,
+      "width": 88.0,
+      "height": 88.0
+    },
+    "chart": {
+      "left": 24.0,
+      "top": 458.0,
+      "right": 366.0,
+      "bottom": 693.0,
+      "width": 342.0,
+      "height": 235.0
+    }
+  },
+  "charging-cost-dark": {
+    "sheet": {
+      "left": 0.0,
+      "top": 198.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 646.0
+    }
+  },
+  "overview-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "status": {
+      "left": 24.0,
+      "top": 104.0,
+      "right": 366.0,
+      "bottom": 315.0,
+      "width": 342.0,
+      "height": 211.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "drives-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "first_record": {
+      "left": 24.0,
+      "top": 578.0,
+      "right": 366.0,
+      "bottom": 667.0,
+      "width": 342.0,
+      "height": 89.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "statistics-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 98.0,
+      "width": 390.0,
+      "height": 98.0
+    },
+    "chart": {
+      "left": 24.0,
+      "top": 290.0,
+      "right": 366.0,
+      "bottom": 579.0,
+      "width": 342.0,
+      "height": 289.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 746.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 98.0
+    }
+  },
+  "charging-detail-light": {
+    "battery_arc": {
+      "left": 24.0,
+      "top": 150.0,
+      "right": 112.0,
+      "bottom": 238.0,
+      "width": 88.0,
+      "height": 88.0
+    },
+    "chart": {
+      "left": 24.0,
+      "top": 458.0,
+      "right": 366.0,
+      "bottom": 693.0,
+      "width": 342.0,
+      "height": 235.0
+    }
+  },
+  "charging-cost-light": {
+    "sheet": {
+      "left": 0.0,
+      "top": 198.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 646.0
+    }
+  }
+}

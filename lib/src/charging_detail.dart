@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-
 import 'api.dart';
 import 'charging_cost.dart';
 
@@ -490,7 +489,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                         BatteryArc(
                           level: d.endSoc,
                           start: d.startSoc,
-                          showLabel: false,
+                          showLabel: !MileafLayout.largeText(context),
                           size: MileafBatteryMetrics.size,
                         ),
                         const SizedBox(width: MileafSpace.s16),

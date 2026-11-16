@@ -1,0 +1,22 @@
+{
+  "scanned": "2026-11-15",
+  "findings": {
+    "fonts": "Inter 400/500/600 with platform CJK fallback (pubspec.yaml:27)",
+    "palette": "semantic light/dark ThemeExtension over centralized primitives (lib/src/design/semantic.dart:12)",
+    "motion": "centralized Flutter durations with MediaQuery reduce-motion fallback (lib/src/design/tokens.dart:141)",
+    "spacing": "4px named Flutter token scale (lib/src/design/tokens.dart:87)",
+    "framework": "Flutter app with Material 3 and native iOS/Android bridges (pubspec.yaml:7)"
+  },
+  "preserve": [
+    "Mileaf brand and electric blue signal",
+    "Inter and platform CJK fallback",
+    "business data, routes and controllers",
+    "four root destinations and reading state"
+  ],
+  "introduce": [
+    "accepted R11-R20 type and material system",
+    "bounded frosted navigation material",
+    "single moving selection surface",
+    "read-only iOS reduce-transparency bridge"
+  ]
+}

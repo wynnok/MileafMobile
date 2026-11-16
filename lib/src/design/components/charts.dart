@@ -88,7 +88,8 @@ class TimeSeriesChart extends StatefulWidget {
   final String? subtitle;
   final Widget? controls;
 
-  /// Responsive controls beside a short heading, stacked at large text sizes.
+  /// 指标控件。占标题之下的独立一行：它按顺序改变图里的数据身份，不该和
+  /// 标题、窗口抢同一行宽。
   final Widget? headerTrailing;
   final double? height;
   final Key? plotKey;
@@ -200,60 +201,42 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         .toInt();
     final titleColor = onHero ? colors.heroText : colors.text;
     final faint = onHero ? colors.heroFaint : colors.textFaint;
-    final header = Wrap(
-      spacing: MileafSpace.s12,
-      runSpacing: MileafSpace.s4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        _ChartTitle(title: widget.title, color: titleColor),
-        if (widget.subtitle != null)
-          Text(widget.subtitle!, style: type.label.copyWith(color: faint)),
-      ],
+    // 标尺文字（轴刻度、单位、区间）共用一个淡档；图例是要被读懂的词，
+    // 抬到 muted 一档，否则虚线标签在浅色底上会先消失。
+    final legendColor = onHero ? colors.heroMuted : colors.textMuted;
+    // 阅读顺序：名称 → 度量 → 窗口 → 指标控件 → key → 图形。图例不是标题
+    // 的一部分，它解释的是下方那批标记，所以贴到绘图区之上（R01 对齐 + 用户
+    // 要求的「一行只讲一件事」），而不是挤在标题右侧。
+    final heading = _ChartHeading(
+      title: widget.title,
+      unit: widget.unit,
+      subtitle: widget.subtitle,
+      titleColor: titleColor,
+      metaColor: faint,
     );
-    final heading = widget.headerTrailing == null
-        ? header
-        : MileafLayout.largeText(context)
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              header,
-              const SizedBox(height: MileafSpace.s8),
-              widget.headerTrailing!,
-            ],
-          )
-        : Row(
-            children: [
-              header,
-              const SizedBox(width: MileafSpace.s12),
-              Expanded(child: widget.headerTrailing!),
-            ],
-          );
-    final legend = widget.series.length > 1
-        ? Padding(
-            padding: const EdgeInsets.only(top: MileafSpace.s8),
-            child: Wrap(
-              spacing: MileafSpace.s16,
-              runSpacing: MileafSpace.s4,
-              children: [
-                for (final series in widget.series)
-                  _Legend(
-                    series: series,
-                    color: _seriesColor(series, colors),
-                    textColor: faint,
-                  ),
-              ],
-            ),
-          )
-        : null;
+    final legend = _legend(colors, legendColor);
+    // R01：标题到所属内容 12，控件之后再回到 8。标题因此拥有整块图表，而
+    // 控件、图例、绘图区是同属它的三段。
+    final chrome = <Widget>[
+      heading,
+      if (widget.headerTrailing != null) ...[
+        const SizedBox(height: MileafSpace.s12),
+        widget.headerTrailing!,
+      ],
+      if (widget.controls != null) ...[
+        SizedBox(
+          height: widget.headerTrailing == null
+              ? MileafSpace.s12
+              : MileafSpace.s8,
+        ),
+        widget.controls!,
+      ],
+    ];
     if (widget.times.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          heading,
-          if (widget.controls != null) ...[
-            const SizedBox(height: MileafSpace.s8),
-            widget.controls!,
-          ],
+          ...chrome,
           _ChartMessage(message: widget.emptyMessage, color: faint),
         ],
       );
@@ -261,20 +244,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (legend == null || MileafLayout.largeText(context))
-          heading
-        else
-          Row(
-            children: [
-              Expanded(child: heading),
-              legend,
-            ],
-          ),
-        if (MileafLayout.largeText(context)) ?legend,
-        if (widget.controls != null) ...[
-          const SizedBox(height: MileafSpace.s8),
-          widget.controls!,
-        ],
+        ...chrome,
+        if (legend != null) ...[const SizedBox(height: MileafSpace.s8), legend],
         const SizedBox(height: MileafSpace.s8),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -487,6 +458,60 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         ChartSeriesStyle.reference => colors.reference,
         _ => widget.onHero ? colors.accentHero : colors.accent,
       };
+
+  /// 图例：只解释「位置说不清的那条标记」。
+  ///
+  /// 三条规则，按顺序生效：
+  /// 1. 单系列不出图例——一个标记不需要 key。
+  /// 2. 一个测量 + 参照、且这个测量已经被指标控件点名（`controls` 或
+  ///    `headerTrailing` 的 chip 里就写着它的名字）时，只留参照：实心系列
+  ///    已经被标题和控件说过两遍，再配色块就是第三次命名。没有控件点名的
+  ///    页面（如统计洞察的「本期 / 参照」）保留完整图例，否则实心系列在可见
+  ///    层就失去了名字。
+  /// 3. 色块只在它能指认时才画。绘图区只拿得到一个 `primary`，多测量
+  ///    （净/毛电耗、AC/DC）的线同色，此时给每条都画同色块等于宣称它们相同，
+  ///    所以多测量只列名字；参照虚线与其它标记形状不同，永远带样本。
+  Widget? _legend(MileafColors colors, Color textColor) {
+    final entries = _legendEntries();
+    if (entries.isEmpty) return null;
+    return _ChartLegend(
+      entries: [
+        for (final entry in entries)
+          (
+            label: entry.series.label,
+            color: _seriesColor(entry.series, colors),
+            dashed: entry.series.style == ChartSeriesStyle.reference,
+            swatch: entry.swatch,
+          ),
+      ],
+      textColor: textColor,
+    );
+  }
+
+  List<({ChartSeries series, bool swatch})> _legendEntries() {
+    final series = widget.series;
+    if (series.length < 2) return const [];
+    final measures = [
+      for (final s in series)
+        if (s.style != ChartSeriesStyle.reference) s,
+    ];
+    final named = widget.controls != null || widget.headerTrailing != null;
+    final keyed = measures.length == 1 && named
+        ? [
+            for (final s in series)
+              if (s.style == ChartSeriesStyle.reference) s,
+          ]
+        : series;
+    // A single measure is one shape, so its sample is honest; two or more share
+    // one colour and a sample would claim they are the same.
+    return [
+      for (final s in keyed)
+        (
+          series: s,
+          swatch: s.style == ChartSeriesStyle.reference || measures.length == 1,
+        ),
+    ];
+  }
 }
 
 /// Style for the text the chart paints itself (axis labels, tick labels).
@@ -519,48 +544,157 @@ class _ChartTitle extends StatelessWidget {
   );
 }
 
-class _Legend extends StatelessWidget {
-  const _Legend({
-    required this.series,
-    required this.color,
-    required this.textColor,
+/// 标题（是什么）、度量（轴在数什么）、窗口（轴覆盖到哪）。
+///
+/// 三件东西按左→右的固定次序排一行：标题定住左端，窗口落在右端、与绘图区
+/// 的右沿对齐；单位紧贴标题（间距 6，与 `MetricBlock` 的「标签→值」同一对
+/// 节奏），是标题所命名坐标轴的度量，不是第四个标题。
+///
+/// 与 [SectionHeader] 同构：标题都用 `type.title`、区间都用 `type.label` 的
+/// 淡档、大字时区间落到标题下一行并共用左缘——所以图表头和它上面的章节标题
+/// 不会各说各话。
+class _ChartHeading extends StatelessWidget {
+  const _ChartHeading({
+    required this.title,
+    required this.unit,
+    required this.subtitle,
+    required this.titleColor,
+    required this.metaColor,
   });
-  final ChartSeries series;
-  final Color color;
-  final Color textColor;
+
+  final String title;
+  final String unit;
+  final String? subtitle;
+  final Color titleColor;
+  final Color metaColor;
+
   @override
   Widget build(BuildContext context) {
-    final reference = series.style == ChartSeriesStyle.reference;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    final type = context.type;
+    final heading = Wrap(
+      spacing: MileafSpace.inline6,
+      runSpacing: MileafSpace.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (reference)
+        _ChartTitle(title: title, color: titleColor),
+        if (unit.isNotEmpty)
+          Text(
+            unit,
+            style: type.micro.copyWith(color: metaColor),
+            // 单位只是标题的尺度注脚：读屏念「单位km」，但标题仍是唯一的
+            // header 节点，导航不会被这个 12 号标签打断。
+            semanticsLabel: '单位$unit',
+          ),
+      ],
+    );
+    final range = subtitle == null
+        ? null
+        : Text(subtitle!, style: type.label.copyWith(color: metaColor));
+    if (range == null) return heading;
+    if (MileafLayout.largeText(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          heading,
+          const SizedBox(height: MileafSpace.s4),
+          range,
+        ],
+      );
+    }
+    // 窗口可以是长区间（如跨年日期），所以它必须能收窄换行，不能把标题行
+    // 顶破；`spaceBetween` 保证它收窄之后仍然贴着右沿。
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: heading),
+        const SizedBox(width: MileafSpace.s12),
+        Flexible(child: range),
+      ],
+    );
+  }
+}
+
+/// One row of marks and names, read left to right, never wider than the plot.
+/// Which entries appear is decided by `_TimeSeriesChartState._legend`; this
+/// widget only lays them out.
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.entries, required this.textColor});
+
+  final List<({String label, Color color, bool dashed, bool swatch})> entries;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final type = context.type;
+    return Wrap(
+      spacing: MileafSpace.s16,
+      runSpacing: MileafSpace.inline6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final entry in entries)
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (var i = 0; i < 2; i++)
+              if (entry.swatch) ...[
+                _LegendMark(
+                  key: ValueKey('chart-legend-mark-${entry.label}'),
+                  color: entry.color,
+                  dashed: entry.dashed,
+                ),
+                const SizedBox(width: MileafSpace.inline6),
+              ],
+              Text(entry.label, style: type.micro.copyWith(color: textColor)),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// 标记的缩影：实线 12×2 与参照的 4/2 虚线同宽，图例本身就是图形语法的一段。
+class _LegendMark extends StatelessWidget {
+  const _LegendMark({super.key, required this.color, required this.dashed});
+
+  /// The sample is one bar slot wide (`barMaxWidth`), so the key never reads
+  /// as a second, invented symbol.
+  static const _width = MileafChartMetrics.barMaxWidth;
+
+  final Color color;
+  final bool dashed;
+
+  @override
+  Widget build(BuildContext context) {
+    // 与绘图区同一套几何：主线 2、参照 1.5 且 4/4 虚线（R06.5）。数值全部取自
+    // `MileafChartMetrics`，token 一改，样本和图一起动。
+    const dash = MileafChartMetrics.referenceDash;
+    return SizedBox(
+      width: _width,
+      height: MileafChartMetrics.lineStroke,
+      child: dashed
+          ? Row(
+              children: [
                 Container(
-                  width: 4,
-                  height: 1.5,
-                  margin: const EdgeInsets.only(right: 2),
+                  width: dash.first,
+                  height: MileafChartMetrics.referenceStroke,
                   color: color,
                 ),
-            ],
-          )
-        else
-          Container(
-            width: 10,
-            height: 2,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(1),
+                SizedBox(width: dash.last),
+                Container(
+                  width: dash.first,
+                  height: MileafChartMetrics.referenceStroke,
+                  color: color,
+                ),
+              ],
+            )
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(
+                  MileafChartMetrics.barRadius,
+                ),
+              ),
             ),
-          ),
-        const SizedBox(width: MileafSpace.s4),
-        Text(
-          series.label,
-          style: context.type.micro.copyWith(color: textColor),
-        ),
-      ],
     );
   }
 }
@@ -615,7 +749,8 @@ class StemChart extends StatelessWidget {
   final String? subtitle;
   final Widget? controls;
 
-  /// Responsive controls beside a short heading, stacked at large text sizes.
+  /// 指标控件。占标题之下的独立一行：它按顺序改变图里的数据身份，不该和
+  /// 标题、窗口抢同一行宽。
   final Widget? headerTrailing;
   final double? height;
   final Key? plotKey;

@@ -31,7 +31,8 @@ class ChipRow extends StatelessWidget {
       builder: (context, constraints) {
         const inset = MileafSpace.s4;
         const labelInset = MileafSpace.s12;
-        var preferred = MileafSpace.touch;
+        final touchTarget = MileafLayout.touchTarget(context);
+        var preferred = touchTarget;
         final naturalWidths = <double>[];
         for (final chip in children) {
           final painter = TextPainter(
@@ -43,7 +44,7 @@ class ChipRow extends StatelessWidget {
             textScaler: MediaQuery.textScalerOf(context),
           )..layout();
           final natural = math.max(
-            MileafSpace.touch,
+            touchTarget,
             // Leave one spacing step for fallback-font and pixel rounding.
             painter.width + labelInset * 2 + MileafSpace.s4,
           );
@@ -76,7 +77,7 @@ class ChipRow extends StatelessWidget {
         final widths = compactRow
             ? naturalWidths
             : List<double>.filled(children.length, cellWidth);
-        var height = MileafSpace.touch;
+        var height = touchTarget;
         for (final (index, chip) in children.indexed) {
           final painter = TextPainter(
             text: TextSpan(text: chip.label, style: context.type.label),
@@ -112,7 +113,7 @@ class ChipRow extends StatelessWidget {
                     AnimatedContainer(
                       duration: MileafLayout.motion(
                         context,
-                        MileafDurations.tab,
+                        MileafDurations.selection,
                       ),
                       curve: Curves.easeOutCubic,
                       transform: Matrix4.translationValues(

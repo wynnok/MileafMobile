@@ -424,7 +424,7 @@ void main() {
     final active = tester.widget<Text>(find.text('活跃 5 天'));
     expect(
       ((active.textSpan as TextSpan).children![1] as TextSpan).style!.fontSize,
-      36,
+      MileafType.metricLgSize,
     );
     expect(
       MileafLayout.largeText(tester.element(find.text('活跃 5 天'))),
@@ -809,7 +809,9 @@ void main() {
         final plot = tester.getRect(
           find.byKey(const ValueKey('usage-daily-plot')),
         );
-        final bodyTop = tester.getRect(find.byType(AppBar).last).bottom;
+        final bodyTop = tester
+            .getRect(find.byType(MileafNavigationRow).last)
+            .bottom;
         final visible =
             math.min(plot.bottom, size.height - 24) -
             math.max(plot.top, bodyTop);

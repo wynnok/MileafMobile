@@ -56,8 +56,14 @@ Map<String, dynamic> conditionsFixture() => {
   ],
 };
 Future<void> openConditions(WidgetTester tester) async {
-  await tester.scrollUntilVisible(find.text('能耗').hitTestable(), 200);
-  await tester.tap(find.text('能耗').first);
+  const topicKey = ValueKey('statistics-topic-能耗');
+  await tester.scrollUntilVisible(find.byKey(topicKey), 200);
+  await Scrollable.ensureVisible(
+    tester.element(find.byKey(topicKey)),
+    alignment: .5,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(topicKey));
   await tester.pumpAndSettle();
 }
 
@@ -212,7 +218,7 @@ void main() {
     await openConditions(tester);
     final month = seen.last.queryParameters;
     expect(month['from'], '2026-09-30T16:00:00.000Z');
-    await tester.tap(find.byType(BackButton));
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
     await pickPeriod(tester, '本周');
     await openConditions(tester);
@@ -244,7 +250,7 @@ void main() {
       statisticsInsights: true,
     );
     await openConditions(tester);
-    await tester.tap(find.byType(BackButton));
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();

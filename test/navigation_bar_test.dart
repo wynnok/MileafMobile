@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/page_bar.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/layout.dart';
+import 'package:mileaf/src/overview_page.dart';
 
 import 'support/a_gallery_fixture.dart';
 import 'statistics_test.dart' show openStats;
@@ -28,14 +30,23 @@ void main() {
         () => 'Asia/Shanghai',
         statisticsInsights: true,
       );
-      await tester.tap(find.text('概览'));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('节奏').hitTestable(),
-        100,
-        scrollable: find.byType(Scrollable).last,
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MileafNavBar),
+          matching: find.text('概览'),
+        ),
       );
-      await tester.tap(find.text('节奏').hitTestable());
+      await tester.pumpAndSettle();
+      final topic = find.descendant(
+        of: find.byType(OverviewPage),
+        matching: find.text('节奏').hitTestable(),
+      );
+      for (var i = 0; i < 20 && topic.evaluate().isEmpty; i++) {
+        await tester.drag(find.byType(Scrollable).last, const Offset(0, -240));
+        await tester.pumpAndSettle();
+      }
+      expect(topic, findsOneWidget);
+      await tester.tap(topic);
       await tester.pumpAndSettle();
       final period = tester.getRect(find.text('期间 · 2026年10月'));
       final icon = tester.getRect(find.byIcon(Icons.chevron_left_rounded));
@@ -52,7 +63,7 @@ void main() {
           '$output/statistics-navigation-${width.toInt()}.png',
         );
       }
-      await tester.tap(find.byType(BackButton));
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.text('统计'), findsWidgets);
     });
@@ -120,7 +131,7 @@ void main() {
             greaterThan(tester.getBottomLeft(find.text('全部指标与口径')).dy),
           );
         }
-        await tester.tap(find.byType(BackButton));
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(find.text('打开'), findsOneWidget);
       });

@@ -84,7 +84,7 @@ Future<void> bring(WidgetTester tester, Finder target) async {
     await tester.pumpAndSettle();
   }
   expect(target, findsWidgets, reason: '滚动后仍未找到目标');
-  await tester.ensureVisible(target.first);
+  await Scrollable.ensureVisible(tester.element(target.first), alignment: .5);
   await tester.pumpAndSettle();
 }
 
@@ -106,7 +106,7 @@ Future<void> showChart(WidgetTester tester) async {
 /// Brings an already-built target into view without dragging: a drag on the
 /// drives ledger would trip its own infinite-scroll paging.
 Future<void> reveal(WidgetTester tester, Finder target) async {
-  await tester.ensureVisible(target);
+  await Scrollable.ensureVisible(tester.element(target), alignment: .5);
   await tester.pumpAndSettle();
 }
 
@@ -183,7 +183,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-03-24 至 2026-03-30'), findsOneWidget);
     expect(find.text('行笺测试车'), findsOneWidget, reason: '车辆归属未改变');
     expect(
       seen
@@ -204,9 +203,11 @@ void main() {
 
     // 6. Charging and back: each entry keeps its own reading.
     await selectTab(tester, '充电');
-    expect(find.textContaining('充电历史'), findsWidgets);
+    expect(
+      find.descendant(of: find.byType(MileafTopBar), matching: find.text('充电')),
+      findsOneWidget,
+    );
     await selectTab(tester, '统计');
-    expect(find.textContaining('2026-03-24 至 2026-03-30'), findsOneWidget);
     expect(find.text('行笺测试车'), findsOneWidget);
     expect(tabOffset(tester, StatisticsInsightsPage), closeTo(settled, 1));
     await showChart(tester);
@@ -447,7 +448,10 @@ void main() {
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     failing = false;
-    await tester.ensureVisible(find.text('重试行程'));
+    await Scrollable.ensureVisible(
+      tester.element(find.text('重试行程')),
+      alignment: .5,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('重试行程'));
     await tester.pumpAndSettle();

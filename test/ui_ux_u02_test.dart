@@ -121,9 +121,10 @@ void main() {
     });
   });
 
-  group('R05 底栏实色并随大字增高', () {
+  group('R14/R15 浮动底栏材质并随大字增高', () {
     Widget shell() => MaterialApp(
-      theme: mileafTheme(Brightness.light),
+      theme: mileafTheme(Brightness.light)
+          .copyWith(platform: TargetPlatform.iOS),
       home: Scaffold(
         body: const SizedBox.expand(),
         bottomNavigationBar: MileafNavBar(index: 0, onSelected: (_) {}),
@@ -131,21 +132,19 @@ void main() {
     );
 
     double navHeight(WidgetTester tester) =>
-        tester.getSize(find.byType(MileafNavBar)).height;
+        tester.getSize(find.byType(NavigationMaterial)).height;
 
-    testWidgets('100% 高 64，背景为不透明 surface', (tester) async {
+    testWidgets('100% 内容高64，未知透明度偏好使用同几何实色', (tester) async {
       await tester.pumpWidget(shell());
-      expect(navHeight(tester), MileafSpace.navHeight);
-      final box = tester.widget<ColoredBox>(
-        find
-            .descendant(
-              of: find.byType(MileafNavBar),
-              matching: find.byType(ColoredBox),
-            )
-            .first,
+      expect(navHeight(tester), greaterThanOrEqualTo(MileafSpace.navHeight));
+      expect(
+        find.descendant(
+          of: find.byType(MileafNavBar),
+          matching: find.byType(NavigationMaterial),
+        ),
+        findsOneWidget,
       );
-      expect(box.color.a, 1, reason: 'R05 底栏实色，不得半透明或模糊');
-      expect(box.color, const MileafColors.light().surface);
+      expect(find.byType(BackdropFilter), findsNothing);
     });
 
     testWidgets('200% 按实际文字增高', (tester) async {
@@ -195,7 +194,7 @@ void main() {
       await pumpBar(tester, nonlinear: true);
       expect(tester.takeException(), isNull);
       final vehicle = tester.getRect(find.text('行笺测试车'));
-      final brand = tester.getRect(find.text('行笺'));
+      final brand = tester.getRect(find.text('概览'));
       expect(
         vehicle.top,
         greaterThanOrEqualTo(brand.bottom),
@@ -210,10 +209,10 @@ void main() {
       expect(find.byTooltip('设置'), findsOneWidget, reason: '设置入口仍可达');
     });
 
-    testWidgets('100% 仍为单行（品牌、车辆、设置同一行）', (tester) async {
+    testWidgets('100% 仍为单行（页名、车辆、设置同一行）', (tester) async {
       await pumpBar(tester);
       final vehicle = tester.getRect(find.text('行笺测试车'));
-      final brand = tester.getRect(find.text('行笺'));
+      final brand = tester.getRect(find.text('概览'));
       expect(
         (vehicle.center.dy - brand.center.dy).abs(),
         lessThan(4),
@@ -223,7 +222,7 @@ void main() {
   });
 
   group('R07 控件微动效', () {
-    testWidgets('chip 选中过渡 160ms；disableAnimations 时归零', (tester) async {
+    testWidgets('chip 选中过渡180ms；disableAnimations 时归零', (tester) async {
       await pumpComponent(
         tester,
         StatusChip(label: '里程', selected: false, onTap: () {}),
@@ -233,8 +232,8 @@ void main() {
       );
       expect(
         container.duration,
-        MileafDurations.tab,
-        reason: 'R07 互斥选中 160ms（原无过渡）',
+        MileafDurations.selection,
+        reason: 'R16 互斥选中 180ms',
       );
 
       // disableAnimations：时长归零，最多再排一帧即到终态，不再有 160ms 过渡。

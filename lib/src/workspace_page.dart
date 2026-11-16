@@ -69,6 +69,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
   String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
+  final chromeScrolledByTab = <int, bool>{};
   @override
   void initState() {
     super.initState();
@@ -145,6 +146,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
       statisticsKind = kind;
       statisticsTopic = topic;
       statisticsSelection = selection;
+      chromeScrolledByTab[3] = false;
       tab = 3;
     });
   }
@@ -210,11 +212,14 @@ class _WorkspacePageState extends State<WorkspacePage> {
         });
         return const Scaffold(body: Center(child: Text('正在恢复车辆选择')));
       }
-      Widget topBar({bool onHero = false}) => MileafTopBar(
+      final modalCovered = !(ModalRoute.of(context)?.isCurrent ?? true);
+      final chromeScrolled = chromeScrolledByTab[tab] ?? false;
+      Widget topBar(String title) => MileafTopBar(
+        title: title,
         vehicleName: vehicleName(vehicle),
         onVehicle: openVehicleSheet,
         onSettings: openSettings,
-        onHero: onHero,
+        forceSolid: modalCovered || !chromeScrolled,
       );
       if (readingVehicle != selected) {
         readingVehicle = selected;
@@ -223,15 +228,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
         statisticsKind = 0;
         statisticsTopic = null;
         statisticsSelection = const StatisticsSelection();
+        chromeScrolledByTab.clear();
       }
       final page = switch (tab) {
         0 => OverviewPage(
           key: ValueKey('overview:$selected'),
           workspace: workspace,
           currency: currency,
-          // The brand row rides the hero only while the hero is full bleed;
-          // once it is a card the row stays on paper (Spec §6.4).
-          topBar: topBar(onHero: !context.colors.heroAsCard),
           onStatistics: (kind, selection) => openStatistics(
             kind: kind == 'charging' ? 1 : 0,
             selection: selection,
@@ -243,7 +246,6 @@ class _WorkspacePageState extends State<WorkspacePage> {
         1 => DrivesPage(
           key: ValueKey('drives:$selected'),
           workspace: workspace,
-          topBar: topBar(),
           onRecord: (id) => record('drive', id),
         ),
         2 => ChargingPage(
@@ -251,7 +253,6 @@ class _WorkspacePageState extends State<WorkspacePage> {
           workspace: workspace,
           currency: currency,
           filter: chargingFilter,
-          topBar: topBar(),
           onRecord: record,
         ),
         3 => StatisticsPage(
@@ -260,42 +261,70 @@ class _WorkspacePageState extends State<WorkspacePage> {
           initialTopic: statisticsTopic,
           initialSelection: statisticsSelection,
           currency: currency,
-          topBar: topBar(),
           key: ValueKey('statistics:$selected:$statisticsEntry'),
           workspace: workspace,
         ),
         _ => Center(child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付')),
       };
       pages[tab] = page;
+      final title = const ['概览', '行程', '充电', '统计'][tab];
+      final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
       return Scaffold(
-        body: Column(
-          children: [
-            if (workspace.notice != null)
-              _NoticeBanner(text: workspace.notice!),
-            Expanded(
-              child: IndexedStack(
-                index: tab,
-                children: [
-                  for (var index = 0; index < 4; index++)
-                    ReadingScope(
-                      key: ValueKey('$selected:$index'),
-                      active: index == tab,
-                      child: TickerMode(
-                        enabled: index == tab,
-                        child: pages[index] ?? const SizedBox.shrink(),
+        extendBody: true,
+        body: RootNavigationScope(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.depth != 0) return false;
+                  final next = notification.metrics.pixels > 0;
+                  if (next != chromeScrolled) {
+                    setState(() => chromeScrolledByTab[tab] = next);
+                  }
+                  return false;
+                },
+                child: IndexedStack(
+                  index: tab,
+                  children: [
+                    for (var index = 0; index < 4; index++)
+                      ReadingScope(
+                        key: ValueKey('$selected:$index'),
+                        active: index == tab,
+                        child: TickerMode(
+                          enabled: index == tab,
+                          child: pages[index] ?? const SizedBox.shrink(),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.topCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    topBar(title),
+                    if (workspace.notice != null)
+                      _NoticeBanner(text: workspace.notice!),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        bottomNavigationBar: MileafNavBar(
-          index: tab,
-          onSelected: (index) {
-            if (index != tab) setState(() => tab = index);
-          },
-        ),
+        bottomNavigationBar: keyboardOpen
+            ? null
+            : TickerMode(
+                enabled: !modalCovered,
+                child: MileafNavBar(
+                  index: tab,
+                  forceSolid: modalCovered,
+                  onSelected: (index) {
+                    if (index != tab) setState(() => tab = index);
+                  },
+                ),
+              ),
       );
     },
   );

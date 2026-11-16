@@ -1625,12 +1625,6 @@ class _ChargingPageState extends State<ChargingPage>
   );
 
   Widget _pageHeader() {
-    final type = context.type;
-    final title = recordsOnly
-        ? '充电记录'
-        : expandedAvailable
-        ? '充电'
-        : '充电历史';
     final actions = <Widget>[
       if (expandedAvailable)
         TextButton(
@@ -1648,20 +1642,9 @@ class _ChargingPageState extends State<ChargingPage>
         onPressed: loading ? null : refreshAll,
       ),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (MileafLayout.largeText(context)) ...[
-          Text(title, style: type.pageTitle),
-          Wrap(alignment: WrapAlignment.end, children: actions),
-        ] else
-          Row(
-            children: [
-              Expanded(child: Text(title, style: type.pageTitle)),
-              ...actions,
-            ],
-          ),
-      ],
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Wrap(alignment: WrapAlignment.end, children: actions),
     );
   }
 
@@ -2105,6 +2088,8 @@ class _ChargingPageState extends State<ChargingPage>
             padding: EdgeInsets.zero,
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
+              if (widget.topBar == null)
+                SizedBox(height: MileafLayout.rootTopClearance(context)),
               Padding(
                 padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
                 child: Column(
@@ -2356,7 +2341,7 @@ class _ChargingPageState extends State<ChargingPage>
                   inset,
                   MileafSpace.s8,
                   inset,
-                  MileafSpace.s24,
+                  MileafLayout.rootNavigationClearance(context),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

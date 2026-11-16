@@ -512,9 +512,14 @@ void main() {
     expect(find.textContaining('—'), findsWidgets);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     refresh = true;
-    await tester.scrollUntilVisible(find.byTooltip('刷新行程'), -300);
+    final refreshAction = find.byTooltip('刷新行程');
+    await tester.scrollUntilVisible(refreshAction, -300);
+    await Scrollable.ensureVisible(
+      tester.element(refreshAction),
+      alignment: .5,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('刷新行程'));
+    await tester.tap(refreshAction);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
     expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);

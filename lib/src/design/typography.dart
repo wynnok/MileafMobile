@@ -91,6 +91,10 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     fontSize: MileafType.pageTitleSize,
     height: MileafType.pageTitleHeight / MileafType.pageTitleSize,
   );
+  TextStyle get navigationTitle => title.copyWith(
+    fontSize: MileafType.navigationTitleSize,
+    height: MileafType.navigationTitleHeight / MileafType.navigationTitleSize,
+  );
   TextStyle get bodyStrong =>
       body.copyWith(fontWeight: MileafType.weightMedium);
   TextStyle get navLabel => label.copyWith(

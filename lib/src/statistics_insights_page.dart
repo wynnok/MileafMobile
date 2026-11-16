@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import 'currency.dart';
 import 'number_format.dart';
@@ -293,24 +294,35 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             return child!;
           },
           child: Scaffold(
-            appBar: mileafPageBar(
-              routeContext,
-              title: Text(
-                const {
-                      'usage': '节奏',
-                      'energy': '能耗',
-                      'charging': '补能',
-                      'long': '长期',
-                      'range': '长期续航',
-                      'parking': '停放观察',
-                      'legacy': '原始统计指标',
-                    }[key] ??
-                    '统计专题',
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  MileafContent(
+                    child: MileafNavigationRow(
+                      title: Text(
+                        const {
+                              'usage': '节奏',
+                              'energy': '能耗',
+                              'charging': '补能',
+                              'long': '长期',
+                              'range': '长期续航',
+                              'parking': '停放观察',
+                              'legacy': '原始统计指标',
+                            }[key] ??
+                            '统计专题',
+                      ),
+                      onBack: () => Navigator.of(routeContext).pop(),
+                    ),
+                  ),
+                  Expanded(
+                    child: key == 'long' || key == 'legacy'
+                        ? MileafContent(child: body)
+                        : body,
+                  ),
+                ],
               ),
             ),
-            body: key == 'long' || key == 'legacy'
-                ? MileafContent(child: body)
-                : body,
           ),
         ),
       ),
@@ -503,24 +515,23 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       ],
     ],
   );
-  Widget insightHeader() {
-    final large = MileafLayout.largeText(context);
-    final actions = <Widget>[
-      TextButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => _AllMetricsPage(
-              timezone: workspace.calendar!.identifier,
-              onTopic: (key) {
-                Navigator.of(context).pop();
-                selectTopic(key);
-              },
-            ),
-          ),
+  Widget _allMetricsAction() => TextButton(
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _AllMetricsPage(
+          timezone: workspace.calendar!.identifier,
+          onTopic: (key) {
+            Navigator.of(context).pop();
+            selectTopic(key);
+          },
         ),
-        child: const Text('全部指标'),
       ),
-    ];
+    ),
+    child: const Text('全部指标'),
+  );
+
+  Widget insightHeader() {
+    final actions = <Widget>[_allMetricsAction()];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -547,31 +558,11 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (topic == 'overview')
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: MileafSpace.s12,
-                  runSpacing: MileafSpace.s4,
-                  children: [
-                    SizedBox(
-                      width: large ? double.infinity : null,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('统计', style: context.type.pageTitle),
-                          const SizedBox(height: MileafSpace.inline2),
-                          Text(
-                            _periodLabel(),
-                            style: context.type.label.copyWith(
-                              color: context.colors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ...actions,
-                  ],
+                Text(
+                  _periodLabel(),
+                  style: context.type.label.copyWith(
+                    color: context.colors.textMuted,
+                  ),
                 )
               else ...[
                 Text(
@@ -643,6 +634,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     if (features != null && features!['driving_coverage'] != true) {
       return Column(
         children: [
+          if (topic == 'overview' && widget.topBar == null)
+            SizedBox(height: MileafLayout.rootTopClearance(context)),
           if (topic != 'overview') insightHeader(),
           if (error != null)
             Row(
@@ -736,8 +729,16 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 ],
               ),
             );
-      if (topic == 'overview' && MileafLayout.largeText(context)) {
-        return ListView(children: [insightHeader(), content]);
+      if (topic == 'overview') {
+        return ListView(
+          scrollCacheExtent: const ScrollCacheExtent.pixels(10000),
+          children: [
+            if (widget.topBar == null)
+              SizedBox(height: MileafLayout.rootTopClearance(context)),
+            insightHeader(),
+            content,
+          ],
+        );
       }
       return Column(
         children: [
@@ -764,8 +765,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
     return Column(
       children: [
-        if (topic != 'overview' || !MileafLayout.largeText(context))
-          insightHeader(),
+        if (topic != 'overview') insightHeader(),
         Expanded(
           child: topic == 'long'
               ? longTopics()
@@ -774,9 +774,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               : topic != 'overview'
               ? widget.legacyBuilder(selection)
               : ListView(
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(10000),
                   padding: EdgeInsets.zero,
                   children: [
-                    if (MileafLayout.largeText(context)) insightHeader(),
+                    if (widget.topBar == null)
+                      SizedBox(height: MileafLayout.rootTopClearance(context)),
+                    insightHeader(),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),
@@ -819,9 +822,18 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                         MileafLayout.pageInset(context),
                         MileafSpace.section,
                         MileafLayout.pageInset(context),
-                        MileafSpace.s24,
+                        MileafLayout.rootNavigationClearance(context),
                       ),
-                      child: _moreSection(cal, stats, enhanced, paired, other),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: _allMetricsAction(),
+                          ),
+                          _moreSection(cal, stats, enhanced, paired, other),
+                        ],
+                      ),
                     ),
                   ],
                 ),

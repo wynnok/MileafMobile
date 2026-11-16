@@ -650,7 +650,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('充电历史'), findsOneWidget);
     expect(find.textContaining('未提供充电扩展能力'), findsOneWidget);
     expect(find.byKey(const Key('charging-search')), findsNothing);
     expect(
@@ -763,9 +762,11 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('补入电池 —')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('记录时长 —.*非等待时间')), findsOneWidget);
     free = true;
-    await tester.scrollUntilVisible(find.byTooltip('刷新充电').hitTestable(), -160);
+    final refresh = find.byTooltip('刷新充电');
+    await tester.scrollUntilVisible(refresh, -160);
+    await Scrollable.ensureVisible(tester.element(refresh), alignment: .5);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('刷新充电'));
+    await tester.tap(refresh);
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp(r'有效入电均价 0')), findsOneWidget);
     await tester.scrollUntilVisible(find.text('记录时长'), 160);

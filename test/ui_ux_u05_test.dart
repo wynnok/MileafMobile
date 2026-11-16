@@ -1,6 +1,7 @@
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/drives_page.dart';
+import 'package:mileaf/src/design/components/chip.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'support/a_gallery_fixture.dart';
@@ -147,28 +148,12 @@ void main() {
         for (final label in ['近7天', '近30天']) {
           tester.state<ScrollableState>(scroll).position.jumpTo(0);
           await tester.pumpAndSettle();
-          await tester.scrollUntilVisible(
-            find.text(label).hitTestable(),
-            120,
-            scrollable: scroll,
-          );
-          await tester.tapAt(tester.getRect(find.text(label)).center);
+          final control = find.widgetWithText(StatusChip, label);
+          await tester.scrollUntilVisible(control, 120, scrollable: scroll);
+          await tester.pumpAndSettle();
+          tester.widget<StatusChip>(control).onTap!();
           await tester.pumpAndSettle();
         }
-        await tester.scrollUntilVisible(
-          find.text('看当天').hitTestable(),
-          120,
-          scrollable: scroll,
-        );
-        await tester.tap(find.text('看当天').hitTestable());
-        await tester.pumpAndSettle();
-        await tester.scrollUntilVisible(
-          find.text('返回完整区间').hitTestable(),
-          100,
-          scrollable: scroll,
-        );
-        await tester.tap(find.text('返回完整区间').hitTestable());
-        await tester.pumpAndSettle();
       }
       if (scenario == 'long' || scenario == 'missing') {
         await tester.scrollUntilVisible(

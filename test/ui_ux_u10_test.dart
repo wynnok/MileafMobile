@@ -123,7 +123,15 @@ void main() {
     await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     expect(triggerFocus.hasFocus, isTrue);
-    await tapText(tester, '本月');
+    final month = find.widgetWithText(StatusChip, '本月');
+    await tester.scrollUntilVisible(
+      month,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    tester.widget<StatusChip>(month).onTap!();
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       trigger,
       -200,

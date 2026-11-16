@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
+import 'package:mileaf/src/design/components/top_bar.dart';
+import 'package:mileaf/src/design/tokens.dart';
 import 'package:mileaf/src/workspace.dart';
 
 import 'support/a_gallery_fixture.dart';
@@ -106,6 +108,11 @@ void main() {
       () => DateTime.utc(2026, 10, 28, 11),
       () => 'Asia/Shanghai',
       statisticsInsights: true,
+    );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '全部指标').hitTestable(),
+      200,
+      scrollable: find.byType(Scrollable).last,
     );
     await tester.tap(find.widgetWithText(TextButton, '全部指标'));
     await tester.pumpAndSettle();
@@ -235,6 +242,11 @@ void main() {
             if (scenario == 'normal' && scale == 2 && size.width == 768) {
               await tester.drag(list, const Offset(0, 10000));
               await tester.pumpAndSettle();
+              await tester.scrollUntilVisible(
+                find.widgetWithText(TextButton, '全部指标').hitTestable(),
+                200,
+                scrollable: list,
+              );
               await tester.tap(find.widgetWithText(TextButton, '全部指标'));
               await tester.pumpAndSettle();
               expect(
@@ -257,13 +269,33 @@ void main() {
                 (size.width == 320 || size.width == 768)) {
               await tester.drag(list, const Offset(0, 10000));
               await tester.pumpAndSettle();
+              const longTopic = ValueKey('statistics-topic-长期');
               await tester.scrollUntilVisible(
-                find.text('长期'),
+                find.byKey(longTopic),
                 120,
                 scrollable: list,
               );
+              await Scrollable.ensureVisible(
+                tester.element(find.byKey(longTopic)),
+                alignment: .5,
+              );
               await tester.pumpAndSettle();
-              await tester.tap(find.text('长期').hitTestable());
+              final topicRect = tester.getRect(find.byKey(longTopic));
+              final chromeTop = tester
+                  .getBottomLeft(find.byType(MileafTopBar))
+                  .dy;
+              final chromeBottom = tester
+                  .getTopLeft(find.byType(MileafNavBar))
+                  .dy;
+              final exposedY = topicRect.center.dy.clamp(
+                chromeTop + MileafSpace.s8,
+                chromeBottom - MileafSpace.s8,
+              );
+              expect(
+                exposedY,
+                inInclusiveRange(topicRect.top, topicRect.bottom),
+              );
+              await tester.tapAt(Offset(topicRect.center.dx, exposedY));
               await tester.pumpAndSettle();
               await save('long-index');
               expect(find.text('展开长期续航'), findsOneWidget);

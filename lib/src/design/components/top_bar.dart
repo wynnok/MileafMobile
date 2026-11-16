@@ -1,112 +1,103 @@
 import 'package:flutter/material.dart';
 
-import '../brand_mark.dart';
 import '../icons.dart';
 import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 import 'icon_button.dart';
+import 'navigation_material.dart';
 
-/// Brand / vehicle / settings header.
-///
-/// Overview embeds it inside the dark hero (`onHero`); other tabs place it on
-/// the canvas. There is no second refresh action here.
+/// Root page title / vehicle / settings header.
 class MileafTopBar extends StatelessWidget {
   const MileafTopBar({
     super.key,
+    this.title = '概览',
     required this.vehicleName,
     required this.onVehicle,
     required this.onSettings,
     this.onHero = false,
     this.includeTopInset = true,
+    this.forceSolid = false,
   });
 
+  final String title;
   final String vehicleName;
   final VoidCallback? onVehicle;
   final VoidCallback onSettings;
   final bool onHero;
   final bool includeTopInset;
+  final bool forceSolid;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
     final top = includeTopInset ? MediaQuery.paddingOf(context).top : 0.0;
-    final foreground = onHero ? colors.heroText : colors.text;
     final secondary = onHero ? colors.heroMuted : colors.textMuted;
     final faint = onHero ? colors.heroFaint : colors.textFaint;
     // R05 顶栏：200% 采用两行，车辆切换独立成行且保持 ≥44 命中区（R03 大字
     // 优先变布局，不挤压省略）。
     final twoLine = MileafLayout.largeText(context);
-    final brand = [
-      BrandMark(
-        size: MileafIconMetrics.brandDefault,
-        color: onHero ? colors.accentHero : colors.accent,
-      ),
-      const SizedBox(width: MileafSpace.s8),
-      Text(
-        '行笺',
-        style: type.title.copyWith(
-          fontSize: MileafBrand.wordSize,
-          height: 1.1,
-          letterSpacing: MileafBrand.wordTracking * MileafBrand.wordSize,
-          color: foreground,
+    final pageTitle = Text(title, style: type.pageTitle);
+    return NavigationMaterial(
+      borderRadius: BorderRadius.zero,
+      forceSolid: forceSolid,
+      solidColor: colors.canvas,
+      child: Padding(
+        key: const ValueKey('root-top-bar-surface'),
+        padding: EdgeInsets.fromLTRB(
+          MileafLayout.pageInset(context),
+          top + MileafSpace.s12,
+          MileafLayout.pageInset(context),
+          MileafSpace.s12,
         ),
-      ),
-    ];
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        top + MileafSpace.s12,
-        MileafLayout.pageInset(context),
-        MileafSpace.s12,
-      ),
-      child: MileafContent(
-        child: twoLine
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ...brand,
-                      const Spacer(),
-                      MileafIconButton(
-                        icon: MileafIconName.settings,
-                        tooltip: '设置',
-                        size: MileafIconMetrics.nav,
-                        color: secondary,
-                        onPressed: onSettings,
-                      ),
-                    ],
-                  ),
-                  _vehicleButton(context, secondary: secondary, faint: faint),
-                ],
-              )
-            : Row(
-                children: [
-                  ...brand,
-                  const SizedBox(width: MileafSpace.s12),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _vehicleButton(
-                        context,
-                        secondary: secondary,
-                        faint: faint,
+        child: MileafContent(
+          child: twoLine
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        pageTitle,
+                        const Spacer(),
+                        MileafIconButton(
+                          icon: MileafIconName.settings,
+                          tooltip: '设置',
+                          size: MileafIconMetrics.nav,
+                          color: secondary,
+                          onPressed: onSettings,
+                        ),
+                      ],
+                    ),
+                    _vehicleButton(context, secondary: secondary, faint: faint),
+                  ],
+                )
+              : Row(
+                  children: [
+                    pageTitle,
+                    const SizedBox(width: MileafSpace.s12),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _vehicleButton(
+                          context,
+                          secondary: secondary,
+                          faint: faint,
+                        ),
                       ),
                     ),
-                  ),
-                  MileafIconButton(
-                    icon: MileafIconName.settings,
-                    tooltip: '设置',
-                    size: MileafIconMetrics.nav,
-                    color: secondary,
-                    onPressed: onSettings,
-                  ),
-                ],
-              ),
+                    MileafIconButton(
+                      icon: MileafIconName.settings,
+                      tooltip: '设置',
+                      size: MileafIconMetrics.nav,
+                      color: secondary,
+                      onPressed: onSettings,
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -124,7 +115,9 @@ class MileafTopBar extends StatelessWidget {
       button: true,
       label: '选择车辆，$vehicleName',
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: MileafSpace.touch),
+        constraints: BoxConstraints(
+          minHeight: MileafLayout.touchTarget(context),
+        ),
         child: Material(
           color: Colors.transparent,
           borderRadius: MileafRadius.smAll,

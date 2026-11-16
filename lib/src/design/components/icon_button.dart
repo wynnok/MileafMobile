@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../icons.dart';
+import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 
@@ -47,7 +48,7 @@ class _MileafIconButtonState extends State<MileafIconButton> {
         selected: widget.selected,
         label: widget.tooltip,
         child: SizedBox.square(
-          dimension: MileafSpace.touch,
+          dimension: MileafLayout.touchTarget(context),
           child: Focus(
             onFocusChange: (value) => setState(() => _focused = value),
             child: DecoratedBox(

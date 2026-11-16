@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/design/tokens.dart';
 
 import 'charging_test.dart' show app, MemoryCurrency, jsonResponse;
 import 'charging_expansion_test.dart' show expansionResponse;
@@ -94,9 +95,10 @@ void main() {
     await tester.pumpAndSettle();
     final row = find.byKey(const ValueKey('charge-9'));
     await tester.scrollUntilVisible(row.hitTestable(), 120);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 120));
     await tester.pumpAndSettle();
     expect(find.textContaining('充电 #9'), findsNothing);
-    await tester.tap(row);
+    await tester.tap(row.hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('更多充电信息').hitTestable(), 200);
@@ -216,7 +218,7 @@ void main() {
       if (scenario == 'normal' && scale == 1.3) {
         expect(
           tester.getSize(find.text('均价')).height,
-          lessThanOrEqualTo(18 * scale + .5),
+          lessThanOrEqualTo(MileafType.labelHeight * scale + .5),
         );
         expect(
           tester.getTopLeft(find.text('均价')).dy,
@@ -324,6 +326,7 @@ void main() {
       if (size.width == 320) {
         final types = find.byType(DropdownButton<String>);
         await tester.scrollUntilVisible(types.first, 120, scrollable: scroll);
+        await tester.drag(scroll, const Offset(0, 160));
         await tester.pumpAndSettle();
         expect(tester.getSize(types.first).height, greaterThanOrEqualTo(44));
         await tester.tapAt(tester.getRect(types.first).center);

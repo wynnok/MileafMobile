@@ -535,8 +535,18 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(StatusChip, '费用'));
+    await tester.scrollUntilVisible(
+      find.widgetWithText(StatusChip, '费用').hitTestable(),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.widgetWithText(StatusChip, '费用').hitTestable());
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('charging-briefing-chart')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     final plot = tester.getRect(
       find.byKey(const Key('charging-briefing-chart')),
     );

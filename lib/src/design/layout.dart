@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'semantic.dart';
@@ -12,14 +14,8 @@ abstract final class MileafLayout {
       ? MileafSpace.s24
       : MileafSpace.s20;
 
-  /// Horizontal inset for content that sits inside a hero (Spec §6.3).
-  ///
-  /// A card hero is already 12 away from the screen edge and keeps a fixed
-  /// 16 inside, so its content lands 28 from the edge at every width; a
-  /// full-bleed hero keeps the page inset. The form comes from the palette
-  /// ([MileafColors.heroAsCard]); call sites never decide it themselves.
-  static double heroInset(BuildContext context) =>
-      context.colors.heroAsCard ? MileafSpace.cardPad : pageInset(context);
+  /// Horizontal inset inside the accepted card-form hero (Spec §6.3).
+  static double heroInset(BuildContext context) => MileafSpace.cardPad;
 
   static bool largeText(BuildContext context) =>
       MediaQuery.textScalerOf(context)
@@ -28,6 +24,11 @@ abstract final class MileafLayout {
 
   static bool reduceMotion(BuildContext context) =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+  static double touchTarget(BuildContext context) =>
+      Theme.of(context).platform == TargetPlatform.android
+      ? MileafSpace.touchAndroid
+      : MileafSpace.touch;
 
   /// Map hero height. At 150%+ every map uses 240 (Spec §9.4) so the in-map
   /// notice band, which grows with the text scaler, still fits without
@@ -47,6 +48,41 @@ abstract final class MileafLayout {
   static Duration motion(BuildContext context, Duration duration) =>
       reduceMotion(context) ? Duration.zero : duration;
 
+  /// Base geometry keeps the accepted 64px surface at 100%, then grows by the
+  /// label's scaled leading lead so large text remains fully visible.
+  static double rootNavigationHeight(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final lead = math.max(
+      0.0,
+      scaler.scale(MileafType.navLabelHeight) - MileafType.navLabelHeight,
+    );
+    return math.max(MileafSpace.navHeight, MileafSpace.navHeight + lead);
+  }
+
+  static double rootNavigationClearance(BuildContext context) =>
+      rootNavigationHeight(context) +
+      MediaQuery.viewPaddingOf(context).bottom +
+      MileafSpace.s8 +
+      MileafSpace.s16;
+
+  static double rootTopBarHeight(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final titleHeight = scaler.scale(MileafType.pageTitleHeight);
+    final vehicleHeight = math.max(
+      touchTarget(context),
+      scaler.scale(MileafType.bodyHeight),
+    );
+    final contentHeight = largeText(context)
+        ? math.max(touchTarget(context), titleHeight) + vehicleHeight
+        : math.max(touchTarget(context), math.max(titleHeight, vehicleHeight));
+    return MediaQuery.viewPaddingOf(context).top +
+        MileafSpace.s24 +
+        contentHeight;
+  }
+
+  static double rootTopClearance(BuildContext context) =>
+      rootTopBarHeight(context) + MileafSpace.s8;
+
   /// Horizontal-only inset, for lists that own their vertical rhythm.
   static EdgeInsets pageHorizontal(BuildContext context) =>
       EdgeInsets.symmetric(horizontal: pageInset(context));
@@ -54,9 +90,26 @@ abstract final class MileafLayout {
   static EdgeInsets pagePadding(
     BuildContext context, {
     double top = 0,
-    double bottom = MileafSpace.s24,
-  }) =>
-      EdgeInsets.fromLTRB(pageInset(context), top, pageInset(context), bottom);
+    double? bottom,
+  }) => EdgeInsets.fromLTRB(
+    pageInset(context),
+    top,
+    pageInset(context),
+    bottom ??
+        (RootNavigationScope.maybeOf(context)
+            ? rootNavigationClearance(context)
+            : MileafSpace.s24),
+  );
+}
+
+class RootNavigationScope extends InheritedWidget {
+  const RootNavigationScope({super.key, required super.child});
+
+  static bool maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<RootNavigationScope>() != null;
+
+  @override
+  bool updateShouldNotify(RootNavigationScope oldWidget) => false;
 }
 
 /// Centres content at 560 logical pixels on tablets; never a second column.

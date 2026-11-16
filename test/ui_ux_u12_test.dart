@@ -89,7 +89,7 @@ void main() {
       expect(decoration.border!.top.color, colors.focusRing);
       expect(decoration.border!.top.width, 2);
     });
-    testWidgets('U12 $brightness 浮动标签实际字号保持13且跟随大字', (tester) async {
+    testWidgets('R12 $brightness 浮动标签实际字号保持14且跟随大字', (tester) async {
       for (final scale in [1.0, 2.0]) {
         await tester.pumpWidget(
           MaterialApp(
@@ -111,8 +111,8 @@ void main() {
         final transform = paragraph.getTransformTo(null);
         final verticalScale = transform.entry(1, 1).abs();
         final text = paragraph.text as TextSpan;
-        expect(text.style!.fontSize! * verticalScale, closeTo(13, 0.01));
-        expect(paragraph.textScaler.scale(13), closeTo(13 * scale, 0.01));
+        expect(text.style!.fontSize! * verticalScale, closeTo(14, 0.01));
+        expect(paragraph.textScaler.scale(14), closeTo(14 * scale, 0.01));
       }
     });
 

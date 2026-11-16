@@ -64,11 +64,33 @@ http.Response fixture(String name) => http.Response(
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
 
+/// 刷新动作在页头，滚动后可能正好停在顶栏的淡出区内；先让它落到视口中部
+/// 再点，避免「量到位置却点不中」的假失败。
+Future<void> tapRefresh(WidgetTester tester) async {
+  final action = find.byTooltip('刷新统计');
+  for (var i = 0; i < 20 && action.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 300));
+    await tester.pumpAndSettle();
+  }
+  await Scrollable.ensureVisible(tester.element(action), alignment: .5);
+  await tester.pumpAndSettle();
+  await tester.tap(action);
+  await tester.pumpAndSettle();
+}
+
 /// All periods share the same stable custom-date entry label.
 Finder dateAction() => find.widgetWithText(StatusChip, '自定义日期');
 
 Future<void> tapDateAction(WidgetTester tester) async {
-  await tester.tap(dateAction());
+  final action = dateAction();
+  for (var i = 0; i < 20 && action.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 300));
+    await tester.pumpAndSettle();
+  }
+  expect(action, findsOneWidget, reason: '统计期间入口滚动后仍不可达');
+  await Scrollable.ensureVisible(tester.element(action), alignment: .5);
+  await tester.pumpAndSettle();
+  await tester.tap(action);
   await tester.pumpAndSettle();
 }
 
@@ -559,15 +581,13 @@ void main() {
     expect(find.text('49 次'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('毛电耗  167 Wh/km'), 250);
     expect(find.text('毛电耗  167 Wh/km'), findsOneWidget);
-    await tester.scrollUntilVisible(find.byTooltip('刷新统计'), -300);
-    await tester.tap(find.byTooltip('刷新统计'));
+    await tapRefresh(tester);
     await tester.pumpAndSettle();
     expect(requests.last.headers['if-none-match'], '"driving"');
     await tester.scrollUntilVisible(find.text('毛电耗  167 Wh/km'), 250);
     expect(find.text('毛电耗  167 Wh/km'), findsOneWidget);
     fail = true;
-    await tester.scrollUntilVisible(find.byTooltip('刷新统计'), -300);
-    await tester.tap(find.byTooltip('刷新统计'));
+    await tapRefresh(tester);
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次快照'), findsOneWidget);
     expect(find.text('49 次'), findsOneWidget);

@@ -531,9 +531,14 @@ void main() {
     await tester.pumpAndSettle();
     await readToEndOfRange(tester);
     slowArmed = true;
-    await tester.scrollUntilVisible(find.byTooltip('刷新行程'), -300);
+    final refreshAction = find.byTooltip('刷新行程');
+    await tester.scrollUntilVisible(refreshAction, -300);
+    await Scrollable.ensureVisible(
+      tester.element(refreshAction),
+      alignment: .5,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('刷新行程'));
+    await tester.tap(refreshAction);
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pump();

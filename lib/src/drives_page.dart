@@ -556,19 +556,12 @@ class _DrivesPageState extends State<DrivesPage>
     final type = context.type;
     final colors = context.colors;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('行程', style: type.pageTitle),
-              const SizedBox(height: MileafSpace.inline2),
-              Text(
-                _rangeLabel,
-                style: type.label.copyWith(color: colors.textMuted),
-              ),
-            ],
+          child: Text(
+            _rangeLabel,
+            style: type.label.copyWith(color: colors.textMuted),
           ),
         ),
         MileafIconButton(
@@ -709,7 +702,7 @@ class _DrivesPageState extends State<DrivesPage>
         ? chartDay.clamp(0, buckets.length - 1)
         : (lastActive < 0 ? buckets.length - 1 : lastActive);
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
+      padding: const EdgeInsets.only(top: MileafSpace.s20),
       child: TimeSeriesChart(
         title: '出行节奏',
         unit: 'km',
@@ -791,7 +784,7 @@ class _DrivesPageState extends State<DrivesPage>
     final colors = context.colors;
     final type = context.type;
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
+      padding: const EdgeInsets.only(top: MileafSpace.s20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -898,13 +891,15 @@ class _DrivesPageState extends State<DrivesPage>
           padding: EdgeInsets.zero,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            if (widget.topBar == null)
+              SizedBox(height: MileafLayout.rootTopClearance(context)),
             MileafContent(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   inset,
                   MileafSpace.s8,
                   inset,
-                  MileafSpace.s24,
+                  MileafLayout.rootNavigationClearance(context),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -938,7 +933,7 @@ class _DrivesPageState extends State<DrivesPage>
                         actionLabel: '重试行程统计',
                         onAction: () => loadStats(force: true),
                       ),
-                    const SizedBox(height: MileafSpace.s20),
+                    const SizedBox(height: MileafSpace.s12),
                     _summary(driving, loadingFirst: statsLoading),
                     _rhythm(driving),
                     if (selectedDay != null)

@@ -1,0 +1,46 @@
+{
+  "logical_size": "390x844",
+  "pixel_ratio": 2,
+  "text_scale": 1,
+  "safe_area": {
+    "top": 24,
+    "bottom": 24
+  },
+  "font": "/Library/Fonts/Arial Unicode.ttf",
+  "overview-dark": {
+    "bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    },
+    "material": {
+      "left": 16.0,
+      "top": 748.0,
+      "right": 374.0,
+      "bottom": 812.0,
+      "width": 358.0,
+      "height": 64.0
+    }
+  },
+  "overview-light": {
+    "bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    },
+    "material": {
+      "left": 16.0,
+      "top": 748.0,
+      "right": 374.0,
+      "bottom": 812.0,
+      "width": 358.0,
+      "height": 64.0
+    }
+  }
+}

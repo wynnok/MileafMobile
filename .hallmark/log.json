@@ -1,0 +1,63 @@
+[
+  {
+    "date": "2026-11-16",
+    "mode": "redesign",
+    "depth": "component",
+    "scope": "overview chart header (TimeSeriesChart heading + legend)",
+    "shape": "one header line: title + measure left, window right; key row above the plot",
+    "theme": "custom Mileaf system (no new tokens)",
+    "axes": "restrained, ordered, one idea per row",
+    "hero": "unchanged",
+    "nav": "unchanged",
+    "imagery": "formal Flutter renders before/after",
+    "entry": "lib/src/design/components/charts.dart",
+    "fingerprint": "heading 17 + unit micro faint / window label faint right-aligned / reference-only legend",
+    "signature": "chart header reads name, measure, window, key, plot in that order",
+    "photos": [],
+    "waived": [
+      "Web-only sloplint does not parse Flutter Dart"
+    ],
+    "prompt": "Redo the overview daily-mileage chart header: better readability, order and restraint"
+  },
+  {
+    "date": "2026-11-15",
+    "mode": "redesign",
+    "depth": "full",
+    "scope": "app",
+    "shape": "app screen",
+    "theme": "custom Apple-inspired Mileaf system",
+    "axes": "restrained, precise, ordered",
+    "hero": "same-tone vehicle status surface",
+    "nav": "floating bounded frosted root bar",
+    "imagery": "formal Flutter product renders",
+    "entry": "lib/main.dart",
+    "fingerprint": "neutral content surfaces, electric-blue signal, one moving selection form",
+    "signature": "vehicle status and data chart in the first viewport",
+    "photos": [],
+    "waived": [
+      "Web-only sloplint does not parse Flutter Dart"
+    ],
+    "prompt": "Refresh the complete Mileaf app toward a restrained Apple design language while preserving product behavior"
+  },
+  {
+    "date": "2026-11-16",
+    "mode": "redesign",
+    "depth": "section",
+    "scope": "drive detail: battery pair control + driving/environment facts",
+    "shape": "app screen, hairline fact table + in-place disclosure",
+    "theme": "existing Mileaf appearance v2 / ADR0012 role system (no new tokens)",
+    "axes": "restrained, precise, one left line and one right line",
+    "hero": "unchanged",
+    "nav": "unchanged",
+    "imagery": "formal Flutter renders, before/after at 390/320 and 200%",
+    "entry": "lib/src/drive_detail_page.dart",
+    "fingerprint": "one vertical line per column, no cards, motion only on the disclosure",
+    "signature": "driving facts as a two-column hairline table whose numbers share a right axis",
+    "photos": [],
+    "waived": [
+      "Web-only sloplint does not parse Flutter Dart",
+      "Floor rules 1-5, 14, 15 are CSS/DOM-scoped; the Flutter equivalent is enforced through design tokens and analyze"
+    ],
+    "prompt": "Redesign the drive detail 'compare battery' control and the driving/environment block: restrained, precise, coherent, ordered"
+  }
+]

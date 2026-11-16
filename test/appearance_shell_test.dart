@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
+import 'package:mileaf/src/design/components/top_bar.dart';
 import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/map/map_key.dart';
 
@@ -258,7 +259,10 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(find.byTooltip('刷新概览'), findsOneWidget);
     expect(find.byTooltip('刷新车辆'), findsNothing);
-    expect(find.text('行笺'), findsWidgets);
+    expect(
+      find.descendant(of: find.byType(MileafTopBar), matching: find.text('概览')),
+      findsOneWidget,
+    );
     expect(find.text('行笺测试车'), findsOneWidget);
     expect(find.byTooltip('设置'), findsOneWidget);
 
@@ -292,7 +296,48 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('行程'), findsWidgets);
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(MileafTopBar), matching: find.text('统计')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(MileafTopBar),
+        matching: find.text('行笺测试车'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(MileafTopBar),
+        matching: find.byTooltip('设置'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('根级顶栏首屏实色、滚动后磨砂，键盘展开时隐藏底栏', (tester) async {
+    await pumpShell(tester);
+    expect(find.byType(BackdropFilter), findsOneWidget, reason: '首屏仅底栏使用磨砂');
+
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -320));
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(BackdropFilter),
+      findsNWidgets(2),
+      reason: '内容滚过后顶栏启用磨砂',
+    );
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+    expect(find.byType(MileafNavBar), findsNothing);
+    expect(find.byType(MileafTopBar), findsOneWidget);
   });
 
   testWidgets('200% 字号下导航标签不截断、顶栏不横向溢出', (tester) async {

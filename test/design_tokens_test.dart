@@ -89,26 +89,26 @@ void main() {
       );
     });
 
-    test('浅色模式仍保留深色 hero', () {
+    test('两种模式的 hero 使用同调内容表面', () {
       const c = MileafColors.light();
       expect(c.hero, isNot(c.canvas));
-      _expectContrast('heroText/hero', c.heroText, c.hero, 17.90);
-      _expectContrast('heroMuted/hero', c.heroMuted, c.hero, 9.34);
-      _expectContrast('heroFaint/hero', c.heroFaint, c.hero, 6.55);
-      _expectContrast(
-        'accentHero/hero',
-        c.accentHero,
-        c.hero,
-        8.06,
-        minimum: 3,
-      );
+      expect(c.hero, c.surface);
+      expect(c.heroText, c.text);
+      expect(c.heroMuted, c.textMuted);
+      expect(contrast(c.heroText, c.hero), greaterThanOrEqualTo(4.5));
+      expect(contrast(c.heroMuted, c.hero), greaterThanOrEqualTo(4.5));
+      expect(contrast(c.heroFaint, c.hero), greaterThanOrEqualTo(4.5));
+      expect(contrast(c.accentHero, c.hero), greaterThanOrEqualTo(3));
       const dark = MileafColors.dark();
-      _expectContrast('heroText/darkHero', dark.heroText, dark.hero, 18.10);
-      _expectContrast('heroMuted/darkHero', dark.heroMuted, dark.hero, 9.45);
-      _expectContrast('heroFaint/darkHero', dark.heroFaint, dark.hero, 6.63);
+      expect(dark.hero, dark.surface);
+      expect(dark.heroText, dark.text);
+      expect(dark.heroMuted, dark.textMuted);
+      expect(contrast(dark.heroText, dark.hero), greaterThanOrEqualTo(4.5));
+      expect(contrast(dark.heroMuted, dark.hero), greaterThanOrEqualTo(4.5));
+      expect(contrast(dark.heroFaint, dark.hero), greaterThanOrEqualTo(4.5));
     });
 
-    test('明度阶：面读得出，浅色 hero 是锚点，深色 hero 是连续材质', () {
+    test('明度阶：画布与内容表面在两种外观都可辨', () {
       const dark = MileafColors.dark();
       const light = MileafColors.light();
       expect(
@@ -116,41 +116,12 @@ void main() {
         greaterThanOrEqualTo(3),
         reason: '浅色 canvas→surface 必须读得出「面」',
       );
-      expect(
-        lightness(light.canvas) - lightness(light.hero),
-        greaterThanOrEqualTo(80),
-        reason: '浅色 hero 必须仍是深色锚点',
-      );
+      expect(light.hero, light.surface);
       expect(
         lightness(dark.surface) - lightness(dark.canvas),
         greaterThanOrEqualTo(3),
       );
-      expect(
-        (lightness(dark.canvas) - lightness(dark.hero)).abs(),
-        lessThanOrEqualTo(2),
-        reason: '深色 hero 与画布是同一块连续材质',
-      );
-    });
-
-    test('hero 形态只由 hero 与画布的明度差推导（Spec §6.1）', () {
-      const dark = MileafColors.dark();
-      const light = MileafColors.light();
-      // Current values: dark ΔL*0.61 → full bleed, light Δ93.58 → card.
-      expect(dark.heroAsCard, isFalse, reason: '深色 hero 是同一块连续材质');
-      expect(light.heroAsCard, isTrue, reason: '浅色 hero 与纸面差 93 L*，必须是卡片');
-      expect(
-        (lightness(light.hero) - lightness(light.canvas)).abs(),
-        greaterThan(20),
-      );
-      expect(
-        (lightness(dark.hero) - lightness(dark.canvas)).abs(),
-        lessThanOrEqualTo(20),
-      );
-      // The threshold itself, not just today's two palettes: #2C2C2C is Δ15
-      // from the light hero (full bleed), #474747 is Δ27 (card).
-      const near = Color(0xFF2C2C2C), far = Color(0xFF474747);
-      expect(light.copyWith(canvas: near).heroAsCard, isFalse);
-      expect(light.copyWith(canvas: far).heroAsCard, isTrue);
+      expect(dark.hero, dark.surface);
     });
 
     test('图表系列、参照与当前点在两种底色上都可读（Spec §8 / AV06）', () {
@@ -245,24 +216,13 @@ void main() {
         MileafSpace.s20,
         MileafSpace.s24,
         MileafSpace.section,
-        MileafSpace.s32,
         MileafSpace.s40,
         MileafSpace.s56,
       };
-      expect(spacing, {
-        4.0,
-        8.0,
-        12.0,
-        16.0,
-        20.0,
-        24.0,
-        28.0,
-        32.0,
-        40.0,
-        56.0,
-      });
+      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0, 40.0, 56.0});
       expect(MileafSpace.section % 4, 0);
       expect(MileafSpace.touch, 44);
+      expect(MileafSpace.touchAndroid, 48);
       expect(MileafSpace.navHeight, 64);
       // R01：不再假定固定 84 的滚动余量（contentBottom 已移除，由各页按
       // 实际底栏高度+安全区+16 计算）；R05/P12：列表行下限 56→72。
@@ -279,9 +239,11 @@ void main() {
           MileafRadius.sm,
           MileafRadius.md,
           MileafRadius.lg,
+          MileafRadius.surface,
+          MileafRadius.sheet,
           MileafRadius.full,
         },
-        {0.0, 4.0, 10.0, 12.0, 20.0, 999.0},
+        {0.0, 4.0, 10.0, 12.0, 20.0, 24.0, 28.0, 999.0},
       );
       // R07 时长合同（原值 120/160/180/220/240/500）：
       // press 120→100（按压 100ms）、value 220→160（局部快照更新 160ms）、
@@ -293,23 +255,27 @@ void main() {
         {
           MileafDurations.press.inMilliseconds,
           MileafDurations.tab.inMilliseconds,
+          MileafDurations.selection.inMilliseconds,
           MileafDurations.enter.inMilliseconds,
           MileafDurations.value.inMilliseconds,
-          MileafDurations.sheet.inMilliseconds,
+          MileafDurations.sheetIn.inMilliseconds,
+          MileafDurations.sheetOut.inMilliseconds,
         },
-        {100, 160, 180, 240},
+        {100, 120, 160, 180, 220, 280},
       );
       // R06：参照线 1.5 虚线 4/4，比 2px 主线细一档。
       expect(MileafChartMetrics.referenceStroke, 1.5);
     });
 
     test('五级字号与尺寸变体', () {
-      expect(MileafType.displaySize, 48);
-      expect(MileafType.metricLgSize, 36);
+      expect(MileafType.displaySize, 40);
+      expect(MileafType.metricLgSize, 32);
       expect(MileafType.metricMdSize, 24);
-      expect(MileafType.titleSize, 18);
-      expect(MileafType.bodySize, 16);
-      expect(MileafType.labelSize, 13);
+      expect(MileafType.pageTitleSize, 28);
+      expect(MileafType.titleSize, 20);
+      expect(MileafType.navigationTitleSize, 18);
+      expect(MileafType.bodySize, 17);
+      expect(MileafType.labelSize, 14);
       expect(MileafType.microSize, 12);
       expect(MileafType.displayTracking, -.02);
       expect(MileafType.labelTracking, 0);
@@ -336,17 +302,17 @@ void main() {
       }
     });
 
-    test('语义色取自 v2 primitive，两模式 hero 与 canvas 分离', () {
+    test('语义色取自 primitive，两模式 hero 与 surface 一致', () {
       const dark = MileafColors.dark();
       const light = MileafColors.light();
-      expect(dark.hero, MileafPalette.slate1000);
+      expect(dark.hero, MileafPalette.slate900);
       expect(dark.canvas, MileafPalette.slate950);
-      expect(light.hero, MileafPalette.heroLight);
+      expect(light.hero, MileafPalette.paper0);
       expect(light.canvas, MileafPalette.paper50);
       expect(light.surface, MileafPalette.paper0);
       expect(light.accent, MileafPalette.azure500);
       expect(light.accentStrong, MileafPalette.azure600);
-      expect(light.accentHero, MileafPalette.azure300);
+      expect(light.accentHero, MileafPalette.azure500);
       expect(dark.accent, MileafPalette.azure300);
       // Dark merges the two accent strengths by design (Spec §1 R3).
       expect(dark.accentStrong, dark.accent);
@@ -360,7 +326,7 @@ void main() {
       const light = MileafColors.light();
       expect([pct(dark.line), pct(dark.lineStrong)], [9, 14]);
       expect([pct(light.line), pct(light.lineStrong)], [10, 16]);
-      expect([pct(dark.nav), pct(light.nav)], [88, 92]);
+      expect([pct(dark.nav), pct(light.nav)], [90, 88]);
       expect([pct(dark.scrim), pct(light.scrim)], [50, 35]);
       expect([pct(dark.skeleton), pct(light.skeleton)], [7, 6]);
       expect([pct(dark.accentSoft)], [16]);
@@ -400,7 +366,7 @@ void main() {
       final dark = mileafTheme(Brightness.dark);
       expect(dark.scaffoldBackgroundColor, const MileafColors.dark().canvas);
       expect(dark.extension<MileafColors>(), isA<MileafColors>());
-      expect(dark.extension<MileafTextStyles>()?.title.fontSize, 18);
+      expect(dark.extension<MileafTextStyles>()?.title.fontSize, 20);
       final light = mileafTheme(Brightness.light);
       expect(light.scaffoldBackgroundColor, const MileafColors.light().canvas);
       expect(

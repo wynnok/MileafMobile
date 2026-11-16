@@ -1,8 +1,10 @@
 # 行笺 Apple 风格界面焕新规格
 
-版本为 0.1，日期为 2026-11-14，状态为 **proposed，待用户确认**。
+> 2026-11-16 接续说明：下一轮细节精修见 [Apple 质感精修规格](apple-polish.md)（当日已确认），以 R21–R32 修订本文 R11–R17 的部分条款（含 M01、M03、M06），逐项登记在其 §1.4；各项在对应票实施并验收后生效，未实施的部分仍按本文。
 
-调研输入为 `main@5409783664850dc4de0e84151b31081646914085`。本轮交付方案与本地设计文档。实施入口为 [ADR0012](../adr/0012-apple-design-renewal.md)、[Tickets](apple-design-renewal-tickets.md)与[交付手册](apple-design-renewal-delivery.md)。GitHub 映射为待发布草案。
+版本为 1.0，日期为 2026-11-14，状态为 **accepted，已实施**。用户已确认 ADR0012、R11–R20、P01–P16 与 Q00–Q09，并授权继续完成 F00–F12。
+
+调研输入为 `main@5409783664850dc4de0e84151b31081646914085`，实施输入为 `main@5c7683f`。实施入口为 [ADR0012](../adr/0012-apple-design-renewal.md)、[Tickets](apple-design-renewal-tickets.md)、[交付手册](apple-design-renewal-delivery.md)与[实施记录](../implementation/apple-design-renewal/README.md)。GitHub 映射仍为本地草案，当前授权未包含外部发布。
 
 ## 1. 设计方向与适用范围
 

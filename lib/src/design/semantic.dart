@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -50,11 +48,79 @@ class MileafColors extends ThemeExtension<MileafColors> {
   Color get segmentSelected =>
       isDark ? MileafPalette.segmentSelectedDark : surface;
 
+  Color get navigationSolid => isDark ? surfaceRaised : surface;
+
+  /// 实色底栏上的选中底。底栏本身就是 surface，所以这里用分段轨道的中性档，
+  /// 否则会出现「白底浮白块」——选中只剩颜色，没有位置标记。
+  Color get navigationSelection => isDark
+      ? MileafPalette.segmentSelectedDark
+      : MileafPalette.segmentTrackLight;
+  Color get navigationBorder => isDark ? lineStrong : line;
+  Color get navigationHighlight =>
+      isDark ? MileafPalette.navHighlightDark : MileafPalette.navHighlightLight;
+  List<BoxShadow> get navigationShadow =>
+      isDark ? MileafElevation.navigationDark : MileafElevation.navigationLight;
+
+  /// 液态玻璃（ADR 0013）：玻璃体上下沿、顶部高光、下沿弯月。
+  ///
+  /// 玻璃只叠加本模式的中性色——浅色用白、深色用近黑——所以它只会把
+  /// 背后内容朝 canvas 方向推，正文与图标对比不因透明度下降。
+  Color get glassFillTop =>
+      isDark ? MileafPalette.glassDarkTop : MileafPalette.glassLightTop;
+  Color get glassFillBottom =>
+      isDark ? MileafPalette.glassDarkBottom : MileafPalette.glassLightBottom;
+  Color get glassSheen =>
+      isDark ? MileafPalette.glassDarkSheen : MileafPalette.glassLightSheen;
+  Color get glassMeniscus => isDark
+      ? MileafPalette.glassDarkMeniscus
+      : MileafPalette.glassLightMeniscus;
+
+  /// 受光边缘：顶边最亮、两侧衰减、底沿最暗。
+  GlassEdge get glassEdge => isDark
+      ? const GlassEdge(
+          top: MileafPalette.glassRimDarkTop,
+          side: MileafPalette.glassRimDarkSide,
+          bottom: MileafPalette.glassRimDarkBottom,
+          inner: MileafPalette.glassInnerDark,
+        )
+      : const GlassEdge(
+          top: MileafPalette.glassRimLightTop,
+          side: MileafPalette.glassRimLightSide,
+          bottom: MileafPalette.glassRimLightBottom,
+          inner: MileafPalette.glassInnerLight,
+        );
+
+  /// 选中镜片：比底栏更密的一层玻璃，自带更亮的顶边。
+  Color get glassLensTop =>
+      isDark ? MileafPalette.glassDarkLensTop : MileafPalette.glassLightLensTop;
+  Color get glassLensBottom => isDark
+      ? MileafPalette.glassDarkLensBottom
+      : MileafPalette.glassLightLensBottom;
+  GlassEdge get glassLensEdge => isDark
+      ? const GlassEdge(
+          top: MileafPalette.glassLensRimDarkTop,
+          side: MileafPalette.glassLensRimDarkSide,
+          bottom: MileafPalette.glassLensRimDarkBottom,
+          inner: MileafPalette.glassLensInnerDark,
+        )
+      : const GlassEdge(
+          top: MileafPalette.glassLensRimLightTop,
+          side: MileafPalette.glassLensRimLightSide,
+          bottom: MileafPalette.glassLensRimLightBottom,
+          inner: MileafPalette.glassLensInnerLight,
+        );
+
+  List<BoxShadow> get glassShadow => isDark
+      ? MileafElevation.glassNavigationDark
+      : MileafElevation.glassNavigationLight;
+  List<BoxShadow> get glassLensShadow =>
+      isDark ? MileafElevation.glassLensDark : MileafElevation.glassLensLight;
+
   /// Dark: neutral cold black, one accent for graphics and text.
   const MileafColors.dark()
     : isDark = true,
       canvas = MileafPalette.slate950,
-      hero = MileafPalette.slate1000,
+      hero = MileafPalette.slate900,
       surface = MileafPalette.slate900,
       surfaceRaised = MileafPalette.slate850,
       text = MileafPalette.mist0,
@@ -72,19 +138,18 @@ class MileafColors extends ThemeExtension<MileafColors> {
       line = MileafPalette.lineDark,
       lineStrong = MileafPalette.lineStrongDark,
       heroText = MileafPalette.mist0,
-      heroMuted = MileafPalette.mist400,
-      heroFaint = MileafPalette.mist550,
+      heroMuted = MileafPalette.mist500,
+      heroFaint = MileafPalette.mist600,
       nav = MileafPalette.navDark,
       scrim = MileafPalette.scrimDark,
       skeleton = MileafPalette.skeletonDark,
       sheetShadow = MileafElevation.sheetDark;
 
-  /// Light is not an inversion: the hero keeps its dark anchor, the paper
-  /// is cool grey rather than warm paper.
+  /// Light uses the same content hierarchy as the rest of the page.
   const MileafColors.light()
     : isDark = false,
       canvas = MileafPalette.paper50,
-      hero = MileafPalette.heroLight,
+      hero = MileafPalette.paper0,
       surface = MileafPalette.paper0,
       surfaceRaised = MileafPalette.paper0,
       text = MileafPalette.graphite900,
@@ -95,15 +160,15 @@ class MileafColors extends ThemeExtension<MileafColors> {
       accentStrong = MileafPalette.azure600,
       accentPressed = MileafPalette.azure600,
       accentSoft = MileafPalette.accentSoftLight,
-      accentHero = MileafPalette.azure300,
+      accentHero = MileafPalette.azure500,
       reference = MileafPalette.steel500,
       warning = MileafPalette.amber500,
       error = MileafPalette.red600,
       line = MileafPalette.lineLight,
       lineStrong = MileafPalette.lineStrongLight,
-      heroText = MileafPalette.mist0,
-      heroMuted = MileafPalette.mist400,
-      heroFaint = MileafPalette.mist550,
+      heroText = MileafPalette.graphite900,
+      heroMuted = MileafPalette.graphite600,
+      heroFaint = MileafPalette.graphite500,
       nav = MileafPalette.navLight,
       scrim = MileafPalette.scrimLight,
       skeleton = MileafPalette.skeletonLight,
@@ -163,19 +228,6 @@ class MileafColors extends ThemeExtension<MileafColors> {
   Color get seriesPrimary => accent;
   Color get seriesSecondary => MileafPalette.azure600;
   Color get seriesNeutral => textFaint;
-
-  /// Hero form is derived, never passed in (Spec §6.1): a hero that sits more
-  /// than 20 L\* away from the canvas is a card on that canvas, otherwise it is
-  /// the same continuous material. Current values: dark Δ0.61 → full bleed,
-  /// light Δ93.58 → card.
-  ///
-  /// Known transient: during the 200ms appearance swap `MileafColors.lerp`
-  /// feeds interpolated hero/canvas here, so the form flips once, late in the
-  /// animation, when ΔL\* crosses 20. Any switch between two structurally
-  /// different hero forms flips once; moving or removing the flip would need
-  /// the form itself animated (Spec §11 forbids hero entry animation, and
-  /// batch 2 was scoped to no structural change).
-  bool get heroAsCard => (_lStar(hero) - _lStar(canvas)).abs() > 20;
 
   /// Focus ring is the only 2px accent stroke.
   Color get focusRing => accentStrong;
@@ -277,13 +329,37 @@ class MileafColors extends ThemeExtension<MileafColors> {
   }
 }
 
+/// 一圈受光边缘：顶边、两侧、底沿，以及压在下半圈的内缘细线。
+///
+/// 浅色玻璃压在亮内容上时边缘收暗（内缘取石墨），深色玻璃压在暗内容上时
+/// 边缘提亮（内缘取白）；同一个 [GlassEdge] 因此能表达两种极性。
+@immutable
+class GlassEdge {
+  const GlassEdge({
+    required this.top,
+    required this.side,
+    required this.bottom,
+    required this.inner,
+  });
+
+  final Color top;
+  final Color side;
+  final Color bottom;
+  final Color inner;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GlassEdge &&
+      other.top == top &&
+      other.side == side &&
+      other.bottom == bottom &&
+      other.inner == inner;
+
+  @override
+  int get hashCode => Object.hash(top, side, bottom, inner);
+}
+
 extension MileafColorsContext on BuildContext {
   /// Shorthand for the semantic palette: `context.colors.accent`.
   MileafColors get colors => MileafColors.of(this);
-}
-
-/// CIELAB L\* of an opaque colour; only the hero form rule needs it (§6.1).
-double _lStar(Color color) {
-  final y = color.computeLuminance();
-  return y > 0.008856 ? 116 * math.pow(y, 1 / 3).toDouble() - 16 : 903.3 * y;
 }

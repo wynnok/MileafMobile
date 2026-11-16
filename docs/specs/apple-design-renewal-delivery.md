@@ -1,6 +1,6 @@
 # Apple 风格界面焕新交付手册
 
-2026-11-14，状态为 **proposed，待用户确认**。适用于[规格](apple-design-renewal.md)与[F00–F12](apple-design-renewal-tickets.md)确认后的实施。本轮文档的调研输入为 `5409783664850dc4de0e84151b31081646914085`。
+2026-11-14，状态为 **accepted，已实施**。用户已确认[规格](apple-design-renewal.md)与[F00–F12](apple-design-renewal-tickets.md)，本手册作为本轮实施和验收合同。本轮文档的调研输入为 `5409783664850dc4de0e84151b31081646914085`，产品实施输入为 `5c7683f`。
 
 ## 1. 授权与启动
 
