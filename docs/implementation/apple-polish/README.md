@@ -40,10 +40,10 @@
 | --- | --- | --- | --- | --- |
 | AP01 | （已删）…/MileafMobile-ap01 | codex/apple-polish-ap01 | FP0 | 已合入 FP1，工作树已删，分支保留 |
 | AP06 | （已删）…/MileafMobile-ap06 | codex/apple-polish-ap06 | FP0 | 已合入 FP1，工作树已删，分支保留 |
-| AP02 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap02 | codex/apple-polish-ap02 | FP1 | 待创建（W2） |
-| AP03 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap03 | codex/apple-polish-ap03 | FP1 | 待创建（W2） |
-| AP04 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 待创建（W2） |
-| AP05 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 待创建（W2） |
+| AP02 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap02 | codex/apple-polish-ap02 | FP1 | 已创建（W2），依赖已备 |
+| AP03 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap03 | codex/apple-polish-ap03 | FP1 | 已创建（W2），依赖已备 |
+| AP04 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已创建（W2），依赖已备 |
+| AP05 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已创建（W2），依赖已备 |
 | AP07 | 待登记 | codex/apple-polish-ap07 | FP2 | 待创建（W3） |
 | AP08–AP13 | 待登记 | codex/apple-polish-apXX | FP3 | 待创建（W4） |
 
