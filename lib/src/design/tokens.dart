@@ -41,6 +41,15 @@ abstract final class MileafPalette {
   static const graphite600 = Color(0xFF5A6672);
   static const graphite500 = Color(0xFF63707C);
 
+  /// R23.5 controlBorder：从 textMuted 改为更轻的独立中性色。
+  ///
+  /// 规格候选浅 #808A95 / 深 #626C78 经合成实测在相邻底色
+  /// alphaBlend(accentSoft, canvas) 上为 2.90 / 2.94（<3:1），按 R23.5
+  /// 「任何相邻底色低于 3:1 即否决」否决；现值为满足全部相邻底色
+  /// ≥3:1 的最轻取值（浅对 #DCEBFD 3.17、深对 #182434 3.14）。
+  static const controlBorderLight = Color(0xFF7A8390);
+  static const controlBorderDark = Color(0xFF677179);
+
   /// 参照/基线，两模式都是中性石墨。
   static const steel500 = Color(0xFF5F6B78);
   static const steel300 = Color(0xFF8E99A6);
@@ -120,20 +129,33 @@ abstract final class MileafSpace {
   const MileafSpace._();
 
   static const inline2 = 2.0;
+
+  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
   static const inline6 = 6.0;
+
+  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
   static const inline10 = 10.0;
   static const row14 = 14.0;
   static const section = 32.0;
+
+  /// R24 规范间距集合：页面只使用这些有名档位（2 只用于基线微调并注释原因）。
+  static const canonical = <double>[2, 4, 8, 12, 16, 20, 24, 32];
 
   static const s4 = 4.0;
   static const s8 = 8.0;
   static const s12 = 12.0;
   static const s16 = 16.0;
+
+  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
   static const s18 = 18.0;
   static const s20 = 20.0;
   static const s24 = 24.0;
   static const s32 = 32.0;
+
+  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
   static const s40 = 40.0;
+
+  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
   static const s56 = 56.0;
 
   /// Fixed structural measurements from the spec.
@@ -158,6 +180,26 @@ abstract final class MileafSpace {
   /// hero card geometry (Spec §5.1): card outer margin and fixed inner pad.
   static const cardInset = 12.0;
   static const cardPad = 16.0;
+}
+
+/// R24 形状语言：内容容器用圆角矩形（半径用既有 [MileafRadius.lg]，
+/// 不新增 token），控件用胶囊，图标按钮用圆形。
+abstract final class MileafShape {
+  const MileafShape._();
+
+  /// 胶囊：分段轨道与选中底、主次按钮、下拉、标签。
+  static const capsule = StadiumBorder();
+
+  /// 圆形：图标按钮、图表步进、地图控件。
+  static const circle = CircleBorder();
+}
+
+/// R24：分隔线一律一物理像素（BorderSide(width: 0)）。
+abstract final class MileafStroke {
+  const MileafStroke._();
+
+  /// 发丝线宽：BorderSide 的 width 取 0（一物理像素）。
+  static const hairline = 0.0;
 }
 
 abstract final class MileafRadius {
@@ -185,8 +227,9 @@ abstract final class MileafRadius {
 abstract final class MileafDurations {
   const MileafDurations._();
 
-  /// R07：按压 100ms easeOut（中性覆盖层，由 InkWell 高光承载）。
-  static const press = Duration(milliseconds: 100);
+  /// §4 M01：按压覆盖层即时出现、松手 120ms easeOut 消退（PD11 修订
+  /// ADR0011 R07 / ADR0012 R16 的 100ms）。
+  static const press = Duration(milliseconds: 120);
 
   /// R16 M02：互斥选中移动 180ms。
   static const selection = Duration(milliseconds: 180);
@@ -197,6 +240,12 @@ abstract final class MileafDurations {
   /// R16 M06：折叠 chevron 160ms。保留 tab 别名供既有调用迁移。
   static const chevron = Duration(milliseconds: 160);
   static const tab = chevron;
+
+  /// §4 M06：折叠内容高度 200ms easeOutCubic。
+  static const foldHeight = Duration(milliseconds: 200);
+
+  /// §4 M06：折叠内容透明度 120ms。
+  static const foldOpacity = Duration(milliseconds: 120);
 
   /// 180ms 整页入场时长。`MileafPageEnter` 已改为即时直出（U03，ADR0011），
   /// 仅剩 `map/map_privacy_page.dart`（U10 范围）的自绘折叠 chevron 消费；
@@ -210,6 +259,17 @@ abstract final class MileafDurations {
 
   /// R16 M08：局部快照更新 120ms，数值在首帧即时正确。
   static const value = Duration(milliseconds: 120);
+
+  /// §4 M09：切换指标或期间时读数头与图 120ms 淡入。
+  static const metricFade = Duration(milliseconds: 120);
+
+  /// §4 M10：大内容查看器出现 150ms、消失 120ms。
+  static const viewerIn = Duration(milliseconds: 150);
+  static const viewerOut = Duration(milliseconds: 120);
+
+  /// §4 M11：行内状态条高度 200ms、透明度 160ms。
+  static const statusHeight = Duration(milliseconds: 200);
+  static const statusOpacity = Duration(milliseconds: 160);
 }
 
 /// Only two shadow levels exist: sheet/overlay and toast.
@@ -322,26 +382,76 @@ abstract final class MileafType {
   static const metricMdHeight = 30.0;
   static const metricMdTracking = -0.02;
 
+  /// R22 角色表（PD04，ADR0014）：根页标题展开态。迁移来源：pageTitle 28/34。
+  static const largeTitleSize = 34.0;
+  static const largeTitleHeight = 41.0;
+  static const largeTitleTracking = 0.0;
+
+  /// R22：卡片外区块标题、详情身份标题、整页空状态标题。
+  /// 迁移来源：title 20/28 的区块、身份、空状态用法。
+  static const title2Size = 22.0;
+  static const title2Height = 28.0;
+  static const title2Tracking = 0.0;
+
+  /// R22：卡片标题、记录行标题、收起后的顶栏标题、二级导航标题、弹层标题、
+  /// 主按钮文字。迁移来源：navigationTitle 18/26 与 title 的卡片/弹层用法。
+  static const headlineSize = 17.0;
+  static const headlineHeight = 24.0;
+  static const headlineTracking = 0.0;
+
+  /// R22：三列网格与详情关键值行、记录尾值、详情与专题读数头。
+  /// 迁移来源：metricMd 在三列与记录处的用法。
+  static const metricSmSize = 20.0;
+  static const metricSmHeight = 26.0;
+  static const metricSmTracking = -0.01;
+
+  /// R22：字段名、元信息、图例、单位、读数上下文；分组标题用 500 变体。
+  /// 迁移来源：label 14/20/500。
+  static const subheadlineSize = 15.0;
+  static const subheadlineHeight = 21.0;
+  static const subheadlineTracking = 0.0;
+
+  /// R22：分段、次按钮、小胶囊、下拉；选中态 600。迁移来源：label 的控件用法。
+  static const controlSize = 15.0;
+  static const controlHeight = 21.0;
+  static const controlTracking = 0.0;
+
+  /// R22：限定语、脚注、更新时间、分组脚注、页尾。迁移来源：micro 12/18。
+  static const footnoteSize = 13.0;
+  static const footnoteHeight = 18.0;
+  static const footnoteTracking = 0.0;
+
+  /// R22：图轴刻度、紧凑标注。迁移来源：micro 用于图轴处。
+  static const captionSize = 12.0;
+  static const captionHeight = 16.0;
+  static const captionTracking = 0.0;
+
+  /// 过渡别名（R22/PD04）：原值保留，AP14 删除。迁移去向：
+  /// 区块/身份/空状态 → title2，卡片/弹层 → headline。
   static const pageTitleSize = 28.0;
   static const pageTitleHeight = 34.0;
 
   static const navLabelSize = 12.0;
   static const navLabelHeight = 16.0;
 
+  /// 过渡别名（R22/PD04）：原值保留，AP14 删除。
   static const titleSize = 20.0;
   static const titleHeight = 28.0;
   static const titleTracking = 0.0;
 
+  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 headline。
   static const navigationTitleSize = 18.0;
   static const navigationTitleHeight = 26.0;
 
   static const bodySize = 17.0;
   static const bodyHeight = 25.0;
 
+  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 subheadline/control。
   static const labelSize = 14.0;
   static const labelHeight = 20.0;
   static const labelTracking = 0.0;
 
+  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 footnote/caption。
   static const microSize = 12.0;
   static const microHeight = 18.0;
   static const microTracking = 0.0;

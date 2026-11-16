@@ -246,7 +246,8 @@ void main() {
         {0.0, 4.0, 10.0, 12.0, 20.0, 24.0, 28.0, 999.0},
       );
       // R07 时长合同（原值 120/160/180/220/240/500）：
-      // press 120→100（按压 100ms）、value 220→160（局部快照更新 160ms）、
+      // AP01（§4 M01/PD11）：press 100→120（按压覆盖层消退 120ms easeOut，
+      // 修订 R07 的 100ms）；value 220→160（局部快照更新 160ms）、
       // chart 500 删除（图表首次/刷新 0，无绘制生长，A13）、skeleton 1200
       // 删除（U03：静态骨架，无无限脉冲）。enter 180 保留：MileafPageEnter
       // 已改为即时直出（U03），仅剩 map_privacy_page 自绘 chevron 消费，
@@ -261,7 +262,7 @@ void main() {
           MileafDurations.sheetIn.inMilliseconds,
           MileafDurations.sheetOut.inMilliseconds,
         },
-        {100, 120, 160, 180, 220, 280},
+        {120, 160, 180, 220, 280},
       );
       // R06：参照线 1.5 虚线 4/4，比 2px 主线细一档。
       expect(MileafChartMetrics.referenceStroke, 1.5);
@@ -458,8 +459,10 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('16 个关键图标在 16/20/24 都可绘制', (tester) async {
-      expect(MileafIconName.values.length, 16);
+    testWidgets('25 个关键图标在 16/20/24 都可绘制', (tester) async {
+      // AP01（R32）：新增 calendar/more/expand/chevronDown/back/plus/
+      // minus/moon/offline 九个自绘图标，总数 16→25。
+      expect(MileafIconName.values.length, 25);
       for (final brightness in Brightness.values) {
         for (final size in [
           MileafIconMetrics.inline,

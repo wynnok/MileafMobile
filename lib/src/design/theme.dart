@@ -52,6 +52,9 @@ ThemeData mileafTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
+    // R32/PD11：按压反馈只用 M01（覆盖层 + 缩放），不得出现 Material 涟漪；
+    // 页面过渡保持平台默认（不自写路由动画）。
+    splashFactory: NoSplash.splashFactory,
     colorScheme: scheme,
     scaffoldBackgroundColor: colors.canvas,
     canvasColor: colors.canvas,
