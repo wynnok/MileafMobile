@@ -32,3 +32,10 @@ String relativeTime(DateTime time, DateTime now) {
 /// 两位小数、去掉尾零：`40.18` / `45` / `0`。金额、占比、kWh 同一处理。
 String decimal(num value) =>
     groupedText(value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
+
+/// 真负号（U+2212）：负数用 − 不用连字符（CP03）。
+const String minusSign = '\u2212';
+
+/// 把前导连字符换成真负号；非负文本原样返回。
+String applyMinusSign(String text) =>
+    text.startsWith('-') ? minusSign + text.substring(1) : text;
