@@ -438,7 +438,7 @@ void main() {
     expect(MileafDurations.chevron, const Duration(milliseconds: 160));
   });
 
-  testWidgets('M01 isolated button press uses the fixed 0.98 target', (
+  testWidgets('M01 isolated button press uses the fixed 0.97 target', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -455,7 +455,7 @@ void main() {
       tester.getCenter(find.text('确认')),
     );
     await tester.pump();
-    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, .98);
+    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, .97);
     await gesture.up();
     await tester.pump();
     expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);
