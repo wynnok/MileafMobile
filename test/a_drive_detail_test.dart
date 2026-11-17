@@ -10,7 +10,7 @@ import 'drive_detail_test.dart' show fixture, openDetail;
 import 'drives_test.dart' show jsonResponse;
 
 void main() {
-  testWidgets('A 200% 降级地图 120、结果 2×2 且电量区间可读', (tester) async {
+  testWidgets('A 200% 降级地图 120、关键值单列且电量区间可读', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
@@ -43,11 +43,15 @@ void main() {
       120,
     );
     await tester.scrollUntilVisible(find.bySemanticsLabel('距离 20.0 km'), 160);
+    // R21.5：三列网格放不下时先两列、再一列；200% 下按阅读顺序单列堆叠。
     final distance = tester.getTopLeft(find.bySemanticsLabel('距离 20.0 km'));
     final duration = tester.getTopLeft(find.bySemanticsLabel('时长 120 分钟'));
-    final net = tester.getTopLeft(find.bySemanticsLabel('净电耗 188 Wh/km'));
-    expect(duration.dy, distance.dy);
-    expect(net.dy, greaterThan(distance.dy));
+    final consumption = tester.getTopLeft(
+      find.bySemanticsLabel('电耗 188 Wh/km'),
+    );
+    expect(duration.dy, greaterThanOrEqualTo(distance.dy));
+    expect(consumption.dy, greaterThanOrEqualTo(duration.dy));
+    expect(duration.dx, distance.dx);
     // Scroll on the widget itself: `.hitTestable()` on a semantics finder is
     // empty whenever the node's centre lands between the track and its labels.
     await tester.scrollUntilVisible(find.byType(SocIntervalBar), 160);

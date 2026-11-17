@@ -49,6 +49,7 @@ class _DrivesPageState extends State<DrivesPage>
   String? statsError;
   bool statsLoading = false;
   Map<String, String> statsQuery = {}, statsSnapshot = {};
+  DateTime? statsCheckedAt;
   Map<String, String> query = const {};
 
   /// Reading range of the records on screen. The open end (`to`) follows the
@@ -253,6 +254,7 @@ class _DrivesPageState extends State<DrivesPage>
         setState(() {
           driving = decoded;
           statsSnapshot = requested;
+          statsCheckedAt = value.checkedAt;
           chartDay = chartDay.clamp(
             0,
             decoded.buckets.isEmpty ? 0 : decoded.buckets.length - 1,
@@ -261,9 +263,18 @@ class _DrivesPageState extends State<DrivesPage>
       }
     } catch (e) {
       if (current()) {
+        final clock = workspace.calendar!.local(workspace.session.now());
         setState(
-          () => statsError =
-              '${e is ApiFailure ? e.message : '行程统计读取失败'}${driving == null ? '' : '；保留上次统计快照'}',
+          () => statsError = driving == null
+              ? (e is FormatException
+                    ? messages.versionIncompatibleMessage()
+                    : e is ApiFailure
+                    ? e.message
+                    : messages.readFailedMessage('行程统计'))
+              : messages.staleMessage(
+                  workspace.calendar!.local(statsCheckedAt ?? clock),
+                  clock,
+                ),
         );
       }
     } finally {
@@ -402,19 +413,20 @@ class _DrivesPageState extends State<DrivesPage>
     } catch (e) {
       if (!current()) return;
       setState(() {
-        final message = e is FormatException
-            ? '服务返回格式不兼容，请核对版本'
+        // CP07：分页失败与「失败有旧数据」都来自共享构造函数，页面不拼句子。
+        final clock = workspace.calendar!.local(workspace.session.now());
+        final message = more
+            ? messages.paginationFailedMessage('行程')
+            : result != null
+            ? messages.staleMessage(
+                workspace.calendar!.local(result!.checkedAt),
+                clock,
+              )
+            : e is FormatException
+            ? messages.versionIncompatibleMessage()
             : e is ApiFailure
-            ? '${e.message}${more
-                  ? '；已保留现有行程'
-                  : loaded
-                  ? '；保留上次快照'
-                  : ''}'
-            : more
-            ? '加载失败，已保留现有行程'
-            : loaded
-            ? '刷新失败，保留上次快照'
-            : '行程读取失败，请检查网络后重试';
+            ? e.message
+            : messages.readFailedMessage('行程');
         if (more) {
           pageError = message;
         } else {
@@ -453,16 +465,29 @@ class _DrivesPageState extends State<DrivesPage>
   Future<void> chooseDates() async {
     final today = workspace.calendar!.local(workspace.session.now());
     final last = DateTime(today.year, today.month, today.day);
-    // The picker is this page's own editor: its completion reloads the range
+    // R27/PD10：三套日期输入合并为共享的 MileafDateRangeSheet。默认区间沿用
+    // 本页原来的近 30 天窗口；含首尾的语义、可选范围与校验仍由本页注入，
+    // 组件不内置业务规则。
+    final initial =
+        custom ??
+        DateTimeRange(
+          start: DateTime(last.year, last.month, last.day - recentDays + 1),
+          end: last,
+        );
+    // The sheet is this page's own editor: its completion reloads the range
     // it returns, so closing it must not revalidate the abandoned range too.
     final range = await readingEditor(
-      () => showDateRangePicker(
+      () => showMileafDateRangeSheet(
         context: context,
+        initialRange: initial,
         firstDate: DateTime(1900),
         lastDate: last,
-        initialDateRange: custom,
-        initialEntryMode: DatePickerEntryMode.input,
-        helpText: '选择行程日期（含首尾日期）',
+        today: last,
+        validator: (start, end) {
+          if (end.isAfter(last)) return '结束日期不能晚于今天';
+          if (start.isAfter(end)) return '开始日期不能晚于结束日期';
+          return null;
+        },
       ),
     );
     if (!mounted || range == null) return;
@@ -840,7 +865,7 @@ class _DrivesPageState extends State<DrivesPage>
   }
 
   String get _emptyListLabel =>
-      selectedDay != null || custom != null ? '所选日期没有行程' : '这段时间还没有行程';
+      selectedDay != null ? '所选日期没有行程' : messages.emptyMessage('行程');
 
   /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
   Widget _hairline() => Container(
@@ -995,7 +1020,12 @@ class _DrivesPageState extends State<DrivesPage>
                       ),
                     if (loading || statsLoading) ...[
                       const MileafProgressLine(),
-                      Text(loaded ? '正在更新' : '正在加载行程', style: type.micro),
+                      Text(
+                        loaded ? '正在更新' : messages.loadingMessage('行程'),
+                        style: type.footnote.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
                     ],
                     if (error != null)
                       InlineBanner(

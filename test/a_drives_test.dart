@@ -57,7 +57,7 @@ void main() {
       statsHandler: (_) async => jsonResponse(jsonEncode(body)),
     );
     expect(find.text('0 趟'), findsOneWidget);
-    expect(find.text('这段时间还没有行程'), findsWidgets);
+    expect(find.text('这段时间没有行程'), findsWidgets);
     expect(find.byType(TimeSeriesChart), findsNothing);
     expect(find.text('看当天'), findsNothing);
   });
