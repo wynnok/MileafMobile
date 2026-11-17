@@ -186,9 +186,10 @@ void main() {
     // 0 元不出现补录胶囊（S06）。
     expect(find.text('补录'), findsNothing);
     expect(find.text('0 USD'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('重试充电曲线').hitTestable(), 200);
+    // CP06：重试统一「重试」；曲线错误由相邻错误文字区分。
+    await tester.scrollUntilVisible(find.text('重试').hitTestable(), 200);
     failSeries = false;
-    await tester.tap(find.text('重试充电曲线').hitTestable());
+    await tester.tap(find.text('重试').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('这次充电没有采样点'), findsOneWidget);
     failDetail = true;
@@ -198,8 +199,9 @@ void main() {
     );
     await tester.tap(find.byTooltip('刷新充电明细').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('保留上次快照'), -200);
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    // CP07：失败有旧数据走共享构造函数。
+    await tester.scrollUntilVisible(find.textContaining('没能更新，显示的是'), -200);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     expect(find.text('0 USD'), findsWidgets);
   });
 
@@ -302,7 +304,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('服务返回格式不兼容，请核对版本'), findsOneWidget);
+    expect(find.text('服务器返回的数据格式不受支持，请确认 Mileaf Server 版本'), findsOneWidget);
     expect(find.textContaining('9876'), findsNothing);
     expect(find.byKey(const Key('charging-time-chart')), findsNothing);
   });

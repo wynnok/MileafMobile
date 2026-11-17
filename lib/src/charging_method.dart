@@ -1,4 +1,5 @@
 import 'charging_experience_contract.g.dart' as expanded;
+import 'copy/durations.dart' as copy;
 import 'number_format.dart' show decimal;
 
 /// Which shell the charging-method block renders (Spec §11).
@@ -48,6 +49,7 @@ class ChargingMethodReading {
     required this.centerValue,
     required this.centerLabel,
     required this.conclusion,
+    this.unknownLine = '',
     required this.categories,
     required this.note,
     required this.showLegend,
@@ -84,8 +86,10 @@ class ChargingMethodReading {
 
     String energy(double value) =>
         state == ChargingMethodState.missing ? '—' : decimal(value);
-    String duration(num minutes) =>
-        durationMissing ? '—' : '${decimal(minutes)} 分钟';
+    // CP03：分类时长走共享分级（90 分钟 → 1 小时 30 分钟），不再写「90.0 分钟」。
+    String duration(num minutes) => durationMissing
+        ? '—'
+        : copy.duration(Duration(minutes: minutes.round()));
 
     final categories = <ChargingMethodCategory>[];
     if (state != ChargingMethodState.empty) {
@@ -123,10 +127,19 @@ class ChargingMethodReading {
       ChargingMethodState.empty => '还没有充电记录',
       ChargingMethodState.missing => '分类能量未记录',
       ChargingMethodState.zero => '还没有分类能量',
-      ChargingMethodState.normal => _conclusion(acShare, dcShare, unknown),
+      ChargingMethodState.normal => _conclusion(acShare, dcShare),
     };
-    final shareText = known > 0 ? '${decimal(dcShare * 100)}%' : '—';
-    final unknownClause = recorded && unknown > 0 ? '未知不计入构成 · ' : '';
+    // CP09 对照表：结论与「类型未知 X kWh」分行，不用「·」拼接；精确占比由
+    // 图例给出，脚注只声明分母口径（CP08：改名不丢口径）。
+    final unknownClause = recorded && unknown > 0
+        ? '类型未知 ${decimal(unknown)} kWh'
+        : '';
+    final classified = totals.classificationKnownSessions;
+    final note = state == ChargingMethodState.empty
+        ? ''
+        : classified >= sessions
+        ? '只计已知类型的充电，$sessions 次类型都已知'
+        : '只计已知类型的充电，$sessions 次中 $classified 次类型已知';
     return ChargingMethodReading(
       state: state,
       acShare: acShare,
@@ -135,11 +148,9 @@ class ChargingMethodReading {
       centerValue: known > 0 ? '${(dominantShare * 100).round()}' : null,
       centerLabel: known > 0 ? (dominantAc ? 'AC' : 'DC') : null,
       conclusion: conclusion,
+      unknownLine: unknownClause,
       categories: categories,
-      note: state == ChargingMethodState.empty
-          ? ''
-          : 'DC 占已知分类能量 $shareText · $unknownClause'
-                '分类已知 ${totals.classificationKnownSessions}/$sessions 次',
+      note: note,
       // 环上没有弧时（分母为空）不显示图例，否则「AC 0% / DC 0%」会被
       // 读成「真的是 0%」。
       showLegend: state == ChargingMethodState.normal && known > 0,
@@ -156,6 +167,10 @@ class ChargingMethodReading {
   final String? centerValue;
   final String? centerLabel;
   final String conclusion;
+
+  /// CP09：类型未知的能量单独一行（「类型未知 20.7 kWh」），不拼进结论句；
+  /// 没有未知能量时为空。
+  final String unknownLine;
   final List<ChargingMethodCategory> categories;
 
   /// One-line denominator caveat; empty in the empty state.
@@ -163,22 +178,19 @@ class ChargingMethodReading {
   final bool showLegend;
 
   /// Thresholds from Spec §12. Structure only — never a verdict on good/bad.
-  static String _conclusion(double acShare, double dcShare, double unknown) {
+  /// CP02/CP09：未知类型不再拼进结论句（unknownLine 单独一行）。
+  static String _conclusion(double acShare, double dcShare) {
     final known = acShare + dcShare;
-    if (known <= 0) return '补能类型未知';
-    final String sentence;
+    if (known <= 0) return '充电类型未知';
     if (acShare >= .9) {
-      sentence = '以 AC 为主';
+      return '以 AC 为主';
     } else if (acShare <= .1) {
-      sentence = '以 DC 为主';
+      return '以 DC 为主';
     } else if (acShare >= .4 && acShare <= .6) {
-      sentence = 'AC 与 DC 接近';
+      return 'AC 与 DC 接近';
     } else if (acShare > .6) {
-      sentence = 'AC 更多，DC 占 ${decimal(dcShare * 100)}%';
-    } else {
-      sentence = 'DC 更多，AC 占 ${decimal(acShare * 100)}%';
+      return 'AC 更多，DC 占 ${decimal(dcShare * 100)}%';
     }
-    if (unknown <= 0) return sentence;
-    return '$sentence · 类型未知 ${decimal(unknown)} kWh';
+    return 'DC 更多，AC 占 ${decimal(acShare * 100)}%';
   }
 }

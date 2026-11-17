@@ -18,21 +18,22 @@ void main() {
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('充电')),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录'), findsOneWidget);
-    final dailyTop = tester.getTopLeft(find.text('每日补能')).dy;
-    expect(tester.getTopLeft(find.text('已知充电费用')).dy, lessThan(dailyTop));
-    await tester.scrollUntilVisible(find.text('补入电池'), 160);
-    expect(find.text('补入电池'), findsOneWidget);
-    expect(find.text('充电次数'), findsOneWidget);
-    expect(find.text('记录时长'), findsOneWidget);
+    expect(find.textContaining('次有费用'), findsOneWidget);
+    final dailyTop = tester.getTopLeft(find.text('每日充电')).dy;
+    expect(tester.getTopLeft(find.text('已记录费用')).dy, lessThan(dailyTop));
+    await tester.scrollUntilVisible(find.text('充入电量'), 160);
+    expect(find.text('充入电量'), findsOneWidget);
+    // P03 三格：充电次数并入覆盖句，第三格是充入均价。
+    expect(find.text('充入均价'), findsOneWidget);
+    expect(find.text('充电时长'), findsOneWidget);
     // User-approved U06 order puts secondary totals after recent records.
-    await tester.scrollUntilVisible(find.text('每日补能'), -160);
+    await tester.scrollUntilVisible(find.text('每日充电'), -160);
     final viewport = tester.getRect(find.byType(RefreshIndicator).first);
-    final daily = tester.getRect(find.text('每日补能'));
+    final daily = tester.getRect(find.text('每日充电'));
     expect(daily.bottom, lessThanOrEqualTo(viewport.bottom));
     final chart = find.byKey(const Key('charging-briefing-chart'));
     expect(tester.getRect(chart).top, greaterThan(daily.bottom));
-    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
