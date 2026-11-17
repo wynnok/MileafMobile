@@ -399,10 +399,10 @@ void main() {
     await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(find.text('2月1日–3月30日'), findsOneWidget);
-    // P02：节奏图移到记录之后，紧凑读数行的下钻按钮（可见文字仍是
-    // AP05 沿用的「看当天」，语义标签为「查看当天」）更靠下。
+    // P02：节奏图移到记录之后，紧凑读数行的下钻按钮（D-AP10-04 落地后
+    // 可见文字与语义标签同为「查看当天」）更靠下。
     await tester.scrollUntilVisible(
-      find.text('看当天'),
+      find.text('查看当天'),
       140,
       scrollable: find
           .descendant(
@@ -412,11 +412,11 @@ void main() {
           .first,
     );
     await Scrollable.ensureVisible(
-      tester.element(find.text('看当天')),
+      tester.element(find.text('查看当天')),
       alignment: .5,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('看当天'));
+    await tester.tap(find.text('查看当天'));
     await tester.pumpAndSettle();
     expect(find.text('返回完整区间'), findsOneWidget);
     final day = requests.lastWhere((uri) => uri.path.endsWith('/drives'));

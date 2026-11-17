@@ -380,9 +380,15 @@ class _ShareRingLegendRowState extends State<ShareRingLegendRow> {
             ),
           ),
           const SizedBox(width: MileafSpace.inline10),
-          Text(
-            widget.label,
-            style: type.body.copyWith(color: colors.textMuted),
+          // 200% 大字下标签自然宽可超过图例行宽（D-AP10-05，充电方式卡实测
+          // 溢出 2px）；标签可收，占比仍靠右。
+          Flexible(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: type.body.copyWith(color: colors.textMuted),
+            ),
           ),
           const Spacer(),
           Text(

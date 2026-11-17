@@ -29,14 +29,8 @@ const markers = <String, ({List<String> must, List<String> mustNot})>{
     must: [longName, '本月 · 驾驶里程', '1,198.6'],
     mustNot: ['这段时间还没有行程'],
   ),
-  'drives-sparse': (
-    must: ['出行节奏', '看当天'],
-    mustNot: ['这段时间还没有行程'],
-  ),
-  'charging-sparse': (
-    must: ['每日补能', '看当天'],
-    mustNot: ['这段时间还没有充电记录'],
-  ),
+  'drives-sparse': (must: ['出行节奏', '查看当天'], mustNot: ['这段时间还没有行程']),
+  'charging-sparse': (must: ['每日补能', '查看这一天的充电'], mustNot: ['这段时间还没有充电记录']),
 };
 
 class _Appearance implements AppearancePreferenceStore {

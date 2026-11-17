@@ -1849,6 +1849,10 @@ class _ChargingPageState extends State<ChargingPage>
               start: value.startSoc,
               end: value.endSoc,
               compact: true,
+              // D-AP10-03：充电记录行端点按对照表写「开始/结束」；行程侧
+              // 「出发/到达」由组件默认值保持。
+              beginLabel: '开始',
+              endLabel: '结束',
             ),
             const SizedBox(height: MileafSpace.s4),
             Wrap(

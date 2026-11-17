@@ -131,8 +131,8 @@ void main() {
     await tester.pumpAndSettle();
     final period = Map<String, String>.of(requests.last);
     now = DateTime.utc(2026, 3, 30, 17);
-    await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 140);
-    await tester.tap(find.text('看当天'));
+    await tester.scrollUntilVisible(find.text('查看当天').hitTestable(), 140);
+    await tester.tap(find.text('查看当天'));
     await tester.pumpAndSettle();
     expect(requests.last['from'], '2026-03-23T16:00:00.000Z');
     expect(requests.last['to'], '2026-03-24T16:00:00.000Z');
@@ -166,8 +166,8 @@ void main() {
     );
     await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 140);
-    await tester.tap(find.text('看当天'));
+    await tester.scrollUntilVisible(find.text('查看当天').hitTestable(), 140);
+    await tester.tap(find.text('查看当天'));
     await tester.pumpAndSettle();
     expect(requests.last['from'], '2026-03-23T16:00:00.000Z');
     now = DateTime.utc(2026, 3, 30, 17);
@@ -262,8 +262,8 @@ void main() {
     expect(listQueries.last['from'], '2026-03-23T16:00:00.000Z');
     expect(statsQueries.last['from'], listQueries.last['from']);
     expect(statsQueries.last['to'], listQueries.last['to']);
-    await tester.scrollUntilVisible(find.text('看当天'), 120);
-    await tester.tap(find.text('看当天'));
+    await tester.scrollUntilVisible(find.text('查看当天'), 120);
+    await tester.tap(find.text('查看当天'));
     await tester.pumpAndSettle();
     expect(listQueries.last['from'], '2026-03-29T16:00:00.000Z');
     expect(listQueries.last['to'], '2026-03-30T12:00:00.000Z');

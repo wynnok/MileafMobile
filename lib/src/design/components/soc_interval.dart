@@ -16,6 +16,8 @@ class SocIntervalBar extends StatelessWidget {
     required this.start,
     required this.end,
     this.compact = false,
+    this.beginLabel = '出发',
+    this.endLabel = '到达',
   });
 
   /// 出发电量 (start of the trip/charge) in percent.
@@ -26,6 +28,11 @@ class SocIntervalBar extends StatelessWidget {
 
   /// The containing record supplies vertical padding in compact mode.
   final bool compact;
+
+  /// 端点标签：行程侧保持 2026-11-01 用户裁定的「出发/到达」；充电记录行按
+  /// apple-polish 对照表传「开始/结束」（AP10 提案，D-AP10-03）。
+  final String beginLabel;
+  final String endLabel;
 
   static const double _trackHeight = 8;
 
@@ -51,7 +58,8 @@ class SocIntervalBar extends StatelessWidget {
     return Semantics(
       container: true,
       excludeSemantics: true,
-      label: '电量区间，出发 ${_spoken(start)}，到达 ${_spoken(end)}，尺度 0 至 100%',
+      label:
+          '电量区间，$beginLabel ${_spoken(start)}，$endLabel ${_spoken(end)}，尺度 0 至 100%',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -95,13 +103,13 @@ class SocIntervalBar extends StatelessWidget {
             runSpacing: MileafSpace.s4,
             children: [
               Text(
-                '出发 ${_value(start)}',
+                '$beginLabel ${_value(start)}',
                 style: (large ? type.body : type.label).copyWith(
                   color: colors.textMuted,
                 ),
               ),
               Text(
-                '到达 ${_value(end)}',
+                '$endLabel ${_value(end)}',
                 style: (large ? type.body : type.label).copyWith(
                   color: colors.textMuted,
                 ),

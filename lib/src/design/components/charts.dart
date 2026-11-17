@@ -511,7 +511,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
         ? null
         : TextButton(
             onPressed: widget.onActivateSelected,
-            child: Text('看当天', semanticsLabel: widget.activationLabel),
+            child: Text(
+              widget.activationLabel,
+              semanticsLabel: widget.activationLabel,
+            ),
           );
     final trailing = widget.trailing;
     if (widget.compactReadout) {
@@ -981,7 +984,15 @@ class MileafChartReadout extends StatelessWidget {
                   ],
                 ),
         );
-        return Row(
+        final drillButton = (compact && onActivateSelected != null)
+            ? TextButton(
+                onPressed: onActivateSelected,
+                // D-AP10-04：可见文字与语义统一用页面传入的下钻短语
+                // （概览/行程「查看当天」、充电「查看这一天的充电」）。
+                child: Text(activationLabel, semanticsLabel: activationLabel),
+              )
+            : null;
+        final inline = Row(
           crossAxisAlignment: compact
               ? CrossAxisAlignment.center
               : CrossAxisAlignment.start,
@@ -993,17 +1004,24 @@ class MileafChartReadout extends StatelessWidget {
               ),
             ),
             // R29：下钻文字按钮在 live region 之外（读屏要能单独触发），
-            // 位置在行尾、步进之前。
-            if (compact && onActivateSelected != null)
-              TextButton(
-                onPressed: onActivateSelected,
-                // CP06 建议写成「查看当天」；W2 期间保持页面已在用的旧串，
-                // 由页面包在自己的下钻行统一改词（见 AP05.md §7.5）。
-                child: Text('看当天', semanticsLabel: activationLabel),
-              ),
+            // 位置在行尾、步进之前。200% 大字下长短语（充电「查看这一天的
+            // 充电」）与步进同行会溢出 88px（D-AP10-04 落地实测），此时下钻
+            // 换到行尾独占一行，读数内容保持在原行。
+            if (drillButton != null && !MileafLayout.largeText(context))
+              drillButton,
             if (hasSteps) ...steps,
           ],
         );
+        if (drillButton != null && MileafLayout.largeText(context)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              inline,
+              Align(alignment: Alignment.centerRight, child: drillButton),
+            ],
+          );
+        }
+        return inline;
       },
     );
   }

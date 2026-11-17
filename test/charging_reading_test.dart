@@ -1015,7 +1015,7 @@ void main() {
     );
     await tester.tapAt(Offset(plot.right - 2, plot.center.dy));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('看当天'));
+    await tester.tap(find.text('查看这一天的充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('只看 3月30日结束的充电'), findsOneWidget);
     await tester.tap(find.text('概览').last);
@@ -1055,7 +1055,7 @@ void main() {
     );
     await tester.tapAt(Offset(plot.left + 2, plot.center.dy));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('看当天'));
+    await tester.tap(find.text('查看这一天的充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('只看 3月24日结束的充电'), findsOneWidget);
     now = DateTime.utc(2026, 3, 31, 0, 30);

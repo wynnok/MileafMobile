@@ -670,8 +670,8 @@ void main() {
     await tester.pumpAndSettle();
     // C04: the chart opens on the latest bucket with charging, which is the
     // cross-midnight 结束日 this test drills into.
-    await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 200);
-    await tester.tap(find.text('看当天').hitTestable());
+    await tester.scrollUntilVisible(find.text('查看这一天的充电').hitTestable(), 200);
+    await tester.tap(find.text('查看这一天的充电').hitTestable());
     await tester.pumpAndSettle();
     final query = requests
         .lastWhere(
