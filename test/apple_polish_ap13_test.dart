@@ -324,9 +324,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(MileafGroupCard), findsOneWidget);
       expect(find.text('命名车辆'), findsOneWidget);
-      // CP09：区分信息「型号，尾号」；车辆编号不再作为行副文。
+      // CP09：有名称的车辆副文写「型号，尾号」；车辆编号不再作为行副文。
       expect(find.text('3，尾号 1234'), findsOneWidget);
-      expect(find.text('Y，尾号 0002'), findsOneWidget);
+      // 无名称时标题回退（vehicleName）已携带区分信息，副文不再重复。
+      expect(find.text('Y · 尾号 0002'), findsOneWidget);
+      expect(find.text('Y，尾号 0002'), findsNothing);
       expect(find.textContaining('车辆 ID'), findsNothing);
       expect(find.byIcon(Icons.settings), findsNothing);
       expect(find.byIcon(Icons.refresh), findsNothing);

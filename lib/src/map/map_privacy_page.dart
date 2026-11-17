@@ -158,7 +158,11 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (keys != null) ...[
-                      const MileafGroupHeader(title: '本机配置'),
+                      // 分组标题保持读屏 header 语义（原 _eyebrow 行为）。
+                      Semantics(
+                        header: true,
+                        child: const MileafGroupHeader(title: '本机配置'),
+                      ),
                       const SizedBox(height: MileafSpace.s8),
                       MileafGroupCard(
                         child: Column(
@@ -168,11 +172,17 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
                       ),
                       const SizedBox(height: MileafSpace.section),
                     ],
-                    const MileafGroupHeader(title: '申请帮助'),
+                    Semantics(
+                      header: true,
+                      child: const MileafGroupHeader(title: '申请帮助'),
+                    ),
                     const SizedBox(height: MileafSpace.s8),
                     MileafGroupCard(child: _help(context)),
                     const SizedBox(height: MileafSpace.section),
-                    const MileafGroupHeader(title: '地图隐私'),
+                    Semantics(
+                      header: true,
+                      child: const MileafGroupHeader(title: '地图隐私'),
+                    ),
                     const SizedBox(height: MileafSpace.s8),
                     MileafGroupCard(
                       child: Column(
@@ -338,8 +348,9 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           ),
         ),
         const SizedBox(height: MileafSpace.s12),
+        // R27：处理中保留文字，尾部活动指示器由 loading 承载。
         MileafButton(
-          label: keys.busy ? '正在保存…' : '保存 Key',
+          label: '保存 Key',
           expand: true,
           loading: keys.busy,
           onPressed: keys.busy ? null : () => _save(keys),

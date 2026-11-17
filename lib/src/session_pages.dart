@@ -184,8 +184,6 @@ class VehiclePage extends StatelessWidget {
     return parts.join('，');
   }
 
-  static String? _meta(Vehicle vehicle) => _distinction(vehicle);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,7 +240,10 @@ class VehiclePage extends StatelessWidget {
                       for (final (index, vehicle) in session.vehicles.indexed)
                         MileafGroupRow(
                           title: vehicleName(vehicle),
-                          meta: _meta(vehicle),
+                          // 名称缺失时标题回退已携带区分信息，副文置空避免重复。
+                          meta: (vehicle.name?.trim().isNotEmpty ?? false)
+                              ? _distinction(vehicle)
+                              : null,
                           bottomLine: index != session.vehicles.length - 1,
                         ),
                     ],

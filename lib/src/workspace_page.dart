@@ -365,7 +365,7 @@ class _VehicleSheet extends StatelessWidget {
       if (lastFour.isNotEmpty) '尾号 $lastFour',
     ];
     if (parts.isEmpty) return null;
-    return parts.isEmpty ? null : parts.join('，');
+    return parts.join('，');
   }
 
   @override

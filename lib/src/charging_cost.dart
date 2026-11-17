@@ -402,9 +402,9 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
   /// CP04：日期时间用共享格式化器输出（DF5 = DF1 + DF4）。
   String _recordWhen(dto.ChargingSessionDetail d) {
     final start = workspace.calendar!.local(d.startedAt);
-    // 身份行要绝对日期：用早三天的参照日让 formatDay 走「M月D日」分支，
-    // 不写成「今天/昨天」，且在同年内不带年。
-    final day = copy.formatDay(start, start.subtract(const Duration(days: 3)));
+    // formatDay 只有同年/跨年两个分支（DF1）：参照日传 start 本身即得
+    // 「M月D日」（同年不带年），无今天/昨天分支，也没有年界边角。
+    final day = copy.formatDay(start, start);
     return '$day ${copy.formatTime(start)}';
   }
 
