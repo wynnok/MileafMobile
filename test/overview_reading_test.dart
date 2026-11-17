@@ -23,24 +23,18 @@ void main() {
       );
     }
     expect(
-      find.descendant(of: find.byKey(plate), matching: find.text('158')),
+      find.descendant(of: find.byKey(plate), matching: find.text('158 Wh/km')),
       findsOneWidget,
-    );
-    expect(
-      find.descendant(of: find.byKey(plate), matching: find.text('Wh/km')),
-      findsOneWidget,
+      reason: '值与单位不再拆成两行',
     );
     expect(
       find.descendant(of: find.byKey(plate), matching: find.text('¥186.4')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: find.byKey(plate), matching: find.text('kWh')),
+      find.descendant(of: find.byKey(plate), matching: find.text('234.70 kWh')),
       findsOneWidget,
-    );
-    expect(
-      find.descendant(of: find.byKey(plate), matching: find.text('234.70')),
-      findsOneWidget,
+      reason: '值与单位不再拆成两行',
     );
     expect(
       find.descendant(of: find.byKey(plate), matching: find.text('46 趟')),
@@ -109,7 +103,7 @@ void main() {
     expect(cost.top, greaterThan(net.bottom), reason: '大字下单列');
     expect(energy.top, greaterThan(cost.bottom), reason: '大字下单列');
     expect(
-      find.descendant(of: find.byKey(plate), matching: find.text('234.70')),
+      find.descendant(of: find.byKey(plate), matching: find.text('234.70 kWh')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

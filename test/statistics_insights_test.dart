@@ -328,8 +328,7 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(tester.takeException(), isNull);
-    expect(find.text('187.5'), findsWidgets);
-    expect(find.text('Wh/km'), findsWidgets);
+    expect(find.text('187.5 Wh/km'), findsWidgets, reason: '值与单位不再拆成两行');
     expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
   });
 

@@ -68,7 +68,7 @@ void main() {
         ),
         findsNothing,
       );
-      expect(material.borderRadius, MileafRadius.surfaceAll);
+      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(find.bySemanticsLabel(RegExp('车况')), findsOneWidget);
       expect(tester.takeException(), isNull);
       semantics.dispose();
@@ -92,7 +92,7 @@ void main() {
       expect(material.color, const MileafColors.light().surface);
     });
 
-    testWidgets('浅色 hero 是 12 外边距、24 圆角、无描边无阴影的卡片', (tester) async {
+    testWidgets('浅色 hero 是 12 外边距、20 圆角、无描边无阴影的卡片', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
@@ -109,7 +109,7 @@ void main() {
       final material = tester.widget<Material>(cardFinder);
       expect(card.left - hero.left, MileafSpace.cardInset);
       expect(hero.right - card.right, MileafSpace.cardInset);
-      expect(material.borderRadius, MileafRadius.surfaceAll);
+      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(material.shape, isNull);
       expect(material.elevation, 0, reason: '卡片 hero 只有底色，不加阴影');
       expect(material.color, const MileafColors.light().hero);
@@ -131,7 +131,7 @@ void main() {
       );
     });
 
-    testWidgets('深色 hero 同样采用 12 外边距和 24 圆角', (tester) async {
+    testWidgets('深色 hero 同样采用 12 外边距和 20 圆角', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 200, child: Text('320 km'))),
@@ -148,7 +148,7 @@ void main() {
       expect(hero.right - card.right, MileafSpace.cardInset);
       expect(
         tester.widget<Material>(cardFinder).borderRadius,
-        MileafRadius.surfaceAll,
+        BorderRadius.circular(MileafRadius.lg),
       );
     });
 
@@ -665,7 +665,7 @@ void main() {
         ),
       );
       final text = tester.widget<Text>(find.text('数据读取失败'));
-      expect(text.style?.color, const MileafColors.dark().error);
+      expect(text.style?.color, const MileafColors.dark().text);
     });
 
     testWidgets('加载骨架在 reduce motion 下停住', (tester) async {
