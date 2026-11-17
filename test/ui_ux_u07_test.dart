@@ -45,7 +45,7 @@ void main() {
     });
     // R29：读数头取代「速度读数」句，步进圆钮只在读数头里出现；
     // 这里直接点绘图区取靠后的采样点，读数头日期行即「当前选点」。
-    await tester.scrollUntilVisible(find.text('速度过程').hitTestable(), 180);
+    await tester.scrollUntilVisible(find.text('行驶过程').hitTestable(), 180);
     final chart = tester.getRect(find.byKey(const ValueKey('sample-chart')));
     await tester.tapAt(Offset(chart.left + chart.width * 0.9, chart.center.dy));
     await tester.pumpAndSettle();
@@ -53,7 +53,7 @@ void main() {
         .widgetList<Text>(find.byType(Text))
         .map((t) => t.data ?? '')
         .firstWhere(
-          (t) => RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').hasMatch(t),
+          (t) => RegExp(r'^\d{2}:\d{2}$').hasMatch(t),
           orElse: () => fail('读数头日期行未出现'),
         );
     await tester.scrollUntilVisible(
@@ -69,13 +69,13 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(scroll.pixels, offset);
-    await tester.scrollUntilVisible(find.text('速度过程'), 180);
+    await tester.scrollUntilVisible(find.text('行驶过程'), 180);
     expect(
       tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? ''),
       contains(before),
     );
     expect(downloads, 1);
-    expect(find.textContaining('2026-03-15'), findsWidgets);
+    expect(find.textContaining('3月15日'), findsWidgets);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -100);
     await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();

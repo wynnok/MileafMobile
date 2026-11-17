@@ -474,7 +474,7 @@ void main() {
     await selectTab(tester, '概览');
     now = now.add(const Duration(minutes: 10));
     await selectTab(tester, '行程');
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     await revealRow(tester, 15);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     failing = false;
@@ -495,7 +495,7 @@ void main() {
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
     await revealRow(tester, 17);
     expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
-    expect(find.textContaining('保留上次快照'), findsNothing);
+    expect(find.textContaining('没能更新，显示的是'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

@@ -119,7 +119,7 @@ void main() {
       findsOneWidget,
     );
     // R29：可见读值改为读数头（时间行 + 数值行），「速度读数」句只进语义。
-    await tester.scrollUntilVisible(find.text('速度过程'), 250);
+    await tester.scrollUntilVisible(find.text('行驶过程'), 250);
     expect(find.text('60 km/h'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();

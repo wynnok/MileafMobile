@@ -386,10 +386,17 @@ void main() {
     });
     await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
-    final inputs = find.byType(TextField);
-    await tester.enterText(inputs.at(0), '2026/02/01');
-    await tester.enterText(inputs.at(1), '2026/03/30');
-    await tester.tap(find.text('确定'));
+    await tester.tap(find.text('改为输入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-start-input')),
+      '2026-02-01',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-end-input')),
+      '2026-03-30',
+    );
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(find.text('2月1日–3月30日'), findsOneWidget);
     // P02：节奏图移到记录之后，紧凑读数行的下钻按钮（可见文字仍是
@@ -463,7 +470,7 @@ void main() {
     await selectTab(tester, '概览');
     now = now.add(const Duration(minutes: 10));
     await selectTab(tester, '行程');
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     expect(find.text('加载更多行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
@@ -649,10 +656,17 @@ void main() {
     }, now: () => now);
     await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
-    final inputs = find.byType(TextField);
-    await tester.enterText(inputs.at(0), '2026/03/01');
-    await tester.enterText(inputs.at(1), '2026/03/29');
-    await tester.tap(find.text('确定'));
+    await tester.tap(find.text('改为输入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-start-input')),
+      '2026-03-01',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-end-input')),
+      '2026-03-29',
+    );
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     await readToEndOfRange(tester);
     final before = requests.lastWhere((uri) => uri.path.endsWith('/drives'));
@@ -1229,10 +1243,17 @@ void main() {
     requests.clear();
     await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
-    final inputs = find.byType(TextField);
-    await tester.enterText(inputs.at(0), '2026/02/01');
-    await tester.enterText(inputs.at(1), '2026/03/30');
-    await tester.tap(find.text('确定'));
+    await tester.tap(find.text('改为输入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-start-input')),
+      '2026-02-01',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-end-input')),
+      '2026-03-30',
+    );
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(find.text('2月1日–3月30日'), findsOneWidget);
     expect(
