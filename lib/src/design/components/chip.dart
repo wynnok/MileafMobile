@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
 
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'button.dart' show MileafControlMetrics, MileafPressOverlay;
 
-/// 44px chip with a 44px touch target; selection settles over 180ms (R16).
+/// 分段控件的测试与图板用稳定 Key（不含业务数据）。
+abstract final class MileafChipKeys {
+  const MileafChipKeys._();
+
+  /// 共享轨道容器。
+  static const track = ValueKey('segment-track');
+
+  /// 轨道里唯一的选中底（胶囊）。
+  static const selected = ValueKey('segment-selected');
+
+  /// 单个分段的胶囊本体（视觉 36/40 高，命中区在它外面的透明带里）。
+  static ValueKey<String> capsule(String label) =>
+      ValueKey('segment-capsule-$label');
+}
+
+/// R27 分段控件：胶囊轨道（[MileafColors.segmentTrack]）+ 唯一胶囊选中底
+/// （[MileafColors.segmentSelected]；浅色加 y1/blur3/黑 12% 阴影，深色无阴影）。
+///
+/// 几何：轨道视觉高 40、选中底 36；命中区用平台触控尺寸（iOS 44 / Android 48）
+/// 透明扩展。文字：未选 control 500 textSecondary，选中 600 text。
+/// R27 删除下划线标记；选中语义由胶囊底与 600 字重表达。
 class StatusChip extends StatefulWidget {
   const StatusChip({
     super.key,
@@ -30,6 +52,7 @@ class StatusChip extends StatefulWidget {
 
 class _StatusChipState extends State<StatusChip> {
   bool _focused = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,39 +61,64 @@ class _StatusChipState extends State<StatusChip> {
     final selected = widget.selected;
     final enabled = widget.enabled && widget.onTap != null;
     final onHero = widget.onHero;
-    final grouped = ChipTrackScope.maybeOf(context);
-    final background = grouped || !selected
-        ? Colors.transparent
-        : colors.segmentSelected;
+    final track = ChipTrackScope.maybeOf(context);
+    final grouped = track != null;
+    final Color background;
+    if (grouped) {
+      // 共享轨道只画一次选中底，分段本体保持透明。
+      background = Colors.transparent;
+    } else if (selected) {
+      background = colors.segmentSelected;
+    } else {
+      background = colors.segmentTrack;
+    }
     final Color foreground;
     if (!widget.enabled) {
       foreground = colors.textFaint.withValues(alpha: .38);
     } else if (selected) {
       foreground = onHero ? colors.heroText : colors.text;
     } else {
-      foreground = onHero ? colors.heroMuted : colors.textMuted;
+      foreground = onHero ? colors.heroMuted : colors.textSecondary;
     }
-    final chip = AnimatedContainer(
+    final style = (selected ? type.controlSelected : type.control).copyWith(
+      color: foreground,
+    );
+    final radius = BorderRadius.circular(MileafRadius.full);
+    final capsule = AnimatedContainer(
+      key: MileafChipKeys.capsule(widget.label),
       duration: MileafLayout.motion(context, MileafDurations.selection),
-      curve: Curves.easeOutCubic,
-      constraints: BoxConstraints(minHeight: MileafLayout.touchTarget(context)),
-      padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
+      curve: MileafCurves.selection,
+      constraints: BoxConstraints(
+        minHeight:
+            track?.capsuleHeight ?? MileafControlMetrics.segmentSelectedHeight,
+      ),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(MileafSpace.s8),
+        borderRadius: radius,
+        boxShadow: selected && !grouped
+            ? MileafControlMetrics.selectionShadow(colors)
+            : null,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Flexible(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MileafSpace.s12,
+              vertical: MileafSpace.s4,
+            ),
             child: Text(
               widget.label,
-              style: type.label.copyWith(
-                color: foreground,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              ),
+              style: style,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Positioned.fill(
+            child: MileafPressOverlay(
+              visible: _pressed,
+              color: colors.accentSoft,
             ),
           ),
         ],
@@ -84,40 +132,29 @@ class _StatusChipState extends State<StatusChip> {
       excludeSemantics: true,
       child: Focus(
         onFocusChange: (value) => setState(() => _focused = value),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MileafLayout.touchTarget(context),
-          ),
-          child: Center(
-            widthFactor: 1,
-            heightFactor: 1,
-            child: Material(
-              color: Colors.transparent,
-              shape: const RoundedRectangleBorder(
-                borderRadius: MileafRadius.mdAll,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: enabled ? widget.onTap : null,
-                customBorder: const RoundedRectangleBorder(
-                  borderRadius: MileafRadius.mdAll,
-                ),
-                highlightColor: colors.accentSoft,
+        child: SizedBox(
+          height: MileafLayout.touchTarget(context),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: enabled ? widget.onTap : null,
+              onHighlightChanged: enabled
+                  ? (value) => setState(() => _pressed = value)
+                  : null,
+              customBorder: const StadiumBorder(),
+              // §4 M01：无涟漪，按压只用 MileafPressOverlay 计时的覆盖层。
+              highlightColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              child: Center(
+                widthFactor: 1,
                 child: Container(
                   foregroundDecoration: _focused
                       ? BoxDecoration(
-                          borderRadius: MileafRadius.mdAll,
+                          borderRadius: radius,
                           border: Border.all(color: colors.focusRing, width: 2),
                         )
                       : null,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      chip,
-                      if (selected && !grouped)
-                        const Positioned.fill(child: ChipSelectionMark()),
-                    ],
-                  ),
+                  child: capsule,
                 ),
               ),
             ),
@@ -130,33 +167,15 @@ class _StatusChipState extends State<StatusChip> {
 
 /// Marks chips whose selected surface is painted once by the shared track.
 class ChipTrackScope extends InheritedWidget {
-  const ChipTrackScope({super.key, required super.child});
+  const ChipTrackScope({super.key, required super.child, this.capsuleHeight});
 
-  static bool maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<ChipTrackScope>() != null;
+  /// 轨道为整行算出的统一胶囊高（≥36）；分段照此对齐，避免大字下长短不齐。
+  final double? capsuleHeight;
 
-  @override
-  bool updateShouldNotify(ChipTrackScope oldWidget) => false;
-}
-
-class ChipSelectionMark extends StatelessWidget {
-  const ChipSelectionMark({super.key});
+  static ChipTrackScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ChipTrackScope>();
 
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-    child: Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: MileafSpace.s4),
-        child: Container(
-          width: MileafSpace.s12,
-          height: MileafSpace.inline2,
-          decoration: BoxDecoration(
-            color: context.colors.accentStrong,
-            borderRadius: BorderRadius.circular(MileafSpace.inline2),
-          ),
-        ),
-      ),
-    ),
-  );
+  bool updateShouldNotify(ChipTrackScope oldWidget) =>
+      oldWidget.capsuleHeight != capsuleHeight;
 }

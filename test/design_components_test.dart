@@ -400,23 +400,25 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('按压态用 accentSoft 水波，常态图标是 textMuted', (tester) async {
+    testWidgets('按压态用 accentSoft 覆盖层，常态图标是 textMuted', (tester) async {
       await pumpComponent(
         tester,
         MileafCopyRow(label: '包名', value: 'app.mileaf.example', onCopy: (_) {}),
       );
       const colors = MileafColors.dark();
+      // AP03（R27/§4 M01）：按压不再用 InkWell 水波，改由 MileafPressOverlay
+      // 即时出现、松手 120ms 消退；颜色仍是 accentSoft。
       expect(
         tester
-            .widget<InkWell>(
+            .widget<MileafPressOverlay>(
               find
                   .descendant(
                     of: find.byType(MileafIconButton),
-                    matching: find.byType(InkWell),
+                    matching: find.byType(MileafPressOverlay),
                   )
                   .first,
             )
-            .highlightColor,
+            .color,
         colors.accentSoft,
       );
       expect(
@@ -1207,24 +1209,36 @@ void main() {
         );
         expect(textColor('本月'), colors.text, reason: '选中 chip 标签是文字');
         expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');
-        expect(textColor('取消'), colors.text, reason: 'secondary 用正文色');
+        // AP03（R27）：次按钮改 accentSoft 填充 + accentStrong 文字。
+        expect(
+          textColor('取消'),
+          colors.accentStrong,
+          reason: 'secondary 用 accentStrong',
+        );
         expect(textColor('保存'), colors.textOnAccent, reason: '实心按钮文字');
 
-        // §7.2 按压：primary/ghost → accentSoft；secondary → pressOverlay。
-        Color? highlight(String label) => tester
-            .widget<InkWell>(
+        // AP03（§4 M01）：按压覆盖层由 MileafPressOverlay 承担，
+        // primary/ghost → accentSoft；secondary 已填充 accentSoft，用中性 pressOverlay。
+        Color? overlay(String label) => tester
+            .widget<MileafPressOverlay>(
               find
-                  .ancestor(
-                    of: find.text(label),
-                    matching: find.byType(InkWell),
+                  .descendant(
+                    of: find.ancestor(
+                      of: find.text(label),
+                      matching: find.byWidgetPredicate(
+                        (widget) =>
+                            widget is MileafButton || widget is StatusChip,
+                      ),
+                    ),
+                    matching: find.byType(MileafPressOverlay),
                   )
                   .first,
             )
-            .highlightColor;
-        expect(highlight('全部指标'), colors.accentSoft);
-        expect(highlight('保存'), colors.accentSoft);
-        expect(highlight('取消'), colors.pressOverlay);
-        expect(highlight('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
+            .color;
+        expect(overlay('全部指标'), colors.accentSoft);
+        expect(overlay('保存'), colors.accentSoft);
+        expect(overlay('取消'), colors.pressOverlay);
+        expect(overlay('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
       });
     }
 
