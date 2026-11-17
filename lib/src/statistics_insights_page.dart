@@ -253,27 +253,31 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     // 精确窗口与时区留在展开内容里。
     final body = Column(
       children: [
-        MileafContent(
-          child: Padding(
-            padding: MileafLayout.pageHorizontal(context),
-            child: MileafDisclosure(
-              label: '数据说明',
-              meta: key == 'range'
-                  ? '独立6/12个本地月窗口'
-                  : copy.formatRange(
-                      zone.local(captured.window.from),
-                      zone.local(
-                        captured.window.to.subtract(
-                          const Duration(microseconds: 1),
+        // D-AP12a-01：五个 W4 专题页自带 R25 身份块与页尾「关于这些数据」，
+        // 宿主不再叠加区间/说明折叠（否则区间同屏两次）；long 与 legacy
+        // 路由仍由宿主提供说明。
+        if (!widget.topics.containsKey(key))
+          MileafContent(
+            child: Padding(
+              padding: MileafLayout.pageHorizontal(context),
+              child: MileafDisclosure(
+                label: '数据说明',
+                meta: key == 'range'
+                    ? '独立6/12个本地月窗口'
+                    : copy.formatRange(
+                        zone.local(captured.window.from),
+                        zone.local(
+                          captured.window.to.subtract(
+                            const Duration(microseconds: 1),
+                          ),
                         ),
                       ),
-                    ),
-              child: Text(
-                '${captured.window.from} — ${captured.window.to} · ${zone.identifier}',
+                child: Text(
+                  '${captured.window.from} — ${captured.window.to} · ${zone.identifier}',
+                ),
               ),
             ),
           ),
-        ),
         Expanded(
           child: key == 'long'
               ? longTopics()

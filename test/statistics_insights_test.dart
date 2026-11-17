@@ -72,6 +72,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.textContaining('Asia/Shanghai'), findsNothing);
+    // D-AP12a-01：五个 W4 专题路由的宿主折叠已移除（区间进身份块、时区进
+    // 页尾「关于这些数据」）；long 路由仍由宿主折叠承载「精确窗口与时区
+    // 留在展开内容里」的同一口径（R30.4），在这里继续验证。
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('长期').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('长期').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('数据说明'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Asia/Shanghai'), findsWidgets);

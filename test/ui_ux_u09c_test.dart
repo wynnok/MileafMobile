@@ -391,7 +391,8 @@ void main() {
         await tester.pumpAndSettle();
       }
       if (scenario == 'normal' || scenario == 'missing') {
-        final notes = find.widgetWithText(ExpansionTile, '数据说明');
+        // D-AP12a-01：页尾「关于这些数据」的五类说明行改 MileafDisclosure。
+        final notes = find.widgetWithText(MileafDisclosure, '口径与估算');
         await tester.ensureVisible(notes.last);
         await tester.tap(notes.last);
         await tester.pumpAndSettle();

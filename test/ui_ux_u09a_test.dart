@@ -843,15 +843,14 @@ void main() {
         expect(tester.getSize(scroll).width, lessThanOrEqualTo(560));
         if (size.width == 768 && scenario == 'normal') {
           final header = tester.getRect(
-            // AP11：长期/专题路由的说明折叠改 MileafDisclosure，区间 meta 按
-            // CP04 DF3（原 ExpansionTile 标题是 y/m/d 旧格式）。
-            find.widgetWithText(MileafDisclosure, '10月1日–28日'),
+            // D-AP12a-01：专题路由宿主折叠移除后，宽屏左线断言改 R25 身份块
+            // 标题（身份块与绘图区共用左缘；宽度由 560 限宽断言承担）。
+            find.text('用车节奏'),
           );
           final plot = tester.getRect(
             find.byKey(const ValueKey('usage-daily-plot')),
           );
           expect(header.left, closeTo(plot.left, 1));
-          expect(header.width, closeTo(plot.width, 1));
           measurements.add({
             'name': name,
             'headerLeft': header.left,
@@ -873,7 +872,8 @@ void main() {
       if (scenario == 'normal' || scenario == 'missing' || scenario == 'long') {
         final notes = find.descendant(
           of: find.byType(StatisticsUsagePage),
-          matching: find.widgetWithText(ExpansionTile, '数据说明'),
+          // D-AP12a-01：页尾「关于这些数据」的五类说明行改 MileafDisclosure。
+          matching: find.widgetWithText(MileafDisclosure, '口径与估算'),
         );
         await tester.ensureVisible(notes);
         await tester.tap(notes);
