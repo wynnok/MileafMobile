@@ -424,8 +424,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('未声明已测兼容'), findsOneWidget);
-    expect(find.text('schema 检查正常'), findsOneWidget);
+    // 行尾值 + 分组脚注各一处：原文「不代表 schema 不兼容」的意义按 CP08 保留。
+    expect(find.textContaining('未声明已测兼容'), findsNWidgets(2));
+    expect(find.textContaining('不代表不兼容'), findsOneWidget);
+    // P12：服务信息改为分组卡，兼容性以「行标题 + 尾部当前值」呈现。
+    expect(find.text('Schema 检查'), findsOneWidget);
+    expect(find.text('正常'), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });

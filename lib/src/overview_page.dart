@@ -7,6 +7,7 @@ import 'currency.dart';
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
 import 'copy/messages.dart' as messages;
+import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -28,6 +29,27 @@ import 'reading_scope.dart';
 import 'session.dart' show SiteSession;
 
 enum _Metric { distance, net, charge, cost, energy }
+
+/// CP07 的对象名：共享构造函数只接对象名，整句由 messages 拼。
+const String _summaryObject = '车况';
+const String _drivingObject = '驾驶数据';
+const String _chargingObject = '充电数据';
+
+/// 本页重复使用的短文案：集中声明，避免同一句话在页面里各写一份。
+const String _unknown = '未知';
+const String _retry = '重试';
+const String _switchMetric = '可切换其他指标';
+const String _staleSuffix = '，显示的是上次的数据';
+const String _emptyWindow = '本期还没有可统计的时间，稍后再刷新';
+
+/// 页面重排阈值：正文基值 14 在 100% 字号下恰为 14；留 0.5 的浮点余量，
+/// 只要用户把字号调大就重排（R11/R21.5），而不是把单位或新鲜度截断。
+const double _reflowScaleFloor = 14.5;
+
+/// R21.5：车况卡三格一行时，每格至少要 80 才能同时放下数值与单位。
+/// 实测：320 宽卡内可用 248 → 每格 74.7，MileafNumber 会把「kWh」裁掉；
+/// 360 宽可用 288 → 每格 88，单位完整。低于 80 就先收成两列。
+const double _heroCellMinWidth = 80;
 
 class OverviewPage extends StatefulWidget {
   const OverviewPage({
@@ -274,7 +296,7 @@ class _OverviewPageState extends State<OverviewPage>
     try {
       range = OverviewWindow(period, calendar, now);
     } on FormatException {
-      setState(() => errors['driving'] = '本期还没有可统计的时间，稍后再刷新');
+      setState(() => errors['driving'] = _emptyWindow);
       await loadSummary(force: force);
       return;
     }
@@ -325,7 +347,8 @@ class _OverviewPageState extends State<OverviewPage>
         setState(
           () => error = e is FormatException
               ? messages.versionIncompatibleMessage()
-              : '${e is ApiFailure ? e.message : '数据读取失败'}${data == null ? '' : '，显示的是上次的数据'}',
+              : '${e is ApiFailure ? e.message : messages.readFailedMessage(_summaryObject)}'
+                    '${data == null ? '' : _staleSuffix}',
         );
       }
     } finally {
@@ -358,7 +381,7 @@ class _OverviewPageState extends State<OverviewPage>
           requestedRange ??
           OverviewWindow(period, calendar, workspace.session.now());
     } on FormatException {
-      setState(() => errors[kind] = '本期还没有可统计的时间，稍后再刷新');
+      setState(() => errors[kind] = _emptyWindow);
       return;
     }
     final scope = scopeRevision, attempt = (attempts[kind] ?? 0) + 1;
@@ -404,11 +427,8 @@ class _OverviewPageState extends State<OverviewPage>
       setState(
         () => errors[kind] = e is FormatException
             ? messages.versionIncompatibleMessage()
-            : '${e is ApiFailure ? e.message : '统计读取失败'}${results[kind] == null
-                  ? ''
-                  : kind == 'driving'
-                  ? '，显示的是上次的数据'
-                  : '，显示的是上次的数据'}',
+            : '${e is ApiFailure ? e.message : messages.readFailedMessage(kind == 'driving' ? _drivingObject : _chargingObject)}'
+                  '${results[kind] == null ? '' : _staleSuffix}',
       );
     } finally {
       if (current()) setState(() => pending.remove(kind));
@@ -517,21 +537,23 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   String timestamp(DateTime? time) => time == null
-      ? '未知'
+      ? _unknown
       : workspace.calendar!.local(time).toString().split('.').first;
 
+  /// CP04「页面不得自拼」：记录行的时间走共享格式化器（DF5 + DF1）。
   String _shortStamp(DateTime? time) {
     if (time == null) return '未知时间';
-    final local = workspace.calendar!.local(time);
-    return '${local.month}/${local.day} '
-        '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
+    return copy.formatDayTime(workspace.calendar!.local(time), _todayWall);
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>
       value == null ? '—' : '${grouped(value, decimals: decimals)} $unit';
 
   String get _zone => workspace.calendar?.identifier ?? 'UTC';
+
+  /// CP02 比较对象名称：名称必须与源码里实际的比较窗口一致。
+  /// 概览只有「本月 / 近7天」两个期间；AP06 核对表把 recent 的比较窗口定为前 7 天。
+  String get _compareName => terms.compareNameFor(period.name) ?? '上月同期';
 
   bool get _referenceValid =>
       comparison != null &&
@@ -564,6 +586,10 @@ class _OverviewPageState extends State<OverviewPage>
     final colors = context.colors;
     final type = context.type;
     final large = MileafLayout.largeText(context);
+    // 字号一变大（>100%）就把状态行与今日三项改成可折的排版：R21.5 要求先收列，
+    // 而不是把单位或新鲜度截断成「11....」「今天 19:…」。
+    final reflow =
+        large || MediaQuery.textScalerOf(context).scale(14) > _reflowScaleFloor;
     final charging = d.state?.value == 'charging';
     final since = d.state?.since;
     // P01：状态用图形 + 文字（不再用圆点），充电功率独立成段，不用「·」拼接。
@@ -585,6 +611,38 @@ class _OverviewPageState extends State<OverviewPage>
         : copy.formatRelative(
             workspace.calendar!.local(since),
             workspace.calendar!.local(workspace.session.now()),
+          );
+    // 状态行的四个部件只建一次：100% 时排成一行，大字时新鲜度换行（见下）。
+    final glyph = statusKind == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.inline2),
+            child: MileafIcon(
+              vehicleStatusIcon(statusKind),
+              size: MileafIconMetrics.nav,
+              color: statusColor,
+            ),
+          );
+    final statusWidget = Text(
+      statusText,
+      style: type.subheadline.copyWith(color: colors.heroMuted),
+    );
+    final powerWidget = power == null
+        ? null
+        : Text(
+            power,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: type.subheadline.copyWith(color: colors.heroText),
+          );
+    final agoWidget = ago == null
+        ? null
+        : Text(
+            ago,
+            maxLines: 1,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: type.footnote.copyWith(color: colors.heroFaint),
           );
     final rangeLabel = switch (d.battery?.rangeKind) {
       'rated' => '额定续航',
@@ -631,26 +689,36 @@ class _OverviewPageState extends State<OverviewPage>
         scale: MetricValueScale.metricSm,
       ),
       MetricBlock(
-        label: '行程',
+        label: terms.trip,
         value: '${today.drives}',
-        unit: '趟',
+        unit: terms.tripCount,
         onHero: true,
         scale: MetricValueScale.metricSm,
       ),
       MetricBlock(
-        label: '估算耗电',
+        label: terms.estimatedConsumption,
         value: today.energyKwh?.toStringAsFixed(2),
         unit: today.energyKwh == null ? null : 'kWh',
         onHero: true,
         scale: MetricValueScale.metricSm,
       ),
     ];
-    final stats = large
-        ? MetricGrid(children: cells)
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [for (final cell in cells) Expanded(child: cell)],
-          );
+    // R21.5：100% 时一行三格；字号一变大就交给 MetricGrid 先收两列、再收一列。
+    // 直接用 Row 三格时，宽格下的 MileafNumber 只能把单位裁掉（AU09 的变体）。
+    final stats = LayoutBuilder(
+      builder: (context, constraints) {
+        final fits =
+            constraints.maxWidth >=
+            _heroCellMinWidth * cells.length +
+                MileafSpace.s12 * (cells.length - 1);
+        return reflow || !fits
+            ? MetricGrid(columns: 3, children: cells)
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [for (final cell in cells) Expanded(child: cell)],
+              );
+      },
+    );
     return _statusSurface(
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -665,59 +733,54 @@ class _OverviewPageState extends State<OverviewPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (statusKind != null) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: MileafSpace.inline2,
-                        ),
-                        child: MileafIcon(
-                          vehicleStatusIcon(statusKind),
-                          size: MileafIconMetrics.nav,
-                          color: statusColor,
-                        ),
+                // R31/R26：状态、功率、新鲜度是三件事，不用「·」拼接。大字时
+                // 新鲜度换到下一行，避免 200% 下三项被打成「充电 中 / 11.... / 今天 …」。
+                if (reflow)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (glyph != null) ...[
+                            glyph,
+                            const SizedBox(width: MileafSpace.s8),
+                          ],
+                          Expanded(child: statusWidget),
+                          if (powerWidget != null) ...[
+                            const SizedBox(width: MileafSpace.s8),
+                            powerWidget,
+                          ],
+                        ],
                       ),
-                      const SizedBox(width: MileafSpace.s8),
+                      if (agoWidget != null) ...[
+                        const SizedBox(height: MileafSpace.s4),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: agoWidget,
+                        ),
+                      ],
                     ],
-                    Expanded(
-                      child: Text(
-                        statusText,
-                        style: type.subheadline.copyWith(
-                          color: colors.heroMuted,
-                        ),
-                      ),
-                    ),
-                    if (power != null) ...[
-                      const SizedBox(width: MileafSpace.s8),
-                      Flexible(
-                        child: Text(
-                          power,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: type.subheadline.copyWith(
-                            color: colors.heroText,
-                          ),
-                        ),
-                      ),
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (glyph != null) ...[
+                        glyph,
+                        const SizedBox(width: MileafSpace.s8),
+                      ],
+                      Expanded(child: statusWidget),
+                      if (powerWidget != null) ...[
+                        const SizedBox(width: MileafSpace.s8),
+                        Flexible(child: powerWidget),
+                      ],
+                      if (agoWidget != null) ...[
+                        const SizedBox(width: MileafSpace.s8),
+                        Flexible(child: agoWidget),
+                      ],
                     ],
-                    if (ago != null) ...[
-                      const SizedBox(width: MileafSpace.s8),
-                      Flexible(
-                        child: Text(
-                          ago,
-                          maxLines: 1,
-                          textAlign: TextAlign.end,
-                          overflow: TextOverflow.ellipsis,
-                          style: type.footnote.copyWith(
-                            color: colors.heroFaint,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
                 const SizedBox(height: MileafSpace.inline6),
                 if (large) ...[
                   range,
@@ -805,7 +868,7 @@ class _OverviewPageState extends State<OverviewPage>
             onHero: true,
             title: retryable ? '车况暂不可用' : '暂无车况',
             message: error ?? '下拉刷新或检查站点连接',
-            actionLabel: '重试',
+            actionLabel: _retry,
             onAction: () => loadSummary(force: true),
           ),
         ],
@@ -856,7 +919,7 @@ class _OverviewPageState extends State<OverviewPage>
     final requested = ranges['driving'];
     final current = driving?.totals.distanceKm;
     if (requested == null || current == null) return null;
-    final window = period == OverviewPeriod.month ? '上月同期' : '前一区间';
+    final window = _compareName;
     if (requested.previous == null) return null;
     if (comparison == null) {
       if (comparing) return (text: '读取参照中', label: null, up: null);
@@ -890,7 +953,7 @@ class _OverviewPageState extends State<OverviewPage>
     final label = period == OverviewPeriod.month ? '本月驾驶' : '近 7 天驾驶';
     final window = _dayRange(ranges['driving']?.current);
     final semantic =
-        '$label $parts 公里，${drives ?? '—'} 趟，'
+        '$label $parts 公里，${drives ?? '—'} ${terms.tripCount}，'
         '${_deltaSentence ?? ''}';
     return Padding(
       padding: const EdgeInsets.only(top: MileafSpace.s16),
@@ -979,7 +1042,7 @@ class _OverviewPageState extends State<OverviewPage>
   /// 一句比较（CP03 用「多/少/持平」写进句子里，不用箭头）。
   String? get _deltaSentence {
     final delta = _mileageDelta;
-    final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
+    final name = _compareName;
     if (delta == null) return '$name数据不足，暂不比较';
     if (delta.text == '读取参照中') return '正在读取$name';
     if (delta.text == '参照暂不可用') return '暂时无法比较';
@@ -1002,11 +1065,14 @@ class _OverviewPageState extends State<OverviewPage>
         ];
 
   /// 入参是已按站点日历本地化的墙钟时间（tick 与读数头共用同一份）。
+  /// CP04：日期串由共享格式化器给出（DF1），页面不自拼。
   String tickLabelAt(List<DateTime> times, int index) {
     if (index < 0 || index >= times.length) return '—';
-    final local = times[index];
-    return '${local.month}/${local.day}';
+    return copy.formatDay(times[index], _todayWall);
   }
+
+  /// 站点日历里的「今天」（墙钟），共享格式化器用它判断今年与今天/昨天。
+  DateTime get _todayWall => workspace.calendar!.local(workspace.session.now());
 
   List<num?> _currentValues() {
     final isCharging = metric == _Metric.charge || metric == _Metric.cost;
@@ -1061,21 +1127,32 @@ class _OverviewPageState extends State<OverviewPage>
     final isCharging = metric == _Metric.charge || metric == _Metric.cost;
     final source = isCharging ? charging : driving;
     if (source == null) {
+      final kind = isCharging ? 'charging' : 'driving';
+      final failure = errors[kind];
+      // R29「无数据」与 R31「失败」是两件事：没有返回过统计就不该冒充错误，
+      // 空期间只写一句空态、收起绘图区。失败时上方已有一条带「重试」的状态条。
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _metricTabs(),
           const SizedBox(height: MileafSpace.s8),
-          if (pending.contains(isCharging ? 'charging' : 'driving'))
+          if (pending.contains(kind))
             const SkeletonBlock(
               width: double.infinity,
               height: MileafSpace.chartHeight,
             )
-          else
+          else if (failure != null)
+            // R21.4：原因只在上方状态条出现一次，卡内只留对象与去路。
             StateView(
               kind: StateViewKind.error,
-              title: isCharging ? '充电数据暂不可用' : '驾驶数据暂不可用',
-              message: '可切换其他指标，或使用上方重试操作',
+              title: isCharging ? _chargingObject : _drivingObject,
+              message: _switchMetric,
+            )
+          else
+            StateView(
+              kind: StateViewKind.empty,
+              title: messages.emptyMessage(isCharging ? '充电记录' : terms.trip),
+              message: _switchMetric,
             ),
         ],
       );
@@ -1106,16 +1183,13 @@ class _OverviewPageState extends State<OverviewPage>
           ? widget.currency.amountValue(value)
           : value.toStringAsFixed(decimals);
       String amount(num value) => isCost ? text(value) : '${text(value)} $unit';
-      String signed(num value) => isCost
-          ? '${value >= 0 ? '+' : '-'}${widget.currency.amountValue(value.abs())}'
-          : '${value >= 0 ? '+' : ''}${value.toStringAsFixed(decimals)} $unit';
       final valueText = raw == null ? '—' : text(raw);
       final unitText = raw == null || isCost ? null : unit;
       var semantic = '$stamp，$valueText${unitText == null ? '' : ' $unitText'}';
       final previous = reference?.elementAtOrNull(index);
       String? referenceText, deltaText, note;
       if (raw != null && previous != null) {
-        final label = period == OverviewPeriod.month ? '上月同期' : '前一区间';
+        final label = _compareName;
         final comparable =
             metric != _Metric.net ||
             (pairedAvailable &&
@@ -1138,7 +1212,10 @@ class _OverviewPageState extends State<OverviewPage>
           note = '数据口径未确认，暂不比较';
           semantic = '$semantic\n$referenceSemantic\n$note';
         } else {
-          deltaText = '差 ${signed(raw - previous)}';
+          // CP03/CP11：差异写进句子里说「多 / 少」，不用「差 +」这种符号写法。
+          deltaText = raw >= previous
+              ? '多 ${amount(raw - previous)}'
+              : '少 ${amount(previous - raw)}';
           semantic = '$semantic\n$referenceSemantic\n$deltaText';
         }
       }
@@ -1159,6 +1236,8 @@ class _OverviewPageState extends State<OverviewPage>
       showYAxis: true,
       title: title,
       unit: unit,
+      // R29：无数据时卡内只留一句人话，绘图区收起（CP02：不再出现「采样点」）。
+      emptyMessage: messages.emptyMessage(isCharging ? '充电记录' : terms.trip),
       times: wallTimes,
       semanticsLabel: '$title图表',
       series: [
@@ -1166,9 +1245,9 @@ class _OverviewPageState extends State<OverviewPage>
           label: switch (metric) {
             _Metric.distance => '里程',
             _Metric.net => '本期',
-            _Metric.charge => '充电',
+            _Metric.charge => terms.charging,
             _Metric.cost => '费用',
-            _Metric.energy => '估算耗电',
+            _Metric.energy => terms.estimatedConsumption,
           },
           values: values,
           style: switch (metric) {
@@ -1199,7 +1278,7 @@ class _OverviewPageState extends State<OverviewPage>
 
   /// R29 图例的参照名：比较对象名称 + 真实区间（DF3）。
   String get _referenceLabel {
-    final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
+    final name = _compareName;
     final range = _dayRange(comparisonRange?.previous);
     return range == null ? name : '$name $range';
   }
@@ -1223,8 +1302,8 @@ class _OverviewPageState extends State<OverviewPage>
     children: [
       for (final (m, label) in [
         (_Metric.distance, '里程'),
-        (_Metric.net, '电耗'),
-        (_Metric.charge, '充电'),
+        (_Metric.net, terms.energyPerKm),
+        (_Metric.charge, terms.charging),
         (_Metric.cost, '费用'),
       ])
         StatusChip(
@@ -1273,35 +1352,33 @@ class _OverviewPageState extends State<OverviewPage>
         : driving?.totals.consumptionWhKmNet;
     final expanded = enhancedCharging;
     final cost = expanded?.totals.cost ?? charging?.totals.cost;
-    final coverage = expanded == null || expanded.totals.sessions == 0
-        ? null
-        : '${expanded.totals.sessions} 次中 ${expanded.totals.costKnownSessions} 次有费用';
+    final coverage = _costCoverage;
     final energy = charging?.totals.energyAddedKwh;
     final costNote = [widget.currency.amountNote, coverage].nonNulls.join('，');
     final cells = [
       _readingCell(
-        '电耗',
+        terms.energyPerKm,
         key: const ValueKey('overview-plate-net'),
         value: net?.toStringAsFixed(0),
         unit: net == null ? null : 'Wh/km',
       ),
       _readingCell(
-        '已记录费用',
+        terms.recordedCost,
         key: const ValueKey('overview-plate-cost'),
         value: cost == null ? null : widget.currency.amountValue(cost),
         note: costNote,
       ),
       _readingCell(
-        '充电',
+        terms.charging,
         key: const ValueKey('overview-plate-energy'),
         value: energy == null ? null : grouped(energy, decimals: 2),
         unit: energy == null ? null : 'kWh',
       ),
       _readingCell(
-        '行程',
+        terms.trip,
         key: const ValueKey('overview-plate-drives'),
         value: driving?.totals.drives.toString(),
-        unit: driving == null ? null : '趟',
+        unit: driving == null ? null : terms.tripCount,
       ),
     ];
     return Padding(
@@ -1540,15 +1617,6 @@ class _OverviewPageState extends State<OverviewPage>
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (capabilityError != null) ...[
-          InlineBanner(
-            message: capabilityError!,
-            tone: BannerTone.warning,
-            actionLabel: '重试',
-            onAction: () => loadCapabilities(force: true),
-          ),
-          const SizedBox(height: MileafSpace.s12),
-        ],
         _comparisonSection(),
         if (driving != null) const SizedBox(height: MileafSpace.section),
         MileafDataNotes(groups: _dataNotes(d)),
@@ -1610,7 +1678,7 @@ class _OverviewPageState extends State<OverviewPage>
     final pairedRange = comparisonRange ?? ranges['driving'];
     String message;
     if (ranges['driving']?.previous == null) {
-      message = '本月没有可对齐的比较时间，暂不比较';
+      message = '这段时间没有可对齐的比较时间，暂不比较';
     } else if (comparing && comparison == null) {
       message = '正在读取比较数据';
     } else if (current == null ||
@@ -1626,7 +1694,7 @@ class _OverviewPageState extends State<OverviewPage>
       message = '数据口径未确认，暂不比较';
     } else {
       final delta = current.consumptionWhKmNet! - prior.consumptionWhKmNet!;
-      final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
+      final name = _compareName;
       message = delta != 0 && delta.abs() < 1
           ? '电耗与$name差异小于 1 Wh/km'
           : delta == 0
@@ -1672,7 +1740,7 @@ class _OverviewPageState extends State<OverviewPage>
                         child: InlineBanner(
                           message: '比较暂不可用：$comparisonError',
                           tone: BannerTone.error,
-                          actionLabel: '重试',
+                          actionLabel: _retry,
                           onAction: () => loadComparison(force: true),
                         ),
                       ),
@@ -1699,15 +1767,11 @@ class _OverviewPageState extends State<OverviewPage>
   /// R30.2「关于这些数据」五类：口径与估算、记录与缺失、时间与时区、
   /// 来源与生成时间、技术详情。缺类不出现；技术详情可复制（R30.4）。
   List<MileafDataNoteGroup> _dataNotes(dto.Summary? d) {
-    final expanded = enhancedCharging;
     final paired = enhancedDriving(results['driving']);
     final net = pairedAvailable
         ? paired?.totals.netConsumptionPaired.valueWhKm
         : driving?.totals.consumptionWhKmNet;
-    final coverage = expanded == null || expanded.totals.sessions == 0
-        ? null
-        : '${expanded.totals.sessions} 次中 '
-              '${expanded.totals.costKnownSessions} 次有费用';
+    final coverage = _costCoverage;
     final current = _dayRange(ranges['driving']?.current);
     final prior = _dayRange(comparisonRange?.previous);
     final notes = <MileafDataNoteGroup>[
@@ -1730,7 +1794,7 @@ class _OverviewPageState extends State<OverviewPage>
             '有记录的驾驶时长 '
                 '${copy.duration(Duration(minutes: minutes.round()))}，'
                 '${paired?.totals.drivingCoverage.durationKnownDrives ?? '—'} 趟有记录。',
-          if (coverage != null) '费用记录：$coverage。',
+          if (coverage != null) '费用记录：$coverage，对应充入 $_costCoverageEnergy kWh。',
           ?_chargingSplitNote,
           if (driving != null) '缺失显示 —，未知不等于 0。',
         ].join(''),
@@ -1755,23 +1819,40 @@ class _OverviewPageState extends State<OverviewPage>
         copyable: true,
         note: [
           if (d != null) ...[
-            '状态开始 ${_precise(d.state?.since)}',
+            // CP02 对照表：车辆与数据 → 车辆信息；位置采样完整时间 → 位置数据时间；
+            // 最近状态区间起始 → 状态开始时间；校验时间 → 数据生成时间。
+            '车辆信息 ${d.vehicle.name}，${d.vehicle.model}，尾号 ${d.vehicle.vinSuffix}',
+            // R30.3 内容不删：当前状态段的起始时刻与 freshness.last_state_at 是两个
+            // 不同的原始值（fixture 里相差 12 小时），各占一行。
+            '当前状态起始 ${_precise(d.state?.since)}',
             '位置数据时间 ${_precise(d.freshness.lastPositionAt)}',
             '状态开始时间 ${_precise(d.freshness.lastStateAt)}',
             '里程表 ${number(d.odometerKm, 'km', decimals: 1)}',
-            '固件 ${d.firmware?.version ?? '未知'}',
+            '固件 ${d.firmware?.version ?? _unknown}',
           ],
           '数据生成时间 ${_precise(result?.checkedAt)}',
           if (ranges['driving']?.current case final window?)
-            '本期 ${_precise(window.from)} — ${_precise(window.to)}',
+            '本期 ${_precise(window.from)}–${_precise(window.to)}',
           if (comparisonRange?.previous case final window?)
-            '对比 ${_precise(window.from)} — ${_precise(window.to)}',
+            '对比 ${_precise(window.from)}–${_precise(window.to)}',
           '统计时区 $_zone',
         ].join('\n'),
       ),
     ];
     return notes;
   }
+
+  /// CP02 费用记录覆盖：「9 次中 8 次有费用」。能力不全或没有充电时为空。
+  String? get _costCoverage {
+    final expanded = enhancedCharging;
+    if (expanded == null || expanded.totals.sessions == 0) return null;
+    return '${expanded.totals.sessions} 次中 '
+        '${expanded.totals.costKnownSessions} 次有费用';
+  }
+
+  /// 有费用的那些充电对应的充入电量（CP02：「对应充入 214 kWh」）。
+  String get _costCoverageEnergy =>
+      grouped(enhancedCharging?.totals.costKnownEnergyKwh ?? 0, decimals: 2);
 
   /// 补能分类与均价的原值（P01 把旧「补能账本」表格迁入这里，数值不丢）。
   String? get _chargingSplitNote {
@@ -1780,23 +1861,26 @@ class _OverviewPageState extends State<OverviewPage>
     final unknown = enhancedCharging?.totals.unknownEnergyKwh;
     String amount(num? value) =>
         value == null ? '—' : '${value.toStringAsFixed(2)} kWh';
+    // CP03：% 紧贴数值；CP02：这一段就是说明层里的「充电账目」。
     final share = totals.dcEnergyShare == null
         ? '—'
-        : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)} %';
+        : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%';
     final unitCost = coverageAvailable
         ? enhancedCharging?.totals.unitCostAdded.value
         : charging!.totals.costPerKwh;
     return [
-      'AC ${amount(totals.acEnergyKwh)}',
+      '充电账目：AC ${amount(totals.acEnergyKwh)}',
       'DC ${amount(totals.dcEnergyKwh)}',
       '未知 ${amount(unknown)}',
       'DC 占已知分类能量 $share',
-      if (unitCost != null) '充入均价 ${widget.currency.amountValue(unitCost)}/kWh',
+      if (unitCost != null)
+        '${terms.averagePrice} ${widget.currency.amountValue(unitCost)}/kWh',
     ].join('，');
   }
 
-  String _precise(DateTime? time) =>
-      time == null ? '未知' : copy.formatPrecise(workspace.calendar!.local(time));
+  String _precise(DateTime? time) => time == null
+      ? _unknown
+      : copy.formatPrecise(workspace.calendar!.local(time));
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -1862,22 +1946,31 @@ class _OverviewPageState extends State<OverviewPage>
                       InlineBanner(
                         message: error!,
                         tone: BannerTone.error,
-                        actionLabel: '重试',
+                        actionLabel: _retry,
                         onAction: () => loadSummary(force: true),
                       ),
                     _periodBar(),
+                    // R31：能力不支持是「保留旧能力」的状态条，落在期间行与
+                    // 焦点卡之间，与统计失败条同一层级，读者第一眼就能看到。
+                    if (capabilityError != null)
+                      InlineBanner(
+                        message: capabilityError!,
+                        tone: BannerTone.warning,
+                        actionLabel: _retry,
+                        onAction: () => loadCapabilities(force: true),
+                      ),
                     if (errors['driving'] != null)
                       InlineBanner(
                         message: errors['driving']!,
                         tone: BannerTone.error,
-                        actionLabel: '重试',
+                        actionLabel: _retry,
                         onAction: () => loadStats('driving', force: true),
                       ),
                     if (errors['charging'] != null)
                       InlineBanner(
                         message: errors['charging']!,
                         tone: BannerTone.error,
-                        actionLabel: '重试',
+                        actionLabel: _retry,
                         onAction: () => loadStats('charging', force: true),
                       ),
                     _focusCard(),
@@ -1931,6 +2024,7 @@ class MetaPage extends StatefulWidget {
 class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
   late final SiteSession? owner;
   dto.Meta? data;
+  CachedResult? result;
   String? error;
   @override
   void initState() {
@@ -1975,77 +2069,123 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
       final r = await widget.workspace.cache.get(s, 'meta', force: force);
       final d = dto.Meta.fromJson(r.body);
       if (mounted && widget.workspace.session.isCurrent(s)) {
-        setState(() => data = d);
+        setState(() {
+          data = d;
+          result = r;
+        });
       }
     } catch (_) {
-      if (mounted) setState(() => error = '服务元信息读取失败，请重试');
+      if (mounted) {
+        setState(() => error = messages.readFailedMessage('服务信息'));
+      }
     }
   }
 
+  /// P12 分组行：100% 时尾部当前值；大字时值移到第二行，避免冻结组件
+  /// MileafGroupRow 的尾部 Wrap 在 320/200% 下横向溢出（与设置页同一处理）。
+  Widget _serviceRow(String title, String value, {bool topLine = false}) {
+    final reflow = MileafLayout.largeText(context);
+    return MileafGroupRow(
+      title: title,
+      value: reflow ? null : value,
+      meta: reflow ? value : null,
+      topLine: topLine,
+    );
+  }
+
+  /// DF8 精确时间：入参是 UTC 瞬时，先按站点日历取墙钟。
+  String _precise(DateTime? time) {
+    if (time == null) return _unknown;
+    final calendar = widget.workspace.calendar;
+    return copy.formatPrecise(calendar?.local(time) ?? time);
+  }
+
+  /// R30.2 技术详情：原始字段与精确时间，可复制（R30.4）。
+  MileafDataNoteGroup _technical(dto.Meta d) => MileafDataNoteGroup(
+    category: DataNoteCategory.technical,
+    copyable: true,
+    note: [
+      'Mileaf Server ${d.version}',
+      'TeslaMate schema ${d.teslamateSchemaVersion?.toString() ?? _unknown}', // copy-guard: technical
+      '兼容范围 tested=${d.tested}', // copy-guard: technical
+      'Schema 检查 schema_ok=${d.schemaOk}', // copy-guard: technical
+      '源单位 ${d.sourceUnitOfLength}，数值单位 ${d.units}', // copy-guard: technical
+      if (result case final value?) '数据生成时间 ${_precise(value.checkedAt)}',
+      '位置数据时间 ${_precise(d.freshness.lastPositionAt)}',
+      '状态开始时间 ${_precise(d.freshness.lastStateAt)}',
+    ].join('\n'),
+  );
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: mileafPageBar(context, title: const Text('服务信息')),
-    body: SafeArea(
-      child: MileafContent(
-        child: ListView(
-          padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
-          children: [
-            if (data == null && error == null) const MileafProgressLine(),
-            if (error != null) ...[
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  error!,
-                  style: context.type.body.copyWith(
-                    color: context.colors.error,
-                  ),
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final type = context.type;
+    return Scaffold(
+      appBar: mileafPageBar(context, title: const Text('服务信息')),
+      body: SafeArea(
+        child: MileafContent(
+          child: ListView(
+            padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
+            children: [
+              if (data == null && error == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: MileafSpace.s16),
+                  child: MileafProgressLine(),
                 ),
-              ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () {
+              if (error != null) ...[
+                InlineBanner(
+                  message: error!,
+                  tone: BannerTone.error,
+                  actionLabel: _retry,
+                  onAction: () {
                     setState(() => error = null);
                     load();
                   },
-                  child: const Text('重试'),
                 ),
-              ),
-            ],
-            if (data case final d?) ...[
-              Text('Mileaf Server ${d.version}', style: context.type.title),
-              const SizedBox(height: MileafSpace.s8),
-              Text('当前连接的服务版本', style: context.type.label),
-              const SizedBox(height: MileafSpace.section),
-              MileafDataRow(
-                title: 'TeslaMate schema',
-                meta: d.teslamateSchemaVersion?.toString() ?? '未知',
-                topLine: true,
-                bottomLine: true,
-              ),
-              MileafDataRow(
-                title: '兼容范围',
-                meta: d.tested ? '此版本在服务端已测兼容范围' : '此版本未声明已测兼容；这不代表 schema 不兼容',
-                bottomLine: true,
-              ),
-              MileafDataRow(
-                title: 'Schema 检查',
-                meta: d.schemaOk ? 'schema 检查正常' : 'schema 检查未通过',
-                bottomLine: true,
-              ),
-              const SizedBox(height: MileafSpace.section),
-              Text('数据说明', style: context.type.label),
-              const SizedBox(height: MileafSpace.s8),
-              Text(
-                '数值使用公制；源单位不进行二次换算',
-                style: context.type.body.copyWith(
-                  color: context.colors.textMuted,
+                const SizedBox(height: MileafSpace.s16),
+              ],
+              if (data case final d?) ...[
+                // R25 二级页身份块：记录本身 title2 + 一行 subheadline 元信息。
+                Text(
+                  'Mileaf Server ${d.version}',
+                  style: type.title2.copyWith(color: colors.text),
                 ),
-              ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  '当前连接的服务版本',
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: MileafSpace.section),
+                // P12：服务信息为分组卡 + 技术详情，行内是「标题 + 尾部当前值」。
+                const MileafGroupHeader(title: '当前连接'),
+                const SizedBox(height: MileafSpace.s8),
+                MileafGroupCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _serviceRow('兼容范围', d.tested ? '在已测范围内' : '未声明已测兼容'),
+                      _serviceRow(
+                        'Schema 检查',
+                        d.schemaOk ? '正常' : '未通过',
+                        topLine: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                // CP08：原文「此版本未声明已测兼容；这不代表 schema 不兼容」的
+                // 意义不能删——可以缩句，但要保留「不代表不兼容」。
+                Text(
+                  '数值使用公制，源单位不做二次换算。未声明已测兼容不代表不兼容。',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: MileafSpace.section),
+                MileafDataNotes(groups: [_technical(d)]),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

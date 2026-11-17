@@ -100,7 +100,8 @@ void main() {
 
   testWidgets('A 概览空态不画全零图，最近记录给空态', (tester) async {
     await openOverview(tester, scenario: 'empty');
-    expect(find.text('还没有采样点'), findsOneWidget);
+    // AP08/R29：空期间只留一句人话（组件默认的「还没有采样点」由页面覆盖）。
+    expect(find.text('这段时间没有行程'), findsOneWidget);
     expect(find.textContaining('这段时间还没有行程'), findsOneWidget);
     expect(find.textContaining('还没有充电记录'), findsOneWidget);
     expect(tester.takeException(), isNull);

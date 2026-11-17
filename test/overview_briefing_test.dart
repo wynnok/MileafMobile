@@ -126,7 +126,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('AC 120.00 kWh'), findsOneWidget);
       expect(find.textContaining('未知 —'), findsOneWidget);
-      expect(find.textContaining('14.3 %'), findsOneWidget);
+      expect(find.textContaining('14.3%'), findsOneWidget, reason: 'CP03 % 紧贴');
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();
