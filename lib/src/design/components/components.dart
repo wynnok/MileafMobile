@@ -14,6 +14,7 @@ export 'hero.dart';
 export 'icon_button.dart';
 export 'map_frame.dart';
 export 'metric.dart';
+export 'module.dart';
 export 'nav_bar.dart';
 export 'navigation_material.dart';
 export 'section.dart';

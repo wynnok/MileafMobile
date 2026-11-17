@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../icons.dart';
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -155,16 +156,23 @@ class _MileafDisclosureState extends State<MileafDisclosure> {
             ),
           ),
         ),
-        AnimatedSize(
-          duration: MileafLayout.motion(context, MileafDurations.chevron),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: _expanded
-              ? Padding(
-                  padding: const EdgeInsets.only(top: MileafSpace.s8),
-                  child: widget.child,
-                )
-              : const SizedBox(width: double.infinity, height: 0),
+        AnimatedOpacity(
+          duration: MileafLayout.motion(context, MileafDurations.foldOpacity),
+          curve: MileafCurves.fade,
+          opacity: _expanded ? 1 : 0,
+          // M06：折叠内容高度 200ms、透明度 120ms；阅读锚点不跳（顶部不动，
+          // 内容向下长出，收起时原地收敛）。
+          child: AnimatedSize(
+            duration: MileafLayout.motion(context, MileafDurations.foldHeight),
+            curve: MileafCurves.fold,
+            alignment: Alignment.topCenter,
+            child: _expanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: MileafSpace.s8),
+                    child: widget.child,
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
         ),
       ],
     );

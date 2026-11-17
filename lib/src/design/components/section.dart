@@ -5,7 +5,7 @@ import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 
-/// Section title with an optional range/unit label and a text action.
+/// 区块标题（R22 `title2`）+ 可选区间标签（`subheadline`）与一个文字动作。
 ///
 /// No underline decoration; the gap to the content is owned by the caller.
 class SectionHeader extends StatelessWidget {
@@ -29,15 +29,15 @@ class SectionHeader extends StatelessWidget {
     final colors = context.colors;
     final type = context.type;
     final titleColor = onHero ? colors.heroText : colors.text;
-    final rangeColor = onHero ? colors.heroFaint : colors.textFaint;
+    final rangeColor = onHero ? colors.heroMuted : colors.textSecondary;
     final titleWidget = Semantics(
       header: true,
       label: semanticLabel ?? title,
-      child: Text(title, style: type.title.copyWith(color: titleColor)),
+      child: Text(title, style: type.title2.copyWith(color: titleColor)),
     );
     final rangeWidget = range == null
         ? null
-        : Text(range!, style: type.label.copyWith(color: rangeColor));
+        : Text(range!, style: type.subheadline.copyWith(color: rangeColor));
     if (MileafLayout.largeText(context)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
