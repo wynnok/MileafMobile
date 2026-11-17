@@ -45,15 +45,17 @@
 | AP04 | （已删）…/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP05 | （已删）…/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP07 | （已删）…/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已合入 FP3，工作树已删，分支保留 |
-| AP08 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap08 | codex/apple-polish-ap08 | FP3 | 待创建（W4） |
-| AP09 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap09 | codex/apple-polish-ap09 | FP3 | 待创建（W4） |
-| AP10 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap10 | codex/apple-polish-ap10 | FP3 | 待创建（W4） |
-| AP11 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap11 | codex/apple-polish-ap11 | FP3 | 待创建（W4） |
-| AP12a | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 待创建（W4） |
-| AP12b | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 待创建（W4） |
-| AP13 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 待创建（W4） |
+| AP08 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap08 | codex/apple-polish-ap08 | FP3 | 已创建（W4），依赖已备 |
+| AP09 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap09 | codex/apple-polish-ap09 | FP3 | 已创建（W4），依赖已备 |
+| AP10 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap10 | codex/apple-polish-ap10 | FP3 | 已创建（W4），依赖已备 |
+| AP11 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap11 | codex/apple-polish-ap11 | FP3 | 已创建（W4），依赖已备 |
+| AP12a | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 已创建（W4），依赖已备 |
+| AP12b | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已创建（W4），依赖已备 |
+| AP13 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已创建（W4），依赖已备 |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
+
+W4 工作树：七票均于 2026-11-17 从 `8ea7e29`（FP3 登记提交）创建，`.cache/pub` 用 `cp -cR` 克隆（各 640M，APFS 共享块），`pub get --offline` 七票全部退出 0，工作树内 `git status` 均为空；ap08 实跑 `analyze` 无诊断（SDK 走 `MILEAF_FLUTTER_SDK=<主仓库>/.tooling/flutter` 前缀，与 §3.1 一致）。
 
 ## W1 合入记录（FP1 = c18f2fc）
 
