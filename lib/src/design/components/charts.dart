@@ -68,6 +68,11 @@ abstract final class MileafChartGrammar {
 /// 轴刻度的时间粒度（CP04 DF9）。
 enum _AxisGrain { time, day, week, month }
 
+/// CP04 DF9 的分桶边界：DF9 规定「自定义 32–180 天按周分桶」，所以约 7 天
+/// （6–8 天容错）走周级，≥25 天走月级，其余按日。
+const int _weekGrainHours = 7 * 24;
+const int _monthGrainHours = 25 * 24;
+
 _AxisGrain _axisGrain(List<DateTime> times) {
   if (times.length < 2) return _AxisGrain.day;
   final first = times.first;
@@ -83,8 +88,10 @@ _AxisGrain _axisGrain(List<DateTime> times) {
       times[i].difference(times[i - 1]).inHours.abs(),
   ]..sort();
   final median = gaps[gaps.length ~/ 2];
-  if (median >= 25 * 24) return _AxisGrain.month;
-  if (median >= 6 * 24 && median <= 8 * 24) return _AxisGrain.week;
+  if (median >= _monthGrainHours) return _AxisGrain.month;
+  if (median >= _weekGrainHours - 24 && median <= _weekGrainHours + 24) {
+    return _AxisGrain.week;
+  }
   return _AxisGrain.day;
 }
 
@@ -189,6 +196,7 @@ class TimeSeriesChart extends StatefulWidget {
     this.showSteps = true,
     this.readoutDate,
     this.markerBackdrop,
+    this.readoutMinHeight,
   });
 
   final String title;
@@ -239,6 +247,11 @@ class TimeSeriesChart extends StatefulWidget {
 
   /// 选中点的 2 像素描边色：卡片底色（默认 surface，hero 内用 accentHero）。
   final Color? markerBackdrop;
+
+  /// readoutBuilder 版式的最小高度（R29「读数头最小高度取各状态最大值」）。
+  /// builder 由页面排版，组件量不到它内部的行；页面按自己的最长状态传这个值，
+  /// 拖动选点时绘图区就不会被顶动。
+  final double? readoutMinHeight;
 
   @override
   State<TimeSeriesChart> createState() => _TimeSeriesChartState();
@@ -395,6 +408,16 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
     return longest;
   }
 
+  /// 读数头日期行的预留串：跨年或窄宽时可能换行，同样要预留。
+  String? _longestDate() {
+    String? longest;
+    for (var i = 0; i < widget.times.length; i++) {
+      final text = _readoutDateText(i);
+      if (longest == null || text.length > longest.length) longest = text;
+    }
+    return longest;
+  }
+
   /// 读数头第三行的预留句：取全序列里最长的一条，切换选点不跳高度。
   String? _longestContext() {
     if (_reference == null) return null;
@@ -472,7 +495,12 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
     final actions = _actions(colors, type);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [...chrome, body, ?actions],
+      children: [
+        ...chrome,
+        body,
+        if (actions != null) const SizedBox(height: MileafSpace.s8),
+        ?actions,
+      ],
     );
   }
 
@@ -534,13 +562,18 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Semantics(
-              key: MileafChartGrammar.readoutLiveKey,
-              container: true,
-              liveRegion: true,
-              label: sentence,
-              excludeSemantics: true,
-              child: builder(selected),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: widget.readoutMinHeight ?? 0,
+              ),
+              child: Semantics(
+                key: MileafChartGrammar.readoutLiveKey,
+                container: true,
+                liveRegion: true,
+                label: sentence,
+                excludeSemantics: true,
+                child: builder(selected),
+              ),
             ),
           ),
           if (widget.showSteps) ..._steps(selected, colors),
@@ -552,7 +585,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
       date: _readoutDateText(selected),
       value: _valueText(_valueAt(selected)),
       reserveValue: _longestValue(),
-      context: _contextAt(selected),
+      reserveDate: _longestDate(),
+      contextLine: _contextAt(selected),
       reserveContext: _longestContext(),
       dateStyle: dateStyle,
       valueStyle: valueStyle,
@@ -560,7 +594,6 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
       colors: colors,
       type: type,
       compact: widget.compactReadout,
-      onHero: widget.onHero,
       onPrevious: widget.showSteps && selected > 0
           ? () => _select(selected - 1)
           : null,
@@ -812,7 +845,8 @@ class MileafChartReadout extends StatelessWidget {
     required this.date,
     required this.value,
     this.reserveValue,
-    this.context,
+    this.reserveDate,
+    this.contextLine,
     this.reserveContext,
     required this.dateStyle,
     required this.valueStyle,
@@ -820,7 +854,6 @@ class MileafChartReadout extends StatelessWidget {
     required this.colors,
     required this.type,
     this.compact = false,
-    this.onHero = false,
     this.onPrevious,
     this.onNext,
     this.previousLabel = MileafChartGrammar.previousStep,
@@ -834,7 +867,8 @@ class MileafChartReadout extends StatelessWidget {
   final String date;
   final String value;
   final String? reserveValue;
-  final String? context;
+  final String? reserveDate;
+  final String? contextLine;
   final String? reserveContext;
   final TextStyle dateStyle;
   final TextStyle valueStyle;
@@ -842,7 +876,6 @@ class MileafChartReadout extends StatelessWidget {
   final MileafColors colors;
   final MileafTextStyles type;
   final bool compact;
-  final bool onHero;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final String previousLabel;
@@ -877,18 +910,24 @@ class MileafChartReadout extends StatelessWidget {
           constraints.maxWidth -
               (hasSteps ? 2 * MileafChartGrammar.stepHit : 0),
         );
-        final reservedHeight =
-            _reserveLines(
-              this.context,
-              reserveContext,
-              contextStyle,
-              width,
-              scaler,
-            ) *
-            _lineHeight(contextStyle, scaler);
+        // 没有参照系列时第三行根本不存在：不留空行，别把首屏预算推下去。
+        final hasContextRow = contextLine != null || reserveContext != null;
+        final reservedHeight = hasContextRow
+            ? _reserveLines(
+                    contextLine,
+                    reserveContext,
+                    contextStyle,
+                    width,
+                    scaler,
+                  ) *
+                  _lineHeight(contextStyle, scaler)
+            : 0.0;
         final valueHeight =
             _reserveLines(value, reserveValue, valueStyle, width, scaler) *
             _lineHeight(valueStyle, scaler);
+        final dateHeight =
+            _reserveLines(date, reserveDate, dateStyle, width, scaler) *
+            _lineHeight(dateStyle, scaler);
         final live = Semantics(
           key: MileafChartGrammar.readoutLiveKey,
           container: true,
@@ -910,17 +949,18 @@ class MileafChartReadout extends StatelessWidget {
                         fontWeight: MileafType.weightSemiBold,
                       ),
                     ),
-                    if (onActivateSelected != null)
-                      TextButton(
-                        onPressed: onActivateSelected,
-                        child: Text('看当天', semanticsLabel: activationLabel),
-                      ),
                   ],
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(date, style: dateStyle),
+                    SizedBox(
+                      height: dateHeight,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(date, style: dateStyle),
+                      ),
+                    ),
                     SizedBox(
                       height: valueHeight,
                       child: Align(
@@ -928,15 +968,16 @@ class MileafChartReadout extends StatelessWidget {
                         child: Text(value, style: valueStyle),
                       ),
                     ),
-                    SizedBox(
-                      height: reservedHeight,
-                      child: this.context == null
-                          ? null
-                          : Align(
-                              alignment: Alignment.topLeft,
-                              child: Text(this.context!, style: contextStyle),
-                            ),
-                    ),
+                    if (hasContextRow)
+                      SizedBox(
+                        height: reservedHeight,
+                        child: contextLine == null
+                            ? null
+                            : Align(
+                                alignment: Alignment.topLeft,
+                                child: Text(contextLine!, style: contextStyle),
+                              ),
+                      ),
                   ],
                 ),
         );
@@ -951,6 +992,15 @@ class MileafChartReadout extends StatelessWidget {
                 child: live,
               ),
             ),
+            // R29：下钻文字按钮在 live region 之外（读屏要能单独触发），
+            // 位置在行尾、步进之前。
+            if (compact && onActivateSelected != null)
+              TextButton(
+                onPressed: onActivateSelected,
+                // CP06 建议写成「查看当天」；W2 期间保持页面已在用的旧串，
+                // 由页面包在自己的下钻行统一改词（见 AP05.md §7.5）。
+                child: Text('看当天', semanticsLabel: activationLabel),
+              ),
             if (hasSteps) ...steps,
           ],
         );
@@ -988,7 +1038,8 @@ class MileafChartReadout extends StatelessWidget {
 
   double _lineHeight(TextStyle style, TextScaler scaler) {
     final painter = TextPainter(
-      text: TextSpan(text: '国', style: style),
+      // 哨兵用拉丁字母：只为量一行的高度，不属于文案账目。
+      text: TextSpan(text: 'M', style: style),
       textDirection: TextDirection.ltr,
       textScaler: scaler,
       maxLines: 1,
@@ -1222,8 +1273,9 @@ class _LegendMark extends StatelessWidget {
           : DecoratedBox(
               decoration: BoxDecoration(
                 color: color,
+                // 与柱同一口径：min(4, 宽/2)；样本宽 12，所以是 4。
                 borderRadius: BorderRadius.circular(
-                  MileafChartGrammar.barEndRadius / 2,
+                  math.min(MileafChartGrammar.barEndRadius, _width / 2),
                 ),
               ),
             ),

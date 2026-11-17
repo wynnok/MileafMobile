@@ -71,10 +71,12 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.ensureVisible(find.text('后一个采样'));
+      // R29：步进只有读数头尾部那一对圆钮（旧「后一个采样」文字按钮已删）。
+      final next = find.bySemanticsLabel(MileafChartGrammar.nextStep);
+      await tester.ensureVisible(next);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('后一个采样').hitTestable());
-      await tester.pump();
+      await tester.tap(next.hitTestable());
+      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byType(MileafChartReadout),
@@ -82,10 +84,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.ensureVisible(find.text('后一个采样'));
+      await tester.tap(next.hitTestable());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('后一个采样').hitTestable());
-      await tester.pump();
       expect(
         find.descendant(
           of: find.byType(MileafChartReadout),

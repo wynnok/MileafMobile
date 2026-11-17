@@ -91,11 +91,26 @@ class BatteryArc extends StatelessWidget {
         children: [
           arc,
           if (separate)
-            Text(
-              level == null ? '—' : '${level!.toStringAsFixed(0)} %',
-              style: type.metricMd.copyWith(
-                color: onHero ? colors.heroText : colors.text,
-              ),
+            // CP03：百分号紧贴数值；数值单独成 Text，读屏与测试都以它为止。
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  level == null ? '—' : level!.toStringAsFixed(0),
+                  style: type.metricMd.copyWith(
+                    color: onHero ? colors.heroText : colors.text,
+                  ),
+                ),
+                if (level != null)
+                  Text(
+                    '%',
+                    style: type.subheadline.copyWith(
+                      color: onHero ? colors.heroMuted : colors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           if (showLabel && !large) ...[
             const SizedBox(height: MileafSpace.s4),
@@ -132,8 +147,10 @@ class _ArcValue extends StatelessWidget {
       height: MileafBatteryMetrics.valueHeight / MileafBatteryMetrics.valueSize,
       color: valueColor,
     );
+    // 回落到小一号的数值（0.85×），否则 smallStyle 与 valueStyle 同宽，
+    // 这条回退分支永远走不到。
     final smallStyle = valueStyle.copyWith(
-      fontSize: MileafBatteryMetrics.valueSize,
+      fontSize: MileafBatteryMetrics.valueSize * .85,
       height: 1.2,
     );
     final unitStyle = type.subheadline.copyWith(color: unitColor);
@@ -146,7 +163,7 @@ class _ArcValue extends StatelessWidget {
         text: TextSpan(
           text: valueText,
           style: style,
-          children: [if (unit) TextSpan(text: ' %', style: unitStyle)],
+          children: [if (unit) TextSpan(text: '%', style: unitStyle)],
         ),
         textDirection: TextDirection.ltr,
         textScaler: scaler,
@@ -188,13 +205,16 @@ class _ArcValue extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text.rich(
-          TextSpan(
-            text: valueText,
-            style: style,
-            children: [if (withUnit) TextSpan(text: ' %', style: unitStyle)],
-          ),
-          textAlign: TextAlign.center,
+        // CP03：百分号紧贴数值（68%）。数值与单位分成两个 Text，
+        // 让 battery_finder 仍以数值本身为键。
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(valueText, style: style),
+            if (withUnit) Text('%', style: unitStyle),
+          ],
         ),
         if (unitBelow)
           Text('%', textAlign: TextAlign.center, style: wrappedUnitStyle),

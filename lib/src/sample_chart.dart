@@ -87,24 +87,6 @@ class SampleChart extends StatelessWidget {
         plotObserverKey == null
             ? chart
             : KeyedSubtree(key: plotObserverKey, child: chart),
-        if (points.isNotEmpty && onSelected != null)
-          Wrap(
-            alignment: WrapAlignment.end,
-            children: [
-              TextButton(
-                onPressed: selected <= 0
-                    ? null
-                    : () => onSelected!(selected - 1),
-                child: const Text('前一个采样'),
-              ),
-              TextButton(
-                onPressed: selected >= points.length - 1
-                    ? null
-                    : () => onSelected!(selected + 1),
-                child: const Text('后一个采样'),
-              ),
-            ],
-          ),
         if (points.length == 1)
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),

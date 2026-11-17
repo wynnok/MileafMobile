@@ -821,7 +821,11 @@ void main() {
     testWidgets('圆心只有数值（含单位），标签移到环外', (tester) async {
       await pumpChart(tester, const BatteryArc(level: 82));
       final value = tester.widget<Text>(find.text('82'));
-      expect(value.textSpan?.style?.fontSize, MileafBatteryMetrics.valueSize);
+      expect(
+        (value.style?.fontSize ?? 0),
+        MileafBatteryMetrics.valueSize,
+        reason: '环内是数值本身（CP03：% 紧贴）',
+      );
       expect(find.text('%'), findsOneWidget, reason: '单位仍与数值同处圆心');
       final label = tester.getRect(find.text('电量'));
       final arc = tester.getRect(
@@ -840,10 +844,17 @@ void main() {
       expect(arc.width, MileafBatteryMetrics.size);
     });
 
-    testWidgets('大字下标签不再占环内一行', (tester) async {
+    testWidgets('大字下标签不再占环内一行，数值仍可见且圆心不溢出', (tester) async {
       await pumpChart(tester, const BatteryArc(level: 68), textScale: 2);
-      expect(tester.takeException(), isNull);
-      expect(find.text('电量'), findsNothing);
+      expect(tester.takeException(), isNull, reason: 'D8：200% 下圆心不得溢出');
+      expect(find.text('电量'), findsNothing, reason: '大字下标签不出');
+      expect(find.text('68'), findsOneWidget, reason: '数值仍在');
+      // 单位只有「与数值同行」或「落到下一行」两种去处，且至多一个。
+      expect(
+        find.text('%').evaluate().length,
+        lessThanOrEqualTo(1),
+        reason: '单位至多一处（同行或下一行）',
+      );
     });
   });
 
