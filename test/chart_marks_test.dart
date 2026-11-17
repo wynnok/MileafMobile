@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/components.dart';
@@ -48,6 +50,44 @@ Future<PixelProbe> pumpChart(
   );
   await tester.pumpAndSettle();
   return capturePixels(tester, find.byKey(key), pixelRatio: probeScale);
+}
+
+/// 一列一列地量某个颜色的竖条：单次扫描后按 x 归并。
+///
+/// 每列取「最长的连续竖段」而不是上下界差：文字列在竖直方向是断开的，
+/// 只有真正贯通绘图区的竖线才会得到很高的值。
+List<({int from, int to, int height})> colorColumnRuns(
+  PixelProbe probe,
+  Color color, {
+  int tolerance = 2,
+}) {
+  final columns = <int, List<int>>{};
+  for (final pixel in probe.find(color, tolerance: tolerance)) {
+    (columns[pixel.dx.toInt()] ??= <int>[]).add(pixel.dy.toInt());
+  }
+  int longestRun(List<int> values) {
+    values.sort();
+    var best = 1;
+    var current = 1;
+    for (var i = 1; i < values.length; i++) {
+      current = values[i] == values[i - 1] + 1 ? current + 1 : 1;
+      if (current > best) best = current;
+    }
+    return best;
+  }
+
+  final xs = columns.keys.toList()..sort();
+  final runs = <({int from, int to, int height})>[];
+  for (final x in xs) {
+    final height = longestRun(columns[x]!);
+    if (runs.isNotEmpty && x == runs.last.to + 1) {
+      final last = runs.removeLast();
+      runs.add((from: last.from, to: x, height: math.max(last.height, height)));
+    } else {
+      runs.add((from: x, to: x, height: height));
+    }
+  }
+  return runs;
 }
 
 /// Physical pixels per logical pixel: the same 2x the render pipeline and a
@@ -149,13 +189,20 @@ void main() {
           final faded = compositeOver(colors.accent, .3, background);
           for (final bar in bars) {
             final center = (bar.from + bar.to) ~/ 2;
+            // 只量柱身内部：圆角与抗锯齿的边缘不算「淡化柱」。
+            final body = probe.columnBounds(colors.accent, bar.from, bar.to)!;
+            final inset = (bar.to - bar.from) / 2 - 4;
             expect(
               probe.count(
                 faded,
                 tolerance: 2,
-                where: (x, _) => (x - center).abs() <= 2,
+                where: (x, y) =>
+                    (x - center).abs() <= inset &&
+                    y > body.top + 3 &&
+                    y < body.bottom - 3,
               ),
-              0,
+              // 真正的 30% 淡化柱有上百像素；个位数来自圆角的抗锯齿。
+              lessThan(20),
               reason:
                   '${brightness.name} $surfaceName: 仍有 30% 淡化柱'
                   '（合成色 $faded）',
@@ -261,8 +308,10 @@ void main() {
         )!;
         expect(
           zeroBounds.height / probeScale,
-          lessThanOrEqualTo(4),
-          reason: '${brightness.name}: 零值只能是一个点，不能被画成非零柱',
+          lessThanOrEqualTo(10),
+          reason:
+              '${brightness.name}: 零值只能是一个点（含 R29 半径 4 的选中点），'
+              '不能被画成非零柱',
         );
         final all = probe.bounds(colors.accent)!;
         expect(
@@ -271,12 +320,20 @@ void main() {
           reason: '${brightness.name}: 零值标记应贴在零基线上',
         );
 
-        // The zero is selected: the halo marks it without inventing volume.
-        final halo = compositeOver(colors.accent, .2, colors.canvas);
+        // R29：选中是 1px 竖线 + 半径 4 的 accent 点，光晕取消。
+        // 旧的 8px 光晕有上百像素；个位数的抗锯齿像素不算光晕。
         expect(
-          probe.bounds(halo, tolerance: 2),
-          isNotNull,
-          reason: '${brightness.name}: 选中的零仍需可见的选中光晕',
+          probe.count(
+            compositeOver(colors.accent, .2, colors.canvas),
+            tolerance: 2,
+          ),
+          lessThan(10),
+          reason: '${brightness.name}: 选中标记不再有光晕',
+        );
+        expect(
+          probe.columns(colors.textSecondary, tolerance: 2),
+          isNotEmpty,
+          reason: '${brightness.name}: 选中的零由竖线指认',
         );
 
         expect(find.text('0 km'), findsOneWidget);
@@ -285,111 +342,135 @@ void main() {
     }
   });
 
-  group('选中标记', () {
-    /// Bounds of the selection halo near one mark; the accent antialiases to
-    /// the same composite, so the window keeps neighbouring marks out.
-    Rect? haloNear(PixelProbe probe, Color halo, int centerX) => probe.bounds(
-      halo,
-      tolerance: 2,
-      where: (x, _) => (x - centerX).abs() <= 12 * probeScale,
-    );
+  group('选中标记（R29）', () {
+    /// 选中点是一条 1px textSecondary 竖线加一个半径 4 的 accent 点；
+    /// 旧的 8px 光晕已取消。
+    /// 选中竖线：贯通绘图区、且只有 1 逻辑像素宽的那一条 textSecondary。
+    Rect ruleOf(PixelProbe probe, Color color) {
+      final all = colorColumnRuns(probe, color, tolerance: 2);
+      final runs = all
+          .where(
+            (run) =>
+                // 选中的点把竖线切成两段，每段仍有 40+ 逻辑像素高；
+                // 文字列只有十几个。
+                run.height / probeScale > 40 &&
+                (run.to - run.from + 1) / probeScale <= 4,
+          )
+          .toList();
+      expect(runs, hasLength(1), reason: '只画一条 1px 选中竖线；全部 $all');
+      return probe.columnBounds(color, runs.single.from, runs.single.to)!;
+    }
 
     for (final brightness in Brightness.values) {
-      testWidgets('${brightness.name}：选中柱有端点与光晕，不只靠颜色', (tester) async {
+      testWidgets('${brightness.name}：1px 竖线加半径 4 的点，不再有光晕', (tester) async {
         final colors = _colors(brightness);
-        final halo = compositeOver(colors.accent, .2, colors.canvas);
+        // 平直折线：竖线以外只有一条 2px 的线与一个 8px 的点。
         final probe = await pumpChart(
           tester,
           brightness: brightness,
-          chart: _bars(const [20, 20, 20, 20, 20], selectedIndex: 2),
+          // 关掉两条轴：图里只剩数据线、选中竖线与选中点。
+          chart: TimeSeriesChart(
+            title: '每日里程',
+            unit: 'km',
+            times: [for (var i = 0; i < 5; i++) DateTime(2026, 10, 1 + i)],
+            series: const [
+              ChartSeries(label: '每日里程', values: [20, 20, 20, 20, 20]),
+            ],
+            semanticsLabel: '每日里程图表',
+            selectedIndex: 2,
+            height: 120,
+            showYAxis: false,
+            showXAxis: false,
+            readout: (index) => '20 km',
+          ),
         );
-
-        final bars = probe.columns(colors.accent);
-        expect(bars, hasLength(5));
-        Rect? markIn(({int from, int to}) bar) => probe.bounds(
+        final rule = ruleOf(probe, colors.textSecondary);
+        expect(
+          (rule.width + 1) / probeScale,
+          lessThanOrEqualTo(2),
+          reason: '${brightness.name}: 竖线 1 逻辑像素',
+        );
+        expect(
+          rule.height / probeScale,
+          greaterThan(80),
+          reason: '${brightness.name}: 竖线贯穿绘图区',
+        );
+        final dot = probe.bounds(
           colors.accent,
-          where: (x, _) => x >= bar.from && x <= bar.to,
-        );
-        final selectedMark = markIn(bars[2])!;
-        final plainMark = markIn(bars[1])!;
+          tolerance: 2,
+          where: (x, _) => (x - rule.center.dx).abs() <= 10 * probeScale,
+        )!;
         expect(
-          (plainMark.top - selectedMark.top) / probeScale,
-          greaterThanOrEqualTo(3),
-          reason: '${brightness.name}: 等高的柱里，选中那根应有端点这类几何标记',
-        );
-
-        final haloBounds = haloNear(
-          probe,
-          halo,
-          (bars[2].from + bars[2].to) ~/ 2,
-        );
-        expect(haloBounds, isNotNull, reason: '${brightness.name}: 选中光晕应被绘制');
-        expect(
-          haloBounds!.width / probeScale,
-          greaterThanOrEqualTo(14),
-          reason: '${brightness.name}: 光晕是既有 8px 尺寸，横向应完整可见',
+          (dot.height + 1) / probeScale,
+          closeTo(8, 2),
+          reason: '${brightness.name}: 半径 4 的 accent 点',
         );
         expect(
-          (selectedMark.top - haloBounds.top) / probeScale,
-          greaterThanOrEqualTo(3),
-          reason: '${brightness.name}: 光晕上方不能被裁掉',
+          probe.count(
+            compositeOver(colors.accent, .2, colors.canvas),
+            tolerance: 2,
+          ),
+          lessThan(10),
+          reason: '${brightness.name}: 光晕取消',
         );
       });
     }
 
     testWidgets('light：极值、负值、单点与首尾选中都不被绘图区裁切', (tester) async {
       final colors = _colors(Brightness.light);
-      final halo = compositeOver(colors.accent, .2, colors.canvas);
 
-      // 100 km rounds exactly onto the top tick, so the stem endpoint sits on
-      // the plot edge; the halo may not be trimmed there.
+      Widget bare(List<num?> values, {required ChartSeriesStyle style}) =>
+          TimeSeriesChart(
+            title: '每日里程',
+            unit: 'km',
+            times: [
+              for (var i = 0; i < values.length; i++) DateTime(2026, 10, 1 + i),
+            ],
+            series: [ChartSeries(label: '里程', values: values, style: style)],
+            semanticsLabel: '每日里程图表',
+            selectedIndex: 0,
+            height: 120,
+            showYAxis: false,
+            showXAxis: false,
+            readout: (index) => '读值 i$index',
+          );
+
+      // 100 km 顶到最高刻度：端点贴在绘图区上沿，不能被裁。
       final peak = await pumpChart(
         tester,
         brightness: Brightness.light,
-        chart: _stems(const [100, 40, 60], selectedIndex: 0),
+        chart: bare(const [100, 40, 60], style: ChartSeriesStyle.stem),
       );
-      final peakMark = peak.bounds(colors.accent)!;
-      final peakHalo = peak.bounds(
-        halo,
-        tolerance: 2,
-        where: (x, y) => x <= 12 * probeScale && y < peakMark.top,
-      )!;
-      expect(peakHalo.top, greaterThan(0));
       expect(
-        (peakMark.top - peakHalo.top) / probeScale,
-        greaterThanOrEqualTo(3),
-        reason: '最大值处的选中光晕被裁切',
+        peak.bounds(colors.accent)!.top,
+        greaterThan(0),
+        reason: '最大值处的标记被裁切',
       );
 
-      // A negative bar hangs below the zero baseline: its halo must survive too.
+      // 负值柱挂在零基线之下：标记仍完整。
       final negative = await pumpChart(
         tester,
         brightness: Brightness.light,
-        chart: _bars(const [-20, 30], selectedIndex: 0),
+        chart: bare(const [-20, 30], style: ChartSeriesStyle.bars),
       );
-      final negativeMark = negative.bounds(colors.accent)!;
-      final negativeHalo = negative.bounds(halo, tolerance: 2)!;
-      expect(negativeHalo.bottom, lessThan(negative.height - 1));
       expect(
-        (negativeHalo.bottom - negativeMark.bottom) / probeScale,
-        greaterThanOrEqualTo(3),
-        reason: '负值处的选中光晕被裁切',
+        negative.bounds(colors.accent)!.bottom,
+        lessThan(negative.height - 1),
       );
 
-      // A single point is centred; the halo must be whole in both axes.
+      // 单点居中：竖线落在绘图区中线上。
       final single = await pumpChart(
         tester,
         brightness: Brightness.light,
-        chart: _bars(const [10], selectedIndex: 0),
+        chart: bare(const [10], style: ChartSeriesStyle.bars),
       );
-      final singleMark = single.bounds(colors.accent)!;
-      final singleHalo = single.bounds(halo, tolerance: 2)!;
-      expect(singleHalo.width / probeScale, greaterThanOrEqualTo(14));
+      final singleRule = ruleOf(single, colors.textSecondary);
+      expect(singleRule.top, greaterThan(0), reason: '单点的竖线不被上沿裁切');
       expect(
-        (singleMark.top - singleHalo.top) / probeScale,
-        greaterThanOrEqualTo(3),
+        singleRule.bottom,
+        lessThan(single.height - 1),
+        reason: '单点的竖线不被下沿裁切',
       );
-      expect(singleHalo.bottom, lessThan(single.height - 1));
     });
   });
 
@@ -470,10 +551,9 @@ void main() {
 
   group('选中零值', () {
     for (final brightness in Brightness.values) {
-      testWidgets('${brightness.name}：竖线里被选中的真实零用零值点，不用当前端点', (tester) async {
+      testWidgets('${brightness.name}：竖线里被选中的真实零只用基线点，不冒充柱体积', (tester) async {
         final colors = _colors(brightness);
-        final halo = compositeOver(colors.accent, .2, colors.canvas);
-        // R06: zero has a baseline mark, while missing retains an empty slot.
+        // R06/R29: zero keeps a baseline mark, missing retains an empty slot.
         final probe = await pumpChart(
           tester,
           brightness: brightness,
@@ -499,15 +579,26 @@ void main() {
         );
         expect(
           short.single.width / probeScale,
-          lessThanOrEqualTo(4),
+          lessThanOrEqualTo(10),
           reason:
-              '${brightness.name}: 选中的零只能用零值点那样的小标记，'
-              '不能用当前端点（会把零读成有体积）',
+              '${brightness.name}: 选中的零只用半径 4 的点，'
+              '不能用柱体积（会把零读成有体积）',
         );
         expect(
-          probe.bounds(halo, tolerance: 2),
-          isNotNull,
-          reason: '${brightness.name}: 选中的零仍要有光晕',
+          short.single.height / probeScale,
+          lessThanOrEqualTo(10),
+          reason: '${brightness.name}: 零没有高度',
+        );
+        final baseline = tall.map((m) => m.bottom).reduce(math.max);
+        expect(
+          (short.single.center.dy - baseline).abs() <= 6 * probeScale,
+          isTrue,
+          reason: '${brightness.name}: 零的标记落在零基线上',
+        );
+        expect(
+          probe.columns(colors.textSecondary, tolerance: 2),
+          isNotEmpty,
+          reason: '${brightness.name}: 零也由选中竖线指认',
         );
       });
     }

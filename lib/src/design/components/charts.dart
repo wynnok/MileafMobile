@@ -3,7 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../copy/dates.dart' as copy_dates;
+import '../../copy/units.dart' as copy_units;
+import '../icons.dart';
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -21,6 +25,114 @@ class ChartSeries {
   final List<num?> values;
   final ChartSeriesStyle style;
 }
+
+/// 读数头数值的角色（R21.3 / R29）：根页 metricMd，详情与专题 metricSm。
+enum ChartReadoutScale { root, detail }
+
+/// R29 图表语法的几何与语义常量（AP05）。绘制与测试共用同一组数值。
+abstract final class MileafChartGrammar {
+  const MileafChartGrammar._();
+
+  /// 柱值端圆角上限：实际取 min(4, 柱宽/2)。
+  static const barEndRadius = 4.0;
+
+  /// 选中竖线：1 逻辑像素、textSecondary。
+  static const selectionLine = 1.0;
+
+  /// 选中的 accent 点半径 4，外加 2 像素卡片底色描边（R29）。
+  static const selectionDot = 4.0;
+  static const selectionRing = 2.0;
+
+  /// 条形图参照刻度：宽 = 柱宽 + 4，线宽 1.5，reference 色。
+  static const referenceTickBleed = 4.0;
+
+  /// 步进圆钮：视觉 36、命中 44、图标 20（R24/R27）。
+  static const stepVisual = 36.0;
+  static const stepHit = 44.0;
+  static const stepIcon = 20.0;
+
+  /// CP06 步进语义名称。
+  static const previousStep = '上一个数据点';
+  static const nextStep = '下一个数据点';
+
+  /// CP11 图表语义提示（替代可见的「点按…读值」这类提示）。
+  static const hint = '拖动或轻点查看每天的值；可用调整手势切换日期';
+
+  /// 读数头朗读节点（live region）：可见读数与朗读句的唯一接缝。
+  static const readoutLiveKey = ValueKey('chart-readout-live');
+
+  /// M09 身份淡入的节点，测试与调试共用。
+  static const identityFadeKey = ValueKey('chart-identity-fade');
+}
+
+/// 轴刻度的时间粒度（CP04 DF9）。
+enum _AxisGrain { time, day, week, month }
+
+/// CP04 DF9 的分桶边界：DF9 规定「自定义 32–180 天按周分桶」，所以约 7 天
+/// （6–8 天容错）走周级，≥25 天走月级，其余按日。
+const int _weekGrainHours = 7 * 24;
+const int _monthGrainHours = 25 * 24;
+
+_AxisGrain _axisGrain(List<DateTime> times) {
+  if (times.length < 2) return _AxisGrain.day;
+  final first = times.first;
+  final sameDay = times.every(
+    (time) =>
+        time.year == first.year &&
+        time.month == first.month &&
+        time.day == first.day,
+  );
+  if (sameDay) return _AxisGrain.time;
+  final gaps = <int>[
+    for (var i = 1; i < times.length; i++)
+      times[i].difference(times[i - 1]).inHours.abs(),
+  ]..sort();
+  final median = gaps[gaps.length ~/ 2];
+  if (median >= _monthGrainHours) return _AxisGrain.month;
+  if (median >= _weekGrainHours - 24 && median <= _weekGrainHours + 24) {
+    return _AxisGrain.week;
+  }
+  return _AxisGrain.day;
+}
+
+/// R29 + CP04 DF9 的轴刻度文字。
+///
+/// 刻度集是绘图区实际画出来的那几个索引，所以「每月第一个刻度写 月日」
+/// 只按刻度序列判断，不受被跳过的中间点影响。日级的时间格式可由 tickLabel
+/// 覆盖（页面已按站点日历本地化时用它，否则用共享格式化器）。
+List<String> chartAxisTickLabels({
+  required List<DateTime> times,
+  required List<int> indices,
+  DateTime? today,
+  String Function(DateTime)? tickLabel,
+}) {
+  if (times.isEmpty || indices.isEmpty) return const [];
+  final anchor = today ?? times.last;
+  final ticks = [for (final index in indices) times[index]];
+  switch (_axisGrain(times)) {
+    case _AxisGrain.time:
+      return [for (final time in ticks) copy_dates.formatAxisTime(time)];
+    case _AxisGrain.month:
+      return [
+        for (final time in ticks) copy_dates.formatAxisMonth(time, anchor),
+      ];
+    case _AxisGrain.week:
+      return [
+        for (final time in ticks) copy_dates.formatAxisWeekBucket(time, anchor),
+      ];
+    case _AxisGrain.day:
+      if (tickLabel != null) return [for (final time in ticks) tickLabel(time)];
+      return copy_dates.formatAxisDayTicks(ticks, anchor);
+  }
+}
+
+/// CP04 的单点日期：日级 DF1、时间级 HH:mm、月级 M月。
+String _pointDate(DateTime time, DateTime anchor, _AxisGrain grain) =>
+    switch (grain) {
+      _AxisGrain.time => copy_dates.formatTime(time),
+      _AxisGrain.month => copy_dates.formatMonth(time, anchor),
+      _AxisGrain.week || _AxisGrain.day => copy_dates.formatDay(time, anchor),
+    };
 
 /// Contiguous runs of known values; each null starts a new run.
 List<List<int>> chartRuns(List<num?> values) {
@@ -49,8 +161,9 @@ List<int> chartStemIndices(List<num?> values) => [
 /// A sampled time chart: line/area, bars and reference series in one widget.
 ///
 /// Null values break every series (never zero-filled or shifted); a real zero
-/// stays a zero; the current point is accent + halo and the readout is the
-/// accessible, tap-driven value.
+/// stays a zero; the selected point is a 1px rule plus a 4px accent dot, and the
+/// complete readout above the plot is the visible reading of that point while
+/// the readout callback stays the single spoken sentence (R29).
 class TimeSeriesChart extends StatefulWidget {
   const TimeSeriesChart({
     super.key,
@@ -78,6 +191,12 @@ class TimeSeriesChart extends StatefulWidget {
     this.emptyMessage = '还没有采样点',
     this.onActivateSelected,
     this.activationLabel = '查看这一天',
+    this.readoutScale = ChartReadoutScale.root,
+    this.compactReadout = false,
+    this.showSteps = true,
+    this.readoutDate,
+    this.markerBackdrop,
+    this.readoutMinHeight,
   });
 
   final String title;
@@ -100,8 +219,9 @@ class TimeSeriesChart extends StatefulWidget {
 
   /// Replaces the plain reading with a composed view of the same point, for
   /// pages that need the date, value and reference in separate roles. The
-  /// [readout] sentence remains the live-region label, so the visible and the
-  /// spoken reading cannot diverge.
+  /// readout sentence remains the live-region label, so the visible and the
+  /// spoken reading cannot diverge. It takes the readout header slot above the
+  /// plot (R29).
   final Widget Function(int index)? readoutBuilder;
   final Widget? trailing;
   final String? note;
@@ -113,18 +233,61 @@ class TimeSeriesChart extends StatefulWidget {
   final VoidCallback? onActivateSelected;
   final String activationLabel;
 
+  /// 读数头数值角色（R21.3）：根页 metricMd，详情与专题 metricSm。
+  final ChartReadoutScale readoutScale;
+
+  /// 紧凑读数行：88 高的节奏图与每日充电图（R29）。
+  final bool compactReadout;
+
+  /// 读数头尾部的步进圆钮（R27/R29），两端禁用。
+  final bool showSteps;
+
+  /// 读数头的日期格式；不传时按 DF1/DF9 的粒度用共享格式化器。
+  final String Function(DateTime)? readoutDate;
+
+  /// 选中点的 2 像素描边色：卡片底色（默认 surface，hero 内用 accentHero）。
+  final Color? markerBackdrop;
+
+  /// readoutBuilder 版式的最小高度（R29「读数头最小高度取各状态最大值」）。
+  /// builder 由页面排版，组件量不到它内部的行；页面按自己的最长状态传这个值，
+  /// 拖动选点时绘图区就不会被顶动。
+  final double? readoutMinHeight;
+
   @override
   State<TimeSeriesChart> createState() => _TimeSeriesChartState();
 }
 
-class _TimeSeriesChartState extends State<TimeSeriesChart> {
+class _TimeSeriesChartState extends State<TimeSeriesChart>
+    with SingleTickerProviderStateMixin {
   int _selected = 0;
   final _focus = FocusNode();
+  late String _identity;
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: MileafDurations.metricFade,
+    value: 1,
+  );
+
+  static String _identityOf(TimeSeriesChart chart) => [
+    chart.title,
+    chart.unit,
+    chart.times.length,
+    chart.times.isEmpty ? '' : chart.times.first.toIso8601String(),
+    chart.times.isEmpty ? '' : chart.times.last.toIso8601String(),
+    for (final series in chart.series) series.label,
+  ].join('|');
 
   @override
   void initState() {
     super.initState();
     _selected = widget.selectedIndex ?? 0;
+    _identity = _identityOf(widget);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MileafLayout.reduceMotion(context)) _fade.value = 1;
   }
 
   @override
@@ -135,60 +298,136 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       _selected = widget.selectedIndex!;
     }
     _selected = _selected.clamp(0, math.max(0, widget.times.length - 1));
+    final identity = _identityOf(widget);
+    if (identity != _identity) {
+      _identity = identity;
+      // M09：切换指标或期间时读数头与图 120ms 淡入；减少动效直接切换。
+      if (MileafLayout.reduceMotion(context)) {
+        _fade.value = 1;
+      } else {
+        _fade.forward(from: 0);
+      }
+    }
   }
 
   @override
   void dispose() {
     _focus.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
   void _select(int index) {
     if (widget.times.isEmpty) return;
     final next = index.clamp(0, widget.times.length - 1);
+    final changed = next != _selected;
     setState(() => _selected = next);
     widget.onSelected?.call(next);
+    // M07：选中索引变化时一次 selectionClick；程序恢复选点不触发。
+    if (changed) HapticFeedback.selectionClick();
   }
 
-  String _tick(DateTime time) =>
-      widget.tickLabel?.call(time) ?? '${time.month}/${time.day}';
+  String _tick(DateTime time) {
+    final override = widget.tickLabel;
+    if (override != null) return override(time);
+    final anchor = widget.times.isEmpty ? time : widget.times.last;
+    return _pointDate(time, anchor, _axisGrain(widget.times));
+  }
 
-  String _value(num? value) =>
-      value == null ? '—' : '${_format(value)} ${widget.unit}';
-
-  String _format(num value) => value is int
-      ? '$value'
-      : value == value.roundToDouble()
-      ? '${value.toInt()}'
-      : value.abs() >= 100
-      ? value.toStringAsFixed(0)
-      : value.toStringAsFixed(1);
-
-  String _reading(int index) {
-    if (widget.readout != null) return widget.readout!(index);
-    final date = widget.times[index];
-    final series = widget.series.isEmpty ? null : widget.series.first;
-    final value = series == null || index >= series.values.length
-        ? null
-        : series.values[index];
-    // R06.6：可比时读值带「参照区间名 参照值（差 ±d）」；当前值或参照值
-    // 任一缺失即省略参照段——不伪造比较，不按分母折百分比。
-    final references = widget.series
-        .where((s) => s.style == ChartSeriesStyle.reference)
-        .toList();
-    final reference = references.isEmpty ? null : references.first;
-    if (value != null &&
-        reference != null &&
-        index < reference.values.length &&
-        reference.values[index] != null) {
-      final refValue = reference.values[index]!;
-      final diff = value.toDouble() - refValue.toDouble();
-      final sign = diff > 0 ? '+' : '';
-      return '${_tick(date)} · ${_value(value)} · ${reference.label} '
-          '${_format(refValue)} ${widget.unit}'
-          '（差 $sign${_format(diff)} ${widget.unit}）';
+  ChartSeries? get _reference {
+    for (final series in widget.series) {
+      if (series.style == ChartSeriesStyle.reference) return series;
     }
-    return '${_tick(date)} · ${_value(value)}';
+    return null;
+  }
+
+  ChartSeries? get _primary {
+    for (final series in widget.series) {
+      if (series.style != ChartSeriesStyle.reference) return series;
+    }
+    return null;
+  }
+
+  num? _valueAt(int index) {
+    final series = _primary;
+    if (series == null || index < 0 || index >= series.values.length) {
+      return null;
+    }
+    return series.values[index];
+  }
+
+  int _decimals(num value) => value is int || value == value.roundToDouble()
+      ? 0
+      : (value.abs() >= 100 ? 0 : 1);
+
+  String _number(num value) =>
+      copy_units.valueUnit(value, widget.unit, decimals: _decimals(value));
+
+  String _valueText(num? value) => value == null ? '—' : _number(value);
+
+  /// 第三行：参照与差值写成一句（R29）。当前值或参照任一缺失即不给句子，
+  /// 不伪造比较。
+  String? _contextAt(int index) {
+    final value = _valueAt(index);
+    final reference = _reference;
+    if (value == null || reference == null) return null;
+    if (index < 0 || index >= reference.values.length) return null;
+    final referenceValue = reference.values[index];
+    if (referenceValue == null) return null;
+    final difference = value.toDouble() - referenceValue.toDouble();
+    final referenceText = '${reference.label} ${_number(referenceValue)}';
+    if (difference == 0) return '$referenceText，持平';
+    final word = difference > 0 ? '多' : '少';
+    return '$referenceText，$word ${_number(difference.abs())}';
+  }
+
+  String _readoutDateText(int index) {
+    final time = widget.times[index];
+    final override = widget.readoutDate;
+    if (override != null) return override(time);
+    return _tick(time);
+  }
+
+  /// The selected point's spoken reading: one sentence per point, still the only
+  /// live-region source (R29). Pages may replace it through their readout.
+  String _reading(int index) {
+    final override = widget.readout;
+    if (override != null) return override(index);
+    final value = _valueAt(index);
+    final context = _contextAt(index);
+    return [_readoutDateText(index), _valueText(value), ?context].join('，');
+  }
+
+  /// 读数头数值行的预留串：取全序列里最长的一条，切换选点不跳高度。
+  String? _longestValue() {
+    String? longest;
+    for (var i = 0; i < widget.times.length; i++) {
+      final text = _valueText(_valueAt(i));
+      if (longest == null || text.length > longest.length) longest = text;
+    }
+    return longest;
+  }
+
+  /// 读数头日期行的预留串：跨年或窄宽时可能换行，同样要预留。
+  String? _longestDate() {
+    String? longest;
+    for (var i = 0; i < widget.times.length; i++) {
+      final text = _readoutDateText(i);
+      if (longest == null || text.length > longest.length) longest = text;
+    }
+    return longest;
+  }
+
+  /// 读数头第三行的预留句：取全序列里最长的一条，切换选点不跳高度。
+  String? _longestContext() {
+    if (_reference == null) return null;
+    String? longest;
+    for (var i = 0; i < widget.times.length; i++) {
+      final context = _contextAt(i);
+      if (context == null) continue;
+      if (longest == null || context.length > longest.length) longest = context;
+    }
+    return longest;
   }
 
   @override
@@ -200,25 +439,17 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         .clamp(0, math.max(0, widget.times.length - 1))
         .toInt();
     final titleColor = onHero ? colors.heroText : colors.text;
-    final faint = onHero ? colors.heroFaint : colors.textFaint;
-    // 标尺文字（轴刻度、单位、区间）共用一个淡档；图例是要被读懂的词，
-    // 抬到 muted 一档，否则虚线标签在浅色底上会先消失。
-    final legendColor = onHero ? colors.heroMuted : colors.textMuted;
-    // 阅读顺序：名称 → 度量 → 窗口 → 指标控件 → key → 图形。图例不是标题
-    // 的一部分，它解释的是下方那批标记，所以贴到绘图区之上（R01 对齐 + 用户
-    // 要求的「一行只讲一件事」），而不是挤在标题右侧。
-    final heading = _ChartHeading(
-      title: widget.title,
-      unit: widget.unit,
-      subtitle: widget.subtitle,
-      titleColor: titleColor,
-      metaColor: faint,
-    );
-    final legend = _legend(colors, legendColor);
-    // R01：标题到所属内容 12，控件之后再回到 8。标题因此拥有整块图表，而
-    // 控件、图例、绘图区是同属它的三段。
+    final metaColor = onHero ? colors.heroMuted : colors.textSecondary;
+    // 阅读顺序：名称 → 度量 → 窗口 → 指标控件 → 读数头 → 绘图区 → 轴 →
+    // 图例 → 限定脚注 → 下钻（R29）。
     final chrome = <Widget>[
-      heading,
+      _ChartHeading(
+        title: widget.title,
+        unit: widget.unit,
+        subtitle: widget.subtitle,
+        titleColor: titleColor,
+        metaColor: metaColor,
+      ),
       if (widget.headerTrailing != null) ...[
         const SizedBox(height: MileafSpace.s12),
         widget.headerTrailing!,
@@ -237,238 +468,320 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ...chrome,
-          _ChartMessage(message: widget.emptyMessage, color: faint),
+          _ChartMessage(message: widget.emptyMessage, color: metaColor),
         ],
       );
     }
+    final body = FadeTransition(
+      key: MileafChartGrammar.identityFadeKey,
+      opacity: CurvedAnimation(parent: _fade, curve: MileafCurves.fade),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _readoutHeader(selected, colors: colors, type: type),
+          const SizedBox(height: MileafSpace.s8),
+          _plot(context, selected, colors),
+          if (_legendEntries().isNotEmpty) ...[
+            const SizedBox(height: MileafSpace.s8),
+            _legend(colors, metaColor)!,
+          ],
+          if (widget.note != null) ...[
+            const SizedBox(height: MileafSpace.s8),
+            Text(widget.note!, style: type.footnote.copyWith(color: metaColor)),
+          ],
+        ],
+      ),
+    );
+    final actions = _actions(colors, type);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...chrome,
-        if (legend != null) ...[const SizedBox(height: MileafSpace.s8), legend],
-        const SizedBox(height: MileafSpace.s8),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final scaler = MediaQuery.textScalerOf(context);
-            final labelStyle = chartAxisLabelStyle(
-              color: faint,
-              scaler: scaler,
-            );
-            final bounds = widget.yRange ?? _chartBounds(widget.series);
-            final ticks = {bounds.$1, (bounds.$1 + bounds.$2) / 2, bounds.$2};
-            final sizes = [
-              for (final tick in ticks)
-                _measureAxis(_axisNumber(tick), labelStyle),
-            ];
-            final plotHeight =
-                widget.height ?? MileafLayout.chartHeight(context);
-            final left = widget.showYAxis
-                ? sizes.map((s) => s.width).reduce(math.max) + MileafSpace.s8
-                : 0.0;
-            final bottom = widget.showXAxis
-                ? _measureAxis(_tick(widget.times.first), labelStyle).height +
-                      MileafSpace.s8
-                // 无 X 轴时仍保住一个底部 halo，底部标记不被裁（R06.4）。
-                : MileafChartMetrics.currentHalo;
-            final plotWidth = math.max(1.0, constraints.maxWidth - left);
-            // Spec §8: the current marker is a 4px point inside an 8px halo.
-            // The box reserves one halo of margin above the plot (plus half
-            // the Y-tick label when a Y axis is shown) and at least one halo
-            // below it, so a mark at the maximum, the minimum, a negative
-            // value or a real zero is never cut by the plot edge. With a Y
-            // axis the top margin also carries half the tick label
-            // (R06: 轴留白按实际 TextPainter 度量), which grows past the
-            // halo at large text sizes.
-            final topMargin = widget.showYAxis
-                ? math.max(
-                    MileafChartMetrics.currentHalo,
-                    sizes.first.height / 2,
-                  )
-                : MileafChartMetrics.currentHalo;
-            final plot = Rect.fromLTWH(
-              left,
-              topMargin,
-              plotWidth,
-              math.max(1.0, plotHeight),
-            );
-            double? lastFraction;
-            void selectAt(Offset position) {
-              final fraction = ((position.dx - plot.left) / plot.width).clamp(
-                0.0,
-                1.0,
-              );
-              if (lastFraction == null ||
-                  (fraction - lastFraction!).abs() > .001) {
-                final index = (fraction * (widget.times.length - 1)).round();
-                _select(index);
-              }
-              lastFraction = fraction;
-            }
+        body,
+        if (actions != null) const SizedBox(height: MileafSpace.s8),
+        ?actions,
+      ],
+    );
+  }
 
-            return Focus(
-              focusNode: _focus,
-              onKeyEvent: (_, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  _select(selected - 1);
-                  return KeyEventResult.handled;
-                }
-                if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                  _select(selected + 1);
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              child: MileafFocusRing(
-                child: Semantics(
-                  container: true,
-                  label: widget.semanticsLabel,
-                  value: _reading(selected),
-                  increasedValue: selected < widget.times.length - 1
-                      ? _reading(selected + 1)
-                      : null,
-                  decreasedValue: selected > 0 ? _reading(selected - 1) : null,
-                  onIncrease: selected < widget.times.length - 1
-                      ? () => _select(selected + 1)
-                      : null,
-                  onDecrease: selected > 0 ? () => _select(selected - 1) : null,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapUp: (details) {
-                      _focus.requestFocus();
-                      selectAt(details.localPosition);
-                    },
-                    onHorizontalDragStart: (details) {
-                      _focus.requestFocus();
-                      selectAt(details.localPosition);
-                    },
-                    onHorizontalDragUpdate: (details) =>
-                        selectAt(details.localPosition),
-                    child: SizedBox(
-                      key: widget.plotKey,
-                      // R06：盒子高度按实际绘制范围给足——顶轴留白 +
-                      // 绘图区 + 底部 X 轴行高，大字下随文字增高，不截字。
-                      height: plot.top + math.max(1.0, plotHeight) + bottom,
-                      child: CustomPaint(
-                        size: Size(constraints.maxWidth, plotHeight),
-                        painter: _ChartPainter(
-                          times: widget.times,
-                          series: widget.series,
-                          selected: selected,
-                          plot: plot,
-                          progress: 1,
-                          primary: onHero ? colors.accentHero : colors.accent,
-                          reference: colors.reference,
-                          axis: faint,
-                          // Spec §8: the only horizontal grid line is the zero
-                          // baseline — `line` on paper, heroText 12% on a hero.
-                          baseline: onHero
-                              ? colors.heroText.withValues(alpha: .12)
-                              : colors.line,
-                          scaler: MediaQuery.textScalerOf(context),
-                          yRange: widget.yRange,
-                          showYAxis: widget.showYAxis,
-                          showXAxis: widget.showXAxis,
-                          tick: _tick,
-                          largeText: MileafLayout.largeText(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
+  /// 下钻行在 live region 之外：选中某天时给一个「看当天」，以及页面自带的
+  /// trailing 组件。紧凑读数行把下钻留在同一行（R29）。
+  Widget? _actions(MileafColors colors, MileafTextStyles type) {
+    final drill = widget.onActivateSelected == null
+        ? null
+        : TextButton(
+            onPressed: widget.onActivateSelected,
+            child: Text('看当天', semanticsLabel: widget.activationLabel),
+          );
+    final trailing = widget.trailing;
+    if (widget.compactReadout) {
+      if (trailing == null) return null;
+      return Align(
+        alignment: Alignment.centerRight,
+        child: DefaultTextStyle.merge(
+          style: type.footnote.copyWith(color: colors.textSecondary),
+          child: trailing,
         ),
-        // R06.6/§1.4: the plot keeps 8 from its reading.
-        const SizedBox(height: MileafSpace.s8),
-        _readingBlock(context, selected),
-        if (widget.onActivateSelected != null &&
-            MileafLayout.largeText(context))
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: widget.onActivateSelected,
-              child: Text('看当天', semanticsLabel: widget.activationLabel),
+      );
+    }
+    if (drill == null && trailing == null) return null;
+    return Row(
+      children: [
+        ?drill,
+        if (trailing != null)
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: DefaultTextStyle.merge(
+                style: type.footnote.copyWith(color: colors.textSecondary),
+                child: trailing,
+              ),
             ),
-          ),
-        if (widget.note != null)
-          Padding(
-            padding: const EdgeInsets.only(top: MileafSpace.s4),
-            child: Text(widget.note!, style: type.micro.copyWith(color: faint)),
           ),
       ],
     );
   }
 
-  /// The selected point's reading. A page may supply a composed view through
-  /// [TimeSeriesChart.readoutBuilder]; the plain sentence then stays the single
-  /// live-region label so the spoken reading never drifts from the visible one.
-  Widget _readingBlock(BuildContext context, int selected) {
-    final colors = context.colors;
-    final type = context.type;
-    final faint = widget.onHero ? colors.heroFaint : colors.textFaint;
+  Widget _readoutHeader(
+    int selected, {
+    required MileafColors colors,
+    required MileafTextStyles type,
+  }) {
     final sentence = _reading(selected);
-    final reading = widget.readoutBuilder == null
-        ? Text(
-            sentence,
-            style: type.body.copyWith(
-              color: widget.onHero ? colors.heroText : colors.text,
-            ),
-          )
-        : widget.readoutBuilder!(selected);
-    final trailing = widget.trailing == null
-        ? null
-        : DefaultTextStyle.merge(
-            style: type.label.copyWith(color: faint),
-            child: widget.trailing!,
-          );
-    // The live region covers the reading alone: the drill action stays a
-    // sibling so a page that supplies both a builder and an action keeps the
-    // button reachable instead of silently excluding it.
-    final node = Semantics(
-      container: true,
-      explicitChildNodes: widget.readoutBuilder == null,
-      liveRegion: true,
-      label: widget.readoutBuilder == null ? null : sentence,
-      excludeSemantics: widget.readoutBuilder != null,
-      child: reading,
+    final dateStyle = type.subheadline.copyWith(
+      color: widget.onHero ? colors.heroMuted : colors.textSecondary,
     );
-    final large = MileafLayout.largeText(context);
-    return large
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [node, ?trailing],
-          )
-        : Row(
-            children: [
-              Expanded(child: node),
-              if (widget.onActivateSelected != null)
-                TextButton(
-                  onPressed: widget.onActivateSelected,
-                  child: Text('看当天', semanticsLabel: widget.activationLabel),
-                ),
-              ?trailing,
-            ],
-          );
+    final valueStyle =
+        (widget.readoutScale == ChartReadoutScale.detail
+                ? type.metricSm
+                : type.metricMd)
+            .copyWith(color: widget.onHero ? colors.heroText : colors.text);
+    final builder = widget.readoutBuilder;
+    if (builder != null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: widget.readoutMinHeight ?? 0,
+              ),
+              child: Semantics(
+                key: MileafChartGrammar.readoutLiveKey,
+                container: true,
+                liveRegion: true,
+                label: sentence,
+                excludeSemantics: true,
+                child: builder(selected),
+              ),
+            ),
+          ),
+          if (widget.showSteps) ..._steps(selected, colors),
+        ],
+      );
+    }
+    return MileafChartReadout(
+      sentence: sentence,
+      date: _readoutDateText(selected),
+      value: _valueText(_valueAt(selected)),
+      reserveValue: _longestValue(),
+      reserveDate: _longestDate(),
+      contextLine: _contextAt(selected),
+      reserveContext: _longestContext(),
+      dateStyle: dateStyle,
+      valueStyle: valueStyle,
+      contextStyle: dateStyle,
+      colors: colors,
+      type: type,
+      compact: widget.compactReadout,
+      onPrevious: widget.showSteps && selected > 0
+          ? () => _select(selected - 1)
+          : null,
+      onNext: widget.showSteps && selected < widget.times.length - 1
+          ? () => _select(selected + 1)
+          : null,
+      onActivateSelected: widget.compactReadout
+          ? widget.onActivateSelected
+          : null,
+      activationLabel: widget.activationLabel,
+    );
   }
 
-  Color _seriesColor(ChartSeries series, MileafColors colors) =>
-      switch (series.style) {
-        ChartSeriesStyle.reference => colors.reference,
-        _ => widget.onHero ? colors.accentHero : colors.accent,
-      };
+  List<Widget> _steps(int selected, MileafColors colors) => [
+    _ChartStepButton(
+      icon: MileafIconName.back,
+      label: MileafChartGrammar.previousStep,
+      enabled: selected > 0,
+      onTap: () => _select(selected - 1),
+      colors: colors,
+    ),
+    _ChartStepButton(
+      icon: MileafIconName.chevron,
+      label: MileafChartGrammar.nextStep,
+      enabled: selected < widget.times.length - 1,
+      onTap: () => _select(selected + 1),
+      colors: colors,
+    ),
+  ];
+
+  Widget _plot(BuildContext context, int selected, MileafColors colors) {
+    final onHero = widget.onHero;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final labelStyle = chartAxisLabelStyle(
+          color: onHero ? colors.heroMuted : colors.textSecondary,
+          scaler: scaler,
+        );
+        final bounds = widget.yRange ?? _chartBounds(widget.series);
+        final ticks = {bounds.$1, (bounds.$1 + bounds.$2) / 2, bounds.$2};
+        final sizes = [
+          for (final tick in ticks) _measureAxis(_axisNumber(tick), labelStyle),
+        ];
+        final plotHeight = widget.height ?? MileafLayout.chartHeight(context);
+        // R29：Y 轴刻度在绘图区右侧，绘图区左缘与卡内文字起始线对齐。
+        final right = widget.showYAxis
+            ? sizes.map((size) => size.width).reduce(math.max) + MileafSpace.s8
+            : 0.0;
+        final plotWidth = math.max(1.0, constraints.maxWidth - right);
+        final indices =
+            (MileafLayout.largeText(context)
+                    ? <int>[0, widget.times.length - 1]
+                    : <int>{
+                        0,
+                        ((widget.times.length - 1) / 2).round(),
+                        widget.times.length - 1,
+                      })
+                .toList()
+              ..sort();
+        final labels = chartAxisTickLabels(
+          times: widget.times,
+          indices: indices,
+          today: widget.times.last,
+          tickLabel: widget.tickLabel,
+        );
+        final bottom = widget.showXAxis
+            ? _measureAxis(
+                    labels.isEmpty ? '' : labels.first,
+                    labelStyle,
+                  ).height +
+                  MileafSpace.s8
+            // 无 X 轴时仍保住一个底部余量，底部标记不被裁。
+            : MileafChartMetrics.currentHalo;
+        final topMargin = widget.showYAxis
+            ? math.max(MileafChartMetrics.currentHalo, sizes.first.height / 2)
+            : MileafChartMetrics.currentHalo;
+        final plot = Rect.fromLTWH(
+          0,
+          topMargin,
+          plotWidth,
+          math.max(1.0, plotHeight),
+        );
+        double? lastFraction;
+        void selectAt(Offset position) {
+          final fraction = ((position.dx - plot.left) / plot.width).clamp(
+            0.0,
+            1.0,
+          );
+          if (lastFraction == null || (fraction - lastFraction!).abs() > .001) {
+            final index = (fraction * (widget.times.length - 1)).round();
+            _select(index);
+          }
+          lastFraction = fraction;
+        }
+
+        return Focus(
+          focusNode: _focus,
+          onKeyEvent: (_, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _select(selected - 1);
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _select(selected + 1);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MileafFocusRing(
+            child: Semantics(
+              container: true,
+              label: widget.semanticsLabel,
+              hint: MileafChartGrammar.hint,
+              value: _reading(selected),
+              increasedValue: selected < widget.times.length - 1
+                  ? _reading(selected + 1)
+                  : null,
+              decreasedValue: selected > 0 ? _reading(selected - 1) : null,
+              onIncrease: selected < widget.times.length - 1
+                  ? () => _select(selected + 1)
+                  : null,
+              onDecrease: selected > 0 ? () => _select(selected - 1) : null,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) {
+                  _focus.requestFocus();
+                  selectAt(details.localPosition);
+                },
+                onHorizontalDragStart: (details) {
+                  _focus.requestFocus();
+                  selectAt(details.localPosition);
+                },
+                onHorizontalDragUpdate: (details) =>
+                    selectAt(details.localPosition),
+                child: SizedBox(
+                  key: widget.plotKey,
+                  height: plot.top + math.max(1.0, plotHeight) + bottom,
+                  child: CustomPaint(
+                    size: Size(constraints.maxWidth, plotHeight),
+                    painter: _ChartPainter(
+                      times: widget.times,
+                      series: widget.series,
+                      selected: selected,
+                      plot: plot,
+                      progress: 1,
+                      primary: onHero ? colors.accentHero : colors.accent,
+                      reference: colors.reference,
+                      axis: onHero ? colors.heroMuted : colors.textSecondary,
+                      baseline: onHero
+                          ? colors.heroText.withValues(alpha: .12)
+                          : colors.line,
+                      selectionLine: onHero
+                          ? colors.heroMuted
+                          : colors.textSecondary,
+                      markerBackdrop:
+                          widget.markerBackdrop ??
+                          (onHero ? colors.accentHero : colors.surface),
+                      scaler: MediaQuery.textScalerOf(context),
+                      yRange: widget.yRange,
+                      showYAxis: widget.showYAxis,
+                      showXAxis: widget.showXAxis,
+                      tickLabels: {
+                        for (var i = 0; i < indices.length; i++)
+                          indices[i]: labels[i],
+                      },
+                      largeText: MileafLayout.largeText(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   /// 图例：只解释「位置说不清的那条标记」。
   ///
   /// 三条规则，按顺序生效：
   /// 1. 单系列不出图例——一个标记不需要 key。
-  /// 2. 一个测量 + 参照、且这个测量已经被指标控件点名（`controls` 或
-  ///    `headerTrailing` 的 chip 里就写着它的名字）时，只留参照：实心系列
+  /// 2. 一个测量 + 参照、且这个测量已经被指标控件点名（controls 或
+  ///    headerTrailing 的 chip 里就写着它的名字）时，只留参照：实心系列
   ///    已经被标题和控件说过两遍，再配色块就是第三次命名。没有控件点名的
-  ///    页面（如统计洞察的「本期 / 参照」）保留完整图例，否则实心系列在可见
-  ///    层就失去了名字。
-  /// 3. 色块只在它能指认时才画。绘图区只拿得到一个 `primary`，多测量
+  ///    页面（如统计洞察的「本期 / 参照」）保留完整图例。
+  /// 3. 色块只在它能指认时才画。绘图区只拿得到一个主色，多测量
   ///    （净/毛电耗、AC/DC）的线同色，此时给每条都画同色块等于宣称它们相同，
   ///    所以多测量只列名字；参照虚线与其它标记形状不同，永远带样本。
   Widget? _legend(MileafColors colors, Color textColor) {
@@ -487,6 +800,12 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       textColor: textColor,
     );
   }
+
+  Color _seriesColor(ChartSeries series, MileafColors colors) =>
+      switch (series.style) {
+        ChartSeriesStyle.reference => colors.reference,
+        _ => widget.onHero ? colors.accentHero : colors.accent,
+      };
 
   List<({ChartSeries series, bool swatch})> _legendEntries() {
     final series = widget.series;
@@ -514,6 +833,274 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   }
 }
 
+/// 完整读数头（R29/PD03）与紧凑读数行（同一朗读源与步进语义）。
+///
+/// 三行顺序固定：日期 → 数值（含单位）→ 参照与差值一句。第三行的高度按全序列
+/// 最长的句子预留，所以切换选点时不跳高度。步进圆钮在读数头尾部，位于 live
+/// region 之外，可单独聚焦。
+class MileafChartReadout extends StatelessWidget {
+  const MileafChartReadout({
+    super.key,
+    required this.sentence,
+    required this.date,
+    required this.value,
+    this.reserveValue,
+    this.reserveDate,
+    this.contextLine,
+    this.reserveContext,
+    required this.dateStyle,
+    required this.valueStyle,
+    required this.contextStyle,
+    required this.colors,
+    required this.type,
+    this.compact = false,
+    this.onPrevious,
+    this.onNext,
+    this.previousLabel = MileafChartGrammar.previousStep,
+    this.nextLabel = MileafChartGrammar.nextStep,
+    this.onActivateSelected,
+    this.activationLabel = '查看这一天',
+  });
+
+  /// 朗读句：live region 的唯一内容，可见行不再各自朗读。
+  final String sentence;
+  final String date;
+  final String value;
+  final String? reserveValue;
+  final String? reserveDate;
+  final String? contextLine;
+  final String? reserveContext;
+  final TextStyle dateStyle;
+  final TextStyle valueStyle;
+  final TextStyle contextStyle;
+  final MileafColors colors;
+  final MileafTextStyles type;
+  final bool compact;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  final String previousLabel;
+  final String nextLabel;
+  final VoidCallback? onActivateSelected;
+  final String activationLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSteps = onPrevious != null || onNext != null;
+    final steps = <Widget>[
+      _ChartStepButton(
+        icon: MileafIconName.back,
+        label: previousLabel,
+        enabled: onPrevious != null,
+        onTap: onPrevious ?? () {},
+        colors: colors,
+      ),
+      _ChartStepButton(
+        icon: MileafIconName.chevron,
+        label: nextLabel,
+        enabled: onNext != null,
+        onTap: onNext ?? () {},
+        colors: colors,
+      ),
+    ];
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = math.max(
+          1.0,
+          constraints.maxWidth -
+              (hasSteps ? 2 * MileafChartGrammar.stepHit : 0),
+        );
+        // 没有参照系列时第三行根本不存在：不留空行，别把首屏预算推下去。
+        final hasContextRow = contextLine != null || reserveContext != null;
+        final reservedHeight = hasContextRow
+            ? _reserveLines(
+                    contextLine,
+                    reserveContext,
+                    contextStyle,
+                    width,
+                    scaler,
+                  ) *
+                  _lineHeight(contextStyle, scaler)
+            : 0.0;
+        final valueHeight =
+            _reserveLines(value, reserveValue, valueStyle, width, scaler) *
+            _lineHeight(valueStyle, scaler);
+        final dateHeight =
+            _reserveLines(date, reserveDate, dateStyle, width, scaler) *
+            _lineHeight(dateStyle, scaler);
+        final live = Semantics(
+          key: MileafChartGrammar.readoutLiveKey,
+          container: true,
+          liveRegion: true,
+          label: sentence,
+          excludeSemantics: true,
+          child: compact
+              ? Wrap(
+                  spacing: MileafSpace.s8,
+                  runSpacing: MileafSpace.s4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(date, style: dateStyle),
+                    Text(
+                      value,
+                      // R29 紧凑读数行：数值用 body 600，不再用度量角色。
+                      style: type.body.copyWith(
+                        color: valueStyle.color,
+                        fontWeight: MileafType.weightSemiBold,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: dateHeight,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(date, style: dateStyle),
+                      ),
+                    ),
+                    SizedBox(
+                      height: valueHeight,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(value, style: valueStyle),
+                      ),
+                    ),
+                    if (hasContextRow)
+                      SizedBox(
+                        height: reservedHeight,
+                        child: contextLine == null
+                            ? null
+                            : Align(
+                                alignment: Alignment.topLeft,
+                                child: Text(contextLine!, style: contextStyle),
+                              ),
+                      ),
+                  ],
+                ),
+        );
+        return Row(
+          crossAxisAlignment: compact
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: reservedHeight),
+                child: live,
+              ),
+            ),
+            // R29：下钻文字按钮在 live region 之外（读屏要能单独触发），
+            // 位置在行尾、步进之前。
+            if (compact && onActivateSelected != null)
+              TextButton(
+                onPressed: onActivateSelected,
+                // CP06 建议写成「查看当天」；W2 期间保持页面已在用的旧串，
+                // 由页面包在自己的下钻行统一改词（见 AP05.md §7.5）。
+                child: Text('看当天', semanticsLabel: activationLabel),
+              ),
+            if (hasSteps) ...steps,
+          ],
+        );
+      },
+    );
+  }
+
+  /// 一行实际占几行：取当前文本与预留文本的最大值（至少一行）。
+  ///
+  /// 只测「当前」与「最长」两条候选，切换选点时不会在两条之间来回跳高度。
+  int _reserveLines(
+    String? text,
+    String? reserve,
+    TextStyle style,
+    double width,
+    TextScaler scaler,
+  ) {
+    var lines = 1;
+    for (final candidate in [text, reserve]) {
+      if (candidate == null || candidate.isEmpty) continue;
+      final painter = TextPainter(
+        text: TextSpan(text: candidate, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+        maxLines: null,
+      )..layout(maxWidth: width);
+      final height = painter.height;
+      final lineHeight = painter.preferredLineHeight;
+      painter.dispose();
+      if (lineHeight <= 0) continue;
+      lines = math.max(lines, (height / lineHeight).round());
+    }
+    return lines;
+  }
+
+  double _lineHeight(TextStyle style, TextScaler scaler) {
+    final painter = TextPainter(
+      // 哨兵用拉丁字母：只为量一行的高度，不属于文案账目。
+      text: TextSpan(text: 'M', style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final height = painter.height;
+    painter.dispose();
+    return height;
+  }
+}
+
+/// 圆形步进按钮：视觉 36、命中 44、图标 20，两端禁用（R24/R27）。
+class _ChartStepButton extends StatelessWidget {
+  const _ChartStepButton({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+    required this.colors,
+  });
+
+  final MileafIconName icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+  final MileafColors colors;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: enabled,
+    label: label,
+    child: SizedBox.square(
+      dimension: MileafChartGrammar.stepHit,
+      child: Center(
+        child: SizedBox.square(
+          dimension: MileafChartGrammar.stepVisual,
+          child: Material(
+            color: colors.segmentTrack,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: enabled ? onTap : null,
+              // R29：键盘路径「Tab 到图表、←/→ 步进」沿既有实现。步进圆钮
+              // 若进入焦点顺序，第一次 Tab 会落在读数头尾部而不是绘图区，
+              // 键盘用户反而失去左右键步进。读屏仍可通过按钮语义触发。
+              canRequestFocus: false,
+              child: Center(
+                child: MileafIcon(
+                  icon,
+                  size: MileafChartGrammar.stepIcon,
+                  color: enabled ? colors.text : colors.textFaint,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Style for the text the chart paints itself (axis labels, tick labels).
 ///
 /// The painter cannot read the theme, so the family and the CJK fallback are
@@ -527,7 +1114,7 @@ TextStyle chartAxisLabelStyle({
 }) => TextStyle(
   fontFamily: MileafType.family,
   fontFamilyFallback: MileafType.fallback,
-  fontSize: scaler.scale(fontSize ?? MileafChartMetrics.axisLabelSize),
+  fontSize: scaler.scale(fontSize ?? MileafType.captionSize),
   color: color,
   height: 1.5,
   fontFeatures: const [FontFeature.tabularFigures()],
@@ -540,19 +1127,14 @@ class _ChartTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     header: true,
-    child: Text(title, style: context.type.title.copyWith(color: color)),
+    child: Text(title, style: context.type.headline.copyWith(color: color)),
   );
 }
 
 /// 标题（是什么）、度量（轴在数什么）、窗口（轴覆盖到哪）。
 ///
 /// 三件东西按左→右的固定次序排一行：标题定住左端，窗口落在右端、与绘图区
-/// 的右沿对齐；单位紧贴标题（间距 6，与 `MetricBlock` 的「标签→值」同一对
-/// 节奏），是标题所命名坐标轴的度量，不是第四个标题。
-///
-/// 与 [SectionHeader] 同构：标题都用 `type.title`、区间都用 `type.label` 的
-/// 淡档、大字时区间落到标题下一行并共用左缘——所以图表头和它上面的章节标题
-/// 不会各说各话。
+/// 的右沿对齐；单位紧贴标题，是标题所命名坐标轴的度量，不是第四个标题。
 class _ChartHeading extends StatelessWidget {
   const _ChartHeading({
     required this.title,
@@ -572,7 +1154,7 @@ class _ChartHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = context.type;
     final heading = Wrap(
-      spacing: MileafSpace.inline6,
+      spacing: MileafSpace.s8,
       runSpacing: MileafSpace.s4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
@@ -580,16 +1162,16 @@ class _ChartHeading extends StatelessWidget {
         if (unit.isNotEmpty)
           Text(
             unit,
-            style: type.micro.copyWith(color: metaColor),
+            style: type.subheadline.copyWith(color: metaColor),
             // 单位只是标题的尺度注脚：读屏念「单位km」，但标题仍是唯一的
-            // header 节点，导航不会被这个 12 号标签打断。
+            // header 节点，导航不会被这个标签打断。
             semanticsLabel: '单位$unit',
           ),
       ],
     );
     final range = subtitle == null
         ? null
-        : Text(subtitle!, style: type.label.copyWith(color: metaColor));
+        : Text(subtitle!, style: type.subheadline.copyWith(color: metaColor));
     if (range == null) return heading;
     if (MileafLayout.largeText(context)) {
       return Column(
@@ -601,8 +1183,6 @@ class _ChartHeading extends StatelessWidget {
         ],
       );
     }
-    // 窗口可以是长区间（如跨年日期），所以它必须能收窄换行，不能把标题行
-    // 顶破；`spaceBetween` 保证它收窄之后仍然贴着右沿。
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -616,8 +1196,8 @@ class _ChartHeading extends StatelessWidget {
 }
 
 /// One row of marks and names, read left to right, never wider than the plot.
-/// Which entries appear is decided by `_TimeSeriesChartState._legend`; this
-/// widget only lays them out.
+/// Which entries appear is decided by the chart state; this widget only lays
+/// them out. It sits below the X axis (R29).
 class _ChartLegend extends StatelessWidget {
   const _ChartLegend({required this.entries, required this.textColor});
 
@@ -629,7 +1209,7 @@ class _ChartLegend extends StatelessWidget {
     final type = context.type;
     return Wrap(
       spacing: MileafSpace.s16,
-      runSpacing: MileafSpace.inline6,
+      runSpacing: MileafSpace.s4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final entry in entries)
@@ -642,9 +1222,14 @@ class _ChartLegend extends StatelessWidget {
                   color: entry.color,
                   dashed: entry.dashed,
                 ),
-                const SizedBox(width: MileafSpace.inline6),
+                const SizedBox(width: MileafSpace.s8),
               ],
-              Text(entry.label, style: type.micro.copyWith(color: textColor)),
+              Flexible(
+                child: Text(
+                  entry.label,
+                  style: type.subheadline.copyWith(color: textColor),
+                ),
+              ),
             ],
           ),
       ],
@@ -656,7 +1241,7 @@ class _ChartLegend extends StatelessWidget {
 class _LegendMark extends StatelessWidget {
   const _LegendMark({super.key, required this.color, required this.dashed});
 
-  /// The sample is one bar slot wide (`barMaxWidth`), so the key never reads
+  /// The sample is one bar slot wide (barMaxWidth), so the key never reads
   /// as a second, invented symbol.
   static const _width = MileafChartMetrics.barMaxWidth;
 
@@ -665,8 +1250,6 @@ class _LegendMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 与绘图区同一套几何：主线 2、参照 1.5 且 4/4 虚线（R06.5）。数值全部取自
-    // `MileafChartMetrics`，token 一改，样本和图一起动。
     const dash = MileafChartMetrics.referenceDash;
     return SizedBox(
       width: _width,
@@ -690,8 +1273,9 @@ class _LegendMark extends StatelessWidget {
           : DecoratedBox(
               decoration: BoxDecoration(
                 color: color,
+                // 与柱同一口径：min(4, 宽/2)；样本宽 12，所以是 4。
                 borderRadius: BorderRadius.circular(
-                  MileafChartMetrics.barRadius,
+                  math.min(MileafChartGrammar.barEndRadius, _width / 2),
                 ),
               ),
             ),
@@ -739,6 +1323,10 @@ class StemChart extends StatelessWidget {
     this.onHero = false,
     this.onActivateSelected,
     this.activationLabel = '查看这一天',
+    this.readoutScale = ChartReadoutScale.root,
+    this.compactReadout = false,
+    this.showSteps = true,
+    this.readoutDate,
   });
 
   final String title;
@@ -762,6 +1350,10 @@ class StemChart extends StatelessWidget {
   final bool onHero;
   final VoidCallback? onActivateSelected;
   final String activationLabel;
+  final ChartReadoutScale readoutScale;
+  final bool compactReadout;
+  final bool showSteps;
+  final String Function(DateTime)? readoutDate;
 
   @override
   Widget build(BuildContext context) => TimeSeriesChart(
@@ -785,6 +1377,10 @@ class StemChart extends StatelessWidget {
     onHero: onHero,
     onActivateSelected: onActivateSelected,
     activationLabel: activationLabel,
+    readoutScale: readoutScale,
+    compactReadout: compactReadout,
+    showSteps: showSteps,
+    readoutDate: readoutDate,
   );
 }
 
@@ -926,10 +1522,12 @@ class _ChartPainter extends CustomPainter {
     required this.axis,
     this.yRange,
     required this.baseline,
+    required this.selectionLine,
+    required this.markerBackdrop,
     required this.scaler,
     required this.showYAxis,
     required this.showXAxis,
-    required this.tick,
+    required this.tickLabels,
     required this.largeText,
   });
 
@@ -942,11 +1540,13 @@ class _ChartPainter extends CustomPainter {
   final Color reference;
   final Color axis;
   final Color baseline;
+  final Color selectionLine;
+  final Color markerBackdrop;
   final TextScaler scaler;
   final (double, double)? yRange;
   final bool showYAxis;
   final bool showXAxis;
-  final String Function(DateTime) tick;
+  final Map<int, String> tickLabels;
   final bool largeText;
 
   @override
@@ -954,7 +1554,7 @@ class _ChartPainter extends CustomPainter {
     final (low, high) = yRange ?? _chartBounds(series);
     final span = high - low;
     double y(num value) => plot.bottom - (value - low) / span * plot.height;
-    // Inset the drawn data so the 8px current-point halo is never clipped.
+    // Inset the drawn data so the marks never touch the plot edge.
     final inner = Rect.fromLTRB(
       plot.left + MileafChartMetrics.currentHalo,
       plot.top,
@@ -993,26 +1593,28 @@ class _ChartPainter extends CustomPainter {
     }
 
     if (showYAxis) {
+      // R29：刻度文字在绘图区右侧，默认 3 个刻度。
       for (final value in {low, if (!largeText) (low + high) / 2, high}) {
-        label(
-          _axisNumber(value),
-          Offset(
-            0,
-            y(value) - _measureAxis(_axisNumber(value), labelStyle).height / 2,
-          ),
+        final text = _axisNumber(value);
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: labelStyle),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+        )..layout();
+        painter.paint(
+          canvas,
+          Offset(plot.right + MileafSpace.s8, y(value) - painter.height / 2),
         );
+        painter.dispose();
       }
     }
     if (showXAxis) {
-      final indices = largeText
-          ? [0, times.length - 1]
-          : {0, ((times.length - 1) / 2).round(), times.length - 1}.toList();
-      for (final index in indices) {
-        final centered = index != 0 && index != times.length - 1;
+      for (final entry in tickLabels.entries) {
+        final index = entry.key;
         label(
-          tick(times[index]),
+          entry.value,
           Offset(x(index), plot.bottom + MileafSpace.s8),
-          centered: centered,
+          centered: index != 0 && index != times.length - 1,
           right: index == times.length - 1,
         );
       }
@@ -1039,9 +1641,10 @@ class _ChartPainter extends CustomPainter {
       );
     }
 
+    final barWidth = _barWidth();
     for (final chart in series) {
       if (chart.style == ChartSeriesStyle.reference) {
-        _drawReference(canvas, chart, x, y);
+        _drawReference(canvas, chart, x, y, barWidth);
         continue;
       }
       switch (chart.style) {
@@ -1056,33 +1659,56 @@ class _ChartPainter extends CustomPainter {
           break;
       }
     }
-    final primarySeries = series.where(
-      (s) => s.style != ChartSeriesStyle.reference,
-    );
-    final first = primarySeries.isEmpty ? null : primarySeries.first;
-    final value = first != null && selected < first.values.length
-        ? first.values[selected]
-        : null;
-    if (first != null && value != null) {
-      // The selected mark is an endpoint plus halo for every series style, so
-      // selection never relies on fading the other data. A real zero is the one
-      // exception, in every style: it keeps the zero dot so the selection
-      // marker can never be mistaken for bar volume.
-      final point = Offset(x(selected), y(value));
-      canvas.drawCircle(
-        point,
-        MileafChartMetrics.currentHalo,
-        Paint()..color = primary.withValues(alpha: .2),
-      );
-      canvas.drawCircle(
-        point,
-        value == 0
-            ? MileafChartMetrics.zeroDot
-            : MileafChartMetrics.currentPoint,
-        Paint()..color = primary,
-      );
-    }
+    _drawSelection(canvas, x, y);
     canvas.restore();
+  }
+
+  double _barWidth() {
+    final slot =
+        (plot.width - 2 * MileafChartMetrics.currentHalo) /
+        math.max(1, times.length);
+    return math.min(
+      MileafChartMetrics.barMaxWidth,
+      slot * MileafChartMetrics.barSlotCoverage,
+    );
+  }
+
+  /// R29 选中标记：1 逻辑像素竖线 + 半径 4 的 accent 点 + 2 像素卡片底色描边，
+  /// 不再有光晕。真实 0 也按同一标记选中，柱体积仍为零。
+  void _drawSelection(
+    Canvas canvas,
+    double Function(int) x,
+    double Function(num) y,
+  ) {
+    ChartSeries? first;
+    for (final chart in series) {
+      if (chart.style != ChartSeriesStyle.reference) {
+        first = chart;
+        break;
+      }
+    }
+    if (first == null) return;
+    if (selected < 0 || selected >= first.values.length) return;
+    final value = first.values[selected];
+    if (value == null) return;
+    final point = Offset(x(selected), y(value));
+    canvas.drawLine(
+      Offset(point.dx, plot.top),
+      Offset(point.dx, plot.bottom),
+      Paint()
+        ..color = selectionLine
+        ..strokeWidth = MileafChartGrammar.selectionLine,
+    );
+    canvas.drawCircle(
+      point,
+      MileafChartGrammar.selectionDot + MileafChartGrammar.selectionRing,
+      Paint()..color = markerBackdrop,
+    );
+    canvas.drawCircle(
+      point,
+      MileafChartGrammar.selectionDot,
+      Paint()..color = primary,
+    );
   }
 
   void _drawLine(
@@ -1140,18 +1766,41 @@ class _ChartPainter extends CustomPainter {
     }
   }
 
+  /// 条形图：每个时间槽一段短横刻度（宽 = 柱宽 + 4，1.5 线宽）；
+  /// 折线图：1.5 虚线 4/4（R29）。
   void _drawReference(
     Canvas canvas,
     ChartSeries chart,
     double Function(int) x,
     double Function(num) y,
+    double barWidth,
   ) {
+    var bars = false;
+    for (final candidate in series) {
+      if (candidate.style == ChartSeriesStyle.bars ||
+          candidate.style == ChartSeriesStyle.stem) {
+        bars = true;
+        break;
+      }
+    }
     final paint = Paint()
       ..color = reference
-      ..style = PaintingStyle.stroke
-      // R06：参照 1.5 虚线 4/4，比 2px 主线细一档。
       ..strokeWidth = MileafChartMetrics.referenceStroke
       ..strokeCap = StrokeCap.round;
+    if (bars) {
+      final half = (barWidth + MileafChartGrammar.referenceTickBleed) / 2;
+      for (var i = 0; i < chart.values.length; i++) {
+        final value = chart.values[i];
+        if (value == null) continue;
+        final at = y(value);
+        canvas.drawLine(
+          Offset(x(i) - half, at),
+          Offset(x(i) + half, at),
+          paint,
+        );
+      }
+      return;
+    }
     for (final run in chartRuns(chart.values)) {
       for (var i = 1; i < run.length; i++) {
         _dashedLine(
@@ -1180,19 +1829,19 @@ class _ChartPainter extends CustomPainter {
     }
   }
 
+  /// 柱：宽 ≤12，只在数值端做 min(4, 宽/2) 圆角；真实 0 是基线上的点，
+  /// null 留空（R29）。
   void _drawBars(
     Canvas canvas,
     ChartSeries chart,
     double Function(int) x,
     double Function(num) y,
   ) {
-    final slot =
-        (plot.width - 2 * MileafChartMetrics.currentHalo) /
-        math.max(1, times.length);
-    final width = math.min(
-      MileafChartMetrics.barMaxWidth,
-      slot * MileafChartMetrics.barSlotCoverage,
+    final width = _barWidth();
+    final radius = Radius.circular(
+      math.min(MileafChartGrammar.barEndRadius, width / 2),
     );
+    const zero = Radius.zero;
     for (var i = 0; i < chart.values.length; i++) {
       final value = chart.values[i];
       if (value == null) continue;
@@ -1204,13 +1853,15 @@ class _ChartPainter extends CustomPainter {
         x(i) + width / 2,
         bottom,
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          rect,
-          const Radius.circular(MileafChartMetrics.barRadius),
-        ),
-        Paint()..color = primary,
+      final positive = value >= 0;
+      final rrect = RRect.fromRectAndCorners(
+        rect,
+        topLeft: positive ? radius : zero,
+        topRight: positive ? radius : zero,
+        bottomLeft: positive ? zero : radius,
+        bottomRight: positive ? zero : radius,
       );
+      canvas.drawRRect(rrect, Paint()..color = primary);
       if (value == 0) {
         canvas.drawCircle(
           Offset(x(i), y(0)),
