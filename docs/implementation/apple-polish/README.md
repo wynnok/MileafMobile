@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | FP0 | AP00 完成：在途改动与设计文档两次提交已落地，集成分支已建，AP00 交付物已提交，W1 工作树已建 | 7cf8dd4（AP00 + FP0 登记） |
 | FP1 | W1（AP01、AP06）合入 + 集成窗口基线补登 | c18f2fc（W1 合入） |
-| FP2 | W2（AP02–AP05）合入，共享 API 唯一清单 | 待登记 |
+| FP2 | W2（AP02–AP05）合入 + 集成窗口收口，共享 API 唯一清单 | 8edd1ec（W2 合入） |
 | FP3 | AP07 经用户视觉裁定后冻结 | 待登记 |
 
 ## 文件与测试租约（交付手册 §3.3）
@@ -40,11 +40,11 @@
 | --- | --- | --- | --- | --- |
 | AP01 | （已删）…/MileafMobile-ap01 | codex/apple-polish-ap01 | FP0 | 已合入 FP1，工作树已删，分支保留 |
 | AP06 | （已删）…/MileafMobile-ap06 | codex/apple-polish-ap06 | FP0 | 已合入 FP1，工作树已删，分支保留 |
-| AP02 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap02 | codex/apple-polish-ap02 | FP1 | 已创建（W2），依赖已备 |
-| AP03 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap03 | codex/apple-polish-ap03 | FP1 | 已创建（W2），依赖已备 |
-| AP04 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已创建（W2），依赖已备 |
-| AP05 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已创建（W2），依赖已备 |
-| AP07 | 待登记 | codex/apple-polish-ap07 | FP2 | 待创建（W3） |
+| AP02 | （已删）…/MileafMobile-ap02 | codex/apple-polish-ap02 | FP1 | 已合入 FP2，工作树已删，分支保留 |
+| AP03 | （已删）…/MileafMobile-ap03 | codex/apple-polish-ap03 | FP1 | 已合入 FP2，工作树已删，分支保留 |
+| AP04 | （已删）…/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已合入 FP2，工作树已删，分支保留 |
+| AP05 | （已删）…/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已合入 FP2，工作树已删，分支保留 |
+| AP07 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已创建（W3），依赖已备 |
 | AP08–AP13 | 待登记 | codex/apple-polish-apXX | FP3 | 待创建（W4） |
 
 ## W1 合入记录（FP1 = c18f2fc）
@@ -61,6 +61,52 @@
 合入后集成状态：`analyze` 无诊断；全量 `tool/flutterw test --no-pub` 803 通过 / 35 跳过 / 0 失败（FP0 基线 754/33；+49 通过 = AP01 21 + AP06 28，+2 跳过 = AP01 渲染入口未 opt-in）。
 
 W1 遗留交下游的事实：AP01 `AU-AP01`（controlBorder 采纳 #7A8390/#677179，否决规格候选，已实测 ≥3:1）与 `AU-AP01-1`（深色 textSecondary 在 segmentSelected 上 4.461:1）为调色板层待办，AP01 只允许两处外观变化故未修，交后续调色板/页面票；AP06 `D1`/`D2`/`D3`（session_test 与 map_key 测试钉住的原文保持不动）与 `D2` 的「已清除 · …」改逗号拼接已随票落地；`D4`/`D6`/`D7`（命令句、period 措辞、messages 模板重复）列入待确认，交 AP14/AP15 统一。
+
+## W2 合入记录（FP2 = 8edd1ec）
+
+| 顺序 | 票 | 分支 | 票提交 | 合入提交 | 合入后测试 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | AP04 内容语法 | codex/apple-polish-ap04 | 1d70ac8 | bf3140e（--no-ff） | 本票 39 通过（ap04 28 + design_disclosure_fact 6 + 两道守卫 5）；跨票 78 通过（design_components 56、overview_reading、statistics_insights）；跨页 88 通过 |
+| 2 | AP03 控件与弹层 | codex/apple-polish-ap03 | d48990b | 3bb83d3（--no-ff） | 本票 48；design_components 56、apple_design_f01、守卫，合计 125 通过；ui_ux_u01/02/03/11 42 通过 / 2 跳过；跨页 88 通过 |
+| 3 | AP02 导航外壳 | codex/apple-polish-ap02 | c5973d8 | 0d80356（--no-ff） | 本票 21、navigation_bar 7、liquid_glass_nav 9、ui_ux_u02、守卫，合计 57 通过；跨页 88 通过 |
+| 4 | AP05 图表语法 | codex/apple-polish-ap05 | 226338b（3 个提交） | 9f46e70（--no-ff） | 本票 32、chart_marks 17、data_visualization_app、u03 12 / 1 跳过、design_components、守卫，合计 126 通过；跨页 88 通过（含本节收口后） |
+
+四次合入均无文本冲突：四票在 `components.dart` 只各加自己的导出行，`layout.dart` 与外壳文件只有 AP02 触碰。
+
+**补丁核对**（按 §3.3，票不直接改他票文件；全部由总控在合入时应用并单独提交）：
+
+| 来源 | 目标文件（持有票） | 内容 | 落点 |
+| --- | --- | --- | --- |
+| AP04 §7.1 | test/design_components_test.dart（AP03） | hero 24→20 圆角 3 处、StateView 错误态标题 error→text | 35e76de |
+| AP04 §7.2 | test/overview_reading_test.dart（总控在 W2 代收） | 值与单位改为整体查找 | 35e76de |
+| AP04 §7.3 | test/statistics_insights_test.dart（AP11） | `187.5 Wh/km` 整体查找 | 35e76de |
+| AP03 §7 | test/apple_design_f01_test.dart | M01 按压缩放 0.98→0.97 | 45da18c |
+| AP02 §7.2 | test/ui_ux_u02_test.dart（AP03） | 200% 两行顺序按 PD01/R26 调换 | ee04e80 |
+| AP05 §7.3 | test/design_components_test.dart | 读数头日期/数值行、图例移到绘图区之下、电量弧测 CustomPaint | 8edd1ec |
+| AP05 §7.3 | test/overview_statistics_reading_test.dart（总控） | 日期行改为 `M/D` 正则 | 8edd1ec |
+
+**集成窗口收口（8edd1ec，总控）**：AP05 交接 §7.2 列的 39 处下游影响里，除上面两条补丁外的 20 处（drive_detail、drives、charging_detail、a_charging_detail、charging_statistics、statistics、statistics_insights、ui_ux_u07、ui_ux_u08、ui_ux_u09c、full_flow 等）也在本窗口一并改为读数头断言。理由：FP2 是 W3/W4 的输入，留红基线会让后续每票撞同一批失败；这些改动只换断言定位与等价读取方式，未放宽任何阈值，逐条原因见提交 8edd1ec 的说明，各 W4 持有票在自己的票内复核即可。
+
+- 合入后集成状态：`analyze` 无诊断；全量 `tool/flutterw test --no-pub` **932 通过 / 39 跳过 / 0 失败**（FP1 基线 803/35；+129 通过 = AP02 21 + AP03 48 + AP04 28 + AP05 32；+4 跳过 = 四票渲染入口未 opt-in）。
+- 格式与 diff：16 个改动的测试文件 `dart format` 0 changed；`git diff --check` 无输出。
+
+### FP2 共享 API 唯一清单（W3 视觉裁定前冻结，W4 只读）
+
+| 域 | 新增 / 变更的公开符号 |
+| --- | --- |
+| 布局（AP01/AP02） | `MileafLayout.rootChromeLabelMaxScale`、`rootChromeLabelScaler(context)`、`rootTopBarHeight(context, {topInset})`（语义＝展开态）、`rootTopBarCollapsedHeight`、`rootNavigationHeight`（200% 封顶 1.35） |
+| 外壳（AP02） | `MileafTopBar(scrollListenable:)` + Key `top-bar-expanded-title`/`-collapsed-title`/`-expanded-layer`/`-collapsed-layer`/`-vehicle`/`-divider`；`MileafNavBar.labelMaxScale`；`MileafLargeContentViewer`/`MileafLargeContentViewerHost`；`MileafGlassLens.elevated`；`MileafNavigationMenuEntry`；`mileafPageBar(moreActions:)`；`MileafNoticeBanner`；`NavigationMaterial.elevated` |
+| 控件与弹层（AP03） | `MileafChipKeys`、`ChipTrackScope.capsuleHeight`、`ChipRow.rowHeight/trackInset`、`MileafPeriodRow`、`MileafControlMetrics`、`MileafPressOverlay`、`MileafButton.destructive`、`MileafIconButtonFill` 与 `fill`、`MileafSheetStyle` 与 `showMileafSheet(style:)`、`MileafPullDown`/`MileafPullDownOption`、`MileafSelectionList`/`MileafSelectionOption`、`showMileafDateRangeSheet`/`MileafDateRangeSheet`/`MileafDateRangeValidator` |
+| 内容语法（AP04） | `DataNoteCategory`/`dataNoteLabel`、`MileafModuleCard`、`MileafGroupCard`/`MileafGroupHeader`/`MileafGroupRow`、`MileafDataNoteGroup`/`MileafDataNotes`、`MileafRunningPill`、`VehicleStatusKind`/`vehicleStatusIcon`、`MetricGrid.minCellWidth/columns`、`HierarchyReport`/`measureHierarchy`（测试支撑） |
+| 图表（AP05） | `MileafChartGrammar`、`ChartReadoutScale`、`MileafChartReadout`、`chartAxisTickLabels`、`TimeSeriesChart`/`StemChart` 新增 `readoutScale`/`compactReadout`/`showSteps`/`readoutDate`/`markerBackdrop`（均有默认值） |
+
+### 交下游的事实（非待办）
+
+- R29：读值在绘图区之上的读数头，`readout` 句子只作朗读（live region）；需要自定义版式用 `readoutBuilder`。图例在 X 轴之下，Y 轴刻度在绘图区右侧。
+- 电量弧：环内只放数值与紧贴的 `%`，「电量」标签移到环外，组件因此比 88 高一行；88 只约束弧本身。
+- 步进圆钮 `canRequestFocus: false`：键盘 Tab 仍落到绘图区，读屏可触发按钮语义（ui_ux_u12 依赖此约定）。
+- AP02 的 D-AP02-01（大字收起态只保留控件、不显示页面名）与 D-AP02-04（顶栏 100% 下 100→92）留 AP07 视觉裁定复核；AP03 的 D1（图标圆钮 `fill` 默认 none）要求画布上由页面传 `fill: track`；D3（日期弹层「改为选择」新文案）待 AP14/用户统一。
+- AP05 遗留：`overview_page.dart:1980`、`statistics_charging_page.dart:646` 仍渲染「点按读值」，下钻串仍是「看当天」；按 R29/CP06/CP11 由 AP08/AP09/AP10/AP11 在 W4 改词。
 
 ## AP00 交付物
 
