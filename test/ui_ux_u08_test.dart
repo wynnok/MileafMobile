@@ -89,15 +89,25 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    // R29/CP03：读数头第三行给参照区间与差值句，单位紧贴数值。
-    expect(find.textContaining('参照 9/1–9/28 20 km，持平'), findsOneWidget);
+    // P06：主图改紧凑读数行，参照区间与差值句进朗读句（R29/CP03）。
+    expect(
+      find.bySemanticsLabel(RegExp(r'参照 9月1日–28日 20.0 km（差 0.0 km）')),
+      findsOneWidget,
+      reason: '朗读句给出真实参照区间与差值',
+    );
+    // 可见处同一参照以图例名称出现（CP02 用真实名称 + DF3 区间）。
+    expect(find.text('上月同期 9月1日–28日'), findsOneWidget);
+    // 结论卡一句比较（CP03：多/少/持平写进句子）。
+    expect(find.text('与上月同期持平'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('净电耗 187.5 Wh/km'),
+      find.text('187.5 Wh/km'),
       100,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('净电耗 187.5 Wh/km'), findsOneWidget);
-    expect(find.textContaining('已知支出'), findsWidgets);
+    expect(find.text('187.5 Wh/km'), findsOneWidget);
+    // 专题卡各自独立：能耗与补能（费用记录覆盖）不互相依赖。
+    expect(find.byKey(const ValueKey('statistics-topic-能耗')), findsOneWidget);
+    expect(find.textContaining('次有记录'), findsWidgets);
   });
   testWidgets('全部指标保留驾驶与充电原始指标入口', (tester) async {
     await openStats(

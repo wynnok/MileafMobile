@@ -1,7 +1,7 @@
 // AP07 代表页 after 渲染入口（评审包）。opt-in：未设置 MILEAF_RENDER_OUTPUT /
 // MILEAF_RENDER_FONT 时跳过。机位按交付手册 §6.1 的代表页要求取 390×844 浅深
 // 100%、360×800 浅 100%、390×844 浅 200%，页面为 P01 概览、P02 行程、
-// P06 统计首页、P12 设置与 P16 车辆弹层。
+// P06 统计首页、P05 充电详情、P12 设置与 P16 车辆弹层。
 import 'dart:convert';
 import 'dart:io';
 
@@ -172,6 +172,52 @@ void main() {
       await tester.pumpAndSettle();
       await capture(large, label, 'normal', 'light', '390x844-200');
     }
+
+    // P05 充电详情（用户裁定 P05 在本票补齐）：390 浅深 100%、360 浅 100%、
+    // 390 浅 200% 三组机位，与本票其他代表页同规格。
+    Future<void> openChargingDetail(WidgetTester tester) async {
+      await tester.tap(_nav('充电'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('charge-9')).hitTestable(),
+        300,
+      );
+      await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    for (final brightness in Brightness.values) {
+      final boundary = GlobalKey();
+      await _pump(
+        tester,
+        brightness: brightness,
+        boundary: boundary,
+        size: const Size(390, 844),
+        scale: 1,
+      );
+      await openChargingDetail(tester);
+      await capture(boundary, '充电详情', 'normal', brightness.name, '390x844-100');
+    }
+    final detailSmall = GlobalKey();
+    await _pump(
+      tester,
+      brightness: Brightness.light,
+      boundary: detailSmall,
+      size: const Size(360, 800),
+      scale: 1,
+    );
+    await openChargingDetail(tester);
+    await capture(detailSmall, '充电详情', 'normal', 'light', '360x800-100');
+    final detailLarge = GlobalKey();
+    await _pump(
+      tester,
+      brightness: Brightness.light,
+      boundary: detailLarge,
+      size: const Size(390, 844),
+      scale: 2,
+    );
+    await openChargingDetail(tester);
+    await capture(detailLarge, '充电详情', 'normal', 'light', '390x844-200');
 
     File('$output/manifest.json').writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert({

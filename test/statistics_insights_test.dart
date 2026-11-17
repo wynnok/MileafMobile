@@ -44,8 +44,13 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    await tester.scrollUntilVisible(find.textContaining('本月 · 2026年10月'), 80);
-    expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
+    // P06 结论卡：期间名 + DF3 区间（不再出现「本月 · 2026年10月」这类月份串）。
+    await tester.scrollUntilVisible(
+      find.text('本月 10月1日\u201328日'),
+      80,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('本月 10月1日\u201328日'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
     await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
     expect(find.textContaining('187.5'), findsWidgets);
@@ -58,8 +63,9 @@ void main() {
           .dy,
       lessThanOrEqualTo(736),
     );
-    // R29/CP03：读数头第三行给参照区间与差值句，单位紧贴数值。
-    expect(find.textContaining('参照 9/1–9/28 20 km，持平'), findsOneWidget);
+    // R29/CP02：图例写参照的真实区间名，比较结论写成句子（「与…持平」）。
+    expect(find.text('上月同期 9月1日\u201328日'), findsOneWidget);
+    expect(find.text('与上月同期持平'), findsOneWidget);
     await tester.ensureVisible(find.text('节奏').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('节奏').first);
@@ -72,11 +78,11 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.textContaining('本月 · 2026年10月'),
+      find.text('本月 10月1日\u201328日'),
       -160,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.textContaining('本月 · 2026年10月'), findsOneWidget);
+    expect(find.text('本月 10月1日\u201328日'), findsOneWidget);
   });
   testWidgets('统计能力读取失败时仍可阅读旧统计', (tester) async {
     final client = MockClient((r) async {
@@ -153,26 +159,24 @@ void main() {
       } else {
         expect(find.textContaining('较参照'), findsNothing);
       }
+      // R30：说明迁入页尾「关于这些数据」，参照原值进「技术详情」。
       await tester.scrollUntilVisible(
-        find.text('数据说明与更多').hitTestable(),
+        find.text('技术详情').hitTestable(),
         100,
         scrollable: find.byType(Scrollable).last,
       );
-      await tester.tap(find.text('数据说明与更多').hitTestable());
+      await tester.tap(find.text('技术详情').hitTestable());
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.text('参照原值与质量'),
+        find.textContaining(
+          scenario == 'zero' ? '对比有效行程电耗 0 Wh/km' : '对比有效行程电耗 200 Wh/km',
+        ),
         100,
         scrollable: find.byType(Scrollable).last,
       );
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -160));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('参照原值与质量'));
-      await tester.pumpAndSettle();
-      await tester.pumpAndSettle();
       expect(
         find.textContaining(
-          scenario == 'zero' ? '参照配对净电耗 0 Wh/km' : '参照配对净电耗 200 Wh/km',
+          scenario == 'zero' ? '对比有效行程电耗 0 Wh/km' : '对比有效行程电耗 200 Wh/km',
         ),
         findsOneWidget,
       );
@@ -295,12 +299,13 @@ void main() {
     expect(find.textContaining('187.5'), findsWidgets);
     final before = currentRequests;
     failReference = false;
-    await tester.scrollUntilVisible(find.text('重试参照').hitTestable(), -100);
-    await tester.tap(find.text('重试参照').hitTestable());
+    // CP07：失败提示的动作统一写「重试」（原来按对象命名）。
+    await tester.scrollUntilVisible(find.text('重试').hitTestable(), -100);
+    await tester.tap(find.text('重试').hitTestable());
     await tester.pumpAndSettle();
     expect(currentRequests, before);
     expect(find.textContaining('参照读取失败'), findsNothing);
-    expect(find.text('与参照同期持平'), findsOneWidget);
+    expect(find.text('与上月同期持平'), findsOneWidget);
   });
   testWidgets('360宽200%深色可切换配对净电耗且原值完整可读', (tester) async {
     tester.view.physicalSize = const Size(360, 800);

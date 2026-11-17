@@ -334,7 +334,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆弹层行改「Y，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('8 次'), findsOneWidget);
     pending.complete(fixture('driving-stats'));

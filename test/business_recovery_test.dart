@@ -194,7 +194,8 @@ void main() {
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(find.textContaining('证书校验失败'), findsOneWidget);
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    // CP07：有旧数据时的刷新失败写「，显示的是上次的数据」。
+    expect(find.textContaining('显示的是上次的数据'), findsOneWidget);
     expect(batteryText(68), findsWidgets);
     expect(find.textContaining('sensitive connection detail'), findsNothing);
     await tester.pumpWidget(const SizedBox());

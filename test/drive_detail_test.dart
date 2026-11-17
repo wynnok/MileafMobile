@@ -43,10 +43,12 @@ Future<void> openDetail(
   );
   await tester.scrollUntilVisible(find.byKey(const ValueKey('drive-1')), 180);
   await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.byKey(const ValueKey('drive-1')).hitTestable(),
-    140,
+  // 记录之后还有节奏卡与页尾：把记录行移到视口中部，避免被收起顶栏遮住。
+  await Scrollable.ensureVisible(
+    tester.element(find.byKey(const ValueKey('drive-1'))),
+    alignment: .5,
   );
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('drive-1')));
   await tester.pumpAndSettle();
 }
@@ -600,11 +602,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // 弹层行按 P16 写「Y，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     slow.complete(jsonResponse(jsonEncode(fixture('drive-detail'))));
     await tester.pumpAndSettle();
     expect(find.text('行程详情'), findsNothing);
+    // 弹层关闭后由顶栏车辆胶囊确认已换车；胶囊仍按 vehicleName 的「·」拼接。
     expect(find.text('Y · 尾号 0002'), findsOneWidget);
   });
   testWidgets('默认未启用底图时详情和采样可读，显示路线示意且没有研发占位文案', (tester) async {

@@ -133,9 +133,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('charge-1')));
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('两类能量'), 180);
+    await tester.scrollUntilVisible(find.text('电量计量'), 180);
     await tester.pumpAndSettle();
-    expect(find.text('电网侧'), findsOneWidget);
+    expect(find.text('电网用电'), findsOneWidget);
     expect(find.text('22.00 kWh'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();

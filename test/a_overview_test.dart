@@ -117,7 +117,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(MileafDataRow, '最近行程'), findsOneWidget);
     expect(find.widgetWithText(MileafDataRow, '最近充电'), findsOneWidget);
-    expect(find.textContaining('净电耗 154 Wh/km'), findsOneWidget);
+    // CP02：行内短标签由「净电耗」改为「电耗」。
+    expect(find.textContaining('电耗 154 Wh/km'), findsOneWidget);
     expect(find.textContaining('充入 46.80 kWh'), findsOneWidget);
   });
 
@@ -126,7 +127,8 @@ void main() {
     final value = tester.getRect(find.textContaining('1,198.6'));
     final chartTitle = tester.getRect(find.text('每日里程'));
     expect(chartTitle.top - value.bottom, lessThan(160), reason: '本月块不应留下整块空白');
-    await tester.scrollUntilVisible(find.text('驾驶'), 200);
+    // P01：本期读数表独立成「本期账目」分组卡，仍在焦点卡下方。
+    await tester.scrollUntilVisible(find.text('本期账目'), 200);
     await tester.pumpAndSettle();
     final plate = find.byKey(const ValueKey('overview-reading-plate'));
     expect(
@@ -137,19 +139,26 @@ void main() {
       find.descendant(of: plate, matching: find.text('¥186.4')),
       findsOneWidget,
     );
-    expect(find.textContaining('8/9 次'), findsOneWidget);
+    // CP02：费用覆盖改写成「9 次中 8 次有费用」。
+    expect(find.textContaining('9 次中 8 次有费用'), findsOneWidget);
   });
 
-  testWidgets('A 概览 200% 时 hero 纵向堆叠、今日读数两列', (tester) async {
+  testWidgets('A 概览 200% 时 hero 纵向堆叠、今日读数单列', (tester) async {
     await openOverview(tester, textScale: 2, size: const Size(360, 800));
     final range = tester.getRect(find.textContaining('320'));
     final arc = tester.getRect(find.byType(BatteryArc));
     expect(arc.top, greaterThan(range.bottom), reason: '续航在上、弧在下');
-    final first = tester.getRect(find.text('今日 km'));
-    final second = tester.getRect(find.text('次行程'));
-    final third = tester.getRect(find.text('估算 kWh'));
-    expect(first.top, second.top, reason: '今日两项同处 2×2 首行');
-    expect(third.top, greaterThan(first.bottom), reason: '第三项换行');
+    // CP03：今日三项标签改为「今日里程 / 行程 / 估算耗电」（单位跟值）；
+    // 「行程」也出现在本期账目格，取车况卡里的那一个。
+    final status = find.byKey(const ValueKey('overview-status'));
+    Finder cell(String label) =>
+        find.descendant(of: status, matching: find.text(label));
+    final first = tester.getRect(cell('今日里程'));
+    final second = tester.getRect(cell('行程'));
+    final third = tester.getRect(cell('估算耗电'));
+    // P01/R11：100% 时三项一行三格；200% 时 MetricGrid 直接收成单列堆叠。
+    expect(second.top, greaterThan(first.bottom), reason: '200% 时三项单列堆叠');
+    expect(third.top, greaterThan(second.bottom), reason: '200% 时三项单列堆叠');
     await tester.scrollUntilVisible(
       find.text('最近充电').hitTestable(),
       250,
@@ -234,7 +243,11 @@ void main() {
             findsNothing,
           );
           final material = tester.widget<Material>(status);
-          expect(material.borderRadius, MileafRadius.surfaceAll);
+          // P01/R01：车况卡与所有内容卡同一半径（MileafRadius.lg = 20）。
+          expect(
+            material.borderRadius,
+            const BorderRadius.all(Radius.circular(MileafRadius.lg)),
+          );
           final divider = tester.getRect(
             find.descendant(of: status, matching: find.byType(Divider)).first,
           );

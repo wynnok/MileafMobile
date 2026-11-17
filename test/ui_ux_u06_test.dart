@@ -38,6 +38,10 @@ class _Appearance implements AppearancePreferenceStore {
   Future<void> write(String? next) async => value = next;
 }
 
+/// AP07：概览等页面也出现「充电」字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
 void main() {
   setUpAll(() async {
     if (fontPath.isNotEmpty) await loadRenderFonts(cjkFontPath: fontPath);
@@ -46,7 +50,7 @@ void main() {
   testWidgets('U06 同底账目与88高每日补能', (tester) async {
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.byType(MileafHero), findsNothing);
     await tester.scrollUntilVisible(find.byType(StemChart), 100);
@@ -91,7 +95,7 @@ void main() {
     addTearDown(client.close);
     await tester.pumpWidget(app(client, now: () => cNow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电').last);
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     final row = find.byKey(const ValueKey('charge-9'));
     await tester.scrollUntilVisible(row.hitTestable(), 120);
@@ -101,16 +105,23 @@ void main() {
     await tester.tap(row.hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('更多充电信息').hitTestable(), 200);
+    // P05：说明入口改页尾「关于这些数据」，记录编号与精确时间进「技术详情」。
+    await tester.scrollUntilVisible(find.text('关于这些数据').hitTestable(), 200);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多充电信息'));
+    await tester.tap(find.text('技术详情').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电记录 #9'), 100);
-    expect(find.text('充电记录 #9'), findsOneWidget);
+    // 技术详情是可复制的 SelectableText：编号与 DF8 精确时间在同一段里。
+    final technical = tester
+        .widgetList<SelectableText>(find.byType(SelectableText))
+        .map((widget) => widget.data ?? '')
+        .join('\n');
+    expect(technical, contains('记录编号 9'));
     expect(
-      find.textContaining(RegExp(r'^开始 .*\d{2}:\d{2}:\d{2}')),
-      findsOneWidget,
+      technical,
+      matches(RegExp(r'开始 \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')),
     );
+    // 列表行仍不出现记录编号。
+    expect(find.textContaining('充电 #9'), findsNothing);
   });
   testWidgets('U06 正式字体矩阵与首屏预算实测', (tester) async {
     tester.view.devicePixelRatio = 1;
@@ -213,7 +224,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('充电').last);
+      await tester.tap(navTab('充电'));
       await tester.pumpAndSettle();
       if (scenario == 'normal' && scale == 1.3) {
         expect(

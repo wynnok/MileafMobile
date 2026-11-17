@@ -53,9 +53,40 @@ MockClient shellClient({List<Uri>? calls}) => MockClient((request) async {
   return http.Response('{}', 404);
 });
 
+MockClient chargingClient() => MockClient((request) async {
+  final path = request.url.path;
+  if (path.endsWith('/vehicles')) return _ok(fixture('vehicles'));
+  if (path.endsWith('/meta')) return _ok(fixture('meta'));
+  if (path.endsWith('/summary')) return _ok(fixture('summary'));
+  if (path.endsWith('/stats')) {
+    return _ok(
+      fixture(
+        request.url.queryParameters['kind'] == 'charging'
+            ? 'charging-stats'
+            : 'driving-stats',
+      ),
+    );
+  }
+  if (path.endsWith('/charging-sessions/9/series')) {
+    final series = fixture('charging-series') as Map<String, dynamic>;
+    series['session_id'] = 9;
+    return _ok(series);
+  }
+  if (path.endsWith('/charging-sessions/9')) {
+    final detail = fixture('charging-detail') as Map<String, dynamic>;
+    detail['id'] = 9;
+    return _ok(detail);
+  }
+  if (path.endsWith('/charging-sessions')) {
+    return _ok(fixture('charging-sessions'));
+  }
+  return http.Response('{}', 404);
+});
+
 Future<void> pumpWorkspace(
   WidgetTester tester, {
   List<Uri>? calls,
+  MockClient? client,
   double textScale = 1,
   Size size = const Size(390, 844),
   Brightness brightness = Brightness.light,
@@ -80,7 +111,7 @@ Future<void> pumpWorkspace(
     });
   await tester.pumpWidget(
     MileafApp(
-      client: shellClient(calls: calls),
+      client: client ?? shellClient(calls: calls),
       mapKeys: keys,
       sessionStore: store,
       trustStore: MemoryTrustStore(),
@@ -392,10 +423,14 @@ void main() {
       final first = tester.getRect(find.byKey(const ValueKey('drive-17')));
       final second = tester.getRect(find.byKey(const ValueKey('drive-16')));
       expect(first.bottom, lessThanOrEqualTo(viewport.bottom));
-      // §6 退让阶梯第 1–4 步已用尽：360×800 下第二条记录露出 2（目标 24）。
-      // 第 5 步候选（去图表标题行 / 把节奏图移到记录之后）会改动冻结的 P02
-      // 版面顺序，已写入交接交用户裁定，此处按实际值锁定。
-      expect(viewport.bottom - second.top, greaterThanOrEqualTo(0));
+      // §6 退让阶梯第 5 步已按用户裁定 B 落实：节奏图移到记录之后，
+      // 首屏不再被图表挤占，第二条记录达到 24 的预算。
+      final secondVisible = viewport.bottom - second.top;
+      expect(
+        secondVisible,
+        greaterThanOrEqualTo(24),
+        reason: '第二条记录可见 $secondVisible',
+      );
       expect(second.top, lessThan(viewport.bottom));
       expect(tester.takeException(), isNull);
       semantics.dispose();
@@ -436,6 +471,65 @@ void main() {
       }
       expect(tester.takeException(), isNull);
       semantics.dispose();
+    });
+  });
+
+  group('AP07 P05 充电详情', () {
+    Future<void> openCharging(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MileafNavBar),
+          matching: find.text('充电'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('charge-9')).hitTestable(),
+        300,
+      );
+      await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('身份行写绝对日期，电量卡三格与单个刷新入口', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester, client: chargingClient());
+      await openCharging(tester);
+      expect(find.text('充电详情'), findsOneWidget);
+      expect(find.text('家'), findsWidgets);
+      expect(find.textContaining('月'), findsWidgets);
+      expect(find.textContaining('今天'), findsNothing);
+      expect(find.text('已结束'), findsOneWidget);
+      // 电量卡：起始到结束 + 三格。
+      expect(find.textContaining('% → '), findsOneWidget);
+      expect(find.text('充入电量'), findsOneWidget);
+      expect(find.text('费用'), findsOneWidget);
+      expect(find.text('时长'), findsOneWidget);
+      // AU13：只留一个刷新入口。
+      expect(find.byTooltip('刷新充电明细'), findsOneWidget);
+      expect(find.byTooltip('刷新充电曲线'), findsNothing);
+      // 充电过程卡：标题、指标控件、读数头、绘图区。
+      await tester.scrollUntilVisible(find.text('充电过程'), 250);
+      expect(find.text('功率'), findsWidgets);
+      expect(find.text('电量'), findsWidgets);
+      expect(find.byKey(const Key('charging-time-chart')), findsOneWidget);
+      expect(find.bySemanticsLabel('下一个数据点'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('关于这些数据'), 300);
+      expect(find.text('关于这些数据'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('360x800 首屏：功率绘图区首 120 可见', (tester) async {
+      await pumpWorkspace(
+        tester,
+        client: chargingClient(),
+        size: const Size(360, 800),
+      );
+      await openCharging(tester);
+      final plot = tester.getRect(find.byKey(const Key('charging-time-chart')));
+      expect(800 - plot.top, greaterThanOrEqualTo(120), reason: 'P05 §6 首屏预算');
+      expect(tester.takeException(), isNull);
     });
   });
 

@@ -109,10 +109,8 @@ void main() {
   testWidgets('A 概览部分缺失显示破折号，不补零', (tester) async {
     await openOverview(tester, scenario: 'missing');
     final net = find.byKey(const ValueKey('overview-plate-net'));
-    expect(
-      find.descendant(of: net, matching: find.text('净电耗')),
-      findsOneWidget,
-    );
+    // CP02：净电耗的短标签改为「电耗」。
+    expect(find.descendant(of: net, matching: find.text('电耗')), findsOneWidget);
     expect(
       find.descendant(of: net, matching: find.text('—')),
       findsOneWidget,
@@ -125,10 +123,11 @@ void main() {
   testWidgets('A 概览 200% 浅色无横向溢出且主数单位可见', (tester) async {
     await openOverview(tester, brightness: Brightness.light, textScale: 2);
     expect(find.textContaining('320'), findsWidgets);
-    expect(find.textContaining('今日 km'), findsOneWidget);
-    // 200% 下主图眉标位于首屏之外，仅按需构建；沿页面滚动确认仍可达且文案不变。
-    await tester.scrollUntilVisible(find.textContaining('本月 · 驾驶里程'), 240);
-    expect(find.textContaining('本月 · 驾驶里程'), findsOneWidget);
+    // CP03：今日三项标签改为「今日里程 / 行程 / 估算耗电」，单位跟值。
+    expect(find.textContaining('今日里程'), findsOneWidget);
+    // 200% 下焦点卡标签位于首屏之外，仅按需构建；沿页面滚动确认仍可达且文案不变。
+    await tester.scrollUntilVisible(find.textContaining('本月驾驶'), 240);
+    expect(find.textContaining('本月驾驶'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

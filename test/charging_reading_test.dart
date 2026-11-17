@@ -13,7 +13,6 @@ import 'package:http/testing.dart';
 import 'package:mileaf/src/charging_page.dart';
 import 'package:mileaf/src/design/components/components.dart';
 
-import 'charging_cost_test.dart' show openCostSheet;
 import 'charging_detail_test.dart' show fixture;
 import 'charging_expansion_test.dart' show chargingStatsV2;
 import 'charging_test.dart' show initial, jsonResponse;
@@ -340,6 +339,24 @@ Future<void> openLedger(
   );
 }
 
+/// P05：详情页补录入口改为「补录」小胶囊（旧「补录费用」按钮已不存在），
+/// 这里在本文件内定位，避免依赖跨文件 helper 的旧串。
+Future<void> openFillCostSheet(WidgetTester tester) async {
+  final pageScrollable = find
+      .byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      )
+      .first;
+  await tester.scrollUntilVisible(
+    find.text('补录').hitTestable(),
+    150,
+    scrollable: pageScrollable,
+  );
+  await tester.tap(find.text('补录').hitTestable());
+  await tester.pumpAndSettle();
+}
+
 /// Reads the ledger list to its loaded end by following the cursor once.
 Future<void> readLedgerToEnd(WidgetTester tester) async {
   final scrollable = find
@@ -402,6 +419,9 @@ void main() {
         return http.Response.fromStream(await base.send(copy));
       });
       await pumpReadingApp(tester, client);
+      // NOTE(AP07)：概览的「数据说明与更多 → 充电统计」入口在 P01 已移除；
+      // 共享 helper openChargingTopic（overview_statistics_reading_test.dart）
+      // 仍用旧串，需由统计/阅读侧改成新入口，本用例因此仍失败。
       await openChargingTopic(tester);
       // R09：刷新入口改为图标按钮；仅更新定位器，探测断言不变。
       final refresh = find.byTooltip('刷新补能统计');
@@ -586,7 +606,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 200);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    await openCostSheet(tester);
+    await openFillCostSheet(tester);
     await tester.enterText(find.byType(TextField).last, '1.25');
     await tester.pumpAndSettle();
     site.reads.clear();
@@ -636,7 +656,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 200);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    await openCostSheet(tester);
+    await openFillCostSheet(tester);
     await tester.enterText(find.byType(TextField).last, '1.25');
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认补录'));
@@ -862,7 +882,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
     await tester.pumpAndSettle();
-    await openCostSheet(tester);
+    await openFillCostSheet(tester);
     await tester.enterText(find.byType(TextField).last, '1.25');
     await tester.pumpAndSettle();
     site.reads.clear();

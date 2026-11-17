@@ -900,28 +900,48 @@ class _OverviewPageState extends State<OverviewPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: context.type.headline.copyWith(
-                      color: context.colors.text,
-                    ),
+            // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行（R21.4 仍只出现一次）。
+            if (MileafLayout.largeText(context)) ...[
+              Text(
+                label,
+                style: context.type.headline.copyWith(
+                  color: context.colors.text,
+                ),
+              ),
+              if (window != null) ...[
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  window,
+                  style: context.type.subheadline.copyWith(
+                    color: context.colors.textSecondary,
                   ),
                 ),
-                if (window != null) ...[
-                  const SizedBox(width: MileafSpace.s8),
-                  Text(
-                    window,
-                    style: context.type.subheadline.copyWith(
-                      color: context.colors.textSecondary,
+              ],
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: context.type.headline.copyWith(
+                        color: context.colors.text,
+                      ),
                     ),
                   ),
+                  if (window != null) ...[
+                    const SizedBox(width: MileafSpace.s8),
+                    Flexible(
+                      child: Text(
+                        window,
+                        style: context.type.subheadline.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
+              ),
             const SizedBox(height: MileafSpace.s4),
             MetricBlock(
               semanticLabel: semantic,
@@ -981,9 +1001,10 @@ class _OverviewPageState extends State<OverviewPage>
             b.bucketStart,
         ];
 
+  /// 入参是已按站点日历本地化的墙钟时间（tick 与读数头共用同一份）。
   String tickLabelAt(List<DateTime> times, int index) {
     if (index < 0 || index >= times.length) return '—';
-    final local = workspace.calendar!.local(times[index]);
+    final local = times[index];
     return '${local.month}/${local.day}';
   }
 
@@ -1069,10 +1090,16 @@ class _OverviewPageState extends State<OverviewPage>
     final values = _currentValues();
     final reference = _referenceValues();
     final times = chartTimes;
+    // AP05 的 TimeSeriesChart 以「本地墙钟」格式化日期（charts.dart 的
+    // chartAxisTickLabels/_pointDate）；服务端 bucket_start 是 UTC 瞬时，
+    // 直接传入会让读数头与 X 轴比站点日历早一天（R29 唯一接缝）。
+    final wallTimes = [
+      for (final time in times) workspace.calendar!.local(time),
+    ];
     final selected = _selectedChartPoint(times, values);
     _PointReading point(int index) {
       final raw = index < values.length ? values[index] : null;
-      final stamp = tickLabelAt(times, index);
+      final stamp = tickLabelAt(wallTimes, index);
       final isCost = metric == _Metric.cost;
       final decimals = metric == _Metric.net ? 0 : 1;
       String text(num value) => isCost
@@ -1132,7 +1159,7 @@ class _OverviewPageState extends State<OverviewPage>
       showYAxis: true,
       title: title,
       unit: unit,
-      times: times,
+      times: wallTimes,
       semanticsLabel: '$title图表',
       series: [
         ChartSeries(
@@ -1495,9 +1522,55 @@ class _OverviewPageState extends State<OverviewPage>
         _comparisonSection(),
         if (driving != null) const SizedBox(height: MileafSpace.section),
         MileafDataNotes(groups: _dataNotes(d)),
+        _statisticsDrills(),
       ],
     ),
   );
+
+  /// 页尾下钻（CP06 页尾文字按钮）：概览期间直接打开驾驶/充电统计，
+  /// 沿既有回调 onStatistics 与 StatisticsSelection，路由与参数不变。
+  Widget _statisticsDrills() {
+    final selection = ranges['driving']?.selection;
+    Widget drill(String kind, String label) => TextButton(
+      onPressed: selection == null
+          ? null
+          : () => widget.onStatistics?.call(kind, selection),
+      child: Text(label),
+    );
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Wrap(
+        spacing: MileafSpace.s8,
+        runSpacing: MileafSpace.s4,
+        children: [drill('driving', '驾驶统计'), drill('charging', '充电统计')],
+      ),
+    );
+  }
+
+  /// 参照数据是否满足 canCompare：不足或口径未确认时既不算差值也不造句。
+  bool get _comparisonComparable {
+    final base = results['driving'];
+    final other = comparisonResult;
+    if (base == null || other == null) return false;
+    // 形状不全时：站点没声明配对能力就沿原行为按服务端净电耗比较；
+    // 声明了配对却缺字段则判不可比，不把旧净电耗当配对值（CP08）。
+    // canCompare 走 insights 契约解析，形状不全时解析会抛，故先判形状。
+    if (base.body['query'] is! Map || other.body['query'] is! Map) {
+      return !pairedAvailable;
+    }
+    try {
+      return canCompare(
+        base.body,
+        other.body,
+        workspace.calendar!,
+        period == OverviewPeriod.month
+            ? StatisticsPeriod.month
+            : StatisticsPeriod.custom,
+      );
+    } on FormatException {
+      return false;
+    }
+  }
 
   /// P01「电耗对比」：一句差异 + 查看对比明细（原来的「一条有参照的变化」）。
   Widget _comparisonSection() {
@@ -1518,6 +1591,9 @@ class _OverviewPageState extends State<OverviewPage>
         prior.consumptionWhKmNet == null ||
         prior.consumptionWhKmNet == 0) {
       message = '电耗样本不足，暂不作区间比较';
+    } else if (!_comparisonComparable) {
+      // 参照口径不可比时不造句，和图表读数头用同一句口径说明（CP02、CP11）。
+      message = '数据口径未确认，暂不比较';
     } else {
       final delta = current.consumptionWhKmNet! - prior.consumptionWhKmNet!;
       final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
@@ -1599,6 +1675,7 @@ class _OverviewPageState extends State<OverviewPage>
                 '${copy.duration(Duration(minutes: minutes.round()))}，'
                 '${paired?.totals.drivingCoverage.durationKnownDrives ?? '—'} 趟有记录。',
           if (coverage != null) '费用记录：$coverage。',
+          ?_chargingSplitNote,
           if (driving != null) '缺失显示 —，未知不等于 0。',
         ].join(''),
       ),
@@ -1638,6 +1715,28 @@ class _OverviewPageState extends State<OverviewPage>
       ),
     ];
     return notes;
+  }
+
+  /// 补能分类与均价的原值（P01 把旧「补能账本」表格迁入这里，数值不丢）。
+  String? get _chargingSplitNote {
+    final totals = charging?.totals;
+    if (totals == null) return null;
+    final unknown = enhancedCharging?.totals.unknownEnergyKwh;
+    String amount(num? value) =>
+        value == null ? '—' : '${value.toStringAsFixed(2)} kWh';
+    final share = totals.dcEnergyShare == null
+        ? '—'
+        : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)} %';
+    final unitCost = coverageAvailable
+        ? enhancedCharging?.totals.unitCostAdded.value
+        : charging!.totals.costPerKwh;
+    return [
+      'AC ${amount(totals.acEnergyKwh)}',
+      'DC ${amount(totals.dcEnergyKwh)}',
+      '未知 ${amount(unknown)}',
+      'DC 占已知分类能量 $share',
+      if (unitCost != null) '充入均价 ${widget.currency.amountValue(unitCost)}/kWh',
+    ].join('，');
   }
 
   String _precise(DateTime? time) =>

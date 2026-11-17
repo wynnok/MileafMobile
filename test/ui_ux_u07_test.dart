@@ -113,11 +113,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 160);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('按电量').hitTestable(), 160);
-    await tester.tap(find.text('按电量').hitTestable());
+    // P05：过程卡只有 功率 / 电量 两个指标（横轴固定为时间），旧的
+    // 「按电量」横轴视图已并入电量指标；这里验证大字下切到电量仍完整。
+    await tester.scrollUntilVisible(find.text('电量').hitTestable(), 160);
+    await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.byKey(const Key('charging-soc-chart')),
+      find.byKey(const Key('charging-time-chart')),
       160,
     );
     expect(tester.takeException(), isNull);

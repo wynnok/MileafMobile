@@ -27,12 +27,19 @@ void main() {
         ).readAsStringSync(),
       ),
     );
-    expect(find.text('最近的路').hitTestable(), findsOneWidget);
-    expect(find.text('出行节奏').hitTestable(), findsOneWidget);
-    expect(find.textContaining('归期时区：').hitTestable(), findsNothing);
+    // P02：记录按天分组（分组标题 CP04 DF2），每趟仍可直接下钻。
+    expect(find.text('今天'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('drive-17')).hitTestable(),
       findsOneWidget,
+    );
+    expect(find.textContaining('归期时区：').hitTestable(), findsNothing);
+    // 节奏卡已移到记录之后：先到记录，再向下到「每日里程」。
+    await tester.scrollUntilVisible(find.text('每日里程').hitTestable(), 200);
+    expect(find.text('每日里程').hitTestable(), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('drive-17')).hitTestable(),
+      -200,
     );
     await tester.tap(find.byKey(const ValueKey('drive-17')));
     await tester.pumpAndSettle();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:http/testing.dart';
 
 import 'charging_test.dart' show app;
@@ -13,7 +14,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(
+      find.descendant(of: find.byType(MileafNavBar), matching: find.text('充电')),
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('费用有记录'), findsOneWidget);
     final dailyTop = tester.getTopLeft(find.text('每日补能')).dy;

@@ -48,7 +48,8 @@ void main() {
     items[1]['ended_at'] = null;
     body['next_cursor'] = null;
     await openDrives(tester, (_) async => jsonResponse(jsonEncode(body)));
-    expect(find.text('2025-12-31'), findsOneWidget);
+    // P02：记录按 copy.formatDayGroup 分天分组——跨年写「M月D日 周X」并带年。
+    expect(find.text('2025年12月31日 周三'), findsOneWidget);
     expect(find.textContaining('2026-01-01 00:20'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('drive-17'))).height,
@@ -132,7 +133,10 @@ void main() {
           size.width == 360 &&
           scale == 1 &&
           !safeZero) {
-        expect(find.text('10/26 64.1 km'), findsOneWidget);
+        // P02：节奏图改紧凑读数行——日期与数值分两段（DF1 + 「值 单位」）。
+        expect(find.text('10月26日'), findsWidgets);
+        expect(find.text('64.1 km'), findsOneWidget);
+        // 焦点卡三格：行程 52 趟。
         expect(find.text('52 趟'), findsOneWidget);
         final viewport = tester.getRect(scroll);
         final first = tester.getRect(find.byKey(const ValueKey('drive-17')));

@@ -609,7 +609,7 @@ class _DrivesPageState extends State<DrivesPage>
     ],
   );
 
-  /// P02 焦点模块卡：期间主值（里程）→ 三格 → 紧凑读数行与 88 高节奏图。
+  /// P02 焦点模块卡：期间主值（里程）→ 三格。节奏图按用户裁定 B 移到记录之后。
   Widget _summary(stats.DrivingStats? s, {required bool loadingFirst}) {
     if (s == null && loadingFirst) return _summarySkeleton();
     final totals = s?.totals;
@@ -699,34 +699,38 @@ class _DrivesPageState extends State<DrivesPage>
           else
             // R21.5：三列只用 metricSm；网格按最小格宽收列，放不下时先两列。
             MetricGrid(spacing: MileafSpace.s8, children: cells),
-
-          /// 节奏图紧接三格，卡内间距按 R24 的 8。
-          _rhythm(s),
         ],
       ),
     );
   }
 
-  Widget _rhythm(stats.DrivingStats? s) {
+  /// P02 节奏图：用户裁定 B（交付手册 §6 第 5 步）——节奏图移到记录之后，
+  /// 不再挤占首屏的记录空间；它仍是独立模块卡，读数行保持 R29 紧凑形态。
+  Widget _rhythmSection(stats.DrivingStats? s) {
+    final chart = _rhythm(s);
+    if (chart == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s12),
+      child: MileafModuleCard(
+        padding: const EdgeInsets.all(MileafSpace.s12),
+        child: chart,
+      ),
+    );
+  }
+
+  Widget? _rhythm(stats.DrivingStats? s) {
     final colors = context.colors;
     final type = context.type;
     if (s == null) {
-      if (!statsLoading) return const SizedBox.shrink();
-      return const Padding(
-        padding: EdgeInsets.only(top: MileafSpace.section),
-        child: SkeletonBlock(width: double.infinity, height: 132),
-      );
+      if (!statsLoading) return null;
+      return const SkeletonBlock(width: double.infinity, height: 132);
     }
     final buckets = s.buckets;
     final active = buckets.any((b) => b.distanceKm > 0 || b.drives > 0);
     if (!active) {
-      // R29 无数据：卡内一句说明，绘图区收起。
-      return Padding(
-        padding: const EdgeInsets.only(top: MileafSpace.s16),
-        child: Text(
-          '这段时间没有行程',
-          style: type.body.copyWith(color: colors.textSecondary),
-        ),
+      return Text(
+        '这段时间没有行程',
+        style: type.body.copyWith(color: colors.textSecondary),
       );
     }
     final lastActive = buckets.lastIndexWhere(
@@ -735,45 +739,44 @@ class _DrivesPageState extends State<DrivesPage>
     final selected = chartDayTouched
         ? chartDay.clamp(0, buckets.length - 1)
         : (lastActive < 0 ? buckets.length - 1 : lastActive);
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s8),
-      child: TimeSeriesChart(
-        title: '每日里程',
-        unit: 'km',
-        times: [for (final b in buckets) b.bucketStart],
-        series: [
-          ChartSeries(
-            label: '每日里程',
-            values: [for (final b in buckets) b.distanceKm],
-            style: ChartSeriesStyle.bars,
-          ),
-        ],
-        semanticsLabel: '每日里程图表',
-        selectedIndex: selected,
-        onSelected: (index) => setState(() {
-          chartDay = index;
-          chartDayTouched = true;
-        }),
-        height: MileafSpace.rhythmHeight,
-        // R29 紧凑读数行：一行内日期、数值（body 600）与行尾下钻。
-        compactReadout: true,
-        readout: (index) {
-          if (index < 0 || index >= buckets.length) return '—';
-          final local = workspace.calendar!.local(buckets[index].bucketStart);
-          final day = copy.formatDay(
-            local,
-            workspace.calendar!.local(workspace.session.now()),
-          );
-          return '$day，${number(buckets[index].distanceKm, 'km', decimals: 1)}';
-        },
-        onActivateSelected: () {
-          final local = workspace.calendar!.local(
-            buckets[selected].bucketStart,
-          );
-          filterDay(DateTime(local.year, local.month, local.day));
-        },
-        activationLabel: '查看当天',
-      ),
+    // AP05 的图表以本地墙钟格式化日期；bucket_start 是 UTC 瞬时，先换墙钟，
+    // 否则读数头与 X 轴会比站点日历早一天。
+    final wall = [
+      for (final b in buckets) workspace.calendar!.local(b.bucketStart),
+    ];
+    return TimeSeriesChart(
+      title: '每日里程',
+      unit: 'km',
+      times: wall,
+      series: [
+        ChartSeries(
+          label: '每日里程',
+          values: [for (final b in buckets) b.distanceKm],
+          style: ChartSeriesStyle.bars,
+        ),
+      ],
+      semanticsLabel: '每日里程图表',
+      selectedIndex: selected,
+      onSelected: (index) => setState(() {
+        chartDay = index;
+        chartDayTouched = true;
+      }),
+      height: MileafSpace.rhythmHeight,
+      // R29 紧凑读数行：一行内日期、数值（body 600）与行尾下钻。
+      compactReadout: true,
+      readout: (index) {
+        if (index < 0 || index >= buckets.length) return '—';
+        final day = copy.formatDay(
+          wall[index],
+          workspace.calendar!.local(workspace.session.now()),
+        );
+        return '$day，${number(buckets[index].distanceKm, 'km', decimals: 1)}';
+      },
+      onActivateSelected: () {
+        final local = workspace.calendar!.local(buckets[selected].bucketStart);
+        filterDay(DateTime(local.year, local.month, local.day));
+      },
+      activationLabel: '查看当天',
     );
   }
 
@@ -1009,6 +1012,7 @@ class _DrivesPageState extends State<DrivesPage>
                           style: type.micro.copyWith(color: colors.textFaint),
                         ),
                       ),
+                    _rhythmSection(driving),
                     _notes(),
                   ],
                 ),
