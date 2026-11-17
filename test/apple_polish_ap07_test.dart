@@ -487,6 +487,10 @@ void main() {
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.text('全部充电记录'), findsNothing);
+      // 返回账本后列表回到顶部；最近充电区块在首屏下缘附近，惰性构建
+      // 需要一次滚动才进树（滚动位置本身由 scrollToTop 保证）。
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -160));
+      await tester.pumpAndSettle();
       expect(find.text('查看全部'), findsWidgets);
       expect(tester.takeException(), isNull);
       semantics.dispose();

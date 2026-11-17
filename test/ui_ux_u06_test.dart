@@ -47,7 +47,7 @@ void main() {
     if (fontPath.isNotEmpty) await loadRenderFonts(cjkFontPath: fontPath);
   });
 
-  testWidgets('U06 同底账目与88高每日补能', (tester) async {
+  testWidgets('U06 同底账目与88高每日充电', (tester) async {
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
@@ -66,24 +66,22 @@ void main() {
     final recentTop =
         tester.getTopLeft(find.text('最近充电')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
-    await tester.scrollUntilVisible(
-      find.text('我的补能方式'),
-      160,
-      scrollable: scroll,
-    );
+    await tester.scrollUntilVisible(find.text('充电方式'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final methodTop =
-        tester.getTopLeft(find.text('我的补能方式')).dy +
+        tester.getTopLeft(find.text('充电方式')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
     expect(recentTop, lessThan(methodTop));
+    // P03（§6 阶梯第 4 步）：次级三格移到最近充电之后、充电方式之前。
+    // 三格在当前位置上方，先回顶部再向前滚动。
     tester.state<ScrollableState>(scroll).position.jumpTo(0);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('补入电池'), 160, scrollable: scroll);
+    await tester.scrollUntilVisible(find.text('充入电量'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final readingsTop =
-        tester.getTopLeft(find.text('补入电池')).dy +
+        tester.getTopLeft(find.text('充入电量')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
-    expect(readingsTop, greaterThan(recentTop));
+    expect(recentTop, lessThan(readingsTop));
     expect(readingsTop, lessThan(methodTop));
   });
   testWidgets('U06 列表隐藏ID，详情说明保留ID与精确时间', (tester) async {

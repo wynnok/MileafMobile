@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/src/charging_page.dart';
-import 'package:mileaf/src/design/components/nav_bar.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'charging_test.dart' show app, chargingFixture, initial, jsonResponse;
 import 'overview_test.dart' show background, foreground;
@@ -360,8 +360,10 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('有效入电均价 0.4')), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
+    // 三格卡在最近充电之后（§6 阶梯第 4 步），先滚到再断言语义。
+    await tester.scrollUntilVisible(find.text('充入均价'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入均价 0.4')), findsOneWidget);
     expect(
       requests.any(
         (url) =>
@@ -549,7 +551,7 @@ void main() {
       ),
       isTrue,
     );
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
   });
 
   testWidgets('车辆已离线时不把未结束会话当成正在充电', (tester) async {
@@ -574,7 +576,7 @@ void main() {
     );
     expect(find.textContaining('正在充电'), findsNothing);
     expect(find.textContaining('不计入已完成统计'), findsNothing);
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
   });
 
   testWidgets('无法确认车辆状态时不显示正在充电', (tester) async {
@@ -681,12 +683,12 @@ void main() {
     expect(query['from'], '2026-03-29T00:00:00.000Z');
     expect(query['to'], '2026-03-30T00:00:00.000Z');
     await tester.scrollUntilVisible(
-      find.textContaining('仅看 2026年3月29日'),
+      find.textContaining('只看 3月29日结束的充电'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('仅看 2026年3月29日'), findsOneWidget);
-    expect(find.textContaining('2026-03-28 23:10'), findsOneWidget);
+    expect(find.textContaining('只看 3月29日结束的充电'), findsOneWidget);
+    expect(find.textContaining('3月28日 23:10'), findsOneWidget);
   });
 
   testWidgets('地点账目点击后以稳定地点键查询整个匹配集', (tester) async {
@@ -700,11 +702,13 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(ListTile, '家 · 地库').hitTestable(),
+      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.widgetWithText(ListTile, '家 · 地库').hitTestable());
+    await tester.tap(
+      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
+    );
     await tester.pumpAndSettle();
     for (final suffix in [
       '/charging-sessions',
@@ -747,7 +751,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('未提供充电扩展能力'), findsOneWidget);
+    expect(find.textContaining('当前站点暂不支持扩展充电数据'), findsOneWidget);
     expect(find.byKey(const Key('charging-search')), findsNothing);
     expect(
       requests.any((url) => url.path.endsWith('/charging-locations')),
@@ -773,7 +777,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('充电统计暂时不可用'), findsOneWidget);
+    expect(find.textContaining('没能读取充电统计'), findsOneWidget);
     await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -816,11 +820,11 @@ void main() {
     );
     await tester.tap(find.byType(BackButton).hitTestable());
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 1 / 1'), findsOneWidget);
+    expect(find.textContaining('1 次中 1 次有费用'), findsOneWidget);
     oldStats.complete(jsonResponse(chargingStatsV2()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 1 / 1'), findsOneWidget);
-    expect(find.textContaining('费用有记录 2 / 8'), findsNothing);
+    expect(find.textContaining('1 次中 1 次有费用'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsNothing);
   });
 
   testWidgets('全缺失不显示成零，明确免费保留真实零值', (tester) async {
@@ -854,10 +858,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 0 / 8'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('补入电池'), 160);
-    expect(find.bySemanticsLabel(RegExp('补入电池 —')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('记录时长 —.*非等待时间')), findsOneWidget);
+    expect(find.textContaining('8 次中 0 次有费用'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充入电量'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入电量未知')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('充电时长未知')), findsOneWidget);
     free = true;
     final refresh = find.byTooltip('刷新充电');
     await tester.scrollUntilVisible(refresh, -160);
@@ -865,9 +869,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(refresh);
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(RegExp(r'有效入电均价 0')), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('记录时长'), 160);
-    expect(find.bySemanticsLabel(RegExp('记录时长 0 分钟.*非等待时间')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充入均价'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入均价 0')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充电时长'), 160);
+    expect(find.bySemanticsLabel(RegExp('充电时长 0 分钟')), findsOneWidget);
   });
 
   testWidgets('地点分页失败保留已有组并从原游标重试', (tester) async {
@@ -904,22 +909,29 @@ void main() {
     );
     await tester.tap(find.text('加载更多地点').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '家 · 地库'), findsOneWidget);
+    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('保留上次快照').hitTestable(),
+      find.textContaining('没能更新，显示的是').hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     failMore = false;
+    final locationRetry = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('没能更新，显示的是'),
+        matching: find.byType(InlineBanner),
+      ),
+      matching: find.text('重试'),
+    );
     await tester.scrollUntilVisible(
-      find.text('重试地点账目').hitTestable(),
+      locationRetry.hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('重试地点账目').hitTestable());
+    await tester.tap(locationRetry.hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '家 · 地库'), findsOneWidget);
+    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
     expect(find.text('园区'), findsOneWidget);
     expect(
       requests
@@ -945,9 +957,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('无法更新站点能力'), findsOneWidget);
     metadataAvailable = true;
-    await tester.tap(find.text('重试站点能力'));
+    await tester.tap(find.text('重试').first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(
       requests.any((url) => url.path.endsWith('/charging-locations')),
       isTrue,
@@ -975,11 +987,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();
     expect(conditional, [null, 'W/"charging"']);
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(find.textContaining('充电统计暂时不可用'), findsNothing);
   });
 
@@ -1081,11 +1093,11 @@ void main() {
     );
     expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('未提供充电扩展能力').hitTestable(),
+      find.textContaining('当前站点暂不支持扩展充电数据').hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('未提供充电扩展能力'), findsOneWidget);
+    expect(find.textContaining('当前站点暂不支持扩展充电数据'), findsOneWidget);
   });
 
   testWidgets('记录重试不改变区间或使地点分页游标失效', (tester) async {
@@ -1118,14 +1130,23 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
+    final listRetry = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('服务暂不可用，请稍后重试'),
+        matching: find.byType(InlineBanner),
+      ),
+      matching: find.text('重试'),
+    );
     await tester.scrollUntilVisible(
-      find.text('重试充电').hitTestable(),
+      listRetry,
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(listRetry);
+    await tester.pumpAndSettle();
     failList = false;
     now = DateTime.utc(2026, 3, 31, 0, 1);
-    await tester.tap(find.text('重试充电').hitTestable());
+    await tester.tap(listRetry.hitTestable());
     await tester.pumpAndSettle();
     final retried = requests.lastWhere(
       (url) =>

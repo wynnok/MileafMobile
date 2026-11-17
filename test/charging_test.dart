@@ -116,7 +116,7 @@ void main() {
       find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度 0 至 100%')),
       findsOneWidget,
     );
-    expect(find.textContaining('2026-03-29'), findsWidgets);
+    expect(find.textContaining(RegExp(r'\d+月\d+日 \d{2}:\d{2}')), findsWidgets);
   });
   testWidgets('用户已选币种不被迟到的旧偏好恢复覆盖', (tester) async {
     final currency = DelayedCurrency();
@@ -177,21 +177,21 @@ void main() {
     await tester.tap(find.text('加载更多充电'));
     await tester.pumpAndSettle();
     expect(requests.length, 2);
-    await tester.scrollUntilVisible(find.textContaining('分页游标未前进'), -300);
+    await tester.scrollUntilVisible(find.textContaining('没能加载更多充电'), -300);
     await tester.pumpAndSettle();
-    expect(find.textContaining('分页游标未前进'), findsOneWidget);
+    expect(find.textContaining('没能加载更多充电'), findsOneWidget);
     await tester.drag(find.byType(ListView).last, const Offset(0, -200));
     await tester.pumpAndSettle();
     expect(requests.length, 2);
     expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     recover = true;
-    await tester.scrollUntilVisible(find.text('重试充电'), -300);
-    await tester.tap(find.text('重试充电'));
+    await tester.scrollUntilVisible(find.text('重试').last, -300);
+    await tester.tap(find.text('重试').last);
     await tester.pumpAndSettle();
     expect(requests.length, 3);
-    expect(find.textContaining('分页游标未前进'), findsNothing);
-    await tester.scrollUntilVisible(find.text('已到最后一条'), 200);
-    expect(find.text('已到最后一条'), findsOneWidget);
+    expect(find.textContaining('没能加载更多充电'), findsNothing);
+    await tester.scrollUntilVisible(find.text('已显示全部充电'), 200);
+    expect(find.text('已显示全部充电'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -214,15 +214,18 @@ void main() {
       if (range != 'default') {
         await tester.tap(find.text('自定义'));
         await tester.pumpAndSettle();
+        // R27：共享弹层的键盘输入路径（「改为输入」）。
+        await tester.tap(find.text('改为输入'));
+        await tester.pumpAndSettle();
         await tester.enterText(
-          find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
+          find.widgetWithText(TextField, '开始'),
           '2026-03-29',
         );
         await tester.enterText(
-          find.widgetWithText(TextFormField, '结束日期 YYYY-MM-DD'),
+          find.widgetWithText(TextField, '结束'),
           range == 'today' ? '2026-03-30' : '2026-03-29',
         );
-        await tester.tap(find.text('应用日期'));
+        await tester.tap(find.text('应用'));
         await tester.pumpAndSettle();
       }
       final initialQuery = queries.last;
@@ -263,8 +266,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('入电 20 kWh'), findsWidgets);
-    expect(find.textContaining('电网侧 22 kWh'), findsWidgets);
+    expect(find.textContaining('充入 20 kWh'), findsWidgets);
+    expect(find.textContaining('电网用电 22 kWh'), findsWidgets);
     expect(find.textContaining('费用 12'), findsWidgets);
     expect(find.textContaining('币种未记录'), findsWidgets);
     await tester.scrollUntilVisible(find.text('进行中'), 200);
@@ -306,11 +309,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('加载更多充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('保留已加载记录'), -300);
-    expect(find.textContaining('保留已加载记录'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('没能更新，显示的是'), -300);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     fail = false;
-    await tester.scrollUntilVisible(find.text('重试充电'), -300);
-    await tester.tap(find.text('重试充电'));
+    await tester.scrollUntilVisible(find.text('重试').last, -300);
+    await tester.tap(find.text('重试').last);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('charge-7')),
@@ -347,15 +350,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
-      '2026-03-08',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, '结束日期 YYYY-MM-DD'),
-      '2026-03-08',
-    );
-    await tester.tap(find.text('应用日期'));
+    await tester.tap(find.text('改为输入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '开始'), '2026-03-08');
+    await tester.enterText(find.widgetWithText(TextField, '结束'), '2026-03-08');
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(
       requests.last.url.queryParameters['from'],
@@ -386,7 +385,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('费用 0'), findsOneWidget);
     expect(find.textContaining('币种未记录'), findsWidgets);
-    expect(find.textContaining('充电类型未知'), findsOneWidget);
+    expect(find.text('类型未知'), findsOneWidget);
     expect(find.text('未知地点'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('费用 —'), 200);
     expect(find.textContaining('费用 —'), findsOneWidget);
@@ -462,10 +461,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(queries.last.path, '/prefix/v1/vehicles/2/charging-sessions');
     expect(queries.last.queryParameters['from'], '2026-03-01T16:00:00.000Z');
-    await tester.scrollUntilVisible(find.text('数据说明').hitTestable(), 300);
-    await tester.tap(find.text('数据说明'));
+    await tester.scrollUntilVisible(find.text('关于这些数据').hitTestable(), 300);
+    await tester.tap(find.text('口径与估算'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('时区：Asia/Shanghai'), findsOneWidget);
+    // 时区口径在「时间与时区」分组行里。
+    await tester.tap(find.text('时间与时区'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('按站点时区 Asia/Shanghai'), findsOneWidget);
   });
   testWidgets('360宽200%字深色下日期错误不发请求，空列表与详情目标可恢复导航', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -495,15 +497,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
-      '2026-02-30',
-    );
-    await tester.tap(find.text('应用日期'));
+    await tester.tap(find.text('改为输入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '开始'), '2026-02-30');
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(find.textContaining('请输入有效日期'), findsOneWidget);
     expect(requests.length, 1);
-    await tester.tap(find.text('取消'));
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(
@@ -521,8 +522,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('此区间无充电记录'), 200);
-    expect(find.text('此区间无充电记录'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('这段时间没有充电记录'), 200);
+    expect(find.textContaining('这段时间没有充电记录'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('手动刷新今天窗口截到新的当前时刻且不携旧游标', (tester) async {
@@ -557,11 +558,24 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
+    // 充电方式空态结论 + 每日充电卡空态句（共享构造函数）。
     expect(find.text('还没有充电记录'), findsOneWidget);
+    expect(find.text('这段时间没有充电'), findsOneWidget);
     expect(find.byType(MileafShareRing), findsOneWidget);
     expect(find.text('AC 0.00 kWh'), findsNothing);
-    expect(find.text('AC'), findsNothing, reason: '空态不显示图例与三列');
+    // 空态不显示图例与三列（记录行上的 AC 小标签与本卡无关）。
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('充电方式'),
+          matching: find.byType(MileafModuleCard),
+        ),
+        matching: find.text('AC'),
+      ),
+      findsNothing,
+      reason: '空态不显示图例与三列',
+    );
     expect(find.textContaining('DC 占已知分类能量'), findsNothing);
     expect(tester.takeException(), isNull);
   });

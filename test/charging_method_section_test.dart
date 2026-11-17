@@ -41,9 +41,10 @@ Future<void> openCharging(
 void main() {
   testWidgets('补能方式：结论句 + 环 + 两列图例 + 三列读数 + 一句口径', (tester) async {
     await openCharging(tester, MockClient((r) async => expansionResponse(r)));
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
 
-    expect(find.text('AC 更多，DC 占 14.29% · 类型未知 20 kWh'), findsOneWidget);
+    expect(find.text('AC 更多，DC 占 14.29%'), findsOneWidget);
+    expect(find.text('类型未知 20 kWh'), findsOneWidget);
     expect(find.byType(MileafShareRing), findsOneWidget);
     // AC 120 / DC 20：图例给占比，三列给绝对量。
     expect(find.byType(ShareRingLegendRow), findsNWidgets(2));
@@ -64,19 +65,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('20 kWh'), findsNWidgets(2), reason: 'DC 与未知各一');
-    expect(
-      find.text('DC 占已知分类能量 14.29% · 未知不计入构成 · 分类已知 7/8 次'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('只计已知类型的充电，8 次中 7 次类型已知'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('三元数据顺序：结论在环之前，环在三列之前', (tester) async {
     await openCharging(tester, MockClient((r) async => expansionResponse(r)));
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
-    final conclusion = tester.getTopLeft(
-      find.text('AC 更多，DC 占 14.29% · 类型未知 20 kWh'),
-    );
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
+    final conclusion = tester.getTopLeft(find.text('AC 更多，DC 占 14.29%'));
     final ring = tester.getTopLeft(find.byType(MileafShareRing));
     final column = tester.getTopLeft(
       find.byKey(const ValueKey('charging-method-column-AC')),
@@ -94,7 +90,7 @@ void main() {
         return expansionResponse(request);
       }),
     );
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     await tester.pumpAndSettle();
     expect(find.byType(ShareRingLegendRow), findsNWidgets(2));
     await tester.tap(find.byType(ShareRingLegendRow).last);
@@ -109,25 +105,33 @@ void main() {
 
   testWidgets('统计校验时间只在数据说明里出现', (tester) async {
     await openCharging(tester, MockClient((r) async => expansionResponse(r)));
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     expect(find.textContaining('统计校验时间'), findsNothing);
 
-    await tester.scrollUntilVisible(find.text('数据说明'), 400);
+    await tester.scrollUntilVisible(find.text('关于这些数据'), 400);
     // 新字号下行行高变化使该行停在视口边缘；先确保整行可命中再展开。
-    await tester.ensureVisible(find.text('数据说明'));
+    await tester.ensureVisible(find.text('关于这些数据'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明'));
+    // R30：说明改「关于这些数据」的「口径与估算」分组行（MileafDisclosure）。
+    await tester.tap(find.text('口径与估算'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('统计校验时间'), findsOneWidget);
+    // CP02：校验时间改「数据生成于」（DF8 只在说明层）。
+    // 来源与生成时间是单独的分组行，展开后再断言 DF8 精确时间。
+    await tester.scrollUntilVisible(find.text('来源与生成时间'), 200);
+    await tester.ensureVisible(find.text('来源与生成时间'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('来源与生成时间'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('数据生成于'), findsOneWidget);
     expect(find.textContaining('构成环只含 AC / DC 已知分类能量'), findsOneWidget);
-    expect(find.textContaining('记录时长按分类累计'), findsOneWidget);
+    expect(find.textContaining('充电时长按分类累计'), findsOneWidget);
   });
 
   testWidgets('200% 下补能方式不溢出，三列改为单列', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openCharging(tester, MockClient((r) async => expansionResponse(r)));
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 400);
+    await tester.scrollUntilVisible(find.text('充电方式'), 400);
     expect(find.byType(MileafShareRing), findsOneWidget);
     // 单列：AC 列在上，DC 列在下。
     final ac = tester.getTopLeft(
@@ -147,7 +151,7 @@ void main() {
       MockClient((r) async => expansionResponse(r)),
       width: 320,
     );
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     final ac = find.byKey(const ValueKey('charging-method-column-AC'));
     expect(
       find.descendant(of: ac, matching: find.textContaining('kWh')),
@@ -171,7 +175,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     expect(tester.getSize(find.byType(MileafShareRing)).width, 116);
     expect(tester.takeException(), isNull);
   });
@@ -182,7 +186,7 @@ void main() {
       MockClient((r) async => expansionResponse(r)),
       width: 390,
     );
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     expect(tester.getSize(find.byType(MileafShareRing)).width, 116);
   });
 
@@ -197,7 +201,7 @@ void main() {
         return expansionResponse(request);
       }),
     );
-    await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
     expect(find.text('分类能量未记录'), findsOneWidget);
     expect(find.text('—'), findsWidgets);
     expect(find.text('0 kWh'), findsNothing);

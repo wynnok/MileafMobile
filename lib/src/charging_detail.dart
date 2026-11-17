@@ -4,6 +4,7 @@ import 'api.dart';
 import 'charging_cost.dart';
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
+import 'copy/messages.dart' as messages;
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -70,6 +71,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   expanded.ChargingSessionDetail? expandedDetail;
   expanded.ChargingSessionSeries? expandedSeries;
   String? detailError, seriesError;
+  DateTime? detailCheckedAt, seriesCheckedAt;
   bool detailLoading = false,
       seriesLoading = false,
       unavailable = false,
@@ -158,12 +160,26 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     }
   }
 
-  String failure(Object error, bool snapshot) =>
-      '${error is FormatException
-          ? '服务返回格式不兼容，请核对版本'
-          : error is ApiFailure
-          ? error.message
-          : '读取失败，请重试'}${snapshot ? '；保留上次快照' : ''}';
+  /// CP07：失败有旧数据用共享构造函数说明快照时间；技术原因进说明层。
+  String failure(
+    Object error, {
+    required bool snapshot,
+    required String object,
+    DateTime? checkedAt,
+  }) {
+    if (snapshot && checkedAt != null) {
+      return messages.staleMessage(
+        workspace.calendar!.local(checkedAt),
+        workspace.calendar!.local(workspace.session.now()),
+      );
+    }
+    return error is FormatException
+        ? messages.versionIncompatibleMessage()
+        : error is ApiFailure
+        ? error.message
+        : messages.readFailedMessage(object);
+  }
+
   Future<void> loadDetail({
     bool force = false,
     bool refreshSeries = true,
@@ -196,6 +212,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       setState(() {
         detail = value;
         expandedDetail = additional;
+        detailCheckedAt = result.checkedAt;
         unavailable = false;
         ownershipMismatch = false;
       });
@@ -206,7 +223,12 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           unavailable = error is BusinessFailure && error.status == 404;
           detailError = unavailable
               ? '该充电记录已不可用，可返回上一页'
-              : failure(error, detail != null);
+              : failure(
+                  error,
+                  snapshot: detail != null,
+                  object: '充电明细',
+                  checkedAt: detailCheckedAt,
+                );
         });
       }
     } finally {
@@ -261,11 +283,19 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
         setState(() {
           series = value;
           expandedSeries = additional;
+          seriesCheckedAt = result.checkedAt;
         });
       }
     } catch (error) {
       if (current && attempt == seriesSequence) {
-        setState(() => seriesError = failure(error, series != null));
+        setState(
+          () => seriesError = failure(
+            error,
+            snapshot: series != null,
+            object: '充电曲线',
+            checkedAt: seriesCheckedAt,
+          ),
+        );
       }
     } finally {
       if (current && attempt == seriesSequence) {
@@ -543,7 +573,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
         ('outside_temp_c', '室外温度', '°C'),
         ('rated_range_km', '额定续航', 'km'),
         ('ideal_range_km', '理想续航', 'km'),
-        ('charge_energy_added_kwh', '累计入电', 'kWh'),
+        ('charge_energy_added_kwh', '累计充入', 'kWh'),
       ])
         if (points != null && fields[entry.$1] == true)
           entry.$1: (
@@ -739,7 +769,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           bottomLine: true,
         ),
       ],
-      footnote: '均价按服务端有效配对计算；费用未知不代表免费。',
+      footnote: '均价按对应电量计，仅含有费用的充电；费用未知不代表免费。',
     );
   }
 
@@ -917,7 +947,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                           onPressed: detailLoading
                               ? null
                               : () => loadDetail(force: true),
-                          child: const Text('重试充电明细'),
+                          child: const Text('重试'),
                         ),
                     ],
                   ),
@@ -943,7 +973,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
                         onPressed: seriesLoading
                             ? null
                             : () => loadSeries(force: true),
-                        child: const Text('重试充电曲线'),
+                        child: const Text('重试'),
                       ),
                     ],
                   ),
