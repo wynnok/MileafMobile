@@ -49,7 +49,8 @@ void main() {
     final count = requests.length;
     await tester.tap(find.widgetWithText(StatusChip, '均价'));
     await tester.pumpAndSettle();
-    expect(find.text('均价读数 0/kWh'), findsOneWidget);
+    // R29：读数头数值行取代「均价读数」句。
+    expect(find.text('0 币种未记录/kWh'), findsOneWidget);
     await tester.drag(find.text('已知费用均价趋势'), const Offset(0, -200));
     await tester.pumpAndSettle();
     // 新字号下步进控件落到 800×600 视口下沿之外；先滚到整钮可命中再点击，
@@ -59,17 +60,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(next);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('均价读数 —/kWh'),
-      -160,
-      maxScrolls: 40,
-    );
-    expect(find.text('均价读数 —/kWh'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('已知费用均价趋势'), -160);
+    await tester.pumpAndSettle();
+    // R29：缺失均值的读数头数值行为「—」，单位随轴标签。
+    expect(find.text('—'), findsOneWidget);
     expect(requests.length, count);
     await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);
     expect(find.text('AC / DC 时间分布'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('DC读数 0.00 kWh'), 150);
-    expect(find.text('AC读数 20.00 kWh'), findsOneWidget);
+    // R29：分类读数的可见读值并入读数头数值行，逐类句子只进语义。
+    expect(find.text('20 kWh'), findsOneWidget);
     expect(find.text('DC读数 0.00 kWh'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

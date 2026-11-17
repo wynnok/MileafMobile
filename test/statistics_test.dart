@@ -221,7 +221,8 @@ void main() {
     await tester.tap(find.widgetWithText(StatusChip, '能量'));
     await tester.pumpAndSettle();
     expect(find.text('能量趋势'), findsOneWidget);
-    expect(find.textContaining('-3.00 kWh'), findsWidgets);
+    // R29：读数头数值行按共享格式化器输出「−3 kWh」。
+    expect(find.text('−3 kWh'), findsWidgets);
     expect(requests.length, requestCount);
     await tester.scrollUntilVisible(find.text('净 / 毛电耗'), 250);
     expect(find.text('净 / 毛电耗'), findsOneWidget);

@@ -43,10 +43,19 @@ void main() {
         ),
       );
     });
-    await tester.scrollUntilVisible(find.text('后一个采样').hitTestable(), 180);
-    await tester.tap(find.text('后一个采样').hitTestable());
+    // R29：读数头取代「速度读数」句，步进圆钮只在读数头里出现；
+    // 这里直接点绘图区取靠后的采样点，读数头日期行即「当前选点」。
+    await tester.scrollUntilVisible(find.text('速度过程').hitTestable(), 180);
+    final chart = tester.getRect(find.byKey(const ValueKey('sample-chart')));
+    await tester.tapAt(Offset(chart.left + chart.width * 0.9, chart.center.dy));
     await tester.pumpAndSettle();
-    final before = tester.widget<Text>(find.textContaining('速度读数')).data;
+    final before = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .firstWhere(
+          (t) => RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').hasMatch(t),
+          orElse: () => fail('读数头日期行未出现'),
+        );
     await tester.scrollUntilVisible(
       find.byTooltip('查看完整地图').hitTestable(),
       -180,
@@ -60,8 +69,11 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(scroll.pixels, offset);
-    await tester.scrollUntilVisible(find.textContaining('速度读数'), 180);
-    expect(tester.widget<Text>(find.textContaining('速度读数')).data, before);
+    await tester.scrollUntilVisible(find.text('速度过程'), 180);
+    expect(
+      tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? ''),
+      contains(before),
+    );
     expect(downloads, 1);
     expect(find.textContaining('2026-03-15'), findsWidgets);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -100);

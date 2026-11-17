@@ -730,7 +730,9 @@ void main() {
       await tester.tapAt(Offset(plot.right - 2, plot.center.dy));
       await tester.pumpAndSettle();
       expect(selected.last, 4);
-      expect(find.text('10/5 · 50.0 km'), findsOneWidget);
+      // R29：读数头把日期与数值分行，readout 句子只作朗读。
+      expect(find.text('10月5日'), findsOneWidget);
+      expect(find.text('50 km'), findsOneWidget);
       expect(find.text('点按读值'), findsOneWidget);
       semantics.dispose();
     });
@@ -756,12 +758,14 @@ void main() {
               '${const ['—', '0', '2', '—', '4'][index]} kWh',
         ),
       );
-      expect(find.text('10/1 · — kWh'), findsOneWidget);
+      expect(find.text('10月1日'), findsOneWidget);
+      expect(find.text('—'), findsOneWidget);
       expect(find.text('0 kWh'), findsNothing);
       final plot = tester.getRect(find.byType(CustomPaint).last);
       await tester.tapAt(Offset(plot.left + plot.width / 4, plot.center.dy));
       await tester.pumpAndSettle();
-      expect(find.text('10/2 · 0 kWh'), findsOneWidget);
+      expect(find.text('10月2日'), findsOneWidget);
+      expect(find.text('0 kWh'), findsOneWidget);
     });
 
     testWidgets('单测量 + 参照：图例只标注位置指认不出的虚线', (tester) async {
@@ -843,7 +847,8 @@ void main() {
       );
       final plot = tester.getRect(find.byType(CustomPaint).last);
       expect(legend.top, greaterThanOrEqualTo(controls.bottom));
-      expect(legend.bottom, lessThanOrEqualTo(plot.top));
+      // R29：图例移到 X 轴之下（原「绘图区之上」的旧规则被取代）。
+      expect(legend.top, greaterThanOrEqualTo(plot.bottom));
       expect(find.text('里程'), findsOneWidget, reason: '实心系列不再重复命名');
       expect(tester.takeException(), isNull);
     });
@@ -996,7 +1001,8 @@ void main() {
         ),
         scale: 2,
       );
-      expect(find.text('10/5 · 60 km'), findsOneWidget);
+      expect(find.text('10月5日'), findsOneWidget);
+      expect(find.text('60 km'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -1048,7 +1054,19 @@ void main() {
           ],
         ),
       );
-      expect(tester.getSize(find.byType(BatteryArc).first), const Size(88, 88));
+      // R29：环内只放数值，「电量」标签移到环外，组件因此比 88 高一行；
+      // 88 是电量弧本身的尺寸。
+      expect(
+        tester.getSize(
+          find
+              .descendant(
+                of: find.byType(BatteryArc),
+                matching: find.byType(CustomPaint),
+              )
+              .first,
+        ),
+        const Size(88, 88),
+      );
       expect(find.bySemanticsLabel('电池电量 68%'), findsOneWidget);
       expect(find.bySemanticsLabel('电池电量 未知'), findsOneWidget);
       expect(find.text('—'), findsOneWidget);
@@ -1078,7 +1096,9 @@ void main() {
         ),
         const Size(72, 72),
       );
-      expect(find.text('68 %'), findsOneWidget);
+      // R29/CP03：数值与百分号紧贴，环内拆成两个 Text。
+      expect(find.text('68'), findsOneWidget);
+      expect(find.text('%'), findsOneWidget);
       expect(tester.takeException(), isNull);
       expect(find.textContaining('68'), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -311,7 +311,10 @@ Future<void> refreshChargingTopic(WidgetTester tester) async {
 String chargingReadout(WidgetTester tester) => tester
     .widgetList<Text>(find.byType(Text))
     .map((widget) => widget.data ?? '')
-    .firstWhere((text) => RegExp(r'^\d{1,2}/\d{1,2} .*kWh$').hasMatch(text));
+    .firstWhere(
+      (text) => RegExp(r'^\d{1,2}/\d{1,2}$').hasMatch(text),
+      orElse: () => '',
+    );
 
 int chargingStatsReads(List<Uri> seen) => seen
     .where(
@@ -322,11 +325,10 @@ int chargingStatsReads(List<Uri> seen) => seen
     .length;
 
 String chartDate(WidgetTester tester) {
-  final pattern = RegExp(r'^(\d{1,2}/\d{1,2})\b');
+  // R29：读数头把日期与数值分开成行，日期行就是 `M/D`。
+  final pattern = RegExp(r'^(\d{1,2}/\d{1,2})$');
   for (final text in tester.widgetList<Text>(find.byType(Text))) {
-    final data = text.data ?? '';
-    if (!data.contains('km')) continue;
-    final match = pattern.firstMatch(data);
+    final match = pattern.firstMatch(text.data ?? '');
     if (match != null) return match.group(1)!;
   }
   fail('chart readout not found');
@@ -486,18 +488,20 @@ void main() {
     await tester.tap(find.widgetWithText(StatusChip, '费用'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('点按读值').hitTestable(), 220);
+    // R29：Y 轴刻度移到绘图区右侧后，绘图区比手势区窄，0.9 的手势比例
+    // 落在最后一个桶（3/15），仍是「末点」这一语义。
     await tapPlot(tester, 0.9);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.text('3/14'),
+        matching: find.text('3/15'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.textContaining('¥5'),
+        matching: find.textContaining('¥6'),
       ),
       findsOneWidget,
     );
@@ -518,14 +522,14 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.text('3/14'),
+        matching: find.text('3/15'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.textContaining('¥5'),
+        matching: find.textContaining('¥6'),
       ),
       findsOneWidget,
     );
@@ -1282,13 +1286,12 @@ void main() {
     );
     await tapPlot(tester, 0.5);
     await tester.scrollUntilVisible(
-      find.textContaining('里程读数').hitTestable(),
+      find.byKey(const ValueKey('driving-statistics-chart')).hitTestable(),
       100,
     );
-    final chosen = tester
-        .widgetList<Text>(find.textContaining('里程读数').hitTestable())
-        .firstWhere((t) => t.data != null && !t.data!.contains('—'))
-        .data!;
+    // R29：可见读值改为读数头（日期行 + 数值行），朗读句只进语义；
+    // 「保留采样点」按读数头的日期行核对（chartDate）。
+    final chosen = chartDate(tester);
     expect(find.text('2026-03-09—2026-03-15'), findsWidgets);
     await selectTab(tester, '行程');
     now = DateTime.utc(2026, 3, 16, 12);
@@ -1298,13 +1301,7 @@ void main() {
       findsWidgets,
       reason: '窗口整体后移一天',
     );
-    expect(
-      tester
-          .widgetList<Text>(find.textContaining('里程读数').hitTestable())
-          .map((t) => t.data)
-          .where((d) => d != null && !d.contains('—')),
-      contains(chosen),
-    );
+    expect(chartDate(tester), chosen, reason: '按日期保留采样点');
     expect(tester.takeException(), isNull);
   });
 

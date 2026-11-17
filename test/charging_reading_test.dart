@@ -552,10 +552,16 @@ void main() {
     );
     await tester.tapAt(Offset(plot.left + plot.width * 0.4, plot.center.dy));
     await tester.pumpAndSettle();
+    // R29：读数头把日期与数值分成两行，日期行是「M月D日」。
     final readout = tester
-        .widget<Text>(find.textContaining(RegExp(r'^\d+/\d+ ')))
-        .data!;
-    expect(readout, contains('12'));
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .firstWhere(
+          (t) => RegExp(r'^\d{1,2}月\d{1,2}日$').hasMatch(t),
+          orElse: () => fail('chart readout date not found'),
+        );
+    expect(readout, contains('28'));
+    expect(find.textContaining('12 币种未记录'), findsOneWidget);
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电').last);

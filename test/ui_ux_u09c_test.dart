@@ -141,7 +141,9 @@ void main() {
     await tester.scrollUntilVisible(fee.hitTestable(), 150);
     await tester.tap(fee);
     await tester.pumpAndSettle();
-    expect(find.textContaining(RegExp(r'^\d{1,2}/\d{1,2} —$')), findsOneWidget);
+    // R29：读数头把日期与数值分行，缺失值的数值行就是「—」。
+    expect(find.textContaining(RegExp(r'^\d{1,2}/\d{1,2}$')), findsWidgets);
+    expect(find.text('—'), findsWidgets);
     expect(find.textContaining(RegExp(r'¥0$')), findsNothing);
     expect(tester.takeException(), isNull);
   });

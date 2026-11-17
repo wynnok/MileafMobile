@@ -56,7 +56,21 @@ void main() {
     expect(find.byType(MileafHero), findsNothing);
     final arc = tester.getRect(find.byType(BatteryArc));
     expect(arc.left, 20);
-    expect(arc.height, 88);
+    // R29：环内只放数值，「电量」标签移到环外，组件因此比 88 高一行；
+    // 88 仍是电量弧本身的尺寸。
+    expect(
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(BatteryArc),
+                  matching: find.byType(CustomPaint),
+                )
+                .first,
+          )
+          .height,
+      88,
+    );
     final title = tester.getRect(find.text('电量区间'));
     expect(title.left, arc.right + 16);
     final results = tester.getRect(find.text('20 kWh'));

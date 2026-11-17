@@ -293,7 +293,8 @@ void main() {
       '距离 20.0 km',
       '时长 120 分钟',
       '净电耗 188 Wh/km',
-      '速度读数',
+      // R29：可见「速度读数」句已并入读数头，图表标题成为该区的定位锚点。
+      '速度过程',
     ]) {
       final target =
           (text.startsWith('距离') ||
@@ -432,15 +433,13 @@ void main() {
       160,
     );
     expect(find.bySemanticsLabel('净电耗 188 Wh/km'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.bySemanticsLabel('最高速度 90 km/h'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.bySemanticsLabel('最高速度 90 km/h'), 200);
     expect(find.bySemanticsLabel('最高速度 90 km/h'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('电量读数 70 %'), findsOneWidget);
+    // R29：可见读值改为读数头（时间行 + 数值行），「电量读数」句只进语义。
+    expect(find.text('70%'), findsOneWidget);
     expect(find.textContaining('不代表连续观测'), findsNothing);
     await tester.scrollUntilVisible(find.text('电量数据说明').hitTestable(), 160);
     await tester.tap(find.text('电量数据说明').hitTestable());
@@ -475,14 +474,16 @@ void main() {
     failing = false;
     await tester.tap(find.text('重试行程采样'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('速度读数 0'), 250);
-    expect(find.textContaining('速度读数 0 km/h'), findsOneWidget);
-    expect(find.textContaining('仅1个采样点'), findsOneWidget);
+    // R29：读数头数值行保留单位，单位与数值紧贴。
+    await tester.scrollUntilVisible(find.text('0 km/h'), 250);
+    expect(find.text('0 km/h'), findsOneWidget);
+    expect(find.textContaining('只有 1 个数据点'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
     await tester.tap(find.text('电量'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('电量读数'), 200);
-    expect(find.textContaining('电量读数 —'), findsOneWidget);
+    // R29：缺失值读数头直接给「—」，并在读数头下说明「这一项没有记录」。
+    expect(find.text('—'), findsOneWidget);
+    expect(find.text('这一项没有记录'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('概览最近记录进入同一详情，明细404可返回，独立空series仍可阅读', (tester) async {
@@ -530,24 +531,23 @@ void main() {
         headers: {'etag': '"detail"'},
       );
     });
-    await tester.scrollUntilVisible(find.text('前一个采样'), 200);
+    await tester.scrollUntilVisible(find.text('速度过程'), 200);
     await tester.ensureVisible(find.byKey(const ValueKey('sample-chart')));
     await tester.pumpAndSettle();
     final rect = tester.getRect(find.byKey(const ValueKey('sample-chart')));
     await tester.tapAt(Offset(rect.left + rect.width * 0.49, rect.center.dy));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('速度读数'), 150);
-    expect(
-      find.textContaining('速度读数 —'),
-      findsOneWidget,
-      reason: tester
-          .widgetList<Text>(find.textContaining('速度读数'))
-          .map((t) => t.data)
-          .join(),
+    // R29：读数头把日期与数值分行，缺失点数值行为「—」。
+    await tester.scrollUntilVisible(find.text('速度过程'), 150);
+    expect(find.text('—'), findsWidgets);
+    final sampleRect = tester.getRect(
+      find.byKey(const ValueKey('sample-chart')),
     );
-    await tester.tap(find.text('后一个采样'));
+    await tester.tapAt(
+      Offset(sampleRect.left + sampleRect.width * 0.9, sampleRect.center.dy),
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('速度读数 80 km/h'), findsOneWidget);
+    expect(find.text('80 km/h'), findsOneWidget);
     refresh = true;
     await tester.scrollUntilVisible(find.byTooltip('刷新行程采样'), -200);
     await tester.tap(find.byTooltip('刷新行程采样'));

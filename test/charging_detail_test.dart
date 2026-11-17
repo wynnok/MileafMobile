@@ -123,7 +123,8 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('2026-01-05 08:04:00'), findsOneWidget);
-    expect(find.text('功率读数 11.00 kW'), findsOneWidget);
+    // R29：读数头数值行取代「功率读数」句。
+    expect(find.text('11 kW'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('两类能量'), 200);
     expect(find.textContaining('电网侧'), findsOneWidget);
     expect(find.textContaining('22.00 kWh'), findsOneWidget);
@@ -223,12 +224,12 @@ void main() {
     final rect = tester.getRect(chart);
     await tester.tapAt(rect.center);
     await tester.pumpAndSettle();
-    expect(find.text('功率读数 —'), findsOneWidget);
+    expect(find.text('—'), findsWidgets, reason: '缺失点数值行为「—」');
     expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('电量 %').hitTestable(), -200);
     await tester.tap(find.text('电量 %').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('电量读数 45 %'), findsOneWidget);
+    expect(find.text('45%'), findsOneWidget, reason: 'CP03 数值与百分号紧贴');
     expect(find.text('2026-01-05 08:01:00'), findsOneWidget);
     single = true;
     await tester.scrollUntilVisible(
@@ -242,8 +243,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('电量 %').hitTestable(), -200);
     await tester.tap(find.text('电量 %').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('电量读数 0 %').hitTestable(), 200);
-    expect(find.text('电量读数 0 %'), findsOneWidget);
+    // R29：读数头数值行；CP03 数值与百分号紧贴。
+    await tester.scrollUntilVisible(find.text('0%').hitTestable(), 200);
+    expect(find.text('0%'), findsOneWidget);
   });
   testWidgets('明细404可返回概览，曲线成功不被遮蔽；错车详情不得展示', (tester) async {
     var mismatch = false;

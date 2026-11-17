@@ -89,10 +89,8 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    expect(
-      find.textContaining('参照 9/1–9/28 20.0 km（差 0.0 km）'),
-      findsOneWidget,
-    );
+    // R29/CP03：读数头第三行给参照区间与差值句，单位紧贴数值。
+    expect(find.textContaining('参照 9/1–9/28 20 km，持平'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('净电耗 187.5 Wh/km'),
       100,
