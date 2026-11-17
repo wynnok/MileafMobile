@@ -9,7 +9,7 @@
 | FP0 | AP00 完成：在途改动与设计文档两次提交已落地，集成分支已建，AP00 交付物已提交，W1 工作树已建 | 7cf8dd4（AP00 + FP0 登记） |
 | FP1 | W1（AP01、AP06）合入 + 集成窗口基线补登 | c18f2fc（W1 合入） |
 | FP2 | W2（AP02–AP05）合入 + 集成窗口收口，共享 API 唯一清单 | 8edd1ec（W2 合入） |
-| FP3 | AP07 经用户视觉裁定后冻结 | 待登记 |
+| FP3 | AP07 代表页经用户裁定通过后冻结：token 表、组件 API、动效参数、首屏预算、共享符号签名 | eeefe83（AP07 合入）；清单见 [fp3-freeze.md](fp3-freeze.md) |
 
 ## 文件与测试租约（交付手册 §3.3）
 
@@ -44,10 +44,16 @@
 | AP03 | （已删）…/MileafMobile-ap03 | codex/apple-polish-ap03 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP04 | （已删）…/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP05 | （已删）…/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已合入 FP2，工作树已删，分支保留 |
-| AP07 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已创建（W3），依赖已备 |
-| AP08–AP13 | 待登记 | codex/apple-polish-apXX | FP3 | 待创建（W4） |
+| AP07 | （已删）…/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已合入 FP3，工作树已删，分支保留 |
+| AP08 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap08 | codex/apple-polish-ap08 | FP3 | 待创建（W4） |
+| AP09 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap09 | codex/apple-polish-ap09 | FP3 | 待创建（W4） |
+| AP10 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap10 | codex/apple-polish-ap10 | FP3 | 待创建（W4） |
+| AP11 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap11 | codex/apple-polish-ap11 | FP3 | 待创建（W4） |
+| AP12a | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 待创建（W4） |
+| AP12b | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 待创建（W4） |
+| AP13 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 待创建（W4） |
 
-W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。
+W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
 ## W1 合入记录（FP1 = c18f2fc）
 
@@ -109,6 +115,24 @@ W1 遗留交下游的事实：AP01 `AU-AP01`（controlBorder 采纳 #7A8390/#677
 - 步进圆钮 `canRequestFocus: false`：键盘 Tab 仍落到绘图区，读屏可触发按钮语义（ui_ux_u12 依赖此约定）。
 - AP02 的 D-AP02-01（大字收起态只保留控件、不显示页面名）与 D-AP02-04（顶栏 100% 下 100→92）留 AP07 视觉裁定复核；AP03 的 D1（图标圆钮 `fill` 默认 none）要求画布上由页面传 `fill: track`；D3（日期弹层「改为选择」新文案）待 AP14/用户统一。
 - AP05 遗留：`overview_page.dart:1980`、`statistics_charging_page.dart:646` 仍渲染「点按读值」，下钻串仍是「看当天」；按 R29/CP06/CP11 由 AP08/AP09/AP10/AP11 在 W4 改词。
+
+## W3 裁定与 FP3 冻结（FP3 = eeefe83）
+
+| 阶段 | 内容 | 提交 |
+| --- | --- | --- |
+| AP07 首轮 | 代表页 P01/P02/P06/P12/P16 与评审图 20 张 | 9ac5089 |
+| AP07 补齐 | 按裁定补 P05 充电详情、P02 顺序改 B、修 158 处下游测试 | 1f3c721 |
+| 第一轮裁定 | 四页（概览、行程、充电、统计）不通过，交回修正（记录见 AP07.md 附录 A.1） | aa02bb9 |
+| AP07 修正 | 统一内容网格、记录卡内边与分隔线、充电期间行与「查看全部」、统计专题等高与分区距（41 张评审图） | 213db96 |
+| 合入 | 四页复评通过；AP07 合入集成分支（AP07.md 的裁定记录与交接合并为一份） | eeefe83 |
+| 冻结 | 用户 2026-11-17 16:39 裁定**通过**；FP3 冻结（token 表、组件 API、动效参数、首屏预算、共享符号签名），清单见 [fp3-freeze.md](fp3-freeze.md) | FP3 登记提交 |
+
+- 合入后测试：AP07 28 通过 + 两道守卫 5 通过 = 33；跨页七件 88 通过；全量 **961 通过 / 40 跳过 / 0 失败**（FP2 基线 932/39）；`analyze` 无诊断；`dart format` 0 changed；`git diff --check` 无输出。
+- 合入的冲突只有 `docs/implementation/apple-polish/AP07.md`（add/add）：已把交接 §1–§11 与两轮裁定记录（§12、附录 A）合并为一份文件，未丢任一侧内容。
+- 图证：`docs/implementation/apple-polish-renders/review/` 41 张 PNG + manifest（`input_sha` `1f3c721`、FP2）。
+- 页面移交：`charging_page.dart` 由 AP07 临时持有（本轮修版式），合入后交 **AP10**；`overview_page.dart` → AP08，`drives_page.dart` → AP09，`charging_detail.dart` → AP10，`statistics_insights_page.dart` → AP11，`settings_page.dart` → AP13。
+- 裁定是否同步进 `AGENTS.md` 由用户决定；本轮未改 `AGENTS.md`。
+- W4 七个工作树从本节的 FP3 登记提交创建（见下方工作树租约表），依赖用 `cp -cR` 克隆 `.cache/pub` 后 `pub get --offline` 验证。
 
 ## AP00 交付物
 
