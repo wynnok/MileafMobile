@@ -1,0 +1,158 @@
+{
+  "ticket": "AP07",
+  "input_sha": "a2707f7",
+  "fixture": "cGalleryClient / CostSite",
+  "timezone": "Asia/Shanghai",
+  "sampled_at": "2026-10-26T10:40:00.000Z",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "dpr": 1,
+  "keyboard": "hidden",
+  "material_preferences": "default",
+  "images": {
+    "AP07-概览-normal-glass-dark-390x844-100-top.png": {
+      "page": "概览",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 219692,
+      "image_sha256": "147b5459f7325be8a57737d7c4c1243690a75462b0dde445ee9c0a171a42b632"
+    },
+    "AP07-行程-normal-glass-dark-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 184067,
+      "image_sha256": "5cf6127486ad592112843ee5126f901fd81bcbc3560bcdaac3eeb2a785825150"
+    },
+    "AP07-统计-normal-glass-dark-390x844-100-top.png": {
+      "page": "统计",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 204491,
+      "image_sha256": "db0d39b3ac8bedd9f327533ef54e55ce81cc944f02478402ba9f9bcfb9d9b09b"
+    },
+    "AP07-设置-normal-glass-dark-390x844-100-top.png": {
+      "page": "设置",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 70793,
+      "image_sha256": "4e4c638f12a968360834db782f579f67453e89a4407de6eda0de840852f2b592"
+    },
+    "AP07-车辆-sheet-glass-dark-390x844-100-top.png": {
+      "page": "车辆",
+      "scene": "sheet",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 113104,
+      "image_sha256": "2599c34a61052c9617ad0140dd487dfd1ecff8c563bd88bec5ed1c487345b281"
+    },
+    "AP07-概览-normal-glass-light-390x844-100-top.png": {
+      "page": "概览",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 200777,
+      "image_sha256": "719ae8bfecc74c38718b3495ad0539b26eed4a376fd84c3ece877a5833bb2e7e"
+    },
+    "AP07-行程-normal-glass-light-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 169032,
+      "image_sha256": "97b39bb848224b02d09b82aea27c16f30d0803ee14f152d06cf9f6a71d172e59"
+    },
+    "AP07-统计-normal-glass-light-390x844-100-top.png": {
+      "page": "统计",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 189367,
+      "image_sha256": "a55b3c0d00d0113de43861fd6ede1dc6b3f88d6859713930d00b5848eb3b71bc"
+    },
+    "AP07-设置-normal-glass-light-390x844-100-top.png": {
+      "page": "设置",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 70908,
+      "image_sha256": "2f1c91bfb43d4deef46419ae7a75abf0665aaf48d525c74a58f36b0599a42b93"
+    },
+    "AP07-车辆-sheet-glass-light-390x844-100-top.png": {
+      "page": "车辆",
+      "scene": "sheet",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 117210,
+      "image_sha256": "b4fedd5f8bfb6e161c04ddf494c3467fb46c28bad5d38abb67b8da64d8d6bcab"
+    },
+    "AP07-概览-normal-glass-light-360x800-100-top.png": {
+      "page": "概览",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "bytes": 188505,
+      "image_sha256": "1e5c678cfc7edbb2e85c9a7564a189a5acdc4d0a1165a9cd4fc8ed1de7439704"
+    },
+    "AP07-行程-normal-glass-light-360x800-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "bytes": 171605,
+      "image_sha256": "6a5a8dced146bae3f16965bf59ae2e2716e393558f86317761bd54d40a948c55"
+    },
+    "AP07-统计-normal-glass-light-360x800-100-top.png": {
+      "page": "统计",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "bytes": 173725,
+      "image_sha256": "d4034600ba9dff5ac04c8ef4f511ad46c9609fe689723405f138c3d44f298643"
+    },
+    "AP07-概览-normal-glass-light-390x844-200-top.png": {
+      "page": "概览",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 149676,
+      "image_sha256": "80e001caef5090a50f1e8450224e1744db0e2ddf37669f6e86420f514f18a0cc"
+    },
+    "AP07-行程-normal-glass-light-390x844-200-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 159919,
+      "image_sha256": "e93093ac8f27ff89dd3c37259d4efc3fd0f20541713fafbdec8de59dc8a29d12"
+    },
+    "AP07-统计-normal-glass-light-390x844-200-top.png": {
+      "page": "统计",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "bytes": 136184,
+      "image_sha256": "76b186132c21f12851699ab7e1bc497092923a43310ca4d81e487a511da05589"
+    }
+  },
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec"
+}
