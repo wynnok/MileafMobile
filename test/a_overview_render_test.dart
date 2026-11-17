@@ -155,7 +155,7 @@ void main() {
             expect(find.textContaining('1,198.6'), findsWidgets);
             expect(find.text('每日里程'), findsOneWidget);
           } else if (scenario == 'empty') {
-            expect(find.text('还没有采样点'), findsOneWidget);
+            expect(find.text('这段时间没有行程'), findsOneWidget);
           } else {
             expect(find.textContaining('—'), findsWidgets);
           }

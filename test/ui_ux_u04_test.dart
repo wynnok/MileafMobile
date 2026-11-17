@@ -310,7 +310,7 @@ void main() {
         tester.widget<StatusChip>(month).onTap!();
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();
-        for (final label in ['电耗', '补能', '费用', '里程']) {
+        for (final label in ['电耗', '充电', '费用', '里程']) {
           tester.state<ScrollableState>(scrollable).position.jumpTo(0);
           await tester.pumpAndSettle();
           final control = find.widgetWithText(StatusChip, label);
@@ -333,12 +333,13 @@ void main() {
           '$prefix-controls.png',
         );
       }
+      // P01/R30：旧「数据说明与更多」弹层并入页尾「关于这些数据」分组卡，
+      // 不再有可点开的入口；这里只确认说明层在整页末尾仍可达。
       await tester.scrollUntilVisible(
-        find.text('数据说明与更多').hitTestable(),
+        find.text('关于这些数据').hitTestable(),
         300,
         scrollable: scrollable,
       );
-      await tester.tap(find.text('数据说明与更多').hitTestable());
       await tester.pumpAndSettle();
       // Every scenario reaches the last explanatory action at full text scale.
       final fullSequence =
@@ -363,10 +364,14 @@ void main() {
         }
       }
       await tester.scrollUntilVisible(
-        find.text('车辆与数据时间').hitTestable(),
+        find.text('技术详情').hitTestable(),
         300,
         scrollable: scrollable,
       );
+      // R30.4：说明层不是只截折叠标题——展开后技术详情必须可读、可复制。
+      await tester.tap(find.text('技术详情').hitTestable());
+      await tester.pumpAndSettle();
+      expect(find.byType(SelectableText), findsWidgets);
       await saveRenderPng(tester, find.byKey(boundary), '$prefix-end.png');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
