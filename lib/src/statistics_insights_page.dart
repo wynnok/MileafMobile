@@ -6,6 +6,7 @@ import 'number_format.dart';
 
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
+import 'copy/messages.dart' as messages;
 import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -247,29 +248,29 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     final capturedOwner = workspace.session.current;
     final capturedZone = workspace.calendar?.identifier;
     // U08 owns the long index and legacy route. Topic layouts migrate in U09.
+    final zone = workspace.calendar!;
+    // R30.3：折叠一律用 MileafDisclosure；区间进 meta（CP04 DF3），
+    // 精确窗口与时区留在展开内容里。
     final body = Column(
       children: [
         MileafContent(
           child: Padding(
             padding: MileafLayout.pageHorizontal(context),
-            child: ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: Text(() {
-                if (key == 'range') return '独立6/12个本地月窗口';
-                final zone = workspace.calendar!;
-                String date(DateTime instant) {
-                  final local = zone.local(instant);
-                  return '${local.year}/${local.month}/${local.day}';
-                }
-
-                return '${date(captured.window.from)} — ${date(captured.window.to)}';
-              }()),
-              subtitle: const Text('数据说明'),
-              children: [
-                Text(
-                  '${captured.window.from} — ${captured.window.to} · ${workspace.calendar!.identifier}',
-                ),
-              ],
+            child: MileafDisclosure(
+              label: '数据说明',
+              meta: key == 'range'
+                  ? '独立6/12个本地月窗口'
+                  : copy.formatRange(
+                      zone.local(captured.window.from),
+                      zone.local(
+                        captured.window.to.subtract(
+                          const Duration(microseconds: 1),
+                        ),
+                      ),
+                    ),
+              child: Text(
+                '${captured.window.from} — ${captured.window.to} · ${zone.identifier}',
+              ),
             ),
           ),
         ),
@@ -313,7 +314,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                               'parking': '停放观察',
                               'legacy': '原始统计指标',
                             }[key] ??
-                            '统计专题',
+                            '用车专题',
                       ),
                       onBack: () => Navigator.of(routeContext).pop(),
                     ),
@@ -497,25 +498,35 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         window: loadedWindow,
         revalidate: foreground,
       );
+
+  /// P06 长期索引两入口：分组卡行（R24），动作行动词短语（R30.3），
+  /// 索引不为摘要预取数据（U08 合同不变）。
   Widget longTopics() => ListView(
     padding: MileafLayout.pagePadding(context),
     children: [
-      for (final entry in const {
-        'range': ('展开长期续航', '独立6/12个本地月窗口', 'range_observations'),
-        'parking': ('展开停放观察', '所选期间的停放变化', 'parking_observations'),
-      }.entries) ...[
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(entry.value.$1, style: context.type.body),
-          subtitle: Text(
-            features?[entry.value.$3] == true ? entry.value.$2 : '当前站点暂不支持此专题',
-            style: context.type.label,
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => selectTopic(entry.key),
+      MileafGroupCard(
+        child: Column(
+          children: [
+            for (final entry in const {
+              'range': ('展开长期续航', 'range_observations'),
+              'parking': ('展开停放观察', 'parking_observations'),
+            }.entries)
+              MileafGroupRow(
+                title: entry.value.$1,
+                meta: features?[entry.value.$2] == true
+                    ? null
+                    : messages.unsupportedMessage('此专题'),
+                trailing: MileafIcon(
+                  MileafIconName.chevron,
+                  size: MileafIconMetrics.inline,
+                  color: context.colors.textFaint,
+                ),
+                onTap: () => selectTopic(entry.key),
+                bottomLine: entry.key == 'range',
+              ),
+          ],
         ),
-        const Divider(height: 1),
-      ],
+      ),
     ],
   );
   Widget _allMetricsAction() => TextButton(
@@ -550,7 +561,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                     'parking': '停放观察',
                     'legacy': '原始统计指标',
                   }[topic] ??
-                  '统计专题',
+                  '用车专题',
             ),
             onBack: () => selectTopic('overview'),
             actions: actions,
@@ -1072,15 +1083,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         // §6 退让阶梯第 3 步：根页焦点卡改用紧凑读数行，为专题首行腾出高度。
         compactReadout: true,
         tickLabel: tick,
-        readout: (index) {
-          final value = index < values.length ? values[index] : null;
-          final reference = comparable && index < referenceBuckets.length
-              ? referenceBuckets[index]
-              : null;
-          return '${index < times.length ? tick(times[index]) : '—'} '
-              '${value == null ? '—' : grouped(value, decimals: 1)} km'
-              '${reference == null || value == null ? '' : ' / 参照 ${_referenceRange()} ${grouped(reference, decimals: 1)} km（差 ${grouped(value - reference, decimals: 1)} km）'}';
-        },
+        // R29/CP04：读数句由图表语法生成（日期 → 数值 → 参照与差值一句，
+        // 仍是唯一朗读来源）；本页只注入 DF1 的日期读法。
+        readoutDate: (time) =>
+            copy.formatDay(cal.local(time), cal.local(workspace.session.now())),
         plotKey: const ValueKey('statistics-insights-chart'),
         selectedIndex: selected,
         onSelected: (index) => setState(() {
@@ -1177,9 +1183,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   ) {
     final active = enhanced.buckets.where((b) => b.distanceKm > 0).length;
     final minutes = enhanced.totals.drivingCoverage.durationKnownMin;
-    final duration = minutes == null
-        ? '—'
-        : '${minutes ~/ 60}h${(minutes % 60).toString().padLeft(2, '0')}';
     final net = enhanced.totals.netConsumptionPaired.valueWhKm;
     final prior = reference == null
         ? null
@@ -1203,7 +1206,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         MileafIconName.clock,
         '$active',
         '天',
-        minutes == null ? '驾驶时长缺失' : '驾驶 $duration',
+        // CP03：时长用共享分级（「驾驶 13 小时 18 分钟」，不再 13h18）。
+        minutes == null
+            ? '驾驶时长缺失'
+            : '驾驶 ${copy.duration(Duration(minutes: minutes.round()))}',
         () => selectTopic('usage'),
       ),
       _chapter(
@@ -1231,8 +1237,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       _chapter(
         '长期',
         MileafIconName.battery,
-        '—',
-        'km',
+        // P06：长期无值时只写「续航与停放」状态，不造假数值。
+        '续航与停放',
+        null,
         '查看专题',
         () => selectTopic('long'),
       ),
@@ -1283,12 +1290,16 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
   }
 
+  /// CP02/CP03：能耗专题卡的比较句与结论卡同词（比上月同期低/高 …）。
   String _netDeltaNote(num? value, num? prior, bool comparable) {
-    if (!comparable || value == null || prior == null) return '样本不足或口径不一致';
-    if (prior == 0) return '参照为0，不计算变化';
+    if (!comparable || value == null || prior == null) {
+      return '统计方式不同，暂不比较';
+    }
+    if (prior == 0) return '上月同期为 0，无法比较';
     final delta = value - prior;
-    if (delta.abs() < .5) return '与参照基本持平';
-    return '较参照${delta < 0 ? '低' : '高'} ${grouped(delta.abs())} Wh/km';
+    final name = _compareName;
+    if (delta.abs() < .5) return '与$name持平';
+    return '比$name${delta < 0 ? '低' : '高'} ${grouped(delta.abs())} Wh/km';
   }
 
   /// R30.2 页尾「关于这些数据」：口径与估算、记录与缺失、时间与时区、
@@ -1509,38 +1520,48 @@ class _AllMetricsPage extends StatelessWidget {
   final ValueChanged<String> onTopic;
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: mileafPageBar(context, title: const Text('全部指标与口径')),
+    // CP05：页面标题改「全部指标」。
+    appBar: mileafPageBar(context, title: const Text('全部指标')),
     body: MileafContent(
       child: ListView(
         padding: MileafLayout.pagePadding(context),
         children: [
-          for (final entry in const {
-            'usage': ('节奏', '驾驶时间、单程与星期分布'),
-            'energy': ('能耗', '温度与距离条件'),
-            'charging': ('补能', '费用、均价与 AC/DC'),
-            'long': ('长期', '额定续航与停放观察'),
-          }.entries)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(entry.value.$1),
-              subtitle: Text(entry.value.$2),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => onTopic(entry.key),
+          // P15：分组卡列表，保留全部字段与旧版能力入口。
+          MileafGroupCard(
+            child: Column(
+              children: [
+                for (final entry in const {
+                  'usage': ('节奏', '驾驶时间、单程与星期分布'),
+                  'energy': ('能耗', '温度与距离条件'),
+                  'charging': ('补能', '费用、均价与 AC/DC'),
+                  'long': ('长期', '额定续航与停放观察'),
+                  'legacy': ('原始统计指标', '驾驶与充电的区间指标、时间桶明细'),
+                }.entries)
+                  MileafGroupRow(
+                    title: entry.value.$1,
+                    meta: entry.value.$2,
+                    trailing: MileafIcon(
+                      MileafIconName.chevron,
+                      size: MileafIconMetrics.inline,
+                      color: context.colors.textFaint,
+                    ),
+                    onTap: () => onTopic(entry.key),
+                    bottomLine: entry.key != 'legacy',
+                  ),
+              ],
             ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('原始统计指标'),
-            subtitle: const Text('驾驶与充电的区间指标、时间桶明细'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => onTopic('legacy'),
           ),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text('数据说明'),
-            children: [
-              Text('沿用当前车辆与期间；归期时区 $timezone。'),
-              const Text('各专题只回答一个问题，指标口径与统计首页一致。'),
-            ],
+          // R30.3：说明类折叠改 MileafDisclosure，原位展开。
+          MileafDisclosure(
+            label: '数据说明',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('沿用当前车辆与期间；统计时区 $timezone。'),
+                const SizedBox(height: MileafSpace.s4),
+                const Text('各专题只回答一个问题，指标口径与统计首页一致。'),
+              ],
+            ),
           ),
         ],
       ),

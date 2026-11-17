@@ -153,11 +153,11 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       if (scenario == 'normal') {
-        expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
+        expect(find.textContaining('比上月同期低 13 Wh/km'), findsOneWidget);
       } else if (scenario == 'zero') {
-        expect(find.textContaining('参照为0'), findsOneWidget);
+        expect(find.textContaining('上月同期为 0，无法比较'), findsOneWidget);
       } else {
-        expect(find.textContaining('较参照'), findsNothing);
+        expect(find.textContaining('比上月同期'), findsNothing);
       }
       // R30：说明迁入页尾「关于这些数据」，参照原值进「技术详情」。
       await tester.scrollUntilVisible(
@@ -332,7 +332,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     expect(find.text('187.5 Wh/km'), findsWidgets, reason: '值与单位不再拆成两行');
-    expect(find.textContaining('较参照低 13 Wh/km'), findsOneWidget);
+    expect(find.textContaining('比上月同期低 13 Wh/km'), findsOneWidget);
   });
 
   testWidgets('驾驶汇总失败不遮挡其他专题与区间恢复操作', (tester) async {
