@@ -16,6 +16,7 @@ import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/map/map_key.dart';
 
 import 'support/map_key_fixture.dart';
+import 'charging_expansion_test.dart' show expansionResponse;
 import 'statistics_test.dart' show openStats;
 import 'support/statistics_insights_fixture.dart';
 import 'support/session_store.dart';
@@ -82,6 +83,37 @@ MockClient chargingClient() => MockClient((request) async {
   }
   return http.Response('{}', 404);
 });
+
+/// 声明充电扩展能力（charging-experience-v1）的站点：期间行三个胶囊与
+/// 「最近充电 → 查看全部」入口才会出现。充电账本接口沿用
+/// `expansionResponse`（B 期扩展契约），其余页面沿用本票夹具。
+MockClient chargingLedgerClient() {
+  final base = chargingClient();
+  return MockClient((request) async {
+    final path = request.url.path;
+    if (path.endsWith('/meta')) {
+      final meta = fixture('meta') as Map<String, dynamic>;
+      meta['version'] = '0.2.0';
+      meta['charging_experience'] = {
+        'contract_version': 'charging-experience-v1',
+        'minimum_server_version': '0.2.0',
+        'tested_schema_version': 20260808090000,
+        'fields': <String, bool>{},
+      };
+      return _ok(meta);
+    }
+    if (path.endsWith('/charging-sessions') ||
+        path.endsWith('/charging-locations') ||
+        (path.endsWith('/stats') &&
+            request.url.queryParameters['kind'] == 'charging')) {
+      return expansionResponse(request);
+    }
+    final forwarded = http.Request(request.method, request.url)
+      ..headers.addAll(request.headers)
+      ..bodyBytes = request.bodyBytes;
+    return http.Response.fromStream(await base.send(forwarded));
+  });
+}
 
 Future<void> pumpWorkspace(
   WidgetTester tester, {
@@ -153,12 +185,24 @@ MockClient insightsClient() => MockClient((request) async {
 Future<void> pumpInsights(
   WidgetTester tester, {
   Size size = const Size(390, 844),
+  double textScale = 1,
+  bool safeArea = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
+  if (safeArea) {
+    tester.view.viewPadding = const FakeViewPadding(top: 24, bottom: 24);
+    tester.view.padding = tester.view.viewPadding;
+  }
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(() {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
+    if (safeArea) {
+      tester.view.resetViewPadding();
+      tester.view.resetPadding();
+    }
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
   });
   await openStats(
     tester,
@@ -170,6 +214,376 @@ Future<void> pumpInsights(
 }
 
 void main() {
+  group('AP07 修正·小屏与大字', () {
+    testWidgets('320×568 200% 四页不溢出：行内边、期间行与专题网格', (tester) async {
+      await pumpWorkspace(
+        tester,
+        client: chargingLedgerClient(),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+      Future<void> tab(String label) async {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(MileafNavBar),
+            matching: find.text(label),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await tab('行程');
+      expect(tester.takeException(), isNull, reason: 'P02 320/200% 不溢出');
+      await tab('充电');
+      expect(tester.takeException(), isNull, reason: 'P03 320/200% 不溢出');
+      await tab('统计');
+      expect(tester.takeException(), isNull, reason: 'P06 320/200% 不溢出');
+      await tab('概览');
+      expect(tester.takeException(), isNull, reason: 'P01 320/200% 不溢出');
+    });
+  });
+
+  group('AP07 修正·P01 概览统一网格', () {
+    testWidgets('开放行收进分组卡，行内横向内边 ≥12，只有行间一条发丝线', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester);
+      // 「最近记录」「用车专题」都走分组卡：2 行 + 3 行。
+      final rows = find.byType(MileafDataRow);
+      expect(rows, findsNWidgets(5));
+      for (final element in rows.evaluate()) {
+        final row = find.byWidget(element.widget);
+        final card = find
+            .ancestor(of: row, matching: find.byType(MileafGroupCard))
+            .first;
+        final cardRect = tester.getRect(card);
+        final rowRect = tester.getRect(row);
+        expect(
+          rowRect.left - cardRect.left,
+          greaterThanOrEqualTo(12),
+          reason: 'P01 行文字距卡片左缘 ≥12',
+        );
+        expect(
+          cardRect.right - rowRect.right,
+          greaterThanOrEqualTo(12),
+          reason: 'P01 行文字距卡片右缘 ≥12',
+        );
+        // 首行之上与末行之下没有线：行自己不再画整行 topLine/bottomLine。
+        final widget = element.widget as MileafDataRow;
+        expect(widget.topLine, isFalse);
+        expect(widget.bottomLine, isFalse);
+      }
+      final card = find
+          .ancestor(
+            of: find.text('最近行程'),
+            matching: find.byType(MileafGroupCard),
+          )
+          .first;
+      expect(hairlinesIn(card), 1, reason: 'R24 两行之间一条分隔线，末行之下不画线');
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('电耗对比与关于这些数据同一容器语法：区块标题 + 分组卡 + 卡内行', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester);
+      await tester.scrollUntilVisible(find.text('电耗对比'), 300);
+      expect(find.text('电耗对比'), findsOneWidget);
+      // P01：标题在画布层（页面边距），卡内内容在页面边距 + 16。
+      final headerCard = find
+          .ancestor(
+            of: find.text('查看对比明细'),
+            matching: find.byType(MileafGroupCard),
+          )
+          .first;
+      final card = tester.getRect(headerCard);
+      final title = tester.getRect(find.text('电耗对比'));
+      expect(card.left, closeTo(title.left, 0.5), reason: '卡片与区块标题同左缘');
+      final body = tester.getRect(
+        find.descendant(of: headerCard, matching: find.byType(Text)).first,
+      );
+      expect(
+        body.left - card.left,
+        closeTo(MileafSpace.cardPad, 0.5),
+        reason: '卡内正文距卡片左缘 16',
+      );
+      expect(card.right - body.right, greaterThanOrEqualTo(0));
+      // 卡内动作是同一张卡里的一行导航行，不是卡中卡。
+      final action = tester.getRect(find.text('查看对比明细'));
+      expect(action.left - card.left, greaterThanOrEqualTo(12));
+      expect(
+        find.ancestor(
+          of: find.text('查看对比明细'),
+          matching: find.byType(MileafGroupRow),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('查看对比明细'),
+          matching: find.byType(MileafModuleCard),
+        ),
+        findsNothing,
+      );
+      expect(find.byType(MileafButton), findsNothing, reason: '不再有悬浮按钮感');
+      // 与页尾说明同一容器语法：两者都是「标题 + 分组卡」。
+      expect(
+        find.ancestor(
+          of: find.text('关于这些数据'),
+          matching: find.byType(MileafGroupHeader),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+  });
+
+  group('AP07 修正·P02 行程记录卡', () {
+    Future<void> openDrives(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MileafNavBar),
+          matching: find.text('行程'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('记录行有统一横向内边，只在行间画分隔线，末行无线且卡片裁剪', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester);
+      await openDrives(tester);
+      final rows = find.byType(MileafDataRow);
+      expect(rows, findsWidgets);
+      var checked = 0;
+      for (final element in rows.evaluate()) {
+        final widget = element.widget as MileafDataRow;
+        if (widget.bottomLine || widget.topLine) {
+          fail('记录行不应自己画整行分隔线');
+        }
+        final row = find.byWidget(element.widget);
+        final card = find
+            .ancestor(of: row, matching: find.byType(MileafGroupCard))
+            .first;
+        if (card.evaluate().isEmpty) continue;
+        checked++;
+        final cardRect = tester.getRect(card);
+        final rowRect = tester.getRect(row);
+        expect(
+          rowRect.left - cardRect.left,
+          greaterThanOrEqualTo(12),
+          reason: 'P02 行文字距卡片左缘 ≥12',
+        );
+        expect(cardRect.right - rowRect.right, greaterThanOrEqualTo(12));
+        expect(rowRect.bottom, lessThanOrEqualTo(cardRect.bottom + 0.5));
+      }
+      expect(checked, greaterThan(0));
+      // 每天一张分组卡：行数与分隔线数只差 1（末行不画线）。
+      final firstCard = find
+          .ancestor(
+            of: find.byKey(const ValueKey('drive-17')),
+            matching: find.byType(MileafGroupCard),
+          )
+          .first;
+      final group = tester.widget<MileafGroupCard>(firstCard);
+      expect(group.clip, isTrue, reason: '卡片裁到圆角，末行线不会突破圆角');
+      expect(rowsIn(firstCard), 2);
+      expect(hairlinesIn(firstCard), 1);
+      final lastRow = tester.getRect(find.byKey(const ValueKey('drive-16')));
+      final cardRect = tester.getRect(firstCard);
+      expect(lastRow.bottom, lessThanOrEqualTo(cardRect.bottom));
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+  });
+
+  group('AP07 修正·P03 充电顶部与入口', () {
+    Future<void> openCharging(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MileafNavBar),
+          matching: find.text('充电'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('顶部只有一行控件：期间分段与刷新圆钮同行', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester, client: chargingLedgerClient());
+      await openCharging(tester);
+      expect(find.byType(MileafPeriodRow), findsOneWidget);
+      final period = tester.getRect(find.byType(MileafPeriodRow));
+      final refresh = tester.getRect(find.byTooltip('刷新充电'));
+      expect(
+        refresh.top,
+        greaterThanOrEqualTo(period.top - 0.5),
+        reason: 'P03 刷新与期间分段同一行',
+      );
+      expect(refresh.bottom, lessThanOrEqualTo(period.bottom + 0.5));
+      // 用户裁定：日期快捷选择不得排成两行、左侧留空。
+      final chips = <String>['近30天', '近7天', '自定义'];
+      final tops = [
+        for (final chip in chips) tester.getRect(find.text(chip)).top,
+      ];
+      expect(tops[1], closeTo(tops[0], 0.5), reason: '390 宽期间胶囊一行');
+      expect(
+        tops[2],
+        closeTo(tops[0], 0.5),
+        reason: '自定义入口不折到第二行（实际 ${tops[2] - tops[0]}）',
+      );
+      final periods = find.byType(MileafPeriodRow);
+      expect(
+        tester.getSize(periods).height,
+        closeTo(
+          tester
+              .getSize(
+                find.descendant(of: periods, matching: find.byType(ChipRow)),
+              )
+              .height,
+          0.5,
+        ),
+        reason: '期间行高度就是胶囊轨道的一行高，没有第二行',
+      );
+      // 页头两行结构退场：不再有左侧空白的第二行动作。
+      expect(find.text('全部记录'), findsNothing);
+      expect(find.text('返回账本'), findsNothing);
+      expect(
+        find.ancestor(
+          of: find.byType(MileafPeriodRow),
+          matching: find.byType(Column),
+        ),
+        findsWidgets,
+      );
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('入口是「最近充电」标题尾部「查看全部」，进入后导航标题为「全部充电记录」', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWorkspace(tester, client: chargingLedgerClient());
+      await openCharging(tester);
+      expect(find.text('最近的充电'), findsNothing);
+      expect(find.text('查看全部充电记录'), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text('查看全部').hitTestable(),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final header = find.ancestor(
+        of: find.text('最近充电'),
+        matching: find.byType(SectionHeader),
+      );
+      expect(header, findsOneWidget);
+      expect(
+        find.descendant(of: header, matching: find.text('查看全部')),
+        findsOneWidget,
+        reason: 'CP06 入口在区块标题尾部',
+      );
+      await tester.tap(find.text('查看全部').hitTestable());
+      await tester.pumpAndSettle();
+      expect(find.text('全部充电记录'), findsOneWidget);
+      expect(find.byType(MileafNavigationRow), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('全部充电记录'), findsNothing);
+      expect(find.text('查看全部'), findsWidgets);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+  });
+
+  group('AP07 修正·P06 统计专题网格', () {
+    testWidgets('结论卡与专题网格有分区距，同行卡片等高，轴标签不压专题卡', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpInsights(tester);
+      final conclusion = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('查看对比明细'),
+              matching: find.byType(MileafModuleCard),
+            )
+            .first,
+      );
+      // 卡片边缘而不是卡片内容：专题卡的内边 12 不算分区距。
+      Rect card(String name) => tester.getRect(
+        find
+            .ancestor(
+              of: find.byKey(ValueKey('statistics-topic-$name')),
+              matching: find.byType(MileafModuleCard),
+            )
+            .first,
+      );
+      final firstCard = card('节奏');
+      expect(
+        firstCard.top - conclusion.bottom,
+        greaterThanOrEqualTo(12),
+        reason: 'P06 分区距 ≥12（实际 ${firstCard.top - conclusion.bottom}）',
+      );
+      for (final pair in const [
+        ['节奏', '能耗'],
+        ['补能', '长期'],
+      ]) {
+        final left = card(pair[0]);
+        final right = card(pair[1]);
+        expect(left.top, closeTo(right.top, 0.5), reason: '同一行从同一顶端开始');
+        expect(
+          (left.height - right.height).abs(),
+          lessThanOrEqualTo(1),
+          reason: '${pair[0]} ${left.height} 与 ${pair[1]} ${right.height} 等高',
+        );
+      }
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('200% 结论卡：比较句占满宽、下钻在下一行', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpInsights(tester, textScale: 2);
+      final card = find
+          .ancestor(
+            of: find.text('查看对比明细'),
+            matching: find.byType(MileafModuleCard),
+          )
+          .first;
+      final cardRect = tester.getRect(card);
+      // 大字时下钻换到下一行并左对齐：它到卡片左缘只有一个卡内边距，
+      // 也就是说右侧不再有按钮挤占句子的宽度。
+      final drill = tester.getRect(find.text('查看对比明细'));
+      expect(
+        drill.left - cardRect.left,
+        lessThanOrEqualTo(MileafSpace.cardPad),
+        reason: '大字时下钻在句子下一行左对齐（实际 ${drill.left - cardRect.left}）',
+      );
+      expect(drill.width, lessThan(cardRect.width));
+      // 比较句因此占满整行宽度：卡内正文宽度 > 卡片宽度的一半。
+      expect(cardRect.width - 2 * MileafSpace.cardPad, greaterThan(0));
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('200% 专题卡片单列且不溢出', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpInsights(tester, textScale: 2);
+      final topics = find.byKey(const ValueKey('statistics-topic-节奏'));
+      await tester.scrollUntilVisible(topics, 300);
+      await Scrollable.ensureVisible(tester.element(topics), alignment: 0);
+      await tester.pumpAndSettle();
+      final first = tester.getRect(topics);
+      final second = tester.getRect(
+        find.byKey(const ValueKey('statistics-topic-能耗')),
+      );
+      expect(
+        second.top,
+        greaterThanOrEqualTo(first.bottom - 0.5),
+        reason: '大字时专题单列',
+      );
+      expect(second.left, closeTo(first.left, 0.5));
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+  });
+
   group('AP07 P12 设置', () {
     testWidgets('设置页分成使用偏好与当前站点两张分组卡，行为单行设置行', (tester) async {
       await pumpWorkspace(tester);
@@ -457,16 +871,24 @@ void main() {
 
     testWidgets('360x800 首屏：用车专题第一行两张卡片完整可见', (tester) async {
       final semantics = tester.ensureSemantics();
-      await pumpInsights(tester, size: const Size(360, 800));
+      // §6 基准：360×800、safeArea 上下各 24、100% 字号。
+      await pumpInsights(tester, size: const Size(360, 800), safeArea: true);
       final bar = tester.getTopLeft(find.byType(MileafNavBar)).dy;
       for (final topic in const ['节奏', '能耗']) {
         final rect = tester.getRect(
-          find.byKey(ValueKey('statistics-topic-$topic')),
+          find
+              .ancestor(
+                of: find.byKey(ValueKey('statistics-topic-$topic')),
+                matching: find.byType(MileafModuleCard),
+              )
+              .first,
         );
         expect(
           rect.bottom,
           lessThanOrEqualTo(bar),
-          reason: 'P06 专题第一行两张卡片完整可见（$topic）',
+          reason:
+              'P06 专题第一行两张卡片完整可见（$topic），'
+              '底边 ${rect.bottom} vs 导航上沿 $bar',
         );
       }
       expect(tester.takeException(), isNull);
@@ -570,6 +992,31 @@ void main() {
     });
   });
 }
+
+/// 卡内发丝线数量：Container + 单边 top 边框 + 高 0（R24 的一物理像素线）。
+int hairlinesIn(Finder scope) => find
+    .descendant(
+      of: scope,
+      matching: find.byWidgetPredicate((widget) => _isHairline(widget)),
+    )
+    .evaluate()
+    .length;
+
+bool _isHairline(Widget widget) {
+  if (widget is! Container) return false;
+  final decoration = widget.decoration;
+  if (decoration is! BoxDecoration) return false;
+  final border = decoration.border;
+  return border is Border &&
+      border.top != BorderSide.none &&
+      widget.constraints?.maxHeight == 0;
+}
+
+/// 组卡内的记录行数量。
+int rowsIn(Finder scope) => find
+    .descendant(of: scope, matching: find.byType(MileafDataRow))
+    .evaluate()
+    .length;
 
 /// R21.7 的等价测量：MileafNumber 用 Text.rich 承载数值（样式在 span 上），
 /// 现有层级探针只读 Text.style，因此这里连同 textSpan 的样式一起判定角色。

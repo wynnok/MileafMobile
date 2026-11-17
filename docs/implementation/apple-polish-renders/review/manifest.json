@@ -1,6 +1,8 @@
 {
   "ticket": "AP07",
-  "input_sha": "a2707f7",
+  "input_sha": "1f3c721",
+  "freeze_point": "FP2 (a2707f7)",
+  "round": "user-visual-review-2026-11-17",
   "fixture": "cGalleryClient / CostSite",
   "timezone": "Asia/Shanghai",
   "sampled_at": "2026-10-26T10:40:00.000Z",
@@ -148,6 +150,174 @@
       "mode": "light",
       "camera": "390x844-200",
       "size": "Size(390.0, 844.0)"
+    },
+    "AP07-概览-下半-glass-light-390x844-100-scrolled.png": {
+      "page": "概览",
+      "scene": "下半",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-行程-记录-glass-light-390x844-100-scrolled.png": {
+      "page": "行程",
+      "scene": "记录",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-顶部-glass-light-390x844-100-scrolled.png": {
+      "page": "充电",
+      "scene": "顶部",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-最近充电-glass-light-390x844-100-scrolled.png": {
+      "page": "充电",
+      "scene": "最近充电",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-统计-结论与专题-glass-light-390x844-100-scrolled.png": {
+      "page": "统计",
+      "scene": "结论与专题",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-概览-下半-glass-dark-390x844-100-scrolled.png": {
+      "page": "概览",
+      "scene": "下半",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-行程-记录-glass-dark-390x844-100-scrolled.png": {
+      "page": "行程",
+      "scene": "记录",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-顶部-glass-dark-390x844-100-scrolled.png": {
+      "page": "充电",
+      "scene": "顶部",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-最近充电-glass-dark-390x844-100-scrolled.png": {
+      "page": "充电",
+      "scene": "最近充电",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-统计-结论与专题-glass-dark-390x844-100-scrolled.png": {
+      "page": "统计",
+      "scene": "结论与专题",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-概览-下半-glass-light-390x844-200-scrolled.png": {
+      "page": "概览",
+      "scene": "下半",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-行程-记录-glass-light-390x844-200-scrolled.png": {
+      "page": "行程",
+      "scene": "记录",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-顶部-glass-light-390x844-200-scrolled.png": {
+      "page": "充电",
+      "scene": "顶部",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-充电-最近充电-glass-light-390x844-200-scrolled.png": {
+      "page": "充电",
+      "scene": "最近充电",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-统计-结论与专题-glass-light-390x844-200-scrolled.png": {
+      "page": "统计",
+      "scene": "结论与专题",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
+    },
+    "AP07-概览-下半-glass-light-360x800-100-scrolled.png": {
+      "page": "概览",
+      "scene": "下半",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "directed": true
+    },
+    "AP07-行程-记录-glass-light-360x800-100-scrolled.png": {
+      "page": "行程",
+      "scene": "记录",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "directed": true
+    },
+    "AP07-充电-顶部-glass-light-360x800-100-scrolled.png": {
+      "page": "充电",
+      "scene": "顶部",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "directed": true
+    },
+    "AP07-充电-最近充电-glass-light-360x800-100-scrolled.png": {
+      "page": "充电",
+      "scene": "最近充电",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "directed": true
+    },
+    "AP07-统计-结论与专题-glass-light-360x800-100-scrolled.png": {
+      "page": "统计",
+      "scene": "结论与专题",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "directed": true
+    },
+    "AP07-统计-无参照-glass-light-390x844-100-scrolled.png": {
+      "page": "统计",
+      "scene": "无参照",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "directed": true
     }
   }
 }

@@ -1073,9 +1073,14 @@ class _ChargingPageState extends State<ChargingPage>
     load();
   }
 
+  /// 回到顶部：先同步跳到 0，再等这一帧结束后兜底一次。内容模式切换会让
+  /// 页面骤然变短，若等到下一帧才收敛位置，视口会在布局阶段因夹紧而发出滚动
+  /// 通知，外层外壳的滚动监听因此会在布局中被唤醒（「Build scheduled during
+  /// frame」）。先跳再换内容就不会走到那条路径。
   void scrollToTop() {
+    if (scroll.hasClients && scroll.offset > 0) scroll.jumpTo(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && scroll.hasClients) scroll.jumpTo(0);
+      if (mounted && scroll.hasClients && scroll.offset > 0) scroll.jumpTo(0);
     });
   }
 
@@ -1624,28 +1629,14 @@ class _ChargingPageState extends State<ChargingPage>
     ],
   );
 
-  Widget _pageHeader() {
-    final actions = <Widget>[
-      if (expandedAvailable)
-        TextButton(
-          onPressed: () {
-            final returning = recordsOnly;
-            setState(() => recordsOnly = !recordsOnly);
-            scrollToTop();
-            if (returning && selectedDay != null) showDay(null);
-          },
-          child: Text(recordsOnly ? '返回账本' : '全部记录'),
-        ),
-      MileafIconButton(
-        icon: MileafIconName.refresh,
-        tooltip: '刷新充电',
-        onPressed: loading ? null : refreshAll,
-      ),
-    ];
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Wrap(alignment: WrapAlignment.end, children: actions),
-    );
+  /// 全部记录 ↔ 账本：入口在「最近充电」区块标题尾部的「查看全部」（CP06），
+  /// 进入后顶部是一条二级导航（返回 + 标题「全部充电记录」），返回时沿用
+  /// 原有的「退出日筛选」行为。
+  void _toggleRecords({required bool open}) {
+    final returning = recordsOnly;
+    setState(() => recordsOnly = open);
+    scrollToTop();
+    if (returning && !open && selectedDay != null) showDay(null);
   }
 
   Widget _periodRow() {
@@ -1666,15 +1657,25 @@ class _ChargingPageState extends State<ChargingPage>
     final range =
         '${start.year}/${start.month}/${start.day}–${end.year}/${end.month}/${end.day}';
     final date = StatusChip(
-      label: '自定义日期',
+      // CP06「同一位置的同类操作用同一个词」：四个根页期间行的自定义入口
+      // 与行程页一致写「自定义」；完整区间与归期口径由语义标签补全。
+      label: '自定义',
       selected: widget.filter.first != null,
       semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}时间归期',
       onTap: filterDates,
     );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ChipRow(
+        // R25/R27：期间分段占剩余宽度，行尾是唯一的刷新圆钮——四个根页的
+        // 期间行位置一致，不再出现「一行动作 + 一行胶囊」的两行结构。
+        MileafPeriodRow(
+          trailing: MileafIconButton(
+            icon: MileafIconName.refresh,
+            tooltip: '刷新充电',
+            fill: MileafIconButtonFill.track,
+            onPressed: loading ? null : refreshAll,
+          ),
           children: [
             if (expandedAvailable) ...[chip('近30天', 30), chip('近7天', 7)],
             date,
@@ -1974,14 +1975,11 @@ class _ChargingPageState extends State<ChargingPage>
     );
   }
 
+  /// P03：最近充电是固定的一段——区块标题（尾部「查看全部」）+ 记录行；
+  /// 没有记录时标题与入口仍在，空态由记录区自己说明，用户依然能进全部记录去
+  /// 搜索与筛选。
   Widget _recentSection() {
     if (!expandedAvailable || recordsOnly) return const SizedBox.shrink();
-    if (items.isEmpty) {
-      return Padding(
-        padding: MileafLayout.pageHorizontal(context),
-        child: _recordsSection(),
-      );
-    }
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1992,20 +1990,19 @@ class _ChargingPageState extends State<ChargingPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '最近的充电'),
-          const SizedBox(height: MileafSpace.s12),
-          for (final value in items.take(3)) _recordRow(value),
-          if (items.length > 3 || next != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () {
-                  setState(() => recordsOnly = true);
-                  scrollToTop();
-                },
-                child: const Text('查看全部充电记录'),
-              ),
+          SectionHeader(
+            title: '最近充电',
+            // CP05/CP06：入口是区块标题尾部的「查看全部」，不再保留整行按钮。
+            action: TextButton(
+              onPressed: () => _toggleRecords(open: true),
+              child: const Text('查看全部'),
             ),
+          ),
+          const SizedBox(height: MileafSpace.s12),
+          if (items.isEmpty)
+            _recordsSection()
+          else
+            for (final value in items.take(3)) _recordRow(value),
         ],
       ),
     );
@@ -2090,13 +2087,22 @@ class _ChargingPageState extends State<ChargingPage>
             children: [
               if (widget.topBar == null)
                 SizedBox(height: MileafLayout.rootTopClearance(context)),
+              // P03/CP06：全部记录模式顶部是二级导航（返回 + 标题
+              // 「全部充电记录」），取代原来的页头文字按钮。宿主已提供页头
+              // （统计专题以 initialEntry 推入本页，标题「补能记录」）时不重复。
+              if (recordsOnly && widget.initialEntry == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: MileafSpace.s4),
+                  child: MileafNavigationRow(
+                    title: const Text('全部充电记录'),
+                    onBack: () => _toggleRecords(open: false),
+                  ),
+                ),
               Padding(
                 padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _pageHeader(),
-                    const SizedBox(height: MileafSpace.s4),
                     _periodRow(),
                     if (widget.filter.first != null)
                       Align(

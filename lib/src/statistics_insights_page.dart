@@ -567,9 +567,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                     color: context.colors.textSecondary,
                   ),
                 ),
-              SizedBox(
-                height: topic == 'overview' ? MileafSpace.s8 : MileafSpace.s8,
-              ),
+
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -796,7 +794,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       // §6 退让阶梯第 1 步：去掉与期间行重复的 8 间距。
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),
-                        MileafSpace.s4,
+                        0,
                         MileafLayout.pageInset(context),
                         0,
                       ),
@@ -818,7 +816,9 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                               onAction: retryReference,
                             ),
                           MileafModuleCard(
-                            padding: const EdgeInsets.all(MileafSpace.s12),
+                            // §6 退让阶梯：结论卡内边 12 → 8，为 360×800
+                            // 首屏预算（专题第一行完整可见）腾出高度。
+                            padding: const EdgeInsets.all(MileafSpace.s8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -829,7 +829,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                                   comparable,
                                   other,
                                 ),
-                                const SizedBox(height: MileafSpace.s16),
+                                const SizedBox(height: MileafSpace.s8),
                                 _mileageChartTile(
                                   enhanced,
                                   other,
@@ -880,9 +880,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     final delta = current - reference;
     final range = _referenceRange();
     if (delta.abs() < .05) return '与$name持平';
-    return delta > 0
-        ? '比 $range 多 ${grouped(delta.abs(), decimals: 1)} km'
-        : '比 $range 少 ${grouped(delta.abs(), decimals: 1)} km';
+    // 数字与单位之间用不换行空格：窄机位（360）行尾时整段「91.3 km」一起换行，
+    // 单位不单独成行（R22）。
+    final amount = '${grouped(delta.abs(), decimals: 1)}\u00A0km';
+    return delta > 0 ? '比 $range 多 $amount' : '比 $range 少 $amount';
   }
 
   String get _compareName =>
@@ -933,6 +934,32 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         : legacy.DrivingStats.fromJson(other).totals.distanceKm;
     final colors = context.colors;
     final type = context.type;
+    // CP06 下钻行：以「查看」开头、行尾箭头；命中区 44，视觉只占一行文字高度。
+    final drill = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: MileafLayout.touchTarget(context)),
+      child: InkWell(
+        onTap: () => selectTopic('energy'),
+        borderRadius: MileafRadius.smAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '查看对比明细',
+                style: type.control.copyWith(color: colors.accentStrong),
+              ),
+              const SizedBox(width: MileafSpace.s4),
+              MileafIcon(
+                MileafIconName.chevron,
+                size: MileafIconMetrics.inline,
+                color: colors.accentStrong,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -961,25 +988,31 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           ],
         ),
         const SizedBox(height: MileafSpace.s4),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _mileageDeltaText(
-                  stats.totals.distanceKm,
-                  referenceKm,
-                  comparable,
+        // 大字（200%）时句子与下钻分两行：句子占满宽，按钮在下一行左对齐，
+        // 否则右下的按钮会把比较句挤成一字一行。
+        if (MileafLayout.largeText(context)) ...[
+          Text(
+            _mileageDeltaText(stats.totals.distanceKm, referenceKm, comparable),
+            style: type.subheadline.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Align(alignment: AlignmentDirectional.centerStart, child: drill),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _mileageDeltaText(
+                    stats.totals.distanceKm,
+                    referenceKm,
+                    comparable,
+                  ),
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
                 ),
-                style: type.subheadline.copyWith(color: colors.textSecondary),
               ),
-            ),
-            MileafButton(
-              label: '查看对比明细',
-              kind: MileafButtonKind.ghost,
-              onPressed: () => selectTopic('energy'),
-            ),
-          ],
-        ),
+              drill,
+            ],
+          ),
       ],
     );
   }
@@ -1064,6 +1097,26 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   int _selectedPoint(List<DateTime> times) =>
       bucketIndexAt(times, pointAt) ?? point.clamp(0, times.length - 1);
 
+  /// 专题卡片的 metricSm 值：数值 + 单位永不拆行（R21.5），不引入 LayoutBuilder。
+  Widget _topicValue(String value, String? unit) {
+    final colors = context.colors;
+    final type = context.type;
+    return Text.rich(
+      TextSpan(
+        text: value,
+        style: type.metricSm.copyWith(color: colors.text),
+        children: [
+          if (unit != null)
+            TextSpan(
+              text: ' $unit',
+              style: type.subheadline.copyWith(color: colors.textSecondary),
+            ),
+        ],
+      ),
+      maxLines: 1,
+    );
+  }
+
   /// P06 专题卡片：入口图标 + 名称（headline）+ 一个 metricSm 值 + 一句脚注。
   Widget _chapter(
     String title,
@@ -1076,7 +1129,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     final colors = context.colors;
     final type = context.type;
     return MileafModuleCard(
-      padding: const EdgeInsets.all(MileafSpace.s12),
+      padding: const EdgeInsets.all(MileafSpace.s8),
       child: InkWell(
         key: ValueKey('statistics-topic-$title'),
         onTap: onTap,
@@ -1100,12 +1153,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 ),
               ],
             ),
-            const SizedBox(height: MileafSpace.s8),
-            MetricBlock(
-              value: value,
-              unit: unit,
-              scale: MetricValueScale.metricSm,
-            ),
+            const SizedBox(height: MileafSpace.s4),
+            // 页面级等价数值：MileafNumber 内部用 LayoutBuilder，无法参与
+            // IntrinsicHeight 的固有尺寸测量（D-AP07-06）。这里用同一对角色
+            // （metricSm 数值 + subheadline 单位）直接排版，视觉与两列网格的
+            // metricSm 数值一致，同时让同一行两张卡可以拉伸到等高。
+            _topicValue(value, unit),
             const SizedBox(height: MileafSpace.s4),
             Text(
               note,
@@ -1170,7 +1223,8 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             (energy == null
                 ? '充电统计读取失败'
                 : '${known ?? '—'} / ${sessions ?? '—'} 次有记录 · '
-                      '${grouped(energy, decimals: 1)} kWh'
+                      // R22：单位不单独成行，数字与单位之间用不换行空格。
+                      '${grouped(energy, decimals: 1)}\u00A0kWh'
                       '${currencyNote == null ? '' : ' · $currencyNote'}'),
         () => selectTopic('charging'),
       ),
@@ -1184,18 +1238,30 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       ),
     ];
     final inset = MileafLayout.pageInset(context);
-    // 同一行两张卡片：保持 12 间距。等高需要固有尺寸测量，而 MileafNumber
-    // 内部用 LayoutBuilder（不支持固有尺寸），因此这里按内容自然高度排列。
-    Widget pair(int left, int right) => Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: items[left]),
-        const SizedBox(width: MileafSpace.s12),
-        Expanded(child: items[right]),
-      ],
+    // R24：卡片网格同一行等高，格与格之间只有 12；行级拉伸由 IntrinsicHeight
+    // 取两卡较高者，避免「元素高低不一样」。
+    Widget pair(int left, int right) => IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: items[left]),
+          const SizedBox(width: MileafSpace.s12),
+          Expanded(child: items[right]),
+        ],
+      ),
     );
     return Padding(
-      padding: EdgeInsets.fromLTRB(inset, 0, inset, 0),
+      // R24：结论卡（含图表 X 轴标签）与专题网格之间留明确分区距，避免
+      // 轴标签读成压在专题卡顶缘上。用户裁定只要 ≥12；360 宽取 12，≥390 取 20
+      // ——360×800 的首屏预算（专题第一行两张卡完整可见）不放宽。
+      padding: EdgeInsets.fromLTRB(
+        inset,
+        MediaQuery.sizeOf(context).width >= MileafBreakpoints.wide
+            ? MileafSpace.s20
+            : MileafSpace.s12,
+        inset,
+        0,
+      ),
       child: MileafLayout.largeText(context)
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mileaf/src/charging_page.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 
 import 'charging_test.dart' show app, chargingFixture, initial, jsonResponse;
@@ -321,6 +322,32 @@ Map<String, dynamic> seriesV2() {
 Finder navTab(String label) =>
     find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
 
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+Future<void> openAllRecords(WidgetTester tester) async {
+  final entry = find.text('查看全部').hitTestable();
+  var steps = 0;
+  while (entry.evaluate().isEmpty && steps++ < 12) {
+    await tester.drag(_pageScroll(), const Offset(0, -250));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+/// 充电页自身的纵向滚动视图（图表内部的横向滚动不算）。
+Finder _pageScroll() => find
+    .descendant(
+      of: find.byType(ChargingPage),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    )
+    .first;
+
 void main() {
   testWidgets('充电主页读取已完成统计并展示费用覆盖和配对均价', (tester) async {
     final requests = <Uri>[];
@@ -356,7 +383,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const Key('charging-search')),
@@ -747,7 +774,7 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('充电统计暂时不可用'), findsOneWidget);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('charge-9')).hitTestable(),
@@ -777,17 +804,17 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pump();
     await tester.enterText(find.byKey(const Key('charging-search')), '家');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('返回账本').hitTestable(),
+      find.byType(BackButton).hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('返回账本').hitTestable());
+    await tester.tap(find.byType(BackButton).hitTestable());
     await tester.pumpAndSettle();
     expect(find.textContaining('费用有记录 1 / 1'), findsOneWidget);
     oldStats.complete(jsonResponse(chargingStatsV2()));
@@ -985,7 +1012,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     expect(find.text('匹配 2 次充电'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -1041,7 +1068,8 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.text('全部记录'), findsOneWidget);
+    // 扩展能力可用时期间行才有「近30天 / 近7天」胶囊（入口已移到区块标题尾部）。
+    expect(find.text('近30天'), findsOneWidget);
     upgraded = false;
     background(tester);
     foreground(tester);

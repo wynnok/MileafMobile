@@ -61,14 +61,10 @@ void main() {
           matching: find.byType(Scrollable),
         )
         .first;
-    await tester.scrollUntilVisible(
-      find.text('最近的充电'),
-      160,
-      scrollable: scroll,
-    );
+    await tester.scrollUntilVisible(find.text('最近充电'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final recentTop =
-        tester.getTopLeft(find.text('最近的充电')).dy +
+        tester.getTopLeft(find.text('最近充电')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
     await tester.scrollUntilVisible(
       find.text('我的补能方式'),
@@ -275,7 +271,7 @@ void main() {
             ? first.top + 44
             : first.bottom;
         expect(requiredBottom + offset, lessThanOrEqualTo(viewport.bottom));
-        final recent = tester.getRect(find.text('最近的充电'));
+        final recent = tester.getRect(find.text('最近充电'));
         expect(recent.bottom + offset, lessThanOrEqualTo(viewport.bottom));
         debugPrint(
           'U06 ${mode.name} body=$viewport first=$first offset=$offset',
@@ -330,7 +326,14 @@ void main() {
       position.jumpTo(0);
       await tester.pumpAndSettle();
       if (scenario != 'legacy') {
-        await tester.tap(find.text('全部记录').hitTestable());
+        // P03/CP06：入口改到「最近充电」区块标题尾部的「查看全部」。
+        final entry = find.text('查看全部').hitTestable();
+        var steps = 0;
+        while (entry.evaluate().isEmpty && steps++ < 12) {
+          await tester.drag(scroll, const Offset(0, -200));
+          await tester.pumpAndSettle();
+        }
+        await tester.tap(entry);
       }
       await tester.pumpAndSettle();
       await saveRenderPng(tester, find.byKey(boundary), '$prefix-records.png');

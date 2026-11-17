@@ -1342,7 +1342,6 @@ class _OverviewPageState extends State<OverviewPage>
       String? unit,
       required MileafIconName icon,
       VoidCallback? onTap,
-      bool topLine = false,
     }) => MileafDataRow(
       title: title,
       meta: meta,
@@ -1350,7 +1349,6 @@ class _OverviewPageState extends State<OverviewPage>
       unit: unit,
       icon: icon,
       showChevron: onTap != null,
-      topLine: topLine,
       onTap: onTap,
       semanticLabel:
           '$title，$meta${value == null ? '' : '，$value${unit == null ? '' : ' $unit'}'}',
@@ -1362,37 +1360,73 @@ class _OverviewPageState extends State<OverviewPage>
         children: [
           const SectionHeader(title: '最近记录'),
           const SizedBox(height: MileafSpace.s8),
-          row(
-            title: '最近行程',
-            meta: drive == null
-                ? '这段时间还没有行程'
-                : '${_shortStamp(drive.startedAt)}\n'
-                      '电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
-            value: drive?.distanceKm?.toStringAsFixed(1),
-            unit: drive?.distanceKm == null ? null : 'km',
-            icon: MileafIconName.route,
-            onTap: drive == null
-                ? null
-                : () => widget.onRecord?.call('drive', drive.id),
-            topLine: true,
-          ),
-          row(
-            title: '最近充电',
-            meta: charge == null
-                ? '还没有充电记录'
-                : '${_shortStamp(charge.startedAt)}\n'
-                      '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
-            value: charge?.endSoc?.toStringAsFixed(0),
-            unit: charge?.endSoc == null ? null : '%',
-            icon: MileafIconName.bolt,
-            onTap: charge == null
-                ? null
-                : () => widget.onRecord?.call('charging', charge.id),
-          ),
+          _rowCard([
+            row(
+              title: '最近行程',
+              meta: drive == null
+                  ? '这段时间还没有行程'
+                  : '${_shortStamp(drive.startedAt)}\n'
+                        '电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
+              value: drive?.distanceKm?.toStringAsFixed(1),
+              unit: drive?.distanceKm == null ? null : 'km',
+              icon: MileafIconName.route,
+              onTap: drive == null
+                  ? null
+                  : () => widget.onRecord?.call('drive', drive.id),
+            ),
+            row(
+              title: '最近充电',
+              meta: charge == null
+                  ? '还没有充电记录'
+                  : '${_shortStamp(charge.startedAt)}\n'
+                        '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
+              value: charge?.endSoc?.toStringAsFixed(0),
+              unit: charge?.endSoc == null ? null : '%',
+              icon: MileafIconName.bolt,
+              onTap: charge == null
+                  ? null
+                  : () => widget.onRecord?.call('charging', charge.id),
+            ),
+          ]),
         ],
       ),
     );
   }
+
+  /// P01 统一内容网格（R24「两条起始线」）：开放行收进分组卡，行内横向内边
+  /// 统一 16；发丝线只画在行与行之间，从卡内 16 一直到卡片右缘，首行之上与
+  /// 末行之下不画线。这样画布层标题在页面边距、卡内文字在页面边距 + 16，
+  /// 不再有第三套左缘。
+  Widget _rowCard(List<Widget> rows) => MileafGroupCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < rows.length; index++) ...[
+          if (index > 0) _hairline(),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MileafSpace.cardPad,
+            ),
+            child: rows[index],
+          ),
+        ],
+      ],
+    ),
+  );
+
+  /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
 
   Widget _continueSection() {
     if (widget.onInsight == null || range == null) {
@@ -1404,15 +1438,11 @@ class _OverviewPageState extends State<OverviewPage>
       required String meta,
       required MileafIconName icon,
       required String topic,
-      bool topLine = false,
-      bool bottomLine = false,
     }) => MileafDataRow(
       title: title,
       meta: meta,
       icon: icon,
       showChevron: true,
-      topLine: topLine,
-      bottomLine: bottomLine,
       onTap: () => open(topic),
     );
     return Padding(
@@ -1422,26 +1452,26 @@ class _OverviewPageState extends State<OverviewPage>
         children: [
           const SectionHeader(title: '用车专题'),
           const SizedBox(height: MileafSpace.s8),
-          row(
-            title: '节奏',
-            meta: '驾驶时间与单程',
-            icon: MileafIconName.clock,
-            topic: 'usage',
-            topLine: true,
-          ),
-          row(
-            title: '能耗',
-            meta: '温度与距离',
-            icon: MileafIconName.chart,
-            topic: 'energy',
-          ),
-          row(
-            title: '长期',
-            meta: '续航与停放',
-            icon: MileafIconName.battery,
-            topic: 'long',
-            bottomLine: true,
-          ),
+          _rowCard([
+            row(
+              title: '节奏',
+              meta: '驾驶时间与单程',
+              icon: MileafIconName.clock,
+              topic: 'usage',
+            ),
+            row(
+              title: '能耗',
+              meta: '温度与距离',
+              icon: MileafIconName.chart,
+              topic: 'energy',
+            ),
+            row(
+              title: '长期',
+              meta: '续航与停放',
+              icon: MileafIconName.battery,
+              topic: 'long',
+            ),
+          ]),
         ],
       ),
     );
@@ -1603,35 +1633,61 @@ class _OverviewPageState extends State<OverviewPage>
           ? '电耗与$name相同'
           : '电耗比$name${delta < 0 ? '低' : '高'} ${delta.abs().toStringAsFixed(0)} Wh/km';
     }
+    // 与「关于这些数据」同一容器语法：区块标题在画布层（页面边距），
+    // 内容进一张分组卡（卡内 16），动作是卡内的一行导航行，不再用一个
+    // 悬浮的 ghost 按钮在卡里再套一层容器。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SectionHeader(title: '电耗对比'),
         const SizedBox(height: MileafSpace.s8),
-        MileafModuleCard(
+        MileafGroupCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                message,
-                style: context.type.body.copyWith(color: context.colors.text),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  MileafSpace.cardPad,
+                  MileafSpace.cardPad,
+                  MileafSpace.cardPad,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      message,
+                      style: context.type.body.copyWith(
+                        color: context.colors.text,
+                      ),
+                    ),
+                    if (comparing)
+                      const Padding(
+                        padding: EdgeInsets.only(top: MileafSpace.s8),
+                        child: MileafProgressLine(),
+                      ),
+                    if (comparisonError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: MileafSpace.s8),
+                        child: InlineBanner(
+                          message: '比较暂不可用：$comparisonError',
+                          tone: BannerTone.error,
+                          actionLabel: '重试',
+                          onAction: () => loadComparison(force: true),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              if (comparing) const MileafProgressLine(),
-              if (comparisonError != null)
-                InlineBanner(
-                  message: '比较暂不可用：$comparisonError',
-                  tone: BannerTone.error,
-                  actionLabel: '重试',
-                  onAction: () => loadComparison(force: true),
+              MileafGroupRow(
+                title: '查看对比明细',
+                trailing: MileafIcon(
+                  MileafIconName.chevron,
+                  size: MileafIconMetrics.inline,
+                  color: context.colors.textFaint,
                 ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: MileafButton(
-                  label: '查看对比明细',
-                  kind: MileafButtonKind.ghost,
-                  onPressed: () =>
-                      _showComparisonBasis(current, prior, pairedRange),
-                ),
+                topLine: true,
+                onTap: () => _showComparisonBasis(current, prior, pairedRange),
               ),
             ],
           ),

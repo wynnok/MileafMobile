@@ -647,28 +647,54 @@ class _DrivesPageState extends State<DrivesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
+          // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行，与概览
+          // 焦点卡同一处理（R21.4 区间仍只出现一次）。
+          if (large)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   _periodName,
                   style: context.type.headline.copyWith(
                     color: context.colors.text,
                   ),
                 ),
-              ),
-              if (_periodRange case final range?) ...[
-                const SizedBox(width: MileafSpace.s8),
-                Text(
-                  range,
-                  style: context.type.subheadline.copyWith(
-                    color: context.colors.textSecondary,
+                if (_periodRange case final range?) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    range,
+                    style: context.type.subheadline.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    _periodName,
+                    style: context.type.headline.copyWith(
+                      color: context.colors.text,
+                    ),
                   ),
                 ),
+                if (_periodRange case final range?) ...[
+                  const SizedBox(width: MileafSpace.s8),
+                  Flexible(
+                    child: Text(
+                      range,
+                      style: context.type.subheadline.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
           const SizedBox(height: MileafSpace.s4),
           Semantics(
             container: true,
@@ -805,7 +831,6 @@ class _DrivesPageState extends State<DrivesPage>
             : null,
         value: distance ?? '—',
         unit: 'km',
-        bottomLine: true,
         onTap: () => widget.onRecord?.call(d.id),
         semanticLabel:
             '${_recordDate(d)}，${_route(d)}，$meta${d.endedAt == null ? '，进行中' : ''}'
@@ -816,6 +841,20 @@ class _DrivesPageState extends State<DrivesPage>
 
   String get _emptyListLabel =>
       selectedDay != null || custom != null ? '所选日期没有行程' : '这段时间还没有行程';
+
+  /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
 
   /// P02 记录按天分组：分组标题「今天 / 昨天 / 10月24日 周六」，每天一张分组卡。
   Widget _recentSection() {
@@ -853,18 +892,21 @@ class _DrivesPageState extends State<DrivesPage>
             child: MileafGroupHeader(title: entry.key),
           ),
           const SizedBox(height: MileafSpace.s8),
+          // R24：记录行走组卡，卡内横向内边 16；发丝线只画在行与行之间
+          // （从卡内 16 到卡片右缘），每天最后一行不画线，卡片裁到圆角。
           MileafGroupCard(
-            clip: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final drive in entry.value)
+                for (var index = 0; index < entry.value.length; index++) ...[
+                  if (index > 0) _hairline(),
                   Padding(
-                    padding: EdgeInsets.only(
-                      bottom: drive == entry.value.last ? 0 : MileafSpace.s4,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MileafSpace.cardPad,
                     ),
-                    child: _routeRow(drive),
+                    child: _routeRow(entry.value[index]),
                   ),
+                ],
               ],
             ),
           ),

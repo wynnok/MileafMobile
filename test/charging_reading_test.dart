@@ -397,6 +397,32 @@ class DelayedLedger extends LedgerSite {
   }
 }
 
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+Future<void> openAllRecords(WidgetTester tester) async {
+  final entry = find.text('查看全部').hitTestable();
+  var steps = 0;
+  while (entry.evaluate().isEmpty && steps++ < 12) {
+    await tester.drag(_pageScroll(), const Offset(0, -250));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+/// 充电页自身的纵向滚动视图（图表内部的横向滚动不算）。
+Finder _pageScroll() => find
+    .descendant(
+      of: find.byType(ChargingPage),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    )
+    .first;
+
 void main() {
   testWidgets(
     'Spec meta probe: hidden charging topic must not derive requests after late meta',
@@ -526,7 +552,7 @@ void main() {
   testWidgets('TTL过期后返回账本保留已加载的第二页与阅读位置', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     final offset = ledgerOffset(tester);
@@ -597,7 +623,7 @@ void main() {
   testWidgets('隐藏账本收到费用失效不请求，恢复可见后读取新费用且失败仍重试', (tester) async {
     final site = LedgerSite()..maxAge = 300;
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     expect(find.text('费用 —，币种未记录'), findsWidgets);
     // A real entry from another main entry: the ledger tab stays hidden.
@@ -686,7 +712,7 @@ void main() {
     var zone = 'UTC';
     final site = LedgerSite();
     await openLedger(tester, site, now: () => now, zone: () => zone);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('charging-search')), '家');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -738,7 +764,7 @@ void main() {
   testWidgets('分页重校验中间失败保留已读页，重试不回到第一页', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
@@ -781,7 +807,7 @@ void main() {
   testWidgets('重新校验后记录减少，阅读位置与已读范围收敛到有效数据', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     final offset = ledgerOffset(tester);
@@ -809,7 +835,7 @@ void main() {
   testWidgets('游标不前进时明确报告且不继续翻页', (tester) async {
     final site = LedgerSite()..repeatedCursor = 'p2';
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('加载更多充电'),
@@ -836,7 +862,7 @@ void main() {
   testWidgets('缺失费用筛选下补录后记录移出结果，匹配数随之更新', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('全部费用'));
     await tester.pumpAndSettle();
@@ -870,7 +896,7 @@ void main() {
   testWidgets('详情入口补录返回列表即更新并保留已读范围', (tester) async {
     final site = LedgerSite()..maxAge = 300;
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     final offset = ledgerOffset(tester);
@@ -923,7 +949,7 @@ void main() {
   testWidgets('多条件筛选、多页与滚动位置在 Tab 往返后原样保留', (tester) async {
     final site = LedgerSite()..maxAge = 300;
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('charging-search')), '家');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -1038,7 +1064,7 @@ void main() {
     foreground(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('自定义日期').hitTestable(),
+      find.text('自定义').hitTestable(),
       -300,
       scrollable: find.byType(Scrollable).first,
     );
@@ -1086,7 +1112,7 @@ void main() {
   testWidgets('能力降级后清除扩展条件并回退到旧站点查询', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('charging-search')), '家');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -1118,7 +1144,7 @@ void main() {
   testWidgets('重校验遇到重复游标不无限翻页，保留已读页并说明原因', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     expect(find.byKey(const ValueKey('charge-34')), findsOneWidget);
@@ -1148,7 +1174,7 @@ void main() {
     var now = DateTime.utc(2026, 3, 30, 12);
     final site = LedgerSite()..maxAge = 300;
     await openLedger(tester, site, now: () => now);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('charge-9')).hitTestable());
     await tester.pumpAndSettle();
@@ -1183,7 +1209,7 @@ void main() {
     var now = DateTime.utc(2026, 3, 30, 12);
     final site = LedgerSite();
     await openLedger(tester, site, now: () => now);
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await readLedgerToEnd(tester);
     expect(find.text('已到最后一条'), findsOneWidget);
