@@ -191,6 +191,22 @@ Future<void> openParking(
   await tester.pumpAndSettle();
 }
 
+/// R27/CP06：读数头步进圆钮（语义「上一个数据点」「下一个数据点」）。
+Finder stepButton(String label) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      widget.properties.button == true &&
+      widget.properties.label == label,
+);
+
+Future<void> scrollToStep(WidgetTester tester, String label) async {
+  await tester.scrollUntilVisible(
+    stepButton(label).hitTestable(),
+    100,
+    scrollable: find.byType(Scrollable).last,
+  );
+}
+
 void main() {
   testWidgets('停放结果重排及删除后读数保持有效', (tester) async {
     var phase = 0;
@@ -205,39 +221,31 @@ void main() {
         return body;
       },
     );
-    await tester.scrollUntilVisible(
-      find.text('后一点').hitTestable(),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('后一点'));
+    await scrollToStep(tester, MileafChartGrammar.nextStep);
+    await tester.tap(stepButton(MileafChartGrammar.nextStep));
     await tester.pumpAndSettle();
     phase = 1;
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.textContaining('0.0 pp'), findsWidgets);
+    expect(find.textContaining('0.0 个百分点'), findsWidgets);
     phase = 2;
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.textContaining('1.0 pp'), findsWidgets);
+    expect(find.textContaining('1.0 个百分点'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
   testWidgets('同日刷新保留重复日期中的有效选点', (tester) async {
     await openParking(tester, <Uri>[]);
-    await tester.scrollUntilVisible(
-      find.text('后一点').hitTestable(),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('后一点'));
+    await scrollToStep(tester, MileafChartGrammar.nextStep);
+    await tester.tap(stepButton(MileafChartGrammar.nextStep));
     await tester.pumpAndSettle();
-    expect(find.textContaining('0.0 pp'), findsWidgets);
+    expect(find.textContaining('0.0 个百分点'), findsWidgets);
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.textContaining('0.0 pp'), findsWidgets);
+    expect(find.textContaining('0.0 个百分点'), findsWidgets);
   });
 
   testWidgets('停放观察经展开入口建立后，统计Tab隐藏不请求，可见后才校验', (tester) async {
@@ -315,7 +323,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('加载更多窗口').hitTestable(),
+      find.text('加载更多停车记录').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
@@ -325,15 +333,16 @@ void main() {
   testWidgets('停车资源失败保留统计承载并可独立重试', (tester) async {
     final requests = <Uri>[];
     await openParking(tester, requests, fail: true);
-    expect(find.text('停放观察读取失败'), findsOneWidget);
+    // CP07：共享状态句「没能读取{对象}」+ 通用「重试」。
+    expect(find.text('没能读取停放观察'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('重试停放观察').hitTestable(),
+      find.text('重试').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
     final beforeRetry = requests.length;
-    await tester.tap(find.text('重试停放观察'));
+    await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
     expect(requests.length, beforeRetry + 1);
     expect(find.text('停放观察'), findsOneWidget);
@@ -341,54 +350,51 @@ void main() {
   testWidgets('停车服务端汇总与冻结分页证据独立显示', (tester) async {
     final requests = <Uri>[];
     await openParking(tester, requests);
-    expect(find.textContaining('停放SOC变化'), findsWidgets);
-    // R04/P11：深底Hero移除，限定文案改为同底就近说明。
-    expect(find.textContaining('不预测未来24小时'), findsOneWidget);
-    expect(find.text('数据说明'), findsWidgets);
-    expect(find.textContaining('查询生成：'), findsNothing);
+    // R25/P11：主图卡为「每段停车」；限定语 CP08 改写。
+    expect(find.textContaining('每段停车'), findsWidgets);
+    expect(find.textContaining('不预测未来'), findsOneWidget);
+    expect(find.text('关于这些数据'), findsOneWidget);
+    expect(find.textContaining('查询生成于'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('parking-trend-chart')), findsOneWidget);
-    expect(find.textContaining('-2.0 pp'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.text('后一点').hitTestable(),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('后一点'));
+    expect(find.textContaining('−2.0 个百分点'), findsWidgets);
+    await scrollToStep(tester, MileafChartGrammar.nextStep);
+    await tester.tap(stepButton(MileafChartGrammar.nextStep));
     await tester.pumpAndSettle();
-    expect(find.textContaining('0.0 pp'), findsWidgets);
-    await tester.tap(find.text('后一点'));
+    expect(find.textContaining('0.0 个百分点'), findsWidgets);
+    await tester.tap(stepButton(MileafChartGrammar.nextStep));
     await tester.pumpAndSettle();
-    expect(find.textContaining('1.0 pp'), findsWidgets);
+    expect(find.textContaining('1.0 个百分点'), findsWidgets);
     await tester.scrollUntilVisible(
-      find.text('加载更多窗口').hitTestable(),
+      find.text('加载更多停车记录').hitTestable(),
       100,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('加载更多窗口'));
+    await tester.tap(find.text('加载更多停车记录'));
     await tester.pumpAndSettle();
     expect(
       requests.last.queryParameters['to'],
       requests.first.queryParameters['to'],
     );
     expect(requests.last.queryParameters['cursor'], 'page2');
-    expect(find.textContaining('open-tail'), findsWidgets);
-    expect(find.textContaining('-2.0 pp'), findsWidgets);
-    expect(find.textContaining('partial_state_coverage'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.text('数据说明').last.hitTestable(),
-      -100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('数据说明').last);
+    // CP10：记录行用人话标签；开放窗口行标题「尚未结束」，展开后可见编号。
+    expect(find.text('尚未结束'), findsOneWidget);
+    expect(find.text('状态记录不完整（仍计入）'), findsOneWidget);
+    await tester.tap(find.text('尚未结束'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('查询生成：'), findsOneWidget);
-    expect(find.textContaining('方法 closed-window-soc-v1'), findsOneWidget);
+    expect(find.textContaining('open-tail'), findsOneWidget);
+    final tech = find.text('技术详情');
+    await tester.ensureVisible(tech.last);
+    await tester.pumpAndSettle();
+    await tester.tap(tech.last);
+    await tester.pumpAndSettle();
+    // 技术详情（可复制）：算法版本与阈值原值在此出现（R30.4）。
+    expect(find.textContaining('method closed-window-soc-v1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('无有效窗口不展示零损耗', (tester) async {
     await openParking(tester, <Uri>[], empty: true);
-    expect(find.textContaining('— pp'), findsWidgets);
+    expect(find.textContaining('— 个百分点'), findsWidgets);
   });
 }

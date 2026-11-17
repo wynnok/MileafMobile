@@ -136,6 +136,14 @@ Future<void> openU09d(WidgetTester tester, http.Client client) async {
 Semantics? plotSemantics(WidgetTester tester, Finder finder) =>
     tester.widgetList<Semantics>(finder).whereType<Semantics>().firstOrNull;
 
+/// R27/CP06：读数头步进圆钮（语义「上一个数据点」「下一个数据点」）。
+Finder stepButton(String label) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      widget.properties.button == true &&
+      widget.properties.label == label,
+);
+
 Finder trendPlot() => find.byWidgetPredicate(
   (widget) =>
       widget is Semantics &&
@@ -145,10 +153,10 @@ Finder trendPlot() => find.byWidgetPredicate(
 void main() {
   testWidgets('趋势带与中位数折线有明确图例，非零起点标注轴范围', (tester) async {
     await openU09d(tester, rangeClient([]));
-    expect(find.text('月中位数'), findsOneWidget);
-    expect(find.text('P10–P90有效日波动带'), findsOneWidget);
-    expect(find.textContaining('纵轴 410–460 km，非零起点'), findsOneWidget);
-    expect(find.text('独立6个月观察窗口'), findsOneWidget);
+    expect(find.text('月中位数'), findsWidgets);
+    expect(find.text('日常波动范围（P10–P90）'), findsOneWidget);
+    expect(find.textContaining('纵轴从 410 km 起'), findsOneWidget);
+    expect(find.text('独立本地月窗口，逐月估算额定续航'), findsOneWidget);
     expect(find.byKey(const Key('range-observation-chart')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -156,24 +164,37 @@ void main() {
   testWidgets('中间缺月破线留槽，选中缺失月读值为缺失并说明', (tester) async {
     await openU09d(tester, rangeClient([], scenario: 'midmissing'));
     for (var i = 0; i < 3; i++) {
-      final prev = find.widgetWithText(TextButton, '前一个月');
+      final prev = stepButton(MileafChartGrammar.previousStep);
       await tester.scrollUntilVisible(prev.hitTestable(), 100);
       await tester.tap(prev);
       await tester.pumpAndSettle();
     }
-    expect(find.textContaining('中位 — km'), findsOneWidget);
+    // 缺失月不补零：结论卡给缺失口径，记录与缺失说明逐月给「有效天数 0 天」。
     expect(find.text('暂无有效月样本'), findsOneWidget);
-    expect(find.textContaining('有效日 0'), findsOneWidget);
+    final notes = find.widgetWithText(MileafDisclosure, '记录与缺失');
+    await tester.ensureVisible(notes.last);
+    await tester.pumpAndSettle();
+    await tester.tap(notes.last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('有效天数 0 天'), findsOneWidget);
+    expect(find.text('日常波动范围（P10–P90）'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('单月窗口正常呈现且前一个月不可用', (tester) async {
     await openU09d(tester, rangeClient([], scenario: 'single'));
-    expect(find.textContaining('中位 440.0 km'), findsOneWidget);
-    final prev = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, '前一个月'),
+    expect(find.textContaining('440.0 km'), findsWidgets);
+    // 只有一个月时读数头不渲染步进圆钮。
+    expect(
+      stepButton(MileafChartGrammar.previousStep),
+      findsNothing,
+      reason: '只有一个月时无上一步进',
     );
-    expect(prev.onPressed, isNull, reason: '只有一个月时无前一个月');
+    expect(
+      stepButton(MileafChartGrammar.nextStep),
+      findsNothing,
+      reason: '只有一个月时无下一步进',
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -185,8 +206,8 @@ void main() {
 
   testWidgets('长数值轴注记完整且无溢出', (tester) async {
     await openU09d(tester, rangeClient([], scenario: 'long'));
-    expect(find.textContaining('纵轴 12290–12410 km，非零起点'), findsOneWidget);
-    expect(find.textContaining('中位 12350.6 km'), findsOneWidget);
+    expect(find.textContaining('纵轴从 12290 km 起'), findsOneWidget);
+    expect(find.textContaining('12350.6 km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -198,17 +219,20 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openU09d(tester, rangeClient([]));
-    for (final label in ['前一个月', '后一个月']) {
-      final rect = tester.getRect(find.widgetWithText(TextButton, label));
+    for (final label in [
+      MileafChartGrammar.previousStep,
+      MileafChartGrammar.nextStep,
+    ]) {
+      final rect = tester.getRect(stepButton(label));
       expect(rect.width, greaterThanOrEqualTo(44), reason: label);
       expect(rect.height, greaterThanOrEqualTo(44), reason: label);
     }
-    // 提示词四：200%下前后按钮除尺寸外还需真实点按可达，读值随之变化。
-    final prev = find.widgetWithText(TextButton, '前一个月');
+    // 提示词四：200%下步进圆钮除尺寸外还需真实点按可达，读值随之变化。
+    final prev = stepButton(MileafChartGrammar.previousStep);
     await tester.scrollUntilVisible(prev.hitTestable(), 100);
     await tester.tap(prev);
     await tester.pumpAndSettle();
-    expect(find.textContaining('中位 440.0 km'), findsOneWidget);
+    expect(find.textContaining('440.0 km'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -232,14 +256,14 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
     // 6个月窗口默认选最后一月（10月，未结束）；左移到9月完整月。
-    expect(find.textContaining('2026/9 · 完整月'), findsOneWidget);
+    expect(find.text('9月'), findsOneWidget);
     expect(
       plotSemantics(tester, trendPlot())!.properties.onIncrease,
       isNotNull,
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026/10 · 未结束月'), findsOneWidget);
+    expect(find.text('10月（本月未结束）'), findsOneWidget);
     semanticsHandle.dispose();
   });
 
@@ -251,8 +275,12 @@ void main() {
     await openU09d(tester, rangeClient([]));
     final chart = find.byKey(const Key('range-observation-chart'));
     expect(tester.getSize(chart).width, lessThanOrEqualTo(560));
-    final header = find.text('满电等效额定续航');
-    expect(tester.getRect(chart).left, closeTo(tester.getRect(header).left, 1));
+    final header = find.text('满电额定续航（估算）');
+    final card = find
+        .ancestor(of: chart, matching: find.byType(MileafModuleCard))
+        .first;
+    // R24：卡片外缘与身份块标题共享左线；卡内内容由卡内边对齐。
+    expect(tester.getRect(card).left, closeTo(tester.getRect(header).left, 1));
     expect(tester.takeException(), isNull);
   });
 
@@ -377,17 +405,17 @@ void main() {
           await save('scroll$step');
         }
         await save('bottom');
-        // 前一个月/后一个月动作可达：滚到读值区点击后返回末月。
-        final prev = find.widgetWithText(TextButton, '前一个月');
+        // 步进动作可达：滚到读值区点击后返回末月。
+        final prev = stepButton(MileafChartGrammar.previousStep);
         await tester.scrollUntilVisible(prev.hitTestable(), -150);
         await tester.tap(prev);
         await tester.pumpAndSettle();
-        expect(find.textContaining('中位 440.0 km'), findsOneWidget);
+        expect(find.textContaining('440.0 km'), findsOneWidget);
       }
       if (scenario == 'normal' ||
           scenario == 'midmissing' ||
           scenario == 'long') {
-        final notes = find.widgetWithText(ExpansionTile, '数据说明');
+        final notes = find.widgetWithText(MileafDisclosure, '技术详情');
         await tester.ensureVisible(notes.last);
         await tester.tap(notes.last);
         await tester.pumpAndSettle();
