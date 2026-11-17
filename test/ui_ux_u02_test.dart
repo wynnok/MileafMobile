@@ -195,10 +195,12 @@ void main() {
       expect(tester.takeException(), isNull);
       final vehicle = tester.getRect(find.text('行笺测试车'));
       final brand = tester.getRect(find.text('概览'));
+      // AP02（R26/PD01）：大字展开态的控件在标题上方一行靠右，车辆不再位于
+      // 标题下方；两行结构仍成立，只是顺序按 ADR0014 调换。
       expect(
-        vehicle.top,
-        greaterThanOrEqualTo(brand.bottom),
-        reason: 'R05 顶栏 200% 采用两行',
+        vehicle.bottom,
+        lessThanOrEqualTo(brand.top),
+        reason: 'R26 顶栏 200% 两行：控件在上、大标题独占下一行',
       );
       final hit = tester.getRect(
         find
