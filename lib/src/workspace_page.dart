@@ -11,7 +11,6 @@ import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
-import 'design/typography.dart';
 import 'session.dart';
 import 'charging_page.dart';
 import 'charging_detail.dart';
@@ -69,7 +68,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
   String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
-  final chromeScrolledByTab = <int, bool>{};
+
+  /// 根页滚动位置（每目的地一个，保留各自的阅读位置与外壳状态）。外壳自己
+  /// 监听这个值并只重建自己（R26）。
+  final chromeScrollByTab = <int, ValueNotifier<double>>{};
   @override
   void initState() {
     super.initState();
@@ -90,10 +92,16 @@ class _WorkspacePageState extends State<WorkspacePage> {
   @override
   void dispose() {
     widget.session.removeListener(changed);
+    for (final notifier in chromeScrollByTab.values) {
+      notifier.dispose();
+    }
     workspace.dispose();
     currency.dispose();
     super.dispose();
   }
+
+  ValueNotifier<double> chromeScroll(int tab) =>
+      chromeScrollByTab.putIfAbsent(tab, () => ValueNotifier<double>(0));
 
   Future<void> openSettings() async {
     await Navigator.push(
@@ -146,7 +154,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
       statisticsKind = kind;
       statisticsTopic = topic;
       statisticsSelection = selection;
-      chromeScrolledByTab[3] = false;
+      chromeScroll(3).value = 0;
       tab = 3;
     });
   }
@@ -213,13 +221,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
         return const Scaffold(body: Center(child: Text('正在恢复车辆选择')));
       }
       final modalCovered = !(ModalRoute.of(context)?.isCurrent ?? true);
-      final chromeScrolled = chromeScrolledByTab[tab] ?? false;
       Widget topBar(String title) => MileafTopBar(
         title: title,
         vehicleName: vehicleName(vehicle),
         onVehicle: openVehicleSheet,
         onSettings: openSettings,
-        forceSolid: modalCovered || !chromeScrolled,
+        forceSolid: modalCovered,
+        scrollListenable: chromeScroll(tab),
       );
       if (readingVehicle != selected) {
         readingVehicle = selected;
@@ -228,7 +236,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
         statisticsKind = 0;
         statisticsTopic = null;
         statisticsSelection = const StatisticsSelection();
-        chromeScrolledByTab.clear();
+        for (final notifier in chromeScrollByTab.values) {
+          notifier.dispose();
+        }
+        chromeScrollByTab.clear();
       }
       final page = switch (tab) {
         0 => OverviewPage(
@@ -278,9 +289,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
               NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   if (notification.depth != 0) return false;
-                  final next = notification.metrics.pixels > 0;
-                  if (next != chromeScrolled) {
-                    setState(() => chromeScrolledByTab[tab] = next);
+                  // 只更新外壳的滚动值：外壳自己重建，页面与工作区不重建。
+                  final notifier = chromeScroll(tab);
+                  if (notifier.value != notification.metrics.pixels) {
+                    notifier.value = notification.metrics.pixels;
                   }
                   return false;
                 },
@@ -305,8 +317,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     topBar(title),
-                    if (workspace.notice != null)
-                      _NoticeBanner(text: workspace.notice!),
+                    MileafNoticeBanner(text: workspace.notice),
                   ],
                 ),
               ),
@@ -328,45 +339,6 @@ class _WorkspacePageState extends State<WorkspacePage> {
       );
     },
   );
-}
-
-class _NoticeBanner extends StatelessWidget {
-  const _NoticeBanner({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: double.infinity,
-      color: colors.surface,
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        MileafSpace.s12,
-        MileafLayout.pageInset(context),
-        MileafSpace.s12,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MileafIcon(
-            MileafIconName.info,
-            size: MileafIconMetrics.inline,
-            color: colors.warning,
-          ),
-          const SizedBox(width: MileafSpace.s8),
-          Expanded(
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                text,
-                style: context.type.body.copyWith(color: colors.textMuted),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _VehicleSheet extends StatelessWidget {

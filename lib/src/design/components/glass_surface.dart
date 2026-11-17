@@ -65,15 +65,20 @@ class MileafGlassSurface extends StatelessWidget {
 }
 
 /// 选中目的地的镜片：比底栏更密的一层玻璃，自带更亮的顶边和一圈内缘。
+///
+/// [elevated] 为 false 时不投外影：顶栏的车辆胶囊与设置圆钮也用这层镜片，
+/// 但 R24 规定静态容器没有阴影，阴影只给浮层。
 class MileafGlassLens extends StatelessWidget {
   const MileafGlassLens({
     super.key,
     required this.child,
     this.borderRadius = MileafRadius.fullAll,
+    this.elevated = true,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
+  final bool elevated;
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +87,7 @@ class MileafGlassLens extends StatelessWidget {
     return CustomPaint(
       painter: LiquidGlassShadowPainter(
         borderRadius: borderRadius,
-        shadows: colors.glassLensShadow,
+        shadows: elevated ? colors.glassLensShadow : const [],
       ),
       child: CustomPaint(
         painter: LiquidGlassPainter(

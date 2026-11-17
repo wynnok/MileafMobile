@@ -26,6 +26,7 @@ class NavigationMaterial extends StatelessWidget {
     this.forceSolid = false,
     this.solidColor,
     this.style = NavigationMaterialStyle.frosted,
+    this.elevated = true,
   });
 
   final Widget child;
@@ -33,6 +34,9 @@ class NavigationMaterial extends StatelessWidget {
   final bool forceSolid;
   final Color? solidColor;
   final NavigationMaterialStyle style;
+
+  /// 为 false 时不投导航阴影（R24：阴影只给浮层；贴在内容上的二级导航不属浮层）。
+  final bool elevated;
 
   /// 实色路径的唯一判定：强制、高对比、未知或已请求减少透明度。
   ///
@@ -87,7 +91,7 @@ class NavigationMaterial extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: solid ? const [] : colors.navigationShadow,
+        boxShadow: solid || !elevated ? const [] : colors.navigationShadow,
       ),
       child: ClipRRect(
         borderRadius: borderRadius,

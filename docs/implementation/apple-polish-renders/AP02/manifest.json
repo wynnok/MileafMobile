@@ -1,0 +1,273 @@
+{
+  "logical_size": "390x844",
+  "pixel_ratio": 2,
+  "safe_area": {
+    "top": 24,
+    "bottom": 24
+  },
+  "timezone": "Asia/Shanghai",
+  "fixture": "cGalleryClient / CostSite",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "input_sha": "FP1-c18f2fc",
+  "scene": "R26/PD01 可收起大标题外壳、底栏封顶、大内容查看器",
+  "dpr": 2,
+  "keyboard": "none",
+  "material_preferences": {
+    "reduce_transparency": false,
+    "high_contrast": false,
+    "platform": "android"
+  },
+  "text_scales": [
+    100,
+    200
+  ],
+  "app-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-0.0-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 88.0,
+      "width": 390.0,
+      "height": 88.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-8.0-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 80.0,
+      "width": 390.0,
+      "height": 80.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-16.0-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-100.0-dark": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "app-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-0.0-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 88.0,
+      "width": 390.0,
+      "height": 88.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-8.0-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 80.0,
+      "width": 390.0,
+      "height": 80.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-16.0-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "shell-100.0-light": {
+    "top_bar": {
+      "left": 0.0,
+      "top": 0.0,
+      "right": 390.0,
+      "bottom": 72.0,
+      "width": 390.0,
+      "height": 72.0
+    },
+    "bottom_bar": {
+      "left": 0.0,
+      "top": 748.0,
+      "right": 390.0,
+      "bottom": 844.0,
+      "width": 390.0,
+      "height": 96.0
+    }
+  },
+  "sampled_at": "2026-11-17T09:16:54+08:00",
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec",
+  "images": {
+    "AP02-shell-collapsed-glass-dark-390x844-100-scrolled.png": {
+      "sha256": "c6ea3f6f90321d609378e3990716c4e43159b4fb687cc058b50b0cd129655a9e",
+      "bytes": 203736
+    },
+    "AP02-shell-collapsed-glass-light-390x844-100-scrolled.png": {
+      "sha256": "2ae7a70491d7875360906d618d3a3b0138152c5eb845ffae47e90ea41ece1949",
+      "bytes": 194543
+    },
+    "AP02-shell-expanded-glass-dark-390x844-100-top.png": {
+      "sha256": "471b8ec6d77c05b490bad2f348fbd2487e4ca2e6e39415d571539a66c9e172c6",
+      "bytes": 212964
+    },
+    "AP02-shell-expanded-glass-light-320x800-200-top.png": {
+      "sha256": "f0c69f20ed64fcdc46a3104b988e673f9a783941c76c41dcaecd526be67df9aa",
+      "bytes": 137357
+    },
+    "AP02-shell-expanded-glass-light-390x844-100-top.png": {
+      "sha256": "77cc36041c203b6ec95eef527aae13ea1fa427cd336086bf486c9e7205c548a4",
+      "bytes": 196244
+    },
+    "AP02-shell-expanded-glass-light-768x1024-100-top.png": {
+      "sha256": "c82b2358ea2b7ae3b426dcc245fb9a93979109139fe7c6b4c1fe95598705ae82",
+      "bytes": 125122
+    },
+    "AP02-shell-expanded-solid-dark-390x844-100-top.png": {
+      "sha256": "0e7a07359a4f4a8f25d6ab5c437a1e3609079e0b43f32c93f8efc2e807a91901",
+      "bytes": 90301
+    },
+    "AP02-shell-scroll000-glass-dark-390x844-100-top.png": {
+      "sha256": "2ba3f6e1e175b7b872105c1e551eba312641b72a82e8b0b0d4c0bc31b76aa2fe",
+      "bytes": 140962
+    },
+    "AP02-shell-scroll000-glass-light-390x844-100-top.png": {
+      "sha256": "865f45d8b0b846f6316084827dadb58e02bd6daac354468cb629a71a17b317cf",
+      "bytes": 120081
+    },
+    "AP02-shell-scroll008-glass-dark-390x844-100-top.png": {
+      "sha256": "ed32c230365e47821d14f2ccc8a896be7383bda3601bc672450096da38a554b1",
+      "bytes": 142195
+    },
+    "AP02-shell-scroll008-glass-light-390x844-100-top.png": {
+      "sha256": "e93fc1cc09ccee7dbef7103ad3776d6fbdd0fa92b8c7b8345dc6a08ea3d6acfd",
+      "bytes": 120909
+    },
+    "AP02-shell-scroll016-glass-dark-390x844-100-top.png": {
+      "sha256": "3165852a0b9f5413a70b8f5180ab484bb68559e0f08c1822c285a824eadc75c0",
+      "bytes": 139066
+    },
+    "AP02-shell-scroll016-glass-light-390x844-100-top.png": {
+      "sha256": "0fd8ab4bd082c2fdc035367253783e8ff7e8f13e5ed00ef3c9dd3deaf99369d4",
+      "bytes": 116271
+    },
+    "AP02-shell-scroll100-glass-dark-390x844-100-top.png": {
+      "sha256": "3165852a0b9f5413a70b8f5180ab484bb68559e0f08c1822c285a824eadc75c0",
+      "bytes": 139066
+    },
+    "AP02-shell-scroll100-glass-light-390x844-100-top.png": {
+      "sha256": "0fd8ab4bd082c2fdc035367253783e8ff7e8f13e5ed00ef3c9dd3deaf99369d4",
+      "bytes": 116271
+    },
+    "AP02-shell-viewer-glass-light-390x844-100-top.png": {
+      "sha256": "f7fdc4ecf394034a6c094f3f09ded4fdc0ceb55c77cf9f3320413b0a2bd30102",
+      "bytes": 116871
+    }
+  },
+  "count": 16
+}
