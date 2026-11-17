@@ -37,7 +37,7 @@ MemorySessionStore saved() => MemorySessionStore()
 Future<void> refreshVehicles(WidgetTester tester, String current) async {
   await tester.tap(find.text(current).first);
   await tester.pumpAndSettle();
-  await tester.tap(find.byTooltip('刷新车辆'));
+  await tester.tap(find.byTooltip('刷新车辆列表'));
   await tester.pump();
 }
 

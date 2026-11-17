@@ -258,7 +258,7 @@ void main() {
     await pumpShell(tester, calls: calls);
     expect(find.byType(AppBar), findsNothing);
     expect(find.byTooltip('刷新概览'), findsOneWidget);
-    expect(find.byTooltip('刷新车辆'), findsNothing);
+    expect(find.byTooltip('刷新车辆列表'), findsNothing);
     expect(
       find.descendant(of: find.byType(MileafTopBar), matching: find.text('概览')),
       findsOneWidget,
@@ -269,9 +269,9 @@ void main() {
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
     expect(find.text('选择车辆'), findsOneWidget);
-    expect(find.byTooltip('刷新车辆'), findsOneWidget);
+    expect(find.byTooltip('刷新车辆列表'), findsOneWidget);
     final before = calls.where((u) => u.path.endsWith('/vehicles')).length;
-    await tester.tap(find.byTooltip('刷新车辆'));
+    await tester.tap(find.byTooltip('刷新车辆列表'));
     await tester.pumpAndSettle();
     expect(
       calls.where((u) => u.path.endsWith('/vehicles')).length,
@@ -390,7 +390,8 @@ void main() {
     ];
     expect(tops[0], lessThan(tops[1]));
     expect(tops[1], lessThan(tops[2]));
-    expect(find.text('默认跟随系统。切换后立即生效，并保存在本机。'), findsOneWidget);
+    // AP13（P12 对照表）：脚注改为分组脚注新句，「默认跟随系统」导语删除。
+    expect(find.text('切换后立即生效，只保存在这台设备上。'), findsOneWidget);
 
     await tester.tap(find.descendant(of: sheet, matching: find.text('浅色')));
     await tester.pumpAndSettle();

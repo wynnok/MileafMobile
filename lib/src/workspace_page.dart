@@ -365,7 +365,7 @@ class _VehicleSheet extends StatelessWidget {
       if (lastFour.isNotEmpty) '尾号 $lastFour',
     ];
     if (parts.isEmpty) return null;
-    return parts.isEmpty ? null : parts.join('，');
+    return parts.join('，');
   }
 
   @override
@@ -407,9 +407,10 @@ class _VehicleSheet extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             // 既有的「刷新车辆」入口：仍是车辆列表唯一的刷新，改为 P16 的
-            // 弹层底部文字按钮（tooltip 与语义标签保持原词）。
+            // 弹层底部文字按钮；D-AP07-10：语义（tooltip）与可见文字统一为
+            // 「刷新车辆列表」，读屏不再朗读另一个短词。
             child: Tooltip(
-              message: '刷新车辆',
+              message: '刷新车辆列表',
               child: MileafButton(
                 label: '刷新车辆列表',
                 kind: MileafButtonKind.ghost,

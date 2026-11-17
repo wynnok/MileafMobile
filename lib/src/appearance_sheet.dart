@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'appearance.dart';
 import 'design/components/components.dart';
-import 'design/icons.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -12,9 +11,13 @@ Future<void> showAppearanceSheet(
   AppearanceController controller,
 ) => showMileafSheet<void>(
   context: context,
-  title: '外观',
+  title: _title,
+  // P12/R28：外观是短内容选择类弹层，用浮动样式。
+  style: MileafSheetStyle.floating,
   builder: (_) => _AppearanceSheet(controller: controller),
 );
+
+const _title = '外观';
 
 class _AppearanceSheet extends StatefulWidget {
   const _AppearanceSheet({required this.controller});
@@ -45,53 +48,32 @@ class _AppearanceSheetState extends State<_AppearanceSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('默认跟随系统。切换后立即生效，并保存在本机。', style: type.micro),
+          // P12 对照表：分组脚注，去掉「默认跟随系统」导语。
+          Text('切换后立即生效，只保存在这台设备上。', style: type.footnote),
           const SizedBox(height: MileafSpace.s12),
-          for (final mode in MileafAppearance.values)
-            _AppearanceRow(
-              mode: mode,
-              selected: widget.controller.mode == mode,
-              onTap: () => select(mode),
+          MileafGroupCard(
+            child: MileafSelectionList<MileafAppearance>(
+              options: [
+                for (final mode in MileafAppearance.values)
+                  MileafSelectionOption(value: mode, label: mode.label),
+              ],
+              value: widget.controller.mode,
+              onChanged: (mode) => select(mode),
+              semanticLabel: _title,
             ),
+          ),
           if (error != null) ...[
             const SizedBox(height: MileafSpace.s8),
             Semantics(
               liveRegion: true,
               child: Text(
                 error!,
-                style: type.micro.copyWith(color: colors.error),
+                style: type.footnote.copyWith(color: colors.error),
               ),
             ),
           ],
         ],
       ),
-    );
-  }
-}
-
-class _AppearanceRow extends StatelessWidget {
-  const _AppearanceRow({
-    required this.mode,
-    required this.selected,
-    required this.onTap,
-  });
-  final MileafAppearance mode;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return MileafDataRow(
-      title: mode.label,
-      selected: selected,
-      badge: selected
-          ? MileafIcon(
-              MileafIconName.check,
-              size: MileafIconMetrics.nav,
-              color: context.colors.accentStrong,
-            )
-          : null,
-      onTap: onTap,
     );
   }
 }

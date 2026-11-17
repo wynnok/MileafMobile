@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/api.dart';
 
 import 'support/session_store.dart';
@@ -243,7 +244,9 @@ void main() {
     await tester.pump(const Duration(seconds: 16));
     expect(find.text('请求超时，请检查网络后重试'), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '检查连接'))
+          .onPressed,
       isNotNull,
     );
   });

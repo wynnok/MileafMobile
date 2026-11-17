@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -167,13 +168,17 @@ void main() {
       isEmpty,
     );
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNull,
     );
     now = now.add(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNotNull,
     );
     expect(attempts, 1);
@@ -352,7 +357,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('请求过于频繁'), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNotNull,
     );
     expect(find.textContaining('服务要求等待'), findsNothing);

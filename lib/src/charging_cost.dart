@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'charging_detail_contract.g.dart' as dto;
 import 'charging_cost_contract.g.dart' as cost_dto;
+import 'copy/dates.dart' as copy;
 import 'currency.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
@@ -132,13 +133,14 @@ String _amount(String value, CurrencySettings currency) =>
     };
 
 /// Keep each thousands group intact when a large amount wraps at 200%.
+/// P14：预估费用用 metricSm（R21.3 详情页读数口径）。
 Widget _amountText(BuildContext context, String value) => Semantics(
   label: value,
   child: ExcludeSemantics(
     child: Wrap(
       children: [
         for (final match in RegExp(r'[^, ]+,?| ').allMatches(value))
-          Text(match.group(0)!, style: context.type.metricMd),
+          Text(match.group(0)!, style: context.type.metricSm),
       ],
     ),
   ),
@@ -397,6 +399,15 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
     }
   }
 
+  /// CP04：日期时间用共享格式化器输出（DF5 = DF1 + DF4）。
+  String _recordWhen(dto.ChargingSessionDetail d) {
+    final start = workspace.calendar!.local(d.startedAt);
+    // formatDay 只有同年/跨年两个分支（DF1）：参照日传 start 本身即得
+    // 「M月D日」（同年不带年），无今天/昨天分支，也没有年界边角。
+    final day = copy.formatDay(start, start);
+    return '$day ${copy.formatTime(start)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!current) return const SizedBox.shrink();
@@ -407,7 +418,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
         ? null
         : _billingEnergy(d.energyAddedKwh, d.energyUsedKwh);
     final p = price;
-    final unit = '${widget.currency.code ?? '账本币种'} / kWh';
+    final unit = '${widget.currency.code ?? '账本币种'}/kWh';
     final gap8 = const SizedBox(height: MileafSpace.s8);
     return PopScope(
       canPop: !saving,
@@ -423,6 +434,8 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
           ),
           child: MileafSheetFrame(
             title: '补录费用',
+            // P14/R28：费用表单属高内容弹层，用贴边样式（顶部 28、不透明）。
+            style: MileafSheetStyle.edge,
             onClose: () {
               if (!saving) Navigator.pop(context);
             },
@@ -434,35 +447,28 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                 gap8,
                 if (loading) Text('正在读取本次充电…', style: type.body),
                 if (d != null) ...[
+                  // P14 记录块：地点 headline、日期时间 subheadline（CP04 共享
+                  // 格式化器）、记录编号进记录信息（CP09 不再用「充电 #N」）。
+                  Text(d.location.displayName ?? '未知地点', style: type.headline),
+                  const SizedBox(height: MileafSpace.s4),
                   Text(
-                    d.location.displayName ?? '未知地点',
-                    style: type.body.copyWith(
-                      fontWeight: MileafType.weightSemiBold,
+                    _recordWhen(d),
+                    style: type.subheadline.copyWith(
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: MileafSpace.s4),
                   Text(
-                    workspace.calendar!
-                        .local(d.startedAt)
-                        .toString()
-                        .substring(0, 16)
-                        .replaceAll('-', '/'),
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
-                  Text(
-                    '充电 #${d.id}',
-                    style: type.micro.copyWith(color: colors.textMuted),
+                    '记录编号 ${d.id}',
+                    style: type.subheadline.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: MileafSpace.s24),
-                  Text('充电单价', style: type.label),
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    unit,
-                    style: type.micro.copyWith(color: colors.textMuted),
-                  ),
+                  Text('单价（$unit）', style: type.label),
                   gap8,
                   Semantics(
-                    label: '充电单价，$unit',
+                    label: '单价（$unit）',
                     child: TextField(
                       controller: input,
                       focusNode: focus,

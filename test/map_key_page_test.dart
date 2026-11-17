@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
@@ -36,14 +37,17 @@ String? Function() mockClipboard() {
   return () => copied[0];
 }
 
-/// Chevron rotation owned by the page, located through its disclosure title so
-/// the assertion survives an extra fold.
+/// Chevron rotation owned by the disclosure, located through its title so the
+/// assertion survives an extra fold.
+///
+/// AP13：两处折叠改 `MileafDisclosure`（R30.3），箭头约定为收起 .25、
+/// 展开反方向 -.25（M06 的 180° 旋转不变）。
 double chevronTurns(WidgetTester tester, String title) => tester
     .widget<AnimatedRotation>(
       find.descendant(
         of: find.ancestor(
           of: find.text(title),
-          matching: find.byType(ExpansionTile),
+          matching: find.byType(MileafDisclosure),
         ),
         matching: find.byType(AnimatedRotation),
       ),
@@ -152,7 +156,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(reads, 1);
     // 展开后 chevron 翻 180°，绑定信息成为标签 + 值 + 复制按钮的行。
-    expect(chevronTurns(tester, '如何申请 Key'), .75);
+    expect(chevronTurns(tester, '如何申请 Key'), -.25);
     expect(chevronTurns(tester, '数据使用说明'), .25);
     expect(find.text('登录高德开放平台，创建应用并添加 Key。'), findsOneWidget);
     expect(find.text('app.mileaf.example'), findsOneWidget);
@@ -193,7 +197,7 @@ void main() {
     expect(find.text('更换 Key'), findsNothing);
     expect(find.byType(TextField), findsNothing);
     // R2：已保存折叠态只剩状态图标一个强调色对象。
-    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(MileafButton), findsNothing);
     expect(find.byType(TextButton), findsNothing);
     // 破坏操作是独立 error 细线行，文案仍在。
     expect(
@@ -203,7 +207,9 @@ void main() {
     await tester.tap(find.text('Android 地图 Key'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.byType(FilledButton), findsOneWidget);
+    // AP13：主按钮与取消更换都改胶囊组件家族（primary + ghost）。
+    expect(find.byType(MileafButton), findsNWidgets(2));
+    expect(find.widgetWithText(MileafButton, '保存 Key'), findsOneWidget);
     await tester.tap(find.text('取消更换'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
@@ -235,8 +241,8 @@ void main() {
     );
     final subtitle = tester.widget<Text>(find.text('本次运行仍用原 Key')).style;
     expect(subtitle?.color, colors.warning);
-    // Spec §14：该副说明按 §3 取 micro，不升到 body。
-    expect(subtitle?.fontSize, MileafType.microSize);
+    // AP13（R22）：micro 过渡别名去向 footnote（13/18），仍不升到 body。
+    expect(subtitle?.fontSize, MileafType.footnoteSize);
     // 重启指令只由 status 承载，首屏不再出现两次「重新启动后生效」。
     expect(find.textContaining('重新启动后生效'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -263,7 +269,7 @@ void main() {
     await tester.ensureVisible(find.text('数据使用说明'));
     await tester.tap(find.text('数据使用说明'));
     await tester.pumpAndSettle();
-    expect(chevronTurns(tester, '数据使用说明'), .75);
+    expect(chevronTurns(tester, '数据使用说明'), -.25);
     // 供应商说明随详情展开，冻结的隐私语义不丢失。
     expect(find.textContaining('底图由高德地图提供'), findsOneWidget);
     expect(find.text('https://lbs.amap.com/pages/privacy/'), findsOneWidget);
