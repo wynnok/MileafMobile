@@ -1,0 +1,221 @@
+{
+  "ticket": "AP12b",
+  "input_sha": "8ea7e29",
+  "freeze_point": "FP3 (eeefe83)",
+  "fixture": "statisticsInsightsFixture + range/parking responses",
+  "timezone": "Asia/Shanghai",
+  "sampled_at": "2026-10-28T11:00:00.000Z",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec",
+  "dpr": 1,
+  "keyboard": "hidden",
+  "material_preferences": "default",
+  "first_screen_measurements": [
+    {
+      "name": "长期续航",
+      "bodyTop": 80.0,
+      "plotTopInBody": 457.0,
+      "plotVisible": 200.0
+    },
+    {
+      "name": "停放观察",
+      "bodyTop": 80.0,
+      "plotTopInBody": 447.0,
+      "plotVisible": 200.0
+    }
+  ],
+  "images": {
+    "AP12b-长期续航-normal-glass-light-390x844-100-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-长期续航-normal-glass-dark-390x844-100-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-长期续航-normal-glass-light-360x800-100-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-normal-glass-light-320x568-200-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "320x568-200",
+      "position": "top",
+      "size": "Size(320.0, 568.0)"
+    },
+    "AP12b-长期续航-normal-glass-light-390x844-150-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-150",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-长期续航-normal-glass-light-390x844-100-safearea0-top.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100-safearea0",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-长期续航-midmissing-glass-light-360x800-100-top.png": {
+      "page": "长期续航",
+      "scene": "midmissing",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-empty-glass-light-360x800-100-top.png": {
+      "page": "长期续航",
+      "scene": "empty",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-allmissing-glass-light-360x800-100-top.png": {
+      "page": "长期续航",
+      "scene": "allmissing",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-error-glass-light-360x800-100-top.png": {
+      "page": "长期续航",
+      "scene": "error",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-normal-glass-light-360x800-100-bottom.png": {
+      "page": "长期续航",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "bottom",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-长期续航-notes-glass-light-360x800-100-notes.png": {
+      "page": "长期续航",
+      "scene": "notes",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "notes",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-390x844-100-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-停放观察-normal-glass-dark-390x844-100-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-360x800-100-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-320x568-200-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "320x568-200",
+      "position": "top",
+      "size": "Size(320.0, 568.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-390x844-150-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-150",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-390x844-100-safearea0-top.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100-safearea0",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP12b-停放观察-missing-glass-light-360x800-100-top.png": {
+      "page": "停放观察",
+      "scene": "missing",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-empty-glass-light-360x800-100-top.png": {
+      "page": "停放观察",
+      "scene": "empty",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-allnull-glass-light-360x800-100-top.png": {
+      "page": "停放观察",
+      "scene": "allnull",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-error-glass-light-360x800-100-top.png": {
+      "page": "停放观察",
+      "scene": "error",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-normal-glass-light-360x800-100-bottom.png": {
+      "page": "停放观察",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "bottom",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP12b-停放观察-notes-glass-light-360x800-100-notes.png": {
+      "page": "停放观察",
+      "scene": "notes",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "notes",
+      "size": "Size(360.0, 800.0)"
+    }
+  }
+}
