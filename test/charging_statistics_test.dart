@@ -190,15 +190,18 @@ void main() {
       ['charging'],
     );
     await tapDateAction(tester);
-    // The shared date entry opens the same editor.
+    // The shared date entry opens the same editor; typing goes through its
+    // keyboard path (R27).
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('改为输入'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, '开始日期'),
+      find.byKey(const ValueKey('date-range-start-input')),
       '2020-01-01',
     );
-    await tester.tap(find.text('应用区间'));
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('不超过 730×24 小时'), findsOneWidget);
+    expect(find.textContaining('最长可选 730 天'), findsOneWidget);
     expect(requests.length, count + 1);
   });
 
@@ -235,9 +238,10 @@ void main() {
         () => 'UTC',
       );
       await tapDateAction(tester);
+      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(MileafSheetFrame),
           matching: find.widgetWithText(StatusChip, '本年'),
         ),
       );
@@ -265,7 +269,7 @@ void main() {
       expect(find.bySemanticsLabel('行程数 49 次'), findsOneWidget);
       expect(find.textContaining('保留上次快照'), findsNothing);
       expect(
-        find.widgetWithText(StatusChip, '自定义日期'),
+        find.widgetWithText(StatusChip, '自定义'),
         findsOneWidget,
         reason: '驾驶统计沿用同一年区间，日期入口保持统一名称',
       );

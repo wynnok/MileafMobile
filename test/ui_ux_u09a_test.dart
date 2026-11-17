@@ -834,7 +834,9 @@ void main() {
         expect(tester.getSize(scroll).width, lessThanOrEqualTo(560));
         if (size.width == 768 && scenario == 'normal') {
           final header = tester.getRect(
-            find.widgetWithText(ExpansionTile, '2026/10/1 — 2026/10/28'),
+            // AP11：长期/专题路由的说明折叠改 MileafDisclosure，区间 meta 按
+            // CP04 DF3（原 ExpansionTile 标题是 y/m/d 旧格式）。
+            find.widgetWithText(MileafDisclosure, '10月1日–28日'),
           );
           final plot = tester.getRect(
             find.byKey(const ValueKey('usage-daily-plot')),
