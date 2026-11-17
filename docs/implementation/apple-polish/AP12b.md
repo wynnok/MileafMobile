@@ -6,7 +6,7 @@
 - 输入冻结点：FP3 = eeefe83（登记提交 8ea7e29）。分支：codex/apple-polish-ap12b。
 - 工作目录：/Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12b。
 - 开工核对：pwd、分支、HEAD（8ea7e29）、`git status --short` 为空，与租约表一致；`.cache/pub` 已按 §3.1 克隆并 `pub get --offline` 通过。
-- 结果 SHA：本票分支本地提交（见 git log -1；SHA 不写入本文档自身）。
+- 结果 SHA：a9c4ecb（代码与测试提交）；审查修正随补充提交入库（见 git log a9c4ecb..HEAD）。
 
 ## 2 修改文件清单与 API 差异
 
@@ -40,7 +40,7 @@
 | 规则 | 符号 | 测试 | 图像/证据 |
 | --- | --- | --- | --- |
 | R25 专题骨架 | 两页 build 的身份块/结论卡/主图卡/明细/页尾结构 | ap12b「身份块、结论卡、主图卡…」「结论卡给出主值…」 | `AP12b-*-normal-glass-*-top.png` |
-| R29 图表语法 | 两页 `_trendChart`/`_RangePainter`/`_ParkingPainter`（Y 轴右置、X 轴去重、竖线+描边点）、`MileafChartReadout`（读数头在绘图区之上、专题 metricSm、步进圆钮） | u09d「趋势带与中位数折线…」「200%下…」「趋势图支持键盘左右…」；u09e 同型 | 过程图机位 |
+| R29 图表语法 | 两页 `_trendChart`/`_RangePainter`/`_ParkingPainter`（Y 轴右置、X 轴首中末 + `formatAxisDayTicks`/`formatAxisMonth` DF9 刻度与同文本去重、竖线+描边点）、`MileafChartReadout`（读数头在绘图区之上、专题 metricSm、步进圆钮） | u09d「趋势带与中位数折线…」「200%下…」「趋势图支持键盘左右…」；u09e 同型 | 过程图机位 |
 | R30 信息披露 | 两页 `_notes`（`MileafDataNotes` 五类，技术详情 copyable）；停放记录逐行明细保留原位折叠（R30.3 内容类） | ap12b「页尾『关于这些数据』五类，技术详情可复制」；u09d/e notes 机位 | `*-notes.png` |
 | R31 状态与反馈 | `messages.readFailedMessage/staleMessage/paginationFailedMessage/unsupportedMessage` + `StateView` 各空态 | range「续航资源失败…」、parking「停车资源失败…」「无有效窗口…」 | `*-error.png`、`*-empty.png` |
 | R32 工程约束 | 裸值守卫基线 0 维持；`grep 'Icons\.'` 两文件无输出；`NoSplash` 沿主题 | `apple_polish_raw_value_guard_test` | — |
@@ -100,7 +100,8 @@
 | 候选 4 · 排除 1 · 开放 1 / 排除原因：missing_soc ×1 | 共 4 段，未计入 1 段，尚未结束 1 段 / 未计入原因：缺少电量数据 1 段（`labels.exclusionReasonLabel`） | CP10、CP09.1 |
 | `${window_id} · ${有效/未计入} · ${quality}` | 行标题 `labels.parkingQualityLabel`（完整 / 状态记录不完整（仍计入）/ 未计入 / 尚未结束）+ meta 窗口起止（DF4/DF5） | CP10、CP04、CP09.1 |
 | 前一点 / 后一点 / 加载更多窗口 | 步进圆钮 / 加载更多停车记录 | CP06、CP02 |
-| 持续 14.0 h · -1.0 pp · -1.7 pp/24h / 负里程诊断 true / `edge 事件 … · SOC …%（来源）· …` | 持续 14 小时，变化 −1.0 个百分点，折合每天 −1.7 个百分点；里程变化 … km，里程表读数回退；起点 行车，10月28日 06:00，电量 70%（来源），里程 … km（来源），位置 …（逐类单行） | CP03、CP10、CP09.1、CP09.4 |
+| `10/28` 式斜杠 X 轴刻度 | CP04 DF9：首格「10月28日」、同月后续「28日」（`formatAxisDayTicks`）；月级「9月」/「2025年11月」（`formatAxisMonth`） | R29、CP04 |
+| 持续 14.0 h · -1.0 pp · -1.7 pp/24h / 负里程诊断 true / `edge 事件 … · SOC …%（来源）· …` | 持续 14 小时，变化 −1.0 个百分点，折合每天 −1.7 个百分点；里程变化 … km，里程表读数回退；起点 行车，10月28日 06:00，电量 70%（来源），里程 … km（来源），位置 …（逐类单行；行样式改 `type.footnote` 角色） | CP03、CP10、CP09.1、CP09.4、R22 |
 | 匹配窗口 4 · 已载证据 3（匹配数不等于有效数） | 分组脚注：已载入 3 条记录，匹配 4 段；匹配数不等于有效数 | CP09.1 |
 | 状态：available · 查询生成：… / 方法 closed-window-soc-v1 · provisional · 阈值 … | 来源类「查询生成于 {DF}」；技术详情（status/method/validation/thresholds/from/to/bucket，可复制）；口径类补「状态记录不完整的窗口仍计入统计。」 | R30、R30.4 |
 | 停放观察读取失败，保留上次结果 / 窗口证据读取失败 / 重试停放观察 | 没能读取停放观察 / 没能加载更多停放记录，已保留当前列表 / 没能更新，显示的是 {DF7} 的数据 / 重试 | CP07 |
@@ -124,6 +125,8 @@
 | `./tool/flutterw dart format --output=none --set-exit-if-changed <8 文件>` | 0 changed，EXIT 0 |
 | `git diff --check` | 无输出 |
 
+审查修正（code-review 双轴）后补充：`_recordDetail` 行样式改 `type.footnote` 角色（去页面内裸 TextStyle）；两页 X 轴刻度改 CP04 DF9（`formatAxisDayTicks`/`formatAxisMonth`）；u09d midmissing 补强为展开「记录与缺失」断言「有效天数 0 天」；重新渲染图册后全量复跑通过，随补充提交入库。 |
+
 ## 7 既有测试的等价修正（本票持有）
 
 | 文件:用例 | 原断言 | 新断言 | 原因 |
@@ -133,6 +136,7 @@
 | statistics_range「资源失败…」 | 续航观察读取失败 / 重试续航观察 | 没能读取续航观察 / 重试 | CP07 |
 | statistics_parking 各例 | 后一点/前一点 TextButton、-2.0 pp、停放SOC变化、数据说明 ExpansionTile、加载更多窗口、open-tail/partial_state_coverage 原值可见 | 步进圆钮语义查找、−2.0 个百分点、每段停车、关于这些数据 + 技术详情（SelectableText）、加载更多停车记录、折叠后人话标签（尚未结束）+ 展开后可见编号 | R29/CP02/CP03/CP10/R30 |
 | u09d「趋势带…」 | P10–P90有效日波动带 / 纵轴 410–460 km，非零起点 / 独立6个月观察窗口 | 日常波动范围（P10–P90）/ 纵轴从 410 km 起 / 独立本地月窗口，逐月估算额定续航 | CP09、对照表 |
+| u09d「中间缺月…」 | 读值行「有效日 0」 | 展开「记录与缺失」断言「有效天数 0 天」（信息迁移到 R30 记录类） | R30、CP10 |
 | u09d「单月…」 | TextButton 前一个月 onPressed==null | 单月时读数头不渲染步进圆钮（findsNothing） | R27 步进圆钮 |
 | u09d/e「200%…」 | TextButton 矩形 ≥44 | 步进圆钮矩形 ≥44（组件命中 44） | R27 |
 | u09d/e「键盘左右…」 | 2026/9 · 完整月 / 变化 0.0 pp | 9月 / 0.0 个百分点 | CP04、CP09.4 |
@@ -150,6 +154,10 @@
 | D-AP12b-03 | CP02 证据→样本明细 | range 样本明细区标题沿 `StatisticsTopicFacts` 默认 `title = '证据'`（AP12a 冻结组件默认值） | — | 由 AP12a 改组件默认值或 AP14 统一，本票不传 title（避免新增字面量） | 标题仍为「证据」 | 交 AP12a/AP14 |
 | D-AP12b-04 | 文案删减 | 停放「当前站点暂不支持停放观察」StateView 副句「站点未声明停放观察能力。」删除 | — | 标题已含能力语义（CP07 模板），为守卫计数收敛 | 信息量微降 | 已登记 |
 | D-AP12b-05 | CP09.1 边缘 | 记录与缺失 note 逐月行「有效天数 X 天、有效会话 Y 次、有效采样 Z 点」为三项顿号列举 | — | 属技术计数列举（非「·」、非逗号），保留顿号列举形式 | 探针不命中（说明折叠） | 已登记 |
+| D-AP12b-06 | R31 首次加载/刷新中 | 两页加载沿 FP3 既有 `MileafProgressLine`，未做「与最终结构同形的静态骨架」与焦点模块标签行尾「正在更新」 | — | 专题页共享模式（AP12a 同），统一实现交 AP14；本票不改冻结组件 `MetricBlock` 尾槽语义 | 加载态呈现弱于 R31 | 交 AP14 |
+| D-AP12b-07 | CP06 读屏补全 | 失败横幅按钮可见文字沿 R31 字面「重试」，无「重试读取{对象}」读屏补全 | — | `InlineBanner` 为冻结组件且无 semanticsLabel 参数，加参数交总控 | 读屏对象靠上下文 | 交总控 |
+| D-AP12b-08 | R29「无数据绘图区收起」与 R06.8「null 留槽」 | 停放 allnull（有槽全 null）保留绘图区并加脚注「分桶电量变化缺失，不补零」 | FP3 既有持有测试钉住「保留图区说明，不画零柱」 | 沿 FP3 行为：全缺失是缺失语义而非无数据语义 | 解释张力 | 已登记 |
+| D-AP12b-09 | CP09.5 同屏重复区间（审查响应） | 身份块不含区间句；期间/窗口标签由宿主 `insightHeader`（AP11）承载 | — | 已核实宿主在两专题上方显示期间/窗口标签，本票不重复区间 | 无 | 已核实 |
 
 ## 9 未验证与外部待验项
 

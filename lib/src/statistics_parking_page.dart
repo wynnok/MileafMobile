@@ -648,7 +648,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                   label: labels.parkingQualityLabel('${row['quality']}'),
                   meta: _recordMeta(row),
                   topLine: index > 0,
-                  child: _recordDetail(row),
+                  child: _recordDetail(context, row),
                 ),
               ),
           ],
@@ -669,10 +669,13 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
   }
 
   /// 逐行明细：观测原值就近可查；事件类型与来源等原值保留在折叠明细内。
-  Widget _recordDetail(Map row) {
+  Widget _recordDetail(BuildContext context, Map row) {
     final excluded = row['exclusion_reason'];
     final missing = row['soc_change_pp'] == null;
-    const lineStyle = TextStyle(height: 1.5);
+    // R22：字体角色只在设计层定义；明细行沿 footnote 角色。
+    final lineStyle = context.type.footnote.copyWith(
+      color: context.colors.text,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -957,20 +960,20 @@ class _ParkingPainter extends CustomPainter {
     final xLabels = largeText
         ? {0, rows.length - 1}
         : {0, ((rows.length - 1) / 2).round(), rows.length - 1};
+    // R29：X 轴首、中、末至多 3 个刻度；大字只留首末。刻度文字按 CP04
+    // DF9（首格「10月28日」、同月后续「28日」），去重键用标签文本。
+    final axisIndices = xLabels.where((i) => i >= 0 && i < rows.length).toList()
+      ..sort();
+    final labelTimes = [
+      for (final i in axisIndices)
+        calendar.local(DateTime.parse(rows[i]['bucket_start'] as String)),
+    ];
+    final axisLabels = labelTimes.isEmpty
+        ? const <String>[]
+        : copy.formatAxisDayTicks(labelTimes, labelTimes.last);
     final xPainters = <int, (TextPainter, String)>{
-      for (final i in xLabels)
-        if (i >= 0 && i < rows.length)
-          i: () {
-            final local = calendar.local(
-              DateTime.parse(rows[i]['bucket_start'] as String),
-            );
-            // CP04：同日多桶去重；去重键带月日与时间粒度外的标记不必要，
-            // 键直接用月-日文本（同日才可能重键）。
-            return (
-              _measure('${local.month}/${local.day}'),
-              '${local.month}-${local.day}',
-            );
-          }(),
+      for (var i = 0; i < axisIndices.length; i++)
+        axisIndices[i]: (_measure(axisLabels[i]), axisLabels[i]),
     };
     var xHeight = 0.0;
     for (final (painter, _) in xPainters.values) {

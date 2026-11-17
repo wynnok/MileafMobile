@@ -169,8 +169,14 @@ void main() {
       await tester.tap(prev);
       await tester.pumpAndSettle();
     }
-    // 缺失月不补零：结论卡给缺失口径，读数头值为 —。
+    // 缺失月不补零：结论卡给缺失口径，记录与缺失说明逐月给「有效天数 0 天」。
     expect(find.text('暂无有效月样本'), findsOneWidget);
+    final notes = find.widgetWithText(MileafDisclosure, '记录与缺失');
+    await tester.ensureVisible(notes.last);
+    await tester.pumpAndSettle();
+    await tester.tap(notes.last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('有效天数 0 天'), findsOneWidget);
     expect(find.text('日常波动范围（P10–P90）'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

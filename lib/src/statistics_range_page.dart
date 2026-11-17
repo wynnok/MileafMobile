@@ -741,16 +741,22 @@ class _RangePainter extends CustomPainter {
     final xLabels = largeText
         ? {0, rows.length - 1}
         : {0, ((rows.length - 1) / 2).round(), rows.length - 1};
+    // R29：X 轴首、中、末至多 3 个刻度；大字只留首末。刻度文字按 CP04
+    // DF9 月级（跨年带年），去重键用标签文本。
+    final axisIndices = xLabels.where((i) => i >= 0 && i < rows.length).toList()
+      ..sort();
     final xPainters = <int, (TextPainter, String)>{
-      for (final i in xLabels)
-        if (i >= 0 && i < rows.length)
-          i: () {
-            final date = calendar.local(
-              DateTime.parse(rows[i]['bucket_start'] as String),
-            );
-            // 同文本去重键带年份，避免跨年同名月被误去重。
-            return (_measure('${date.month}月'), '${date.year}-${date.month}');
-          }(),
+      for (final i in axisIndices)
+        i: () {
+          final date = calendar.local(
+            DateTime.parse(rows[i]['bucket_start'] as String),
+          );
+          final anchor = calendar.local(
+            DateTime.parse(rows[rows.length - 1]['bucket_start'] as String),
+          );
+          final label = copy.formatAxisMonth(date, anchor);
+          return (_measure(label), label);
+        }(),
     };
     var xHeight = 0.0;
     for (final (painter, _) in xPainters.values) {
