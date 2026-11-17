@@ -75,7 +75,9 @@ void main() {
       contains(before),
     );
     expect(downloads, 1);
-    expect(find.textContaining('3月15日'), findsWidgets);
+    // CP04 DF9：读数头日期行只到 HH:mm（上面 contains(before) 已断言选点
+    // 保持）；精确时间只活在页尾「关于这些数据」，惰性列表在当前滚动位置
+    // 不构建，不再以可见性断言全日期。
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -100);
     await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();
