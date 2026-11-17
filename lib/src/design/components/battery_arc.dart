@@ -137,6 +137,9 @@ class _ArcValue extends StatelessWidget {
       height: 1.2,
     );
     final unitStyle = type.subheadline.copyWith(color: unitColor);
+    // 单位挤不下时落到数值下方，用 R22 的紧凑标注角色（caption）而不是正文
+    // 角色：环内是密集区，subheadline 在 200% 会把圆心顶破。
+    final wrappedUnitStyle = type.caption.copyWith(color: unitColor);
     final scaler = MediaQuery.textScalerOf(context);
     bool fits(TextStyle style, {required bool unit}) {
       final painter = TextPainter(
@@ -154,12 +157,34 @@ class _ArcValue extends StatelessWidget {
       return ok;
     }
 
+    double heightOf(String text, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
     var style = valueStyle;
     var withUnit = level != null && fits(valueStyle, unit: true);
     if (!withUnit && !fits(valueStyle, unit: false)) {
       style = smallStyle;
       withUnit = level != null && fits(smallStyle, unit: true);
     }
+    // 圆心的内圆高度：数值 + 换行单位放不下时宁可省掉单位行，也绝不让圆心
+    // 溢出（单位仍由语义标签朗读）。
+    final innerHeight = diameter - MileafBatteryMetrics.stroke * 2;
+    final unitBelow =
+        !withUnit &&
+        level != null &&
+        heightOf(valueText, style) +
+                MileafSpace.inline2 +
+                heightOf('%', wrappedUnitStyle) <=
+            innerHeight;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -171,10 +196,8 @@ class _ArcValue extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
-        // The unit never disappears; it moves under the value when the arc is
-        // too narrow (200% uses the 72px arc).
-        if (!withUnit && level != null)
-          Text('%', textAlign: TextAlign.center, style: unitStyle),
+        if (unitBelow)
+          Text('%', textAlign: TextAlign.center, style: wrappedUnitStyle),
       ],
     );
   }

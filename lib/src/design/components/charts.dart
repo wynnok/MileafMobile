@@ -1031,6 +1031,10 @@ class _ChartStepButton extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: enabled ? onTap : null,
+              // R29：键盘路径「Tab 到图表、←/→ 步进」沿既有实现。步进圆钮
+              // 若进入焦点顺序，第一次 Tab 会落在读数头尾部而不是绘图区，
+              // 键盘用户反而失去左右键步进。读屏仍可通过按钮语义触发。
+              canRequestFocus: false,
               child: Center(
                 child: MileafIcon(
                   icon,
