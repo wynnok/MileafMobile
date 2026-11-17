@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'number_format.dart';
 
+import 'copy/messages.dart' as messages;
 import 'design/components/components.dart';
+import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -422,10 +424,11 @@ class _StatisticsViewState extends State<_StatisticsView>
                     style: context.type.title,
                   ),
                 ),
-                IconButton(
-                  onPressed: loading ? null : () => load(force: true),
-                  icon: const Icon(Icons.refresh),
+                MileafIconButton(
+                  icon: MileafIconName.refresh,
                   tooltip: '刷新统计',
+                  fill: MileafIconButtonFill.track,
+                  onPressed: loading ? null : () => load(force: true),
                 ),
               ],
             ),
@@ -450,7 +453,8 @@ class _StatisticsViewState extends State<_StatisticsView>
                 ),
               ),
             ),
-            if (calendar.fallback) const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
+            // CP07：时区不可读走共享状态句。
+            if (calendar.fallback) Text(messages.timezoneUnreadableMessage()),
             if (loading)
               MediaQuery.disableAnimationsOf(context)
                   ? const Text('正在读取统计…')
@@ -583,15 +587,12 @@ class _StatisticsViewState extends State<_StatisticsView>
             style: context.type.body.copyWith(color: context.colors.textMuted),
           ),
         ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: const Text('统计口径'),
-        children: const [
-          Text(
-            '净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals，不平均各桶比率。',
-          ),
-        ],
+      // R30.3：说明类折叠改 MileafDisclosure。
+      MileafDisclosure(
+        label: '统计口径',
+        child: const Text(
+          '净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals，不平均各桶比率。',
+        ),
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
@@ -830,15 +831,12 @@ class _StatisticsViewState extends State<_StatisticsView>
             style: context.type.body.copyWith(color: context.colors.textMuted),
           ),
         ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: const Text('统计口径'),
-        children: const [
-          Text(
-            '充电统计按结束时间归期，进行中不计入。费用只合计已知记录；均价使用服务端对应口径。AC/DC 使用独立能量，不将已知分类强行归一成全部能量。',
-          ),
-        ],
+      // R30.3：说明类折叠改 MileafDisclosure。
+      MileafDisclosure(
+        label: '统计口径',
+        child: const Text(
+          '充电统计按结束时间归期，进行中不计入。费用只合计已知记录；均价使用服务端对应口径。AC/DC 使用独立能量，不将已知分类强行归一成全部能量。',
+        ),
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
@@ -945,34 +943,37 @@ class _StatisticsViewState extends State<_StatisticsView>
     expanded.ChargingBucket? richer,
   ) {
     final note = widget.currency.amountNote;
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: EdgeInsets.zero,
-      title: Text(
-        '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
-      ),
-      children: [
-        line('会话数', bucket.sessions, '次'),
-        textLine('已知费用合计', widget.currency.amountValue(bucket.cost)),
-        if (note != null)
-          Text(
-            note,
-            style: context.type.micro.copyWith(color: context.colors.textMuted),
+    // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
+    return MileafDisclosure(
+      label:
+          '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          line('会话数', bucket.sessions, '次'),
+          textLine('已知费用合计', widget.currency.amountValue(bucket.cost)),
+          if (note != null)
+            Text(
+              note,
+              style: context.type.micro.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+          _amountLine(
+            richer == null ? '已知费用均价' : '有效入电均价',
+            richer == null ? bucket.costPerKwh : richer.unitCostAdded.value,
+            perKwh: true,
           ),
-        _amountLine(
-          richer == null ? '已知费用均价' : '有效入电均价',
-          richer == null ? bucket.costPerKwh : richer.unitCostAdded.value,
-          perKwh: true,
-        ),
-        line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
-        line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
-        textLine(
-          'DC 能量占比（已知分类）',
-          richer != null && richer.energyKnownSessions == 0
-              ? '—'
-              : _share(bucket.dcEnergyShare),
-        ),
-      ],
+          line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
+          line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
+          textLine(
+            'DC 能量占比（已知分类）',
+            richer != null && richer.energyKnownSessions == 0
+                ? '—'
+                : _share(bucket.dcEnergyShare),
+          ),
+        ],
+      ),
     );
   }
 
@@ -980,19 +981,20 @@ class _StatisticsViewState extends State<_StatisticsView>
     BuildContext context,
     dto.DrivingBucket bucket,
     CalendarContext calendar,
-  ) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    childrenPadding: EdgeInsets.zero,
-    title: Text(
-      '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
+  ) => MileafDisclosure(
+    // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
+    label:
+        '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        line('行程数', bucket.drives, '次'),
+        line('能量', bucket.energyKwh, 'kWh', decimals: 2),
+        line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
+        line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
+        line('最高速度', bucket.speedMaxKmh, 'km/h'),
+      ],
     ),
-    children: [
-      line('行程数', bucket.drives, '次'),
-      line('能量', bucket.energyKwh, 'kWh', decimals: 2),
-      line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
-      line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
-      line('最高速度', bucket.speedMaxKmh, 'km/h'),
-    ],
   );
 }
 

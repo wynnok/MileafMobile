@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
+import 'package:mileaf/src/design/components/module.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/top_bar.dart';
 import 'package:mileaf/src/design/tokens.dart';
@@ -70,12 +71,13 @@ void main() {
     final before = reads.length;
     await tester.tap(find.text('长期'));
     await tester.pumpAndSettle();
+    // P06：长期索引两入口改分组卡行（R24），标签仍是动词短语（R30.3）。
     expect(find.text('展开长期续航'), findsOneWidget);
     expect(find.text('展开停放观察'), findsOneWidget);
     expect(reads.length, before, reason: '索引不为摘要预取两个专题');
     for (final label in ['展开长期续航', '展开停放观察']) {
       expect(
-        tester.getSize(find.widgetWithText(ListTile, label)).height,
+        tester.getSize(find.widgetWithText(MileafGroupRow, label)).height,
         greaterThanOrEqualTo(44),
       );
     }
@@ -89,12 +91,14 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    // P06：主图改紧凑读数行，参照区间与差值句进朗读句（R29/CP03）。
+    // P06：主图改紧凑读数行，参照与差值由图表语法写成一句（R29/CP03）。
     expect(
-      find.bySemanticsLabel(RegExp(r'参照 9月1日–28日 20.0 km（差 0.0 km）')),
+      find.bySemanticsLabel(RegExp(r'上月同期 9月1日–28日 20 km，持平')),
       findsOneWidget,
       reason: '朗读句给出真实参照区间与差值',
     );
+    // 读数头日期行按 CP04 DF1（M月D日）：夹具唯一桶是本月首日。
+    expect(find.text('10月1日'), findsOneWidget);
     // 可见处同一参照以图例名称出现（CP02 用真实名称 + DF3 区间）。
     expect(find.text('上月同期 9月1日–28日'), findsOneWidget);
     // 结论卡一句比较（CP03：多/少/持平写进句子）。

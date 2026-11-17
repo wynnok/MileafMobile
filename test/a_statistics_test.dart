@@ -19,9 +19,10 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('316'), findsNothing);
-    // P06 专题卡：2×2 卡片，长期无值时只写破折号与「查看专题」。
+    // P06 专题卡：2×2 卡片，长期无值时只写「续航与停放」状态与「查看专题」。
     expect(find.byKey(const ValueKey('statistics-topic-长期')), findsOneWidget);
-    expect(find.text('— km'), findsOneWidget);
+    expect(find.text('续航与停放'), findsOneWidget);
+    expect(find.text('— km'), findsNothing);
     expect(find.text('查看专题'), findsOneWidget);
     expect(find.text('节奏'), findsOneWidget);
   });
