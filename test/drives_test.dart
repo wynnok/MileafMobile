@@ -83,6 +83,28 @@ Future<void> openDrives(
   await tester.pumpAndSettle();
 }
 
+/// R27/PD10：打开共享日期区间弹层，走键盘输入路径应用一个区间。
+Future<void> applyCustomRange(
+  WidgetTester tester,
+  String start,
+  String end,
+) async {
+  await tester.tap(find.text('自定义'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('改为输入'));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('date-range-start-input')),
+    start,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('date-range-end-input')),
+    end,
+  );
+  await tester.tap(find.text('应用'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('前台持续跨午夜后日定位和返回沿用同一统计快照', (tester) async {
     var now = DateTime.utc(2026, 3, 30, 12);
@@ -173,17 +195,12 @@ void main() {
       },
     );
     final before = statsCount;
-    await tester.tap(find.text('自定义'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(0), '2020/01/01');
-    await tester.enterText(find.byType(TextField).at(1), '2026/03/30');
-    await tester.tap(find.text('确定'));
-    await tester.pumpAndSettle();
+    await applyCustomRange(tester, '2020-01-01', '2026-03-30');
     expect(lists.last['from'], '2019-12-31T16:00:00.000Z');
     expect(statsCount, before);
     // CP07：技术原因留给「关于这些数据」，主界面只说结果与可用范围。
     expect(find.textContaining('730 天，行程列表不受影响'), findsOneWidget);
-    expect(find.text('所选日期没有行程'), findsOneWidget);
+    expect(find.text('这段时间没有行程'), findsOneWidget);
   });
   testWidgets('切车后迟到统计不能覆盖新车期间摘要', (tester) async {
     var delay = false;
@@ -268,7 +285,7 @@ void main() {
     failing = true;
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('保留上次统计快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     expect(find.text('49 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
@@ -422,16 +439,11 @@ void main() {
         );
       }, now: () => now);
       if (range != 'default') {
-        await tester.tap(find.text('自定义'));
-        await tester.pumpAndSettle();
-        final inputs = find.byType(TextField);
-        await tester.enterText(inputs.at(0), '2026/03/29');
-        await tester.enterText(
-          inputs.at(1),
-          range == 'today' ? '2026/03/30' : '2026/03/29',
+        await applyCustomRange(
+          tester,
+          '2026-03-29',
+          range == 'today' ? '2026-03-30' : '2026-03-29',
         );
-        await tester.tap(find.text('确定'));
-        await tester.pumpAndSettle();
       }
       final initial = queries.last;
       final count = queries.length;
@@ -530,7 +542,7 @@ void main() {
     });
     await tester.scrollUntilVisible(find.text('重试加载更多'), 200);
     await tester.pumpAndSettle();
-    expect(find.textContaining('已保留现有行程'), findsOneWidget);
+    expect(find.textContaining('没能加载更多行程，已保留当前列表'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     failing = false;
     // 记录之后还有节奏卡与页尾说明：重试入口要移到视口中部，否则会被收起顶栏遮住。
@@ -578,14 +590,8 @@ void main() {
       now: () => now,
       calendar: () async => CalendarContext(zone),
     );
-    expect(find.text('这段时间还没有行程'), findsOneWidget);
-    await tester.tap(find.text('自定义'));
-    await tester.pumpAndSettle();
-    final inputs = find.byType(TextField);
-    await tester.enterText(inputs.at(0), '2024/03/09');
-    await tester.enterText(inputs.at(1), '2024/03/10');
-    await tester.tap(find.text('确定'));
-    await tester.pumpAndSettle();
+    expect(find.text('这段时间没有行程'), findsOneWidget);
+    await applyCustomRange(tester, '2024-03-09', '2024-03-10');
     expect(queries.last['from'], '2024-03-09T05:00:00.000Z');
     expect(queries.last['to'], '2024-03-11T04:00:00.000Z');
     zone = 'Asia/Shanghai';
@@ -638,7 +644,7 @@ void main() {
     await tester.ensureVisible(find.text('Y，尾号 0002'));
     await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
-    expect(find.text('这段时间还没有行程'), findsOneWidget);
+    expect(find.text('这段时间没有行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-17')), findsNothing);
     expect(tester.takeException(), isNull);
     slow.complete(
@@ -659,7 +665,7 @@ void main() {
       body['next_cursor'] = null;
       return jsonResponse(jsonEncode(body));
     });
-    expect(find.textContaining('格式不兼容'), findsOneWidget);
+    expect(find.textContaining('数据格式不受支持'), findsOneWidget);
     invalid = false;
     await tester.tap(find.text('重试行程'));
     await tester.pumpAndSettle();
@@ -667,7 +673,7 @@ void main() {
     failure = true;
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
   });
 }

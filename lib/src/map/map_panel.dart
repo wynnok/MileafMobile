@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../design/components/icon_button.dart';
+import '../design/icons.dart';
 import '../design/semantic.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -343,67 +345,72 @@ class _MapPanelState extends State<MapPanel> {
   }
 
   Widget _chrome(BuildContext context) {
-    final theme = Theme.of(context);
-    final chip = theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.92);
+    final colors = context.colors;
     return Stack(
       children: [
-        Positioned(
-          left: 12,
-          top: 10,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: chip,
-              borderRadius: MileafRadius.mdAll,
-            ),
-            child: Text('地图', style: theme.textTheme.labelSmall),
-          ),
-        ),
         if (widget.onExpand != null)
           Positioned(
-            right: 8,
-            top: 8,
-            child: Material(
-              color: chip,
-              shape: const RoundedRectangleBorder(
-                borderRadius: MileafRadius.mdAll,
-              ),
-              child: IconButton(
-                tooltip: '打开全屏地图',
-                constraints: const BoxConstraints(
-                  minWidth: MileafSpace.touch,
-                  minHeight: MileafSpace.touch,
-                ),
-                onPressed: widget.onExpand,
-                icon: const Icon(Icons.open_in_full, size: 19),
-              ),
+            right: MileafSpace.s8,
+            top: MileafSpace.s8,
+            // P15：地图上的控件是圆形实色按钮（不用玻璃）。
+            child: MileafIconButton(
+              icon: MileafIconName.expand,
+              tooltip: '查看完整地图',
+              fill: MileafIconButtonFill.track,
+              onPressed: widget.onExpand,
             ),
           ),
         if (widget.overlay != null)
           Positioned.fill(child: IgnorePointer(child: widget.overlay!)),
         if (widget.showControls)
           Positioned(
-            right: 10,
-            bottom: 34,
+            right: MileafSpace.s8,
+            bottom: MileafSpace.s32,
             child: Column(
               children: [
-                _mapButton(context, '适配轨迹', Icons.fit_screen, _controller.fit),
-                _mapButton(context, '放大地图', Icons.add, _controller.zoomIn),
-                _mapButton(context, '缩小地图', Icons.remove, _controller.zoomOut),
+                _mapButton(
+                  context,
+                  '适配轨迹',
+                  MileafIconName.route,
+                  _controller.fit,
+                ),
+                _mapButton(
+                  context,
+                  '放大地图',
+                  MileafIconName.plus,
+                  _controller.zoomIn,
+                ),
+                _mapButton(
+                  context,
+                  '缩小地图',
+                  MileafIconName.minus,
+                  _controller.zoomOut,
+                ),
               ],
             ),
           ),
+        // 底部版权：地图卡的最后一行（P04），实色底保证在底图上可读。
         Positioned(
-          right: 8,
-          bottom: 5,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            color: chip.withValues(alpha: 0.86),
-            child: Text(
-              _approval == null || _approval!.isEmpty
-                  ? '© ${_platform.providerName}'
-                  : '© ${_platform.providerName} $_approval',
-              style: context.type.micro,
+          right: MileafSpace.s8,
+          bottom: MileafSpace.s4,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.surfaceRaised,
+              borderRadius: MileafRadius.xsAll,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: MileafSpace.s4,
+                vertical: MileafSpace.inline2,
+              ),
+              child: Text(
+                _approval == null || _approval!.isEmpty
+                    ? '© ${_platform.providerName}'
+                    : '© ${_platform.providerName} $_approval',
+                style: context.type.caption.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
             ),
           ),
         ),
@@ -414,41 +421,38 @@ class _MapPanelState extends State<MapPanel> {
   Widget _mapButton(
     BuildContext context,
     String tooltip,
-    IconData icon,
+    MileafIconName icon,
     VoidCallback onPressed,
   ) => Padding(
-    padding: const EdgeInsets.only(top: 6),
-    child: Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow
-          .withValues(alpha: 0.94),
-      shape: const RoundedRectangleBorder(borderRadius: MileafRadius.mdAll),
-      child: IconButton(
-        tooltip: tooltip,
-        constraints: const BoxConstraints(
-          minWidth: MileafSpace.touch,
-          minHeight: MileafSpace.touch,
-        ),
-        onPressed: onPressed,
-        icon: Icon(icon, size: 20),
-      ),
+    padding: const EdgeInsets.only(top: MileafSpace.s8),
+    child: MileafIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      fill: MileafIconButtonFill.track,
+      onPressed: onPressed,
     ),
   );
 
   Widget _loading(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = context.colors;
     return ColoredBox(
-      color: theme.colorScheme.surface.withValues(alpha: 0.86),
+      color: colors.surface.withValues(alpha: 0.86),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.map_outlined,
-              size: 24,
-              color: theme.colorScheme.onSurfaceVariant,
+            MileafIcon(
+              MileafIconName.mapPin,
+              size: MileafIconMetrics.nav,
+              color: colors.textSecondary,
             ),
-            const SizedBox(height: 8),
-            Text('正在加载底图', style: theme.textTheme.labelMedium),
+            const SizedBox(height: MileafSpace.s8),
+            Text(
+              '正在加载底图',
+              style: context.type.footnote.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
@@ -467,7 +471,7 @@ class _MapPanelState extends State<MapPanel> {
         children: [
           Expanded(
             child: Text(
-              '底图未启用 · 路线示意',
+              '底图未启用，显示路线示意',
               style: type.label.copyWith(color: colors.text),
             ),
           ),
@@ -480,14 +484,11 @@ class _MapPanelState extends State<MapPanel> {
             child: const Text('启用地图'),
           ),
           if (widget.onExpand != null)
-            IconButton(
+            MileafIconButton(
+              icon: MileafIconName.expand,
               tooltip: '查看完整地图',
-              constraints: const BoxConstraints(
-                minWidth: MileafSpace.touch,
-                minHeight: MileafSpace.touch,
-              ),
+              fill: MileafIconButtonFill.track,
               onPressed: widget.onExpand,
-              icon: const Icon(Icons.open_in_full),
             ),
         ],
       ),
@@ -526,7 +527,7 @@ class _MapPanelState extends State<MapPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _keys!.readFailed ? '地图配置读取失败 · 路线速写' : '配置地图 Key 后可加载底图',
+            _keys!.readFailed ? '地图配置读取失败，显示路线速写' : '配置地图 Key 后可加载底图',
             style: context.type.body,
           ),
           TextButton(
@@ -549,7 +550,7 @@ class _MapPanelState extends State<MapPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '地图暂不可用 · 其他记录仍可阅读',
+              '地图暂不可用，其他记录仍可阅读',
               style: type.body.copyWith(color: context.colors.textMuted),
             ),
             Wrap(

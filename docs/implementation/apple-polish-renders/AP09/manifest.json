@@ -1,0 +1,247 @@
+{
+  "ticket": "AP09",
+  "input_sha": "8ea7e29",
+  "freeze_point": "FP3 (eeefe83)",
+  "fixture": "cGalleryClient / CostSite",
+  "timezone": "Asia/Shanghai",
+  "sampled_at": "2026-10-26T10:40:00.000Z",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec",
+  "dpr": 1,
+  "keyboard": "hidden",
+  "material_preferences": "default",
+  "images": {
+    "AP09-行程-normal-glass-light-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-records-glass-light-390x844-100-scrolled.png": {
+      "page": "行程",
+      "scene": "records",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "scrolled",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-normal-glass-dark-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-normal-glass-light-360x800-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP09-行程-normal-glass-light-320x568-200-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "320x568-200",
+      "position": "top",
+      "size": "Size(320.0, 568.0)"
+    },
+    "AP09-行程-normal-glass-light-430x932-100-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "430x932-100",
+      "position": "top",
+      "size": "Size(430.0, 932.0)"
+    },
+    "AP09-行程-normal-glass-light-390x844-150-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-150",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-normal-glass-light-390x844-100-safearea0-top.png": {
+      "page": "行程",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100-safearea0",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-empty-glass-light-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "empty",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-failed-glass-light-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "failed",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程-stale-glass-light-390x844-100-top.png": {
+      "page": "行程",
+      "scene": "stale",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-normal-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-normal-glass-dark-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-normal-glass-light-360x800-100-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "position": "top",
+      "size": "Size(360.0, 800.0)"
+    },
+    "AP09-行程详情-normal-glass-light-430x932-100-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "430x932-100",
+      "position": "top",
+      "size": "Size(430.0, 932.0)"
+    },
+    "AP09-行程详情-normal-glass-light-320x568-200-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "320x568-200",
+      "position": "top",
+      "size": "Size(320.0, 568.0)"
+    },
+    "AP09-行程详情-normal-glass-light-390x844-150-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-150",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-normal-glass-light-390x844-100-safearea0-top.png": {
+      "page": "行程详情",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100-safearea0",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-nokey-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "nokey",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-no-consent-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "no-consent",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-restart-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "restart",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-map-failed-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "map-failed",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-no-track-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "no-track",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-single-point-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "single-point",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-stale-glass-light-390x844-100-top.png": {
+      "page": "行程详情",
+      "scene": "stale",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "top",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-过程图-glass-light-390x844-100-scrolled.png": {
+      "page": "行程详情",
+      "scene": "过程图",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "scrolled",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-事实表-glass-light-390x844-100-scrolled.png": {
+      "page": "行程详情",
+      "scene": "事实表",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "scrolled",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-关于这些数据-glass-light-390x844-100-scrolled.png": {
+      "page": "行程详情",
+      "scene": "关于这些数据",
+      "mode": "light",
+      "camera": "390x844-100",
+      "position": "scrolled",
+      "size": "Size(390.0, 844.0)"
+    },
+    "AP09-行程详情-过程图-glass-light-390x844-200-scrolled.png": {
+      "page": "行程详情",
+      "scene": "过程图",
+      "mode": "light",
+      "camera": "390x844-200",
+      "position": "scrolled",
+      "size": "Size(390.0, 844.0)"
+    }
+  }
+}

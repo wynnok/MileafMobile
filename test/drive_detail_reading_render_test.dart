@@ -145,18 +145,14 @@ void main() {
         );
         if (frames == 3) {
           // 过程图与其下的对照电量、数据说明同屏。
-          await _frame(
-            tester,
-            find.textContaining('速度数据说明'),
-            scale == 1 ? .84 : .9,
-          );
+          await _frame(tester, find.text('行驶过程'), scale == 1 ? .84 : .9);
           await saveRenderPng(
             tester,
             find.byKey(boundary),
             '$output/$stage-chart-$suffix.png',
           );
           // 展开对照电量，确认第二张图与其折叠行同屏。
-          final toggle = find.text('对照电量');
+          final toggle = find.text('同时查看电量');
           await tester.scrollUntilVisible(toggle.hitTestable(), 120);
           await tester.tap(toggle.hitTestable());
           await tester.pumpAndSettle();
