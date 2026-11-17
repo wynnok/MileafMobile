@@ -11,6 +11,7 @@ export 'disclosure.dart';
 export 'fact_list.dart';
 export 'glass_surface.dart';
 export 'hero.dart';
+export 'large_content_viewer.dart';
 export 'icon_button.dart';
 export 'map_frame.dart';
 export 'metric.dart';
