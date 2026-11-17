@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../layout.dart';
@@ -7,7 +9,7 @@ import '../typography.dart';
 
 /// The three numeric tiers allowed for a result. Values never shrink below
 /// `metricMd` (24) at large text sizes.
-enum MetricValueScale { display, metricLg, metricMd }
+enum MetricValueScale { display, metricLg, metricMd, metricSm }
 
 /// Numeric result with its unit, rendered as one `TextSpan` per part and
 /// measured before drawing so 200% text reflows instead of clipping.
@@ -40,13 +42,14 @@ class MileafNumber extends StatelessWidget {
       MetricValueScale.display => [type.display, type.metricLg, type.metricMd],
       MetricValueScale.metricLg => [type.metricLg, type.metricMd],
       MetricValueScale.metricMd => [type.metricMd],
+      MetricValueScale.metricSm => [type.metricSm],
     };
     return all;
   }
 
   TextStyle _unitStyle(BuildContext context) => switch (scale) {
     MetricValueScale.display => context.type.body,
-    _ => context.type.label,
+    _ => context.type.subheadline,
   };
 
   @override
@@ -56,73 +59,50 @@ class MileafNumber extends StatelessWidget {
     final resolvedUnit = unit == null || unit!.isEmpty ? null : unit;
     final text = value ?? '—';
     final unitStyle = _unitStyle(context).copyWith(
-      color: unitColor ?? (onHero ? colors.heroFaint : colors.textFaint),
+      color: unitColor ?? (onHero ? colors.heroMuted : colors.textSecondary),
     );
     final textScaler = MediaQuery.textScalerOf(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        TextStyle? chosen;
-        bool singleLine = false;
+        // R21.5：数值与单位永不拆行。放不下时由网格先改两列、再改一列；
+        // 这里只保留单行，在最窄一档自然截断，不再把单位折到第二行。
+        var chosen = _tiers(context).last;
         for (final tier in _tiers(context)) {
-          final numberStyle = tier.copyWith(color: numberColor);
-          if (maxWidth.isFinite) {
-            final painter = TextPainter(
-              text: TextSpan(
-                text: text,
-                style: numberStyle,
-                children: [
-                  if (resolvedUnit != null)
-                    TextSpan(text: ' $resolvedUnit', style: unitStyle),
-                ],
-              ),
-              textDirection: TextDirection.ltr,
-              textScaler: textScaler,
-              maxLines: 1,
-            )..layout();
-            final fits = painter.width <= maxWidth + .5;
-            painter.dispose();
-            if (fits) {
-              chosen = numberStyle;
-              singleLine = true;
-              break;
-            }
-          } else {
-            chosen = numberStyle;
-            singleLine = true;
+          final candidate = tier.copyWith(color: numberColor);
+          if (!maxWidth.isFinite) {
+            chosen = candidate;
             break;
           }
-          chosen = numberStyle;
-        }
-        final numberStyle =
-            chosen ?? _tiers(context).last.copyWith(color: numberColor);
-        final align = alignEnd
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start;
-        final textAlign = alignEnd ? TextAlign.end : TextAlign.start;
-        if (singleLine) {
-          return Text.rich(
-            TextSpan(
+          final painter = TextPainter(
+            text: TextSpan(
               text: text,
-              style: numberStyle,
+              style: candidate,
               children: [
                 if (resolvedUnit != null)
                   TextSpan(text: ' $resolvedUnit', style: unitStyle),
               ],
             ),
-            textAlign: textAlign,
-          );
+            textDirection: TextDirection.ltr,
+            textScaler: textScaler,
+            maxLines: 1,
+          )..layout();
+          final fits = painter.width <= maxWidth + .5;
+          painter.dispose();
+          chosen = candidate;
+          if (fits) break;
         }
-        return Column(
-          crossAxisAlignment: align,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(text, style: numberStyle, textAlign: textAlign),
-            if (resolvedUnit != null) ...[
-              const SizedBox(height: MileafSpace.inline2),
-              Text(resolvedUnit, style: unitStyle, textAlign: textAlign),
+        return Text.rich(
+          TextSpan(
+            text: text,
+            style: chosen,
+            children: [
+              if (resolvedUnit != null)
+                TextSpan(text: ' $resolvedUnit', style: unitStyle),
             ],
-          ],
+          ),
+          textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+          maxLines: 1,
         );
       },
     );
@@ -251,26 +231,44 @@ class MetricBlock extends StatelessWidget {
   }
 }
 
-/// Two-column metric grid that stacks to one column at large text sizes.
+/// 数值网格（R21.5）。
 ///
+/// 两列网格可用 metricMd，三列网格只用 metricSm；数值与单位放不下时网格先改
+/// 两列、再改一列（按最小格宽收列），大字下直接单列堆叠。
 /// Children keep their natural height; no card and no equal-height stretching.
 class MetricGrid extends StatelessWidget {
   const MetricGrid({
     super.key,
     required this.children,
-    this.spacing = MileafSpace.s16,
+    this.columns = 2,
+    this.spacing = MileafSpace.s12,
   });
 
   final List<Widget> children;
+
+  /// R21.5：三列网格只用 metricSm；两列网格可用 metricMd。
+  final int columns;
+
+  /// R24：卡片网格格与格之间 12。
   final double spacing;
+
+  /// R21.5 收列阈值：一格至少容纳「1,198.6 km」这类 metricSm 数值加单位。
+  /// 低于该宽度时先改两列、再改一列，而不是把单位折到第二行或裁掉数值。
+  static const double minCellWidth = 100;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final stacked = MileafLayout.largeText(context);
-      final width = stacked
-          ? constraints.maxWidth
-          : (constraints.maxWidth - spacing) / 2;
+      final maxWidth = constraints.maxWidth;
+      if (!maxWidth.isFinite) {
+        return Wrap(spacing: spacing, runSpacing: spacing, children: children);
+      }
+      final count = children.isEmpty ? 1 : children.length;
+      final fit = (maxWidth + spacing) ~/ (minCellWidth + spacing);
+      final effective = MileafLayout.largeText(context)
+          ? 1
+          : math.min(columns, math.min(count, math.max(1, fit)));
+      final width = (maxWidth - (effective - 1) * spacing) / effective;
       return Wrap(
         spacing: spacing,
         runSpacing: spacing,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../icons.dart';
+import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -8,6 +10,10 @@ import '../typography.dart';
 enum StateViewKind { empty, error, loading }
 
 /// Formal empty / error / loading presentation; never a fake all-zero chart.
+///
+/// R31：整页（默认）用 48 图形、`title2`、`subheadline` 说明与一个操作；
+/// 模块内（[compact] true）用 24 图形与 `headline`/`footnote`，自然高度，
+/// 适合放进模块卡。
 class StateView extends StatelessWidget {
   const StateView({
     super.key,
@@ -18,6 +24,7 @@ class StateView extends StatelessWidget {
     this.onAction,
     this.icon,
     this.onHero = false,
+    this.compact = false,
   });
 
   final StateViewKind kind;
@@ -28,6 +35,12 @@ class StateView extends StatelessWidget {
   final MileafIconName? icon;
   final bool onHero;
 
+  /// 模块内状态（R31）：更小的图形与文字，自然高度。
+  final bool compact;
+
+  /// R31 整页空态的图形（图标 48）。
+  static const double _pageIconSize = 48;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -36,7 +49,10 @@ class StateView extends StatelessWidget {
       return Semantics(
         label: title.isEmpty ? '正在加载' : title,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: MileafSpace.s40),
+          padding: EdgeInsets.symmetric(
+            vertical: compact ? MileafSpace.s16 : MileafSpace.s32,
+            horizontal: compact ? 0 : MileafSpace.s20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: const [
@@ -50,43 +66,48 @@ class StateView extends StatelessWidget {
         ),
       );
     }
+    // R23.3：错误状态的标题用 text，只有图形与表单校验文字用 error。
     final tone = kind == StateViewKind.error
         ? colors.error
         : onHero
         ? colors.heroMuted
-        : colors.textMuted;
-    final titleColor = kind == StateViewKind.error
-        ? colors.error
-        : onHero
-        ? colors.heroText
-        : colors.text;
-    final messageColor = onHero ? colors.heroMuted : colors.textMuted;
+        : colors.textSecondary;
+    final titleColor = onHero ? colors.heroText : colors.text;
+    final messageColor = onHero ? colors.heroMuted : colors.textSecondary;
     final glyph =
         icon ??
         (kind == StateViewKind.error
             ? MileafIconName.info
             : MileafIconName.route);
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: MileafSpace.s40,
-        horizontal: MileafSpace.s20,
+      padding: EdgeInsets.symmetric(
+        vertical: compact ? MileafSpace.s16 : MileafSpace.s32,
+        horizontal: compact ? 0 : MileafSpace.s20,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MileafIcon(glyph, size: MileafIconMetrics.header, color: tone),
-          const SizedBox(height: MileafSpace.s16),
+          MileafIcon(
+            glyph,
+            size: compact ? MileafIconMetrics.header : _pageIconSize,
+            color: tone,
+          ),
+          SizedBox(height: compact ? MileafSpace.s12 : MileafSpace.s16),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: type.title.copyWith(color: titleColor),
+            style: (compact ? type.headline : type.title2).copyWith(
+              color: titleColor,
+            ),
           ),
           if (message != null) ...[
             const SizedBox(height: MileafSpace.s8),
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: type.body.copyWith(color: messageColor),
+              style: (compact ? type.footnote : type.subheadline).copyWith(
+                color: messageColor,
+              ),
             ),
           ],
           if (onAction != null && actionLabel != null) ...[
@@ -102,6 +123,9 @@ class StateView extends StatelessWidget {
 enum BannerTone { info, warning, error }
 
 /// Inline status strip used for stale data and failed resources.
+///
+/// R31/M11：出现与消失用高度 200ms 与透明度 160ms；状态条在正文流里展开，
+/// 不推动阅读锚点之上的内容。
 class InlineBanner extends StatelessWidget {
   const InlineBanner({
     super.key,
@@ -110,6 +134,7 @@ class InlineBanner extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.liveRegion = true,
+    this.visible = true,
   });
 
   final String message;
@@ -117,17 +142,18 @@ class InlineBanner extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
   final bool liveRegion;
+  final bool visible;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
     final color = switch (tone) {
-      BannerTone.info => colors.textMuted,
+      BannerTone.info => colors.textSecondary,
       BannerTone.warning => colors.warning,
       BannerTone.error => colors.error,
     };
-    return Container(
+    final content = Container(
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: colors.line),
@@ -149,13 +175,26 @@ class InlineBanner extends StatelessWidget {
               liveRegion: liveRegion,
               child: Text(
                 message,
-                style: type.body.copyWith(color: colors.textMuted),
+                style: type.body.copyWith(color: colors.textSecondary),
               ),
             ),
           ),
           if (onAction != null && actionLabel != null)
             TextButton(onPressed: onAction, child: Text(actionLabel!)),
         ],
+      ),
+    );
+    return AnimatedSize(
+      duration: MileafLayout.motion(context, MileafDurations.statusHeight),
+      curve: MileafCurves.fold,
+      alignment: Alignment.topCenter,
+      child: AnimatedOpacity(
+        duration: MileafLayout.motion(context, MileafDurations.statusOpacity),
+        curve: MileafCurves.fade,
+        opacity: visible ? 1 : 0,
+        child: visible
+            ? content
+            : const SizedBox(width: double.infinity, height: 0),
       ),
     );
   }
