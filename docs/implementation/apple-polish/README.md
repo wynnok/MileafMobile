@@ -47,6 +47,8 @@
 | AP07 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已创建（W3），依赖已备 |
 | AP08–AP13 | 待登记 | codex/apple-polish-apXX | FP3 | 待创建（W4） |
 
+W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。
+
 ## W1 合入记录（FP1 = c18f2fc）
 
 | 顺序 | 票 | 分支 | 票提交 | 合入提交 | 合入后测试 |
