@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'currency.dart';
+import 'copy/dates.dart' as copy;
+import 'copy/durations.dart' as copy;
+import 'copy/messages.dart' as messages;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -134,7 +137,7 @@ class _OverviewPageState extends State<OverviewPage>
       if (mounted &&
           request == capabilitySequence &&
           workspace.session.isCurrent(owner)) {
-        setState(() => capabilityError = '扩展能力暂未确认；保留当前口径');
+        setState(() => capabilityError = '部分新数据暂不可用，已按基础数据显示');
       }
     }
   }
@@ -271,7 +274,7 @@ class _OverviewPageState extends State<OverviewPage>
     try {
       range = OverviewWindow(period, calendar, now);
     } on FormatException {
-      setState(() => errors['driving'] = '本期尚无可统计时间，稍后刷新里程趋势');
+      setState(() => errors['driving'] = '本期还没有可统计的时间，稍后再刷新');
       await loadSummary(force: force);
       return;
     }
@@ -321,8 +324,8 @@ class _OverviewPageState extends State<OverviewPage>
       if (current()) {
         setState(
           () => error = e is FormatException
-              ? '服务返回格式不兼容，请核对版本'
-              : '${e is ApiFailure ? e.message : '数据读取失败'}${data == null ? '' : '；保留上次快照'}',
+              ? messages.versionIncompatibleMessage()
+              : '${e is ApiFailure ? e.message : '数据读取失败'}${data == null ? '' : '，显示的是上次的数据'}',
         );
       }
     } finally {
@@ -355,7 +358,7 @@ class _OverviewPageState extends State<OverviewPage>
           requestedRange ??
           OverviewWindow(period, calendar, workspace.session.now());
     } on FormatException {
-      setState(() => errors[kind] = '本期尚无可统计时间，请稍后刷新');
+      setState(() => errors[kind] = '本期还没有可统计的时间，稍后再刷新');
       return;
     }
     final scope = scopeRevision, attempt = (attempts[kind] ?? 0) + 1;
@@ -400,12 +403,12 @@ class _OverviewPageState extends State<OverviewPage>
       PerformanceTrace.mark(PerformancePoint.overviewFailed);
       setState(
         () => errors[kind] = e is FormatException
-            ? '统计返回格式不兼容，请核对版本'
+            ? messages.versionIncompatibleMessage()
             : '${e is ApiFailure ? e.message : '统计读取失败'}${results[kind] == null
                   ? ''
                   : kind == 'driving'
-                  ? '；保留上次趋势快照'
-                  : '；保留上次补能快照'}',
+                  ? '，显示的是上次的数据'
+                  : '，显示的是上次的数据'}',
       );
     } finally {
       if (current()) setState(() => pending.remove(kind));
@@ -525,12 +528,6 @@ class _OverviewPageState extends State<OverviewPage>
         '${local.minute.toString().padLeft(2, '0')}';
   }
 
-  String _clock(DateTime time) {
-    final local = workspace.calendar!.local(time);
-    return '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
-  }
-
   String number(num? value, String unit, {int decimals = 0}) =>
       value == null ? '—' : '${grouped(value, decimals: decimals)} $unit';
 
@@ -542,12 +539,6 @@ class _OverviewPageState extends State<OverviewPage>
       comparisonError == null &&
       driving != null &&
       comparison!.buckets.length == driving!.buckets.length;
-
-  bool get _stale {
-    final at = data?.freshness.lastPositionAt;
-    if (at == null) return true;
-    return workspace.session.now().difference(at) > const Duration(minutes: 10);
-  }
 
   String get _stateLabel => switch (data?.state?.value) {
     'online' => '在线',
@@ -563,7 +554,7 @@ class _OverviewPageState extends State<OverviewPage>
     child: Material(
       key: const ValueKey('overview-status'),
       color: context.colors.hero,
-      borderRadius: MileafRadius.surfaceAll,
+      borderRadius: BorderRadius.circular(MileafRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: child,
     ),
@@ -575,24 +566,30 @@ class _OverviewPageState extends State<OverviewPage>
     final large = MileafLayout.largeText(context);
     final charging = d.state?.value == 'charging';
     final since = d.state?.since;
-    final statusColor = _stale
-        ? colors.warning
-        : charging || d.state?.value == 'online'
-        ? colors.accentHero
-        : colors.heroMuted;
-    final statusText = _stale
-        ? '非实时 · 数据截至 ${_clock(d.freshness.lastPositionAt ?? d.freshness.lastStateAt ?? workspace.session.now())}'
-        : '$_stateLabel${charging && d.chargingPowerKw != null ? ' · ${d.chargingPowerKw!.toStringAsFixed(1)} kW' : ''}';
+    // P01：状态用图形 + 文字（不再用圆点），充电功率独立成段，不用「·」拼接。
+    final statusKind = charging
+        ? VehicleStatusKind.charging
+        : switch (d.state?.value) {
+            'asleep' => VehicleStatusKind.sleeping,
+            'offline' => VehicleStatusKind.offline,
+            _ => null,
+          };
+    final statusColor = charging ? colors.accentHero : colors.heroMuted;
+    final statusText = _stateLabel;
+    // 数据陈旧与否由状态行尾的新鲜度读法（DF7/DF5）承载，不再另起一行重复。
+    final power = charging && d.chargingPowerKw != null
+        ? '${d.chargingPowerKw!.toStringAsFixed(1)} kW'
+        : null;
     final ago = since == null
         ? null
-        : relativeTime(
+        : copy.formatRelative(
             workspace.calendar!.local(since),
             workspace.calendar!.local(workspace.session.now()),
           );
     final rangeLabel = switch (d.battery?.rangeKind) {
       'rated' => '额定续航',
-      'ideal' => '理想续航（ideal）',
-      _ => '续航（未知口径）',
+      'ideal' => '理想续航',
+      _ => '续航口径未知',
     };
     final range = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,8 +605,8 @@ class _OverviewPageState extends State<OverviewPage>
           ),
         const SizedBox(height: MileafSpace.s4),
         Text(
-          '$rangeLabel · 非实时',
-          style: type.micro.copyWith(color: colors.heroMuted),
+          '$rangeLabel，非实时',
+          style: type.subheadline.copyWith(color: colors.heroMuted),
         ),
       ],
     );
@@ -623,46 +620,36 @@ class _OverviewPageState extends State<OverviewPage>
                 : MileafBatteryMetrics.size,
           );
     final today = d.period.today;
+    // R21.5：三列网格只用 metricSm。车况卡的三项都是短值，100% 时一行三格；
+    // 大字按 R11 重排成一列（MetricGrid 在 150% 起收单列）。
+    final cells = [
+      MetricBlock(
+        label: '今日里程',
+        value: today.distanceKm.toStringAsFixed(1),
+        unit: 'km',
+        onHero: true,
+        scale: MetricValueScale.metricSm,
+      ),
+      MetricBlock(
+        label: '行程',
+        value: '${today.drives}',
+        unit: '趟',
+        onHero: true,
+        scale: MetricValueScale.metricSm,
+      ),
+      MetricBlock(
+        label: '估算耗电',
+        value: today.energyKwh?.toStringAsFixed(2),
+        unit: today.energyKwh == null ? null : 'kWh',
+        onHero: true,
+        scale: MetricValueScale.metricSm,
+      ),
+    ];
     final stats = large
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _todayStat(
-                      '今日 km',
-                      today.distanceKm.toStringAsFixed(1),
-                    ),
-                  ),
-                  Expanded(child: _todayStat('次行程', '${today.drives}')),
-                ],
-              ),
-              const SizedBox(height: MileafSpace.s12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: _todayStat(
-                  '估算 kWh',
-                  today.energyKwh?.toStringAsFixed(2),
-                ),
-              ),
-            ],
-          )
+        ? MetricGrid(children: cells)
         : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _todayStat('今日 km', today.distanceKm.toStringAsFixed(1)),
-              ),
-              Expanded(child: _todayStat('次行程', '${today.drives}')),
-              Expanded(
-                child: _todayStat(
-                  '估算 kWh',
-                  today.energyKwh?.toStringAsFixed(2),
-                ),
-              ),
-            ],
+            children: [for (final cell in cells) Expanded(child: cell)],
           );
     return _statusSurface(
       Column(
@@ -681,28 +668,51 @@ class _OverviewPageState extends State<OverviewPage>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(top: MileafSpace.s4),
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
+                    if (statusKind != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: MileafSpace.inline2,
+                        ),
+                        child: MileafIcon(
+                          vehicleStatusIcon(statusKind),
+                          size: MileafIconMetrics.nav,
+                          color: statusColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: MileafSpace.s8),
+                      const SizedBox(width: MileafSpace.s8),
+                    ],
                     Expanded(
                       child: Text(
                         statusText,
-                        style: type.label.copyWith(color: colors.heroMuted),
+                        style: type.subheadline.copyWith(
+                          color: colors.heroMuted,
+                        ),
                       ),
                     ),
+                    if (power != null) ...[
+                      const SizedBox(width: MileafSpace.s8),
+                      Flexible(
+                        child: Text(
+                          power,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: type.subheadline.copyWith(
+                            color: colors.heroText,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (ago != null) ...[
                       const SizedBox(width: MileafSpace.s8),
                       Flexible(
                         child: Text(
                           ago,
-                          style: type.label.copyWith(color: colors.heroFaint),
+                          maxLines: 1,
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                          style: type.footnote.copyWith(
+                            color: colors.heroFaint,
+                          ),
                         ),
                       ),
                     ],
@@ -736,13 +746,6 @@ class _OverviewPageState extends State<OverviewPage>
       ),
     );
   }
-
-  Widget _todayStat(String label, String? value) => MetricBlock(
-    label: label,
-    value: value,
-    onHero: true,
-    scale: MetricValueScale.metricMd,
-  );
 
   Widget _heroSkeleton() => _statusSurface(
     Column(
@@ -802,7 +805,7 @@ class _OverviewPageState extends State<OverviewPage>
             onHero: true,
             title: retryable ? '车况暂不可用' : '暂无车况',
             message: error ?? '下拉刷新或检查站点连接',
-            actionLabel: '重试概览',
+            actionLabel: '重试',
             onAction: () => loadSummary(force: true),
           ),
         ],
@@ -815,61 +818,39 @@ class _OverviewPageState extends State<OverviewPage>
       top: MileafSpace.s16,
       bottom: MileafSpace.s4,
     ),
-    child: Row(
+    child: MileafPeriodRow(
+      trailing: MileafIconButton(
+        icon: MileafIconName.refresh,
+        tooltip: '刷新概览',
+        fill: MileafIconButtonFill.track,
+        onPressed: loading ? null : () => loadSummary(force: true),
+      ),
       children: [
-        Expanded(
-          child: ChipRow(
-            children: [
-              StatusChip(
-                label: '本月',
-                selected: period == OverviewPeriod.month,
-                onTap: () {
-                  if (period != OverviewPeriod.month) {
-                    chartSelection = null;
-                    chartSelectionAt = null;
-                    changePeriod(OverviewPeriod.month);
-                  }
-                },
-              ),
-              StatusChip(
-                label: '近7天',
-                selected: period == OverviewPeriod.recent,
-                onTap: () {
-                  if (period != OverviewPeriod.recent) {
-                    chartSelection = null;
-                    chartSelectionAt = null;
-                    changePeriod(OverviewPeriod.recent);
-                  }
-                },
-              ),
-            ],
-          ),
+        StatusChip(
+          label: '本月',
+          selected: period == OverviewPeriod.month,
+          onTap: () {
+            if (period != OverviewPeriod.month) {
+              chartSelection = null;
+              chartSelectionAt = null;
+              changePeriod(OverviewPeriod.month);
+            }
+          },
         ),
-        const SizedBox(width: MileafSpace.s8),
-        MileafIconButton(
-          icon: MileafIconName.refresh,
-          tooltip: '刷新概览',
-          onPressed: loading ? null : () => loadSummary(force: true),
+        StatusChip(
+          label: '近7天',
+          selected: period == OverviewPeriod.recent,
+          onTap: () {
+            if (period != OverviewPeriod.recent) {
+              chartSelection = null;
+              chartSelectionAt = null;
+              changePeriod(OverviewPeriod.recent);
+            }
+          },
         ),
       ],
     ),
   );
-
-  String get _monthStamp {
-    final now = workspace.calendar!.local(workspace.session.now());
-    return '${now.month} 月 · ${now.year}';
-  }
-
-  String get _recentStamp {
-    final window = range?.current;
-    if (window == null) return '近 7 天';
-    final calendar = workspace.calendar!;
-    final first = calendar.local(window.from);
-    final last = calendar.local(
-      window.to.subtract(const Duration(microseconds: 1)),
-    );
-    return '${first.month}/${first.day} — ${last.month}/${last.day}';
-  }
 
   ({String text, String? label, bool? up})? get _mileageDelta {
     final requested = ranges['driving'];
@@ -900,59 +881,113 @@ class _OverviewPageState extends State<OverviewPage>
     );
   }
 
-  Widget _deltaWidget() {
-    final delta = _mileageDelta;
-    if (delta == null) {
-      return Text(
-        '同期参照不足',
-        style: context.type.micro.copyWith(color: context.colors.textFaint),
-      );
-    }
-    if (delta.up == null && delta.text != '持平') {
-      return Text(
-        delta.text,
-        textAlign: TextAlign.end,
-        style: context.type.micro.copyWith(color: context.colors.textFaint),
-      );
-    }
-    return MetricDelta(
-      text: delta.text,
-      label: [
-        delta.label,
-        _rangeText(comparisonRange?.previous),
-      ].whereType<String>().join('\n'),
-      up: delta.up,
-    );
-  }
-
-  Widget _monthSection() {
+  /// P01 焦点模块卡：期间主值（固定为驾驶里程）→ 一句比较 → 分段与图。
+  /// 区间只在这里出现一次（R21.4）；卡片标题用 headline，主值 metricLg。
+  Widget _focusCard() {
     final value = driving?.totals.distanceKm;
     final parts = value == null ? '—' : grouped(value, decimals: 1);
     final drives = driving?.totals.drives;
-    final kicker = period == OverviewPeriod.month ? '本月 · 驾驶里程' : '近7天 · 驾驶里程';
+    final label = period == OverviewPeriod.month ? '本月驾驶' : '近 7 天驾驶';
+    final window = _dayRange(ranges['driving']?.current);
     final semantic =
-        '${period == OverviewPeriod.month ? '本月' : '近7天'}驾驶里程 '
-        '$parts km，${drives ?? '—'} 趟';
+        '$label $parts 公里，${drives ?? '—'} 趟，'
+        '${_deltaSentence ?? ''}';
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionHeader(
-            title: kicker,
-            range: period == OverviewPeriod.month ? _monthStamp : _recentStamp,
-          ),
-          const SizedBox(height: MileafSpace.s8),
-          MetricBlock(
-            semanticLabel: semantic,
-            value: value == null ? null : parts,
-            unit: 'km',
-            scale: MetricValueScale.metricLg,
-            trailing: _deltaWidget(),
-          ),
-        ],
+      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      child: MileafModuleCard(
+        // §6 退让阶梯第 2 步：焦点卡内边 16 → 12，为首屏预算腾出 8。
+        padding: const EdgeInsets.all(MileafSpace.s12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行（R21.4 仍只出现一次）。
+            if (MileafLayout.largeText(context)) ...[
+              Text(
+                label,
+                style: context.type.headline.copyWith(
+                  color: context.colors.text,
+                ),
+              ),
+              if (window != null) ...[
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  window,
+                  style: context.type.subheadline.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: context.type.headline.copyWith(
+                        color: context.colors.text,
+                      ),
+                    ),
+                  ),
+                  if (window != null) ...[
+                    const SizedBox(width: MileafSpace.s8),
+                    Flexible(
+                      child: Text(
+                        window,
+                        style: context.type.subheadline.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            const SizedBox(height: MileafSpace.s4),
+            MetricBlock(
+              semanticLabel: semantic,
+              value: value == null ? null : parts,
+              unit: 'km',
+              scale: MetricValueScale.metricLg,
+            ),
+            if (_deltaSentence case final delta?) ...[
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                delta,
+                style: context.type.subheadline.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: MileafSpace.s16),
+            mainChart(),
+          ],
+        ),
       ),
     );
+  }
+
+  /// DF3 区间（本地日历）：只在期间卡标签出现一次。
+  String? _dayRange(StatisticsWindow? window) {
+    final calendar = workspace.calendar;
+    if (window == null || calendar == null) return null;
+    return copy.formatRange(
+      calendar.local(window.from),
+      calendar.local(window.to.subtract(const Duration(microseconds: 1))),
+    );
+  }
+
+  /// 一句比较（CP03 用「多/少/持平」写进句子里，不用箭头）。
+  String? get _deltaSentence {
+    final delta = _mileageDelta;
+    final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
+    if (delta == null) return '$name数据不足，暂不比较';
+    if (delta.text == '读取参照中') return '正在读取$name';
+    if (delta.text == '参照暂不可用') return '暂时无法比较';
+    if (delta.text == '基期为 0') return '$name为 0，无法比较';
+    if (delta.text == '持平') return '与$name持平';
+    if (delta.up == true) return '比$name多 ${delta.text}';
+    if (delta.up == false) return '比$name少 ${delta.text}';
+    return null;
   }
 
   List<DateTime> get chartTimes =>
@@ -966,22 +1001,11 @@ class _OverviewPageState extends State<OverviewPage>
             b.bucketStart,
         ];
 
+  /// 入参是已按站点日历本地化的墙钟时间（tick 与读数头共用同一份）。
   String tickLabelAt(List<DateTime> times, int index) {
     if (index < 0 || index >= times.length) return '—';
-    final local = workspace.calendar!.local(times[index]);
+    final local = times[index];
     return '${local.month}/${local.day}';
-  }
-
-  String? _rangeText(StatisticsWindow? window) {
-    final calendar = workspace.calendar;
-    if (window == null || calendar == null) return null;
-    final first = calendar.local(window.from);
-    final last = calendar.local(
-      window.to.subtract(const Duration(microseconds: 1)),
-    );
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${two(first.month)}.${two(first.day)} — '
-        '${two(last.month)}.${two(last.day)}';
   }
 
   List<num?> _currentValues() {
@@ -1050,7 +1074,7 @@ class _OverviewPageState extends State<OverviewPage>
           else
             StateView(
               kind: StateViewKind.error,
-              title: isCharging ? '补能数据暂不可用' : '驾驶数据暂不可用',
+              title: isCharging ? '充电数据暂不可用' : '驾驶数据暂不可用',
               message: '可切换其他指标，或使用上方重试操作',
             ),
         ],
@@ -1058,35 +1082,36 @@ class _OverviewPageState extends State<OverviewPage>
     }
     final (title, unit) = switch (metric) {
       _Metric.distance => ('每日里程', 'km'),
-      _Metric.net => ('净电耗趋势 · 估算', 'Wh/km'),
-      _Metric.energy => ('驾驶消耗趋势 · 估算', 'kWh'),
-      _Metric.charge => ('充入电量趋势', 'kWh'),
-      _Metric.cost => ('已知费用趋势', widget.currency.code ?? '币种未记录'),
+      _Metric.net => ('每日电耗（估算）', 'Wh/km'),
+      _Metric.energy => ('每日估算耗电', 'kWh'),
+      _Metric.charge => ('每日充电量', 'kWh'),
+      _Metric.cost => ('每日已记录费用', widget.currency.code ?? '币种未记录'),
     };
     final values = _currentValues();
     final reference = _referenceValues();
     final times = chartTimes;
+    // AP05 的 TimeSeriesChart 以「本地墙钟」格式化日期（charts.dart 的
+    // chartAxisTickLabels/_pointDate）；服务端 bucket_start 是 UTC 瞬时，
+    // 直接传入会让读数头与 X 轴比站点日历早一天（R29 唯一接缝）。
+    final wallTimes = [
+      for (final time in times) workspace.calendar!.local(time),
+    ];
     final selected = _selectedChartPoint(times, values);
-    final evidence = isCharging
-        ? ranges['charging']?.current
-        : ranges['driving']?.current;
     _PointReading point(int index) {
       final raw = index < values.length ? values[index] : null;
-      final stamp = tickLabelAt(times, index);
+      final stamp = tickLabelAt(wallTimes, index);
       final isCost = metric == _Metric.cost;
       final decimals = metric == _Metric.net ? 0 : 1;
       String text(num value) => isCost
           ? widget.currency.amountValue(value)
           : value.toStringAsFixed(decimals);
-      String amount(num value) =>
-          isCost ? text(value) : '${text(value)} $unit';
+      String amount(num value) => isCost ? text(value) : '${text(value)} $unit';
       String signed(num value) => isCost
           ? '${value >= 0 ? '+' : '-'}${widget.currency.amountValue(value.abs())}'
           : '${value >= 0 ? '+' : ''}${value.toStringAsFixed(decimals)} $unit';
       final valueText = raw == null ? '—' : text(raw);
       final unitText = raw == null || isCost ? null : unit;
-      var semantic =
-          '$stamp，$valueText${unitText == null ? '' : ' $unitText'}';
+      var semantic = '$stamp，$valueText${unitText == null ? '' : ' $unitText'}';
       final previous = reference?.elementAtOrNull(index);
       String? referenceText, deltaText, note;
       if (raw != null && previous != null) {
@@ -1104,13 +1129,13 @@ class _OverviewPageState extends State<OverviewPage>
                       ? StatisticsPeriod.month
                       : StatisticsPeriod.custom,
                 ));
-        final range = _rangeText(comparisonRange?.previous);
+        final range = _dayRange(comparisonRange?.previous);
         referenceText = range == null
             ? '$label ${amount(previous)}'
             : '$label $range，${amount(previous)}';
         final referenceSemantic = '${range ?? label} ${amount(previous)}';
         if (!comparable) {
-          note = '口径或覆盖待核验，仅展示原值';
+          note = '数据口径未确认，暂不比较';
           semantic = '$semantic\n$referenceSemantic\n$note';
         } else {
           deltaText = '差 ${signed(raw - previous)}';
@@ -1132,18 +1157,18 @@ class _OverviewPageState extends State<OverviewPage>
       key: chartKey,
       plotKey: plotKey,
       showYAxis: true,
-      title: metric == _Metric.net && pairedAvailable ? '配对净电耗趋势 · 估算' : title,
+      title: title,
       unit: unit,
-      times: times,
+      times: wallTimes,
       semanticsLabel: '$title图表',
       series: [
         ChartSeries(
           label: switch (metric) {
             _Metric.distance => '里程',
             _Metric.net => '本期',
-            _Metric.charge => '补能',
+            _Metric.charge => '充电',
             _Metric.cost => '费用',
-            _Metric.energy => '驾驶消耗',
+            _Metric.energy => '估算耗电',
           },
           values: values,
           style: switch (metric) {
@@ -1154,7 +1179,7 @@ class _OverviewPageState extends State<OverviewPage>
         ),
         if (reference != null)
           ChartSeries(
-            label: period == OverviewPeriod.month ? '上月同期' : '前一区间',
+            label: _referenceLabel,
             values: reference,
             style: ChartSeriesStyle.reference,
           ),
@@ -1164,36 +1189,19 @@ class _OverviewPageState extends State<OverviewPage>
         chartSelection = index;
         chartSelectionAt = index < times.length ? times[index] : null;
       }),
+      // R29：读数头在绘图区之上，日期/数值/参照差分行各归其位；句子仍是
+      // 唯一朗读来源（live region），页面不再自排读数块。
       readout: (index) => point(index).semantic,
-      readoutBuilder: (index) => KeyedSubtree(
-        key: const ValueKey('overview-chart-reading'),
-        child: AnimatedSwitcher(
-          duration: MileafLayout.motion(context, MileafDurations.value),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          // Only the incoming reading is laid out: the block takes its final
-          // height at once, so a metric with no reference never shifts the
-          // plate below it after the fade.
-          layoutBuilder: (current, _) => current ?? const SizedBox.shrink(),
-          // R06.6: dragging across points must not animate the numbers, so
-          // the key follows the metric, not the point. Only a metric change
-          // crossfades; a new point redraws in place.
-          child: _ChartReading(
-            key: ValueKey(metric.name),
-            reading: point(index),
-          ),
-        ),
-      ),
-      // 单位与区间各归其位：单位是标题旁的度量，区间是右端的窗口。折成
-      // 两行时「km」会孤零零挂在日期下面，像第二个区间。
-      subtitle: _rangeText(evidence),
-      tickLabel: (time) {
-        final local = workspace.calendar!.local(time);
-        return '${local.month}/${local.day}';
-      },
       controls: _metricTabs(),
-      note: metric == _Metric.cost ? '仅含费用已知记录；缺失不表示免费。' : null,
+      note: metric == _Metric.cost ? '未记录的费用不等于免费。' : null,
     );
+  }
+
+  /// R29 图例的参照名：比较对象名称 + 真实区间（DF3）。
+  String get _referenceLabel {
+    final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
+    final range = _dayRange(comparisonRange?.previous);
+    return range == null ? name : '$name $range';
   }
 
   /// Keeps a deliberate point by its bucket date. When the calendar window
@@ -1216,7 +1224,7 @@ class _OverviewPageState extends State<OverviewPage>
       for (final (m, label) in [
         (_Metric.distance, '里程'),
         (_Metric.net, '电耗'),
-        (_Metric.charge, '补能'),
+        (_Metric.charge, '充电'),
         (_Metric.cost, '费用'),
       ])
         StatusChip(
@@ -1267,33 +1275,30 @@ class _OverviewPageState extends State<OverviewPage>
     final cost = expanded?.totals.cost ?? charging?.totals.cost;
     final coverage = expanded == null || expanded.totals.sessions == 0
         ? null
-        : '${expanded.totals.costKnownSessions}/${expanded.totals.sessions} 次已记录';
+        : '${expanded.totals.sessions} 次中 ${expanded.totals.costKnownSessions} 次有费用';
     final energy = charging?.totals.energyAddedKwh;
-    final costNote = [
-      widget.currency.amountNote,
-      coverage,
-    ].nonNulls.join('，');
+    final costNote = [widget.currency.amountNote, coverage].nonNulls.join('，');
     final cells = [
       _readingCell(
-        '净电耗',
+        '电耗',
         key: const ValueKey('overview-plate-net'),
         value: net?.toStringAsFixed(0),
         unit: net == null ? null : 'Wh/km',
       ),
       _readingCell(
-        '已知费用',
+        '已记录费用',
         key: const ValueKey('overview-plate-cost'),
         value: cost == null ? null : widget.currency.amountValue(cost),
         note: costNote,
       ),
       _readingCell(
-        '补能',
+        '充电',
         key: const ValueKey('overview-plate-energy'),
         value: energy == null ? null : grouped(energy, decimals: 2),
         unit: energy == null ? null : 'kWh',
       ),
       _readingCell(
-        '驾驶',
+        '行程',
         key: const ValueKey('overview-plate-drives'),
         value: driving?.totals.drives.toString(),
         unit: driving == null ? null : '趟',
@@ -1301,33 +1306,27 @@ class _OverviewPageState extends State<OverviewPage>
     ];
     return Padding(
       key: const ValueKey('overview-reading-plate'),
-      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      padding: const EdgeInsets.only(top: MileafSpace.s32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Divider(height: 1, thickness: 1, color: colors.line),
-          const SizedBox(height: MileafSpace.s12),
-          Text('本期', style: type.label.copyWith(color: colors.textMuted)),
+          const SectionHeader(title: '本期账目'),
           const SizedBox(height: MileafSpace.s8),
-          MetricGrid(children: cells),
-          const SizedBox(height: MileafSpace.s12),
-          Text(
-            '缺失的费用不表示免费。净电耗与驾驶消耗为估算。',
-            style: type.micro.copyWith(color: colors.textMuted),
+          MileafGroupCard(
+            padding: const EdgeInsets.all(MileafSpace.cardPad),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // R21.5：两列网格可用 metricMd。
+                MetricGrid(columns: 2, children: cells),
+                const SizedBox(height: MileafSpace.s12),
+                Text(
+                  '未记录的费用不等于免费；电耗和耗电为估算值。',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _chartSection() {
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          mainChart(),
-          if (driving != null || charging != null) _readingPlate(),
         ],
       ),
     );
@@ -1343,7 +1342,6 @@ class _OverviewPageState extends State<OverviewPage>
       String? unit,
       required MileafIconName icon,
       VoidCallback? onTap,
-      bool topLine = false,
     }) => MileafDataRow(
       title: title,
       meta: meta,
@@ -1351,7 +1349,6 @@ class _OverviewPageState extends State<OverviewPage>
       unit: unit,
       icon: icon,
       showChevron: onTap != null,
-      topLine: topLine,
       onTap: onTap,
       semanticLabel:
           '$title，$meta${value == null ? '' : '，$value${unit == null ? '' : ' $unit'}'}',
@@ -1361,39 +1358,75 @@ class _OverviewPageState extends State<OverviewPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '最近'),
+          const SectionHeader(title: '最近记录'),
           const SizedBox(height: MileafSpace.s8),
-          row(
-            title: '最近行程',
-            meta: drive == null
-                ? '这段时间还没有行程'
-                : '${_shortStamp(drive.startedAt)}\n'
-                      '净电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
-            value: drive?.distanceKm?.toStringAsFixed(1),
-            unit: drive?.distanceKm == null ? null : 'km',
-            icon: MileafIconName.route,
-            onTap: drive == null
-                ? null
-                : () => widget.onRecord?.call('drive', drive.id),
-            topLine: true,
-          ),
-          row(
-            title: '最近充电',
-            meta: charge == null
-                ? '还没有充电记录'
-                : '${_shortStamp(charge.startedAt)}\n'
-                      '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
-            value: charge?.endSoc?.toStringAsFixed(0),
-            unit: charge?.endSoc == null ? null : '%',
-            icon: MileafIconName.bolt,
-            onTap: charge == null
-                ? null
-                : () => widget.onRecord?.call('charging', charge.id),
-          ),
+          _rowCard([
+            row(
+              title: '最近行程',
+              meta: drive == null
+                  ? '这段时间还没有行程'
+                  : '${_shortStamp(drive.startedAt)}\n'
+                        '电耗 ${number(drive.consumptionWhKm, 'Wh/km')}',
+              value: drive?.distanceKm?.toStringAsFixed(1),
+              unit: drive?.distanceKm == null ? null : 'km',
+              icon: MileafIconName.route,
+              onTap: drive == null
+                  ? null
+                  : () => widget.onRecord?.call('drive', drive.id),
+            ),
+            row(
+              title: '最近充电',
+              meta: charge == null
+                  ? '还没有充电记录'
+                  : '${_shortStamp(charge.startedAt)}\n'
+                        '充入 ${number(charge.energyKwh, 'kWh', decimals: 2)}',
+              value: charge?.endSoc?.toStringAsFixed(0),
+              unit: charge?.endSoc == null ? null : '%',
+              icon: MileafIconName.bolt,
+              onTap: charge == null
+                  ? null
+                  : () => widget.onRecord?.call('charging', charge.id),
+            ),
+          ]),
         ],
       ),
     );
   }
+
+  /// P01 统一内容网格（R24「两条起始线」）：开放行收进分组卡，行内横向内边
+  /// 统一 16；发丝线只画在行与行之间，从卡内 16 一直到卡片右缘，首行之上与
+  /// 末行之下不画线。这样画布层标题在页面边距、卡内文字在页面边距 + 16，
+  /// 不再有第三套左缘。
+  Widget _rowCard(List<Widget> rows) => MileafGroupCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < rows.length; index++) ...[
+          if (index > 0) _hairline(),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MileafSpace.cardPad,
+            ),
+            child: rows[index],
+          ),
+        ],
+      ],
+    ),
+  );
+
+  /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
 
   Widget _continueSection() {
     if (widget.onInsight == null || range == null) {
@@ -1405,15 +1438,11 @@ class _OverviewPageState extends State<OverviewPage>
       required String meta,
       required MileafIconName icon,
       required String topic,
-      bool topLine = false,
-      bool bottomLine = false,
     }) => MileafDataRow(
       title: title,
       meta: meta,
       icon: icon,
       showChevron: true,
-      topLine: topLine,
-      bottomLine: bottomLine,
       onTap: () => open(topic),
     );
     return Padding(
@@ -1421,159 +1450,167 @@ class _OverviewPageState extends State<OverviewPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '继续'),
+          const SectionHeader(title: '用车专题'),
           const SizedBox(height: MileafSpace.s8),
-          row(
-            title: '节奏',
-            meta: '驾驶时间与单程',
-            icon: MileafIconName.clock,
-            topic: 'usage',
-            topLine: true,
-          ),
-          row(
-            title: '能耗',
-            meta: '温度与距离',
-            icon: MileafIconName.chart,
-            topic: 'energy',
-          ),
-          row(
-            title: '长期',
-            meta: '续航与停放',
-            icon: MileafIconName.battery,
-            topic: 'long',
-            bottomLine: true,
+          _rowCard([
+            row(
+              title: '节奏',
+              meta: '驾驶时间与单程',
+              icon: MileafIconName.clock,
+              topic: 'usage',
+            ),
+            row(
+              title: '能耗',
+              meta: '温度与距离',
+              icon: MileafIconName.chart,
+              topic: 'energy',
+            ),
+            row(
+              title: '长期',
+              meta: '续航与停放',
+              icon: MileafIconName.battery,
+              topic: 'long',
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  void _showComparisonBasis(
+    stats.DrivingMetrics? current,
+    stats.DrivingMetrics? prior,
+    OverviewWindow? pairedRange,
+  ) {
+    showMileafSheet<void>(
+      context: context,
+      title: '对比明细',
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _basisRow('本期', number(current?.consumptionWhKmNet, 'Wh/km')),
+          _basisRow('对比', number(prior?.consumptionWhKmNet, 'Wh/km')),
+          if (pairedRange?.current case final window?)
+            _basisRow('本期时间', _dayRange(window) ?? '—'),
+          if (pairedRange?.previous case final window?)
+            _basisRow('对比时间', _dayRange(window) ?? '—'),
+          _basisRow('统计时区', _zone),
+          const SizedBox(height: MileafSpace.s12),
+          Text(
+            '同车、同一时区、同一本地截止时刻。电耗按续航差和车辆效率估算，部分能量样本可能缺失；'
+            '只描述数值差异，不推断原因。对比为零或缺失时不输出比较结论。',
+            style: context.type.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _techRow(String label, String value) {
-    final type = context.type;
-    final colors = context.colors;
-    final labelWidget = Text(
-      label,
-      style: type.micro.copyWith(color: colors.textMuted),
-    );
-    final valueWidget = Text(
-      value,
-      textAlign: TextAlign.end,
-      style: type.body.copyWith(
-        color: colors.text,
-        fontFeatures: type.body.fontFeatures,
-      ),
-    );
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.line)),
-      ),
-      child: MileafLayout.largeText(context)
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                labelWidget,
-                const SizedBox(height: MileafSpace.s4),
-                Align(alignment: Alignment.centerRight, child: valueWidget),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 4, child: labelWidget),
-                const SizedBox(width: MileafSpace.s12),
-                Expanded(flex: 6, child: valueWidget),
-              ],
-            ),
-    );
-  }
-
-  Widget _noteSection(String title, List<Widget> children, {Widget? action}) =>
-      Padding(
-        padding: const EdgeInsets.only(top: MileafSpace.s20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SectionHeader(title: title, action: action),
-            const SizedBox(height: MileafSpace.s4),
-            ...children,
-          ],
-        ),
-      );
-
-  Widget _shareBar() {
-    final rows = <(String, num?)>[
-      ('AC', charging?.totals.acEnergyKwh),
-      ('DC', charging?.totals.dcEnergyKwh),
-      ('未知', enhancedCharging?.totals.unknownEnergyKwh),
-    ];
-    final colors = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _basisRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MileafCompositionBar(segments: rows),
-        const SizedBox(height: MileafSpace.s8),
-        Wrap(
-          spacing: MileafSpace.s16,
-          runSpacing: MileafSpace.s4,
-          children: [
-            for (final (label, value) in rows)
-              Text(
-                '$label ${value == null ? '—' : '${value.toStringAsFixed(2)} kWh'}',
-                style: context.type.micro.copyWith(color: colors.textMuted),
-              ),
-          ],
+        Expanded(
+          flex: 4,
+          child: Text(
+            label,
+            style: context.type.subheadline.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
         ),
-        const SizedBox(height: MileafSpace.s4),
-        Text(
-          'DC 占已知分类能量 ${charging?.totals.dcEnergyShare == null ? '—' : '${(charging!.totals.dcEnergyShare! * 100).toStringAsFixed(1)} %'}',
-          style: context.type.body.copyWith(color: colors.text),
+        const SizedBox(width: MileafSpace.s12),
+        Expanded(
+          flex: 6,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: context.type.body.copyWith(color: context.colors.text),
+          ),
         ),
       ],
+    ),
+  );
+
+  Widget _notesSection(dto.Summary? d) => Padding(
+    padding: const EdgeInsets.only(top: MileafSpace.section),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (capabilityError != null) ...[
+          InlineBanner(
+            message: capabilityError!,
+            tone: BannerTone.warning,
+            actionLabel: '重试',
+            onAction: () => loadCapabilities(force: true),
+          ),
+          const SizedBox(height: MileafSpace.s12),
+        ],
+        _comparisonSection(),
+        if (driving != null) const SizedBox(height: MileafSpace.section),
+        MileafDataNotes(groups: _dataNotes(d)),
+        _statisticsDrills(),
+      ],
+    ),
+  );
+
+  /// 页尾下钻（CP06 页尾文字按钮）：概览期间直接打开驾驶/充电统计，
+  /// 沿既有回调 onStatistics 与 StatisticsSelection，路由与参数不变。
+  Widget _statisticsDrills() {
+    final selection = ranges['driving']?.selection;
+    Widget drill(String kind, String label) => TextButton(
+      onPressed: selection == null
+          ? null
+          : () => widget.onStatistics?.call(kind, selection),
+      child: Text(label),
+    );
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Wrap(
+        spacing: MileafSpace.s8,
+        runSpacing: MileafSpace.s4,
+        children: [drill('driving', '驾驶统计'), drill('charging', '充电统计')],
+      ),
     );
   }
 
-  Widget _coverageNote() {
-    if (!coverageAvailable || charging == null) return const SizedBox.shrink();
-    final enhanced = enhancedCharging;
-    return _noteSection('已知费用的覆盖', [
-      if (enhanced != null) ...[
-        _techRow(
-          '费用有记录',
-          '${enhanced.totals.costKnownSessions} / ${enhanced.totals.sessions} 次',
-        ),
-        _techRow(
-          '对应入电',
-          number(enhanced.totals.costKnownEnergyKwh, 'kWh', decimals: 1),
-        ),
-        _techRow(
-          '有效入电均价',
-          '${widget.currency.amountValue(enhanced.totals.unitCostAdded.value)}/kWh',
-        ),
-        Text(
-          '已知支出不等于全部用车成本。',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
-        ),
-      ] else
-        Text(
-          '费用覆盖字段缺失或不兼容，未按完整费用显示',
-          style: context.type.body.copyWith(color: context.colors.textMuted),
-        ),
-    ]);
+  /// 参照数据是否满足 canCompare：不足或口径未确认时既不算差值也不造句。
+  bool get _comparisonComparable {
+    final base = results['driving'];
+    final other = comparisonResult;
+    if (base == null || other == null) return false;
+    // 形状不全时：站点没声明配对能力就沿原行为按服务端净电耗比较；
+    // 声明了配对却缺字段则判不可比，不把旧净电耗当配对值（CP08）。
+    // canCompare 走 insights 契约解析，形状不全时解析会抛，故先判形状。
+    if (base.body['query'] is! Map || other.body['query'] is! Map) {
+      return !pairedAvailable;
+    }
+    try {
+      return canCompare(
+        base.body,
+        other.body,
+        workspace.calendar!,
+        period == OverviewPeriod.month
+            ? StatisticsPeriod.month
+            : StatisticsPeriod.custom,
+      );
+    } on FormatException {
+      return false;
+    }
   }
 
-  Widget _comparisonNote() {
+  /// P01「电耗对比」：一句差异 + 查看对比明细（原来的「一条有参照的变化」）。
+  Widget _comparisonSection() {
     if (driving == null) return const SizedBox.shrink();
-    return pairedAvailable ? _pairedComparisonNote() : _legacyComparisonNote();
-  }
-
-  Widget _legacyComparisonNote() {
     final current = (comparisonDriving ?? driving)?.totals;
     final prior = comparison?.totals;
     final pairedRange = comparisonRange ?? ranges['driving'];
     String message;
     if (ranges['driving']?.previous == null) {
-      message = '基期没有可对齐的本地日期或唯一时刻，暂不比较';
+      message = '本月没有可对齐的比较时间，暂不比较';
     } else if (comparing && comparison == null) {
       message = '正在读取比较数据';
     } else if (current == null ||
@@ -1584,255 +1621,182 @@ class _OverviewPageState extends State<OverviewPage>
         prior.consumptionWhKmNet == null ||
         prior.consumptionWhKmNet == 0) {
       message = '电耗样本不足，暂不作区间比较';
+    } else if (!_comparisonComparable) {
+      // 参照口径不可比时不造句，和图表读数头用同一句口径说明（CP02、CP11）。
+      message = '数据口径未确认，暂不比较';
     } else {
       final delta = current.consumptionWhKmNet! - prior.consumptionWhKmNet!;
+      final name = period == OverviewPeriod.month ? '上月同期' : '前 7 天';
       message = delta != 0 && delta.abs() < 1
-          ? '估算净电耗与前一同长区间差异小于1 Wh/km'
+          ? '电耗与$name差异小于 1 Wh/km'
           : delta == 0
-          ? '估算净电耗与前一同长区间相同'
-          : '估算净电耗比前一同长区间${delta < 0 ? '低' : '高'} ${delta.abs().toStringAsFixed(0)} Wh/km';
+          ? '电耗与$name相同'
+          : '电耗比$name${delta < 0 ? '低' : '高'} ${delta.abs().toStringAsFixed(0)} Wh/km';
     }
-    return _noteSection('一条有参照的变化', [
-      Text(message, style: context.type.body),
-      if (comparing) const MileafProgressLine(),
-      if (comparisonError != null)
-        InlineBanner(
-          message:
-              '比较暂不可用：$comparisonError${comparison == null ? '' : '；保留上次比较快照'}',
-          tone: BannerTone.error,
-          actionLabel: '重试比较',
-          onAction: () => loadComparison(force: true),
-        ),
-      if (comparisonRange != null)
-        _techRow('比较快照截止', timestamp(comparisonRange!.current.to)),
-      const SizedBox(height: MileafSpace.s4),
-      Text(
-        '样本覆盖率尚不可核验，不直接判断驾驶更省电。',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
-      ),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton(
-          onPressed: () => _showComparisonBasis(current, prior, pairedRange),
-          child: const Text('查看比较依据'),
-        ),
-      ),
-    ]);
-  }
-
-  void _showComparisonBasis(
-    stats.DrivingMetrics? current,
-    stats.DrivingMetrics? prior,
-    OverviewWindow? pairedRange,
-  ) {
-    showMileafSheet<void>(
-      context: context,
-      title: '比较依据',
-      builder: (_) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _techRow('本期', number(current?.consumptionWhKmNet, 'Wh/km')),
-          _techRow('基期', number(prior?.consumptionWhKmNet, 'Wh/km')),
-          _techRow(
-            '本期区间',
-            '${timestamp(pairedRange?.current.from)} 至 ${timestamp(pairedRange?.current.to)}',
-          ),
-          if (pairedRange?.previous case final p?)
-            _techRow('基期区间', '${timestamp(p.from)} 至 ${timestamp(p.to)}'),
-          _techRow('归期时区', _zone),
-          const SizedBox(height: MileafSpace.s12),
-          Text(
-            '同车、同一时区、同一本地截止时刻。净电耗基于续航差和车辆效率估算，部分能量样本可能缺失；只描述数值差异，不推断原因。基期为零或缺失时不输出比较结论。',
-            style: context.type.micro.copyWith(color: context.colors.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _pairedComparisonNote() {
-    final current = enhancedDriving(results['driving']);
-    final prior = enhancedDriving(comparisonResult);
-    final currentResult = results['driving'];
-    final valid =
-        current != null &&
-        prior != null &&
-        currentResult != null &&
-        comparisonResult != null &&
-        comparisonError == null &&
-        identical(comparisonRange, ranges['driving']) &&
-        canCompare(
-          currentResult.body,
-          comparisonResult!.body,
-          workspace.calendar!,
-          period == OverviewPeriod.month
-              ? StatisticsPeriod.month
-              : StatisticsPeriod.custom,
-        );
-    final value = current?.totals.netConsumptionPaired;
-    return _noteSection('配对净电耗与覆盖', [
-      _techRow(
-        '配对估算净电耗',
-        '${number(value?.valueWhKm, 'Wh/km')} · '
-            '${value?.eligibleDrives ?? '—'}趟有效',
-      ),
-      _techRow(
-        '记录驾驶时长',
-        '${number(current?.totals.drivingCoverage.durationKnownMin, '分钟')} · '
-            '${current?.totals.drivingCoverage.durationKnownDrives ?? '—'}趟有记录',
-      ),
-      _techRow(
-        '有效里程',
-        '${number(value?.denominatorDistanceKm, 'km', decimals: 1)} '
-            '（全里程 ${number(driving?.totals.distanceKm, 'km', decimals: 1)}）',
-      ),
-      Text(
-        valid
-            ? '配对净电耗较参照差 ${(value!.valueWhKm! - prior.totals.netConsumptionPaired.valueWhKm!).toStringAsFixed(1)} Wh/km'
-            : '参照质量或口径不满足时，仅展示原值',
-        style: context.type.body,
-      ),
-      if (comparing) const MileafProgressLine(),
-      if (comparisonError != null)
-        InlineBanner(
-          message: '比较暂不可用：$comparisonError',
-          tone: BannerTone.error,
-          actionLabel: '重试比较',
-          onAction: () => loadComparison(force: true),
-        ),
-      if (current == null)
-        Text(
-          '扩展统计字段缺失或不兼容，未用旧净电耗替代配对值',
-          style: context.type.body.copyWith(color: context.colors.error),
-        ),
-      Text(
-        '同批有效能量与里程配对估算；只描述差异，不推断原因。',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
-      ),
-      ExpansionTile(
-        title: const Text('比较区间与口径'),
-        children: [
-          if (current != null)
-            _techRow(
-              '本期',
-              '${timestamp(current.query.from)}—${timestamp(current.query.to)}；生成 ${timestamp(current.asOf)}',
-            ),
-          if (prior != null)
-            _techRow(
-              '参照',
-              '${timestamp(prior.query.from)}—${timestamp(prior.query.to)} · '
-                  '${number(prior.totals.netConsumptionPaired.valueWhKm, 'Wh/km')}；生成 ${timestamp(prior.asOf)}',
-            ),
-          _techRow('归期时区', '$_zone；两个资源分别生成，非同时快照'),
-        ],
-      ),
-    ]);
-  }
-
-  Widget _drivingNote() {
-    if (driving == null) return const SizedBox.shrink();
-    return _noteSection(
-      '驾驶消耗',
-      [
-        _techRow(
-          '估算驾驶消耗',
-          number(driving!.totals.energyKwh, 'kWh', decimals: 2),
-        ),
-        _techRow(
-          '净电耗 · 估算',
-          number(driving!.totals.consumptionWhKmNet, 'Wh/km'),
-        ),
-        _techRow('毛电耗', number(driving!.totals.consumptionWhKmGross, 'Wh/km')),
-        Text(
-          '毛电耗为区间充入电池能量÷驾驶里程，受补能时点影响，不是网侧电耗；净毛差额不代表停车损耗。净电耗与驾驶消耗按续航差和车辆效率估算。',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
-        ),
-      ],
-      action: TextButton(
-        onPressed: () => widget.onStatistics?.call('driving', range!.selection),
-        child: const Text('驾驶统计'),
-      ),
-    );
-  }
-
-  Widget _chargingNote() {
-    if (charging == null) return const SizedBox.shrink();
-    final expanded = enhancedCharging;
-    return _noteSection(
-      '补能账本',
-      [
-        _techRow('充电次数', '${charging!.totals.sessions} 次'),
-        _techRow(
-          coverageAvailable ? '有效入电均价' : '已知费用均价',
-          '${widget.currency.amountValue(coverageAvailable ? expanded?.totals.unitCostAdded.value : charging!.totals.costPerKwh)}/kWh',
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        _shareBar(),
-        const SizedBox(height: MileafSpace.s8),
-        Text(
-          'AC/DC 仅含已知分类，不代表全部补能；均价仅含费用已知会话。',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
-        ),
-      ],
-      action: TextButton(
-        onPressed: () =>
-            widget.onStatistics?.call('charging', range!.selection),
-        child: const Text('充电统计'),
-      ),
-    );
-  }
-
-  Widget _vehicleNote(dto.Summary d) => _noteSection('车辆与数据', [
-    ExpansionTile(
-      title: const Text('车辆与数据时间'),
-      children: [
-        _techRow('状态开始', timestamp(d.state?.since)),
-        _techRow('位置采样完整时间', timestamp(d.freshness.lastPositionAt)),
-        _techRow('里程表', number(d.odometerKm, 'km', decimals: 1)),
-        _techRow('固件', d.firmware?.version ?? '未知'),
-        _techRow('最近状态区间起始', timestamp(d.freshness.lastStateAt)),
-        _techRow('校验时间', timestamp(result?.checkedAt)),
-        for (final entry in results.entries)
-          _techRow(
-            entry.key == 'driving' ? '趋势已校验' : '补能已校验',
-            timestamp(entry.value.checkedAt),
-          ),
-        _techRow('归期时区', _zone),
-        Text(
-          '旧采样或长时间休眠不等同系统故障。',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
-        ),
-      ],
-    ),
-  ]);
-
-  Widget _notesSection(dto.Summary? d) => Padding(
-    padding: const EdgeInsets.only(top: MileafSpace.section),
-    child: Column(
+    // 与「关于这些数据」同一容器语法：区块标题在画布层（页面边距），
+    // 内容进一张分组卡（卡内 16），动作是卡内的一行导航行，不再用一个
+    // 悬浮的 ghost 按钮在卡里再套一层容器。
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ExpansionTile(
-          title: const Text('数据说明与更多'),
-          childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s8),
-          expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (capabilityError != null)
-              InlineBanner(
-                message: capabilityError!,
-                tone: BannerTone.warning,
-                actionLabel: '重试扩展能力',
-                onAction: () => loadCapabilities(force: true),
+        const SectionHeader(title: '电耗对比'),
+        const SizedBox(height: MileafSpace.s8),
+        MileafGroupCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  MileafSpace.cardPad,
+                  MileafSpace.cardPad,
+                  MileafSpace.cardPad,
+                  0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      message,
+                      style: context.type.body.copyWith(
+                        color: context.colors.text,
+                      ),
+                    ),
+                    if (comparing)
+                      const Padding(
+                        padding: EdgeInsets.only(top: MileafSpace.s8),
+                        child: MileafProgressLine(),
+                      ),
+                    if (comparisonError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: MileafSpace.s8),
+                        child: InlineBanner(
+                          message: '比较暂不可用：$comparisonError',
+                          tone: BannerTone.error,
+                          actionLabel: '重试',
+                          onAction: () => loadComparison(force: true),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            _coverageNote(),
-            _comparisonNote(),
-            _drivingNote(),
-            _chargingNote(),
-            if (d != null) _vehicleNote(d),
-          ],
+              MileafGroupRow(
+                title: '查看对比明细',
+                trailing: MileafIcon(
+                  MileafIconName.chevron,
+                  size: MileafIconMetrics.inline,
+                  color: context.colors.textFaint,
+                ),
+                topLine: true,
+                onTap: () => _showComparisonBasis(current, prior, pairedRange),
+              ),
+            ],
+          ),
         ),
       ],
-    ),
-  );
+    );
+  }
+
+  /// R30.2「关于这些数据」五类：口径与估算、记录与缺失、时间与时区、
+  /// 来源与生成时间、技术详情。缺类不出现；技术详情可复制（R30.4）。
+  List<MileafDataNoteGroup> _dataNotes(dto.Summary? d) {
+    final expanded = enhancedCharging;
+    final paired = enhancedDriving(results['driving']);
+    final net = pairedAvailable
+        ? paired?.totals.netConsumptionPaired.valueWhKm
+        : driving?.totals.consumptionWhKmNet;
+    final coverage = expanded == null || expanded.totals.sessions == 0
+        ? null
+        : '${expanded.totals.sessions} 次中 '
+              '${expanded.totals.costKnownSessions} 次有费用';
+    final current = _dayRange(ranges['driving']?.current);
+    final prior = _dayRange(comparisonRange?.previous);
+    final notes = <MileafDataNoteGroup>[
+      MileafDataNoteGroup(
+        category: DataNoteCategory.caliber,
+        note: [
+          '电耗与估算耗电按续航差和车辆效率估算。',
+          if (driving != null) '毛电耗为区间充入电池能量÷驾驶里程，受补能时点影响，不是网侧电耗。',
+          if (charging != null) '未记录的费用不等于免费。',
+          if (charging != null) 'AC/DC 仅含已知分类，不代表全部充电；充入均价按充入电池的电量计，仅含有费用的充电。',
+          '估算结果只描述数值差异，不推断原因。',
+        ].join(''),
+      ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.records,
+        note: [
+          if (net != null) '有效行程电耗 ${number(net, 'Wh/km')}。',
+          if (paired?.totals.drivingCoverage.durationKnownMin
+              case final minutes?)
+            '有记录的驾驶时长 '
+                '${copy.duration(Duration(minutes: minutes.round()))}，'
+                '${paired?.totals.drivingCoverage.durationKnownDrives ?? '—'} 趟有记录。',
+          if (coverage != null) '费用记录：$coverage。',
+          ?_chargingSplitNote,
+          if (driving != null) '缺失显示 —，未知不等于 0。',
+        ].join(''),
+      ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.time,
+        note: [
+          '统计时区 $_zone。',
+          if (current != null) '本期时间 $current。',
+          if (prior != null) '对比时间 $prior。',
+        ].join(''),
+      ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.source,
+        note: [
+          '数据生成于 ${timestamp(result?.checkedAt)}。',
+          '本期与对比分别生成，非同时快照。',
+        ].join(''),
+      ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.technical,
+        copyable: true,
+        note: [
+          if (d != null) ...[
+            '状态开始 ${_precise(d.state?.since)}',
+            '位置数据时间 ${_precise(d.freshness.lastPositionAt)}',
+            '状态开始时间 ${_precise(d.freshness.lastStateAt)}',
+            '里程表 ${number(d.odometerKm, 'km', decimals: 1)}',
+            '固件 ${d.firmware?.version ?? '未知'}',
+          ],
+          '数据生成时间 ${_precise(result?.checkedAt)}',
+          if (ranges['driving']?.current case final window?)
+            '本期 ${_precise(window.from)} — ${_precise(window.to)}',
+          if (comparisonRange?.previous case final window?)
+            '对比 ${_precise(window.from)} — ${_precise(window.to)}',
+          '统计时区 $_zone',
+        ].join('\n'),
+      ),
+    ];
+    return notes;
+  }
+
+  /// 补能分类与均价的原值（P01 把旧「补能账本」表格迁入这里，数值不丢）。
+  String? get _chargingSplitNote {
+    final totals = charging?.totals;
+    if (totals == null) return null;
+    final unknown = enhancedCharging?.totals.unknownEnergyKwh;
+    String amount(num? value) =>
+        value == null ? '—' : '${value.toStringAsFixed(2)} kWh';
+    final share = totals.dcEnergyShare == null
+        ? '—'
+        : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)} %';
+    final unitCost = coverageAvailable
+        ? enhancedCharging?.totals.unitCostAdded.value
+        : charging!.totals.costPerKwh;
+    return [
+      'AC ${amount(totals.acEnergyKwh)}',
+      'DC ${amount(totals.dcEnergyKwh)}',
+      '未知 ${amount(unknown)}',
+      'DC 占已知分类能量 $share',
+      if (unitCost != null) '充入均价 ${widget.currency.amountValue(unitCost)}/kWh',
+    ].join('，');
+  }
+
+  String _precise(DateTime? time) =>
+      time == null ? '未知' : copy.formatPrecise(workspace.calendar!.local(time));
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -1884,7 +1848,7 @@ class _OverviewPageState extends State<OverviewPage>
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
-                          '无法读取设备 IANA 时区，暂按 UTC 展示与归期',
+                          messages.timezoneUnreadableMessage(),
                           style: context.type.micro.copyWith(
                             color: context.colors.warning,
                           ),
@@ -1892,13 +1856,13 @@ class _OverviewPageState extends State<OverviewPage>
                       ),
                     if (loading && data != null) ...[
                       const MileafProgressLine(),
-                      const Text('更新中'),
+                      const Text('正在更新'),
                     ],
                     if (error != null && data != null)
                       InlineBanner(
                         message: error!,
                         tone: BannerTone.error,
-                        actionLabel: '重试概览',
+                        actionLabel: '重试',
                         onAction: () => loadSummary(force: true),
                       ),
                     _periodBar(),
@@ -1906,18 +1870,18 @@ class _OverviewPageState extends State<OverviewPage>
                       InlineBanner(
                         message: errors['driving']!,
                         tone: BannerTone.error,
-                        actionLabel: '重试里程趋势',
+                        actionLabel: '重试',
                         onAction: () => loadStats('driving', force: true),
                       ),
                     if (errors['charging'] != null)
                       InlineBanner(
                         message: errors['charging']!,
                         tone: BannerTone.error,
-                        actionLabel: '重试补能',
+                        actionLabel: '重试',
                         onAction: () => loadStats('charging', force: true),
                       ),
-                    _monthSection(),
-                    _chartSection(),
+                    _focusCard(),
+                    if (driving != null || charging != null) _readingPlate(),
                     if (data != null) _recentSection(data!),
                     _continueSection(),
                     _notesSection(data),
@@ -1955,83 +1919,6 @@ class _PointReading {
   /// The chart's live-region sentence; it states the same value, reference and
   /// difference that are drawn above it.
   final String semantic;
-}
-
-/// The reading under the plot: date and hint, one dominant value, then the
-/// comparison as its own right-hand column. A page change of metric or point
-/// crossfades the whole block for 120ms (0ms under reduce motion).
-class _ChartReading extends StatelessWidget {
-  const _ChartReading({super.key, required this.reading});
-
-  final _PointReading reading;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final type = context.type;
-    final large = MileafLayout.largeText(context);
-    Widget micro(String text) =>
-        Text(text, style: type.micro.copyWith(color: colors.textMuted));
-    final day = Text(
-      reading.day,
-      style: type.label.copyWith(color: colors.textMuted),
-    );
-    final hint = Text(
-      '点按读值',
-      style: type.micro.copyWith(color: colors.textFaint),
-    );
-    final head = large
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              day,
-              const SizedBox(height: MileafSpace.inline6),
-              hint,
-            ],
-          )
-        : Row(
-            children: [
-              Expanded(child: day),
-              const SizedBox(width: MileafSpace.s8),
-              hint,
-            ],
-          );
-    final value = MileafNumber(
-      value: reading.value,
-      unit: reading.unit,
-      scale: MetricValueScale.metricMd,
-    );
-    final reference = reading.reference;
-    final delta = reading.delta == null
-        ? null
-        : Text(reading.delta!, style: type.label.copyWith(color: colors.text));
-    // R06.6 order: the reference names the period, the difference answers it.
-    // Both sit under the value on their own lines — 24 → 12 → 14 — so the
-    // block keeps one rhythm at every width instead of squeezing a long
-    // reference beside the difference on narrow screens.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        head,
-        const SizedBox(height: MileafSpace.inline6),
-        value,
-        if (reference != null) ...[
-          const SizedBox(height: MileafSpace.s8),
-          micro(reference),
-        ],
-        if (delta != null) ...[
-          SizedBox(
-            height: reference == null ? MileafSpace.s8 : MileafSpace.inline6,
-          ),
-          delta,
-        ],
-        if (reading.note != null) ...[
-          const SizedBox(height: MileafSpace.s4),
-          micro(reading.note!),
-        ],
-      ],
-    );
-  }
 }
 
 class MetaPage extends StatefulWidget {

@@ -95,13 +95,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('服务端采样'), findsNothing);
     expect(find.textContaining('采样峰值不等同原始峰值'), findsNothing);
-    expect(find.text('电量区间'), findsOneWidget);
+    // P05：身份行与电量卡在上，标题写「充电过程」。
+    expect(find.text('充电过程'), findsOneWidget);
+    expect(find.text('40% → 70%'), findsOneWidget);
     expect(
-      tester.getTopLeft(find.text('电量区间')).dy,
-      lessThan(tester.getTopLeft(find.text('20 kWh')).dy),
+      tester.getTopLeft(find.text('40% → 70%')).dy,
+      lessThan(tester.getTopLeft(find.text('充入电量')).dy),
     );
     final graph = tester.getRect(find.byKey(const Key('charging-time-chart')));
-    expect(graph.bottom, lessThanOrEqualTo(800));
+    // §6 充电详情：功率绘图区至少 120 可见。
+    expect(800 - graph.top, greaterThanOrEqualTo(120));
     expect(graph.top, greaterThan(0));
   });
   for (final state in ['normal', 'missing', 'tile-failure']) {
@@ -132,10 +135,10 @@ void main() {
       await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
       await tester.tap(find.text('最近充电').hitTestable());
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('电量区间'), 200);
+      await tester.scrollUntilVisible(find.text('40% → 70%'), 200);
       expect(find.text('40% → 70%'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('功率 kW'), 200);
-      expect(find.text('功率 kW'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('充电过程'), 200);
+      expect(find.text('充电过程'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('充电地点').hitTestable(), 240);
       if (state == 'missing') {
         expect(find.text('没有有效轨迹坐标'), findsOneWidget);

@@ -254,7 +254,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆弹层行改「Y，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     await openConditions(tester);
     expect(find.text('未知温度 7 趟'), findsOneWidget);

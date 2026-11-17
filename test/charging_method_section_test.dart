@@ -6,6 +6,10 @@ import 'package:mileaf/src/design/components/components.dart';
 import 'charging_test.dart' show app, jsonResponse;
 import 'charging_expansion_test.dart' show chargingStatsV2, expansionResponse;
 
+/// AP07：概览等页面也出现「充电」字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
 /// 有记录但没有任何一条带电量：三列必须显示 —，不是 0。
 Map<String, dynamic> missingEnergyStats() {
   final body = chargingStatsV2();
@@ -30,7 +34,7 @@ Future<void> openCharging(
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(app(client));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('充电'));
+  await tester.tap(navTab('充电'));
   await tester.pumpAndSettle();
 }
 
@@ -165,7 +169,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
     expect(tester.getSize(find.byType(MileafShareRing)).width, 116);

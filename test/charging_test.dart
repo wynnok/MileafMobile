@@ -97,6 +97,10 @@ class DelayedCurrency implements CurrencyPreferenceStore {
   }
 }
 
+/// AP07：概览等页面也出现「充电/行程」等字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
 void main() {
   testWidgets('充电卡片按本地日期分组并以统一尺度呈现真实起止电量', (tester) async {
     final client = MockClient(
@@ -106,7 +110,7 @@ void main() {
     );
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(
       find.bySemanticsLabel(RegExp('电量区间.*40.*70.*尺度 0 至 100%')),
@@ -136,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.text('费用 12 USD'), findsWidgets);
     expect(find.textContaining('CNY'), findsNothing);
@@ -163,7 +167,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('charge-9')));
     await tester.pumpAndSettle();
@@ -205,10 +209,10 @@ void main() {
       });
       await tester.pumpWidget(app(client, now: () => now));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('充电'));
+      await tester.tap(navTab('充电'));
       await tester.pumpAndSettle();
       if (range != 'default') {
-        await tester.tap(find.text('自定义日期'));
+        await tester.tap(find.text('自定义'));
         await tester.pumpAndSettle();
         await tester.enterText(
           find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
@@ -257,7 +261,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('入电 20 kWh'), findsWidgets);
     expect(find.textContaining('电网侧 22 kWh'), findsWidgets);
@@ -295,7 +299,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('加载更多充电'), 500);
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -80));
@@ -339,9 +343,9 @@ void main() {
       app(client, calendar: () async => CalendarContext('America/New_York')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
@@ -378,7 +382,7 @@ void main() {
       app(client, currency: currency, key: const ValueKey('first')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('费用 0'), findsOneWidget);
     expect(find.textContaining('币种未记录'), findsWidgets);
@@ -386,7 +390,7 @@ void main() {
     expect(find.text('未知地点'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('费用 —'), 200);
     expect(find.textContaining('费用 —'), findsOneWidget);
-    await tester.tap(find.text('概览'));
+    await tester.tap(navTab('概览'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
@@ -399,14 +403,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.text('费用 0 USD'), findsOneWidget);
     await tester.pumpWidget(
       app(client, currency: currency, key: const ValueKey('restart')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.text('费用 0 USD'), findsOneWidget);
     expect(currency.values, {'https://example.com/prefix': 'USD'});
@@ -433,11 +437,11 @@ void main() {
       app(client, now: () => now, calendar: () async => CalendarContext(zone)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     old.complete(jsonResponse(chargingFixture()));
     await tester.pumpAndSettle();
@@ -487,9 +491,9 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, '开始日期 YYYY-MM-DD'),
@@ -533,7 +537,7 @@ void main() {
     });
     await tester.pumpWidget(app(client, now: () => now));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     now = DateTime.utc(2026, 3, 30, 12, 5);
     await tester.tap(find.byTooltip('刷新充电'));
@@ -551,7 +555,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('我的补能方式'), 300);
     expect(find.text('还没有充电记录'), findsOneWidget);

@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/charts.dart';
 import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_platform.dart';
@@ -113,7 +114,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(requests.last['from'], '2026-03-23T16:00:00.000Z');
     expect(requests.last['to'], '2026-03-24T16:00:00.000Z');
-    await tester.scrollUntilVisible(find.text('返回完整区间').hitTestable(), 100);
+    // 节奏卡已移到记录之后（P02 用户裁定 B）：回到列表上方的「返回完整区间」要往上滚。
+    await tester.scrollUntilVisible(find.text('返回完整区间').hitTestable(), -100);
     await tester.tap(find.text('返回完整区间'));
     await tester.pumpAndSettle();
     expect(requests.last['from'], period['from']);
@@ -171,7 +173,7 @@ void main() {
       },
     );
     final before = statsCount;
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '2020/01/01');
     await tester.enterText(find.byType(TextField).at(1), '2026/03/30');
@@ -179,7 +181,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(lists.last['from'], '2019-12-31T16:00:00.000Z');
     expect(statsCount, before);
-    expect(find.textContaining('不超过730天，行程列表仍可使用'), findsOneWidget);
+    // CP07：技术原因留给「关于这些数据」，主界面只说结果与可用范围。
+    expect(find.textContaining('730 天，行程列表不受影响'), findsOneWidget);
     expect(find.text('所选日期没有行程'), findsOneWidget);
   });
   testWidgets('切车后迟到统计不能覆盖新车期间摘要', (tester) async {
@@ -203,8 +206,9 @@ void main() {
     await tester.tap(find.text('行笺测试车'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Y · 尾号 0002'));
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆行改为完整名称 +「Y，尾号 0002」（CP09.1 用逗号，不用「·」）。
+    await tester.ensureVisible(find.text('Y，尾号 0002'));
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('3 趟'), findsOneWidget);
     slow.complete(jsonResponse(original));
@@ -272,7 +276,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
   });
-  testWidgets('360x800首屏可看到出行节奏与第一条行程', (tester) async {
+  testWidgets('360x800首屏可看到期间摘要与第一条行程，节奏卡在记录之后', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -284,10 +288,24 @@ void main() {
       (_) async =>
           jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
     );
-    expect(find.text('出行节奏').hitTestable(), findsOneWidget);
+    // §6 行程首屏预算：第一条记录完整可见；节奏卡按 P02 移到记录之后。
     expect(
       find.byKey(const ValueKey('drive-17')).hitTestable(),
       findsOneWidget,
+    );
+    // §6 行程预算的另一半：第二条记录起始至少 24 可见（底栏上沿 736）。
+    expect(
+      736 - tester.getTopLeft(find.byKey(const ValueKey('drive-16'))).dy,
+      greaterThanOrEqualTo(24),
+      reason: '第二条记录起始应至少 24 可见',
+    );
+    // 节奏卡已移到记录之后：首屏不再留给它，向下滚动才可读（用户裁定 B）。
+    expect(find.text('每日里程').hitTestable(), findsNothing);
+    await tester.scrollUntilVisible(find.text('每日里程').hitTestable(), 200);
+    expect(find.text('每日里程').hitTestable(), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byType(TimeSeriesChart)).dy,
+      greaterThan(tester.getTopLeft(find.byKey(const ValueKey('drive-17'))).dy),
     );
   });
   testWidgets('行程列表展示每趟估算净能量', (tester) async {
@@ -300,7 +318,7 @@ void main() {
       final record = find.byKey(ValueKey('drive-$id'));
       await tester.scrollUntilVisible(record, 140);
       expect(
-        find.descendant(of: record, matching: find.textContaining('净电耗')),
+        find.descendant(of: record, matching: find.textContaining('电耗')),
         findsOneWidget,
       );
     }
@@ -310,19 +328,33 @@ void main() {
       tester,
       (_) async =>
           jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
+      // 统计总计与列表记录给不同的电耗，才能分辨焦点卡读的是哪一份。
+      statsHandler: (_) async {
+        final body = jsonDecode(
+          File('test/fixtures/driving-stats.json').readAsStringSync(),
+        ) as Map<String, dynamic>;
+        body['totals']['consumption_wh_km_net'] = 155;
+        return jsonResponse(jsonEncode(body));
+      },
     );
     expect(find.textContaining('960.0'), findsWidgets);
     expect(find.text('49 趟'), findsOneWidget);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
+    // 焦点卡三格的「电耗」来自统计 totals（155），不是列表每趟的 188。
+    expect(find.text('155 Wh/km'), findsWidgets);
+    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
   });
-  testWidgets('C 最近的路保留每条记录的时间与独立详情入口', (tester) async {
+  testWidgets('C 记录按天分组并保留每趟的时间与独立详情入口', (tester) async {
     await openDrives(
       tester,
       (request) async =>
           jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
     );
-    await tester.scrollUntilVisible(find.text('最近的路'), 140);
-    expect(find.textContaining('3/30'), findsWidgets);
+    // P02：记录改成按天分组卡，分组标题用 CP04 DF2（今天/昨天/M月D日 周X）。
+    await tester.scrollUntilVisible(find.text('今天'), 140);
+    expect(find.text('今天'), findsOneWidget);
+    // 每行仍保留本趟的时间与时长（CP09 用逗号分行，不用「·」）。
+    expect(find.textContaining('10:00\u201310:30，30 分钟'), findsWidgets);
+    expect(find.textContaining('05:30\u201306:00，30 分钟'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
       140,
@@ -390,7 +422,7 @@ void main() {
         );
       }, now: () => now);
       if (range != 'default') {
-        await tester.tap(find.text('自定义日期'));
+        await tester.tap(find.text('自定义'));
         await tester.pumpAndSettle();
         final inputs = find.byType(TextField);
         await tester.enterText(inputs.at(0), '2026/03/29');
@@ -422,7 +454,7 @@ void main() {
     });
   }
 
-  testWidgets('行程从固定后端多页样本读取，展示未知地点与净电耗并产生详情目标', (tester) async {
+  testWidgets('行程从固定后端多页样本读取，展示未知地点与电耗并产生详情目标', (tester) async {
     await openDrives(tester, (request) async {
       if (request.url.path.endsWith('/17/series')) {
         return jsonResponse(
@@ -446,7 +478,7 @@ void main() {
       find.byKey(const ValueKey('drive-17')),
       140,
     );
-    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
     expect(find.textContaining('未知地点'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')).hitTestable(),
@@ -501,6 +533,12 @@ void main() {
     expect(find.textContaining('已保留现有行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     failing = false;
+    // 记录之后还有节奏卡与页尾说明：重试入口要移到视口中部，否则会被收起顶栏遮住。
+    await Scrollable.ensureVisible(
+      tester.element(find.text('重试加载更多')),
+      alignment: .5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('重试加载更多'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -508,7 +546,7 @@ void main() {
       200,
     );
     expect(find.text('进行中'), findsOneWidget);
-    expect(find.textContaining('净电耗 0 Wh/km'), findsOneWidget);
+    expect(find.textContaining('电耗 0 Wh/km'), findsOneWidget);
     expect(find.textContaining('—'), findsWidgets);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     refresh = true;
@@ -522,7 +560,7 @@ void main() {
     await tester.tap(refreshAction);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
   });
   testWidgets('自定义日期含首尾跨DST且无730天限制，前台换时区保留日历日期，默认窗口换日重算', (tester) async {
     var zone = 'America/New_York';
@@ -541,7 +579,7 @@ void main() {
       calendar: () async => CalendarContext(zone),
     );
     expect(find.text('这段时间还没有行程'), findsOneWidget);
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2024/03/09');
@@ -554,7 +592,9 @@ void main() {
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.text('2024-03-09 至 2024-03-10（含首尾）'), findsOneWidget);
+    // CP04 DF3：自定义区间只出现在焦点卡标签上（期间名 + 区间）。
+    expect(find.text('自定义区间'), findsOneWidget);
+    expect(find.text('3月9日\u201310日'), findsOneWidget);
     expect(queries.last['from'], '2024-03-08T16:00:00.000Z');
     expect(queries.last['to'], '2024-03-10T16:00:00.000Z');
     await tester.tap(find.text('近30天'));
@@ -594,8 +634,9 @@ void main() {
     await tester.tap(find.text('行笺测试车'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Y · 尾号 0002'));
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆行改为完整名称 +「Y，尾号 0002」（CP09.1 用逗号，不用「·」）。
+    await tester.ensureVisible(find.text('Y，尾号 0002'));
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('这段时间还没有行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-17')), findsNothing);
@@ -622,11 +663,11 @@ void main() {
     invalid = false;
     await tester.tap(find.text('重试行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
     failure = true;
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次快照'), findsOneWidget);
-    expect(find.textContaining('净电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
   });
 }

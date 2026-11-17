@@ -5,7 +5,7 @@ import 'statistics_test.dart' show openStats;
 import 'statistics_insights_test.dart' show comparisonClient;
 
 void main() {
-  testWidgets('A 长期章节不硬编码 316，未加载时显示破折号与进专题', (tester) async {
+  testWidgets('A 长期专题不硬编码 316，未加载时显示破折号与查看专题', (tester) async {
     await openStats(
       tester,
       comparisonClient(),
@@ -19,7 +19,10 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('316'), findsNothing);
-    expect(find.text('进专题查看'), findsOneWidget);
+    // P06 专题卡：2×2 卡片，长期无值时只写破折号与「查看专题」。
+    expect(find.byKey(const ValueKey('statistics-topic-长期')), findsOneWidget);
+    expect(find.text('— km'), findsOneWidget);
+    expect(find.text('查看专题'), findsOneWidget);
     expect(find.text('节奏'), findsOneWidget);
   });
 
@@ -39,8 +42,10 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
-    expect(tester.widget<Text>(find.text('本月 · 2026年10月')).maxLines, isNull);
-    expect(tester.widget<Text>(find.text('本月 · 2026年10月')).overflow, isNull);
+    // P06 结论卡标签：期间名 + DF3 区间。
+    final label = find.text('本月 10月1日\u201328日');
+    expect(tester.widget<Text>(label).maxLines, isNull);
+    expect(tester.widget<Text>(label).overflow, isNull);
     await tester.scrollUntilVisible(
       find.text('节奏'),
       160,

@@ -129,12 +129,17 @@ Future<void> openCostSheet(WidgetTester tester) async {
             widget is Scrollable && widget.axisDirection == AxisDirection.down,
       )
       .first;
+  // 列表页行内动作写「补录费用」；P05 充电详情把同一动作收成费用格里的
+  // 小胶囊「补录」，两个入口共用同一个底部表单。
+  final action = find.text('补录').hitTestable().evaluate().isNotEmpty
+      ? find.text('补录')
+      : find.text('补录费用');
   await tester.scrollUntilVisible(
-    find.text('补录费用').hitTestable(),
+    action.hitTestable(),
     150,
     scrollable: pageScrollable,
   );
-  await tester.tap(find.text('补录费用').hitTestable());
+  await tester.tap(action.hitTestable());
   await tester.pumpAndSettle();
 }
 

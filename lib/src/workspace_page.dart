@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'appearance.dart';
 import 'reading_scope.dart';
-import 'design/components/icon_button.dart';
-import 'design/components/data_row.dart';
+import 'design/components/button.dart';
 import 'design/components/sheet.dart';
+import 'design/components/module.dart';
 import 'design/components/nav_bar.dart';
 import 'design/components/top_bar.dart';
 import 'design/icons.dart';
@@ -131,6 +131,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
     final id = await showMileafSheet<int>(
       context: context,
       title: '选择车辆',
+      style: MileafSheetStyle.floating,
       builder: (_) => _VehicleSheet(
         session: widget.session,
         selectedId: workspace.selectedId,
@@ -346,42 +347,81 @@ class _VehicleSheet extends StatelessWidget {
   final SessionController session;
   final int? selectedId;
 
+  /// P16：车辆行显示完整名称与「Model Y，尾号 0002」类区分信息（CP09.1 用逗号，
+  /// 不用「·」拼接）；当前车辆尾部勾选；刷新车辆列表是弹层底部文字按钮。
+  static String _label(Vehicle vehicle) =>
+      vehicle.name?.trim().isNotEmpty ?? false
+      ? vehicle.name!.trim()
+      : _distinction(vehicle) ?? '车辆 ${vehicle.id}';
+
+  static String? _distinction(Vehicle vehicle) {
+    final suffix = vehicle.vinSuffix.trim();
+    final lastFour = suffix.length > 4
+        ? suffix.substring(suffix.length - 4)
+        : suffix;
+    final model = vehicle.model?.trim() ?? '';
+    final parts = [
+      if (model.isNotEmpty) model,
+      if (lastFour.isNotEmpty) '尾号 $lastFour',
+    ];
+    if (parts.isEmpty) return null;
+    return parts.isEmpty ? null : parts.join('，');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ListenableBuilder(
       listenable: session,
       builder: (context, _) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: MileafIconButton(
-              icon: MileafIconName.refresh,
-              tooltip: '刷新车辆',
-              onPressed: session.loading
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      session.loadVehicles();
-                    },
+          if (session.loading) const MileafProgressLine(),
+          MileafGroupCard(
+            clip: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final vehicle in session.vehicles)
+                  MileafGroupRow(
+                    title: _label(vehicle),
+                    // 无名称时区分信息就是名称，不再重复第二行。
+                    meta: vehicle.name?.trim().isNotEmpty ?? false
+                        ? _distinction(vehicle)
+                        : null,
+                    selected: vehicle.id == selectedId,
+                    trailing: vehicle.id == selectedId
+                        ? MileafIcon(
+                            MileafIconName.check,
+                            size: MileafIconMetrics.nav,
+                            color: colors.accentStrong,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(context, vehicle.id),
+                  ),
+              ],
             ),
           ),
-          if (session.loading) const MileafProgressLine(),
-          for (final vehicle in session.vehicles)
-            MileafDataRow(
-              title: vehicleName(vehicle),
-              meta: '车辆 ID ${vehicle.id}',
-              selected: vehicle.id == selectedId,
-              badge: vehicle.id == selectedId
-                  ? MileafIcon(
-                      MileafIconName.check,
-                      size: MileafIconMetrics.nav,
-                      color: context.colors.accentStrong,
-                    )
-                  : null,
-              onTap: () => Navigator.pop(context, vehicle.id),
+          const SizedBox(height: MileafSpace.s8),
+          Align(
+            alignment: Alignment.centerLeft,
+            // 既有的「刷新车辆」入口：仍是车辆列表唯一的刷新，改为 P16 的
+            // 弹层底部文字按钮（tooltip 与语义标签保持原词）。
+            child: Tooltip(
+              message: '刷新车辆',
+              child: MileafButton(
+                label: '刷新车辆列表',
+                kind: MileafButtonKind.ghost,
+                onPressed: session.loading
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        session.loadVehicles();
+                      },
+              ),
             ),
+          ),
         ],
       ),
     );

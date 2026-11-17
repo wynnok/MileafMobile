@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mileaf/src/design/components/chip.dart';
+import 'package:mileaf/src/design/components/state_view.dart' show InlineBanner;
 import 'package:mileaf/src/workspace.dart';
 
 import 'overview_visualization_test.dart';
@@ -44,7 +45,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('费用'));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
+    // CP02：费用趋势改称「每日已记录费用」，语义标签随之更新。
+    expect(find.bySemanticsLabel('每日已记录费用图表'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('C概览前台跨月下拉失败不把上月数据标为本月', (tester) async {
@@ -116,14 +118,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+      // 旧弹层「数据说明与更多」并入页尾「关于这些数据」，原值落在
+      // 「记录与缺失」分组里（R30.2），展开后可见。
+      await tester.scrollUntilVisible(find.text('关于这些数据'), 150);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('数据说明与更多'));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.textContaining('AC 120.00 kWh'),
-        150,
-      );
+      await tester.tap(find.text('记录与缺失'));
       await tester.pumpAndSettle();
       expect(find.textContaining('AC 120.00 kWh'), findsOneWidget);
       expect(find.textContaining('未知 —'), findsOneWidget);
@@ -161,13 +160,19 @@ void main() {
     expect(find.textContaining('960'), findsOneWidget);
     fail = false;
     final previousCalls = List<String>.from(calls);
-    await tester.scrollUntilVisible(find.text('重试补能'), -120);
-    await Scrollable.ensureVisible(
-      tester.element(find.text('重试补能')),
-      alignment: .5,
+    // CP06：重试统一为「重试」，对象由状态条位置区分；这里点补能状态条的按钮。
+    final retry = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('服务暂不可用'),
+        matching: find.byType(InlineBanner),
+      ),
+      matching: find.text('重试'),
     );
+    expect(retry, findsOneWidget);
+    await tester.scrollUntilVisible(retry, -120);
+    await Scrollable.ensureVisible(tester.element(retry), alignment: .5);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('重试补能'));
+    await tester.tap(retry);
     for (var i = 0; i < 8; i++) {
       await tester.pump();
     }
@@ -193,10 +198,11 @@ void main() {
     }, briefing: true);
     await tester.tap(find.text('近7天'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('数据说明与更多'), 150);
+    await tester.scrollUntilVisible(find.text('关于这些数据'), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多'));
-    await tester.pumpAndSettle();
+    // P01 之后概览不再有任何「充电统计」下钻入口（onStatistics 已无调用方）：
+    // R32 要求保留既有路由与回调，故断言保留，失败即疑似回归。
+    expect(find.text('充电统计'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('充电统计'), 150);
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电统计'));
@@ -289,13 +295,11 @@ void main() {
         ),
       ),
     );
-    // The server net value (158 vs 166) drives the comparison wording.
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    // The server net value (158 vs 166) drives the comparison wording;
+    // P01 把它放进「电耗对比」卡的一句比较（CP03 写「低」，不用箭头）。
+    await tester.scrollUntilVisible(find.text('电耗对比'), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('估算净电耗比前一同长区间低 8 Wh/km'), 150);
-    expect(find.text('估算净电耗比前一同长区间低 8 Wh/km'), findsOneWidget);
+    expect(find.text('电耗比前 7 天低 8 Wh/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -352,16 +356,26 @@ void main() {
     now = now.add(const Duration(seconds: 10));
     await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    await tester.scrollUntilVisible(find.text('电耗对比'), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('配对估算净电耗'), 150);
     // The failed refresh must keep both the paired value and its original range.
     expect(find.textContaining('比较暂不可用'), findsWidgets);
-    expect(find.text('配对估算净电耗'), findsOneWidget);
     expect(find.textContaining('158'), findsWidgets);
-    expect(find.text('比较区间与口径'), findsOneWidget);
+    // P01：原「一条有参照的变化 / 查看比较依据」改为「电耗对比 / 查看对比明细」；
+    // 配对数值与原区间在对比明细里仍是服务端原值。
+    await tester.tap(find.text('查看对比明细'));
+    await tester.pumpAndSettle();
+    // 每行是「标签 + 尾值」的 Row；页面其它地方也有同样的日期与数值，
+    // 取值时限定在该行内，断言强度不变。
+    Finder basisValue(String label, String value) => find.descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(Row)).first,
+      matching: find.text(value),
+    );
+    expect(basisValue('本期', '158 Wh/km'), findsOneWidget);
+    expect(basisValue('对比', '166 Wh/km'), findsOneWidget);
+    expect(basisValue('本期时间', '3月1日–15日'), findsOneWidget);
+    expect(basisValue('对比时间', '2月1日–15日'), findsOneWidget);
+    expect(find.text('统计时区'), findsOneWidget);
   });
   testWidgets('C概览切区间拒绝迟到旧补能与旧比较', (tester) async {
     final oldCharge = Completer<http.Response>(),

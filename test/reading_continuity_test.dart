@@ -81,6 +81,29 @@ ScrollPosition drivesScroll(WidgetTester tester) => tester
 
 double drivesOffset(WidgetTester tester) => drivesScroll(tester).pixels;
 
+/// P02：记录按天分组后单行更高，第二页的行在断言时可能还没构建；
+/// 先滚到它再断言，避免把「未构建」误判成「未保留」。
+Future<void> revealRow(WidgetTester tester, int id) async {
+  final row = find.byKey(ValueKey('drive-$id'));
+  if (row.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      row,
+      240,
+      scrollable: find
+          .descendant(
+            of: find.byType(DrivesPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(row);
+  // 悬浮底栏与顶栏会盖住贴边的行：先居中再断言/点击。
+  await Scrollable.ensureVisible(tester.element(row), alignment: .5);
+  await tester.pumpAndSettle();
+}
+
 /// Serves a cursor page per request; [tail] keeps a cursor after page two.
 http.Response journeyPage(http.Request request, {String? tail}) {
   final cursor = request.url.queryParameters['cursor'];
@@ -125,14 +148,21 @@ http.Response journeyRoutes(http.Request request) {
   return journeyPage(request);
 }
 
-/// Reads the journey list to the end of its loaded range. The page button is
-/// brought fully into view first, so the tap never lands off screen.
+/// P02：记录区上移到顶栏之下，按钮常在视口顶端被顶栏盖住；
+/// 先居中对齐再点，命中区才可点。
+Future<void> tapLoadMore(WidgetTester tester) async {
+  final more = find.text('加载更多行程');
+  await tester.ensureVisible(more);
+  await Scrollable.ensureVisible(tester.element(more), alignment: .5);
+  await tester.pumpAndSettle();
+  await tester.tap(more);
+  await tester.pumpAndSettle();
+}
+
+/// Reads the journey list to the end of its loaded range.
 Future<void> readToEndOfRange(WidgetTester tester) async {
-  await tester.ensureVisible(find.text('加载更多行程'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('加载更多行程'));
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('已显示全部行程'));
+  await tapLoadMore(tester);
+  await tester.ensureVisible(find.textContaining('已显示全部'));
   await tester.pumpAndSettle();
 }
 
@@ -302,7 +332,7 @@ void main() {
     now = now.add(const Duration(minutes: 6));
     await selectTab(tester, '行程');
     expect(find.text('加载更多行程'), findsNothing);
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     expect(drivesOffset(tester), closeTo(offset, 1));
     expect(tester.takeException(), isNull);
   });
@@ -354,32 +384,43 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     });
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/02/01');
     await tester.enterText(inputs.at(1), '2026/03/30');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-02-01 至 2026-03-30'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 140);
+    expect(find.text('2月1日–3月30日'), findsOneWidget);
+    // P02：节奏图移到记录之后，紧凑读数行的下钻按钮（可见文字仍是
+    // AP05 沿用的「看当天」，语义标签为「查看当天」）更靠下。
+    await tester.scrollUntilVisible(
+      find.text('看当天'),
+      140,
+      scrollable: find
+          .descendant(
+            of: find.byType(DrivesPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('看当天')),
+      alignment: .5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('看当天'));
     await tester.pumpAndSettle();
     expect(find.text('返回完整区间'), findsOneWidget);
     final day = requests.lastWhere((uri) => uri.path.endsWith('/drives'));
-    expect(find.text('已显示全部行程'), findsNothing);
-    await tester.ensureVisible(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('已显示全部行程'));
+    expect(find.textContaining('已显示全部'), findsNothing);
+    await tapLoadMore(tester);
+    await tester.ensureVisible(find.textContaining('已显示全部'));
     await tester.pumpAndSettle();
     final offset = drivesOffset(tester);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('drive-14')).hitTestable(),
-      120,
-    );
+    await revealRow(tester, 14);
     final offsetBeforeDetail = drivesOffset(tester);
+    await revealRow(tester, 14);
     await tester.tap(find.byKey(const ValueKey('drive-14')));
     await tester.pumpAndSettle();
     expect(find.byType(DriveDetailPage), findsOneWidget);
@@ -390,8 +431,8 @@ void main() {
     await selectTab(tester, '概览');
     await selectTab(tester, '行程');
     expect(find.text('返回完整区间'), findsOneWidget);
-    expect(find.textContaining('2026-02-01 至 2026-03-30'), findsOneWidget);
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.text('2月1日–3月30日'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     expect(
       requests
           .lastWhere((uri) => uri.path.endsWith('/drives'))
@@ -415,10 +456,7 @@ void main() {
       if (failing) return http.Response('', 503);
       return journeyPage(request, tail: 'page-3');
     }, now: () => now);
-    await tester.ensureVisible(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
+    await tapLoadMore(tester);
     expect(find.text('加载更多行程'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
     failing = true;
@@ -430,11 +468,8 @@ void main() {
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     failing = false;
-    await tester.ensureVisible(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
     final before = requests.length;
-    await tester.tap(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
+    await tapLoadMore(tester);
     expect(
       requests
           .skip(before)
@@ -469,7 +504,7 @@ void main() {
     );
     expect(after.queryParameters.containsKey('cursor'), isFalse);
     expect(find.text('加载更多行程'), findsOneWidget);
-    expect(find.text('已显示全部行程'), findsNothing);
+    expect(find.textContaining('已显示全部'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -543,8 +578,8 @@ void main() {
     await tester.tap(find.text('行笺测试车'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Y · 尾号 0002'));
-    await tester.tap(find.text('Y · 尾号 0002'));
+    await tester.ensureVisible(find.text('Y，尾号 0002'));
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-27')), findsOneWidget);
     expect(
@@ -564,6 +599,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-17')), findsNothing);
     expect(find.byKey(const ValueKey('drive-27')), findsOneWidget);
+    // 顶栏车辆镜片沿用 vehicleName（「Y · 尾号 0002」），弹层行才是逗号写法。
     await tester.tap(find.text('Y · 尾号 0002'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -611,7 +647,7 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     }, now: () => now);
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/03/01');
@@ -628,7 +664,7 @@ void main() {
     final after = requests.firstWhere((uri) => uri.path.endsWith('/drives'));
     expect(after.queryParameters['from'], before.queryParameters['from']);
     expect(after.queryParameters['to'], before.queryParameters['to']);
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -733,10 +769,7 @@ void main() {
       }
       return journeyPage(request, tail: 'page-3');
     }, now: () => now);
-    await tester.ensureVisible(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
+    await tapLoadMore(tester);
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
     slowArmed = true;
     await tester.tap(
@@ -914,7 +947,7 @@ void main() {
     await tester.pumpAndSettle();
     final position = drivesScroll(tester);
     expect(position.pixels, lessThanOrEqualTo(position.maxScrollExtent + 0.5));
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     expect(find.text('加载更多行程'), findsNothing);
     expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
@@ -939,7 +972,7 @@ void main() {
       return journeyPage(request);
     }, now: () => now);
     await readToEndOfRange(tester);
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     await selectTab(tester, '概览');
     now = now.add(const Duration(minutes: 10));
     holdFirstPage = true;
@@ -962,7 +995,11 @@ void main() {
     );
     final afterHide = requests.length;
     await selectTab(tester, '行程');
-    expect(find.text('已显示全部行程'), findsOneWidget, reason: '返回后补齐已读的两页，不塌回第一页');
+    expect(
+      find.textContaining('已显示全部'),
+      findsOneWidget,
+      reason: '返回后补齐已读的两页，不塌回第一页',
+    );
     expect(find.text('加载更多行程'), findsNothing);
     expect(
       requests
@@ -1057,8 +1094,7 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     }, now: () => now);
-    await tester.ensureVisible(find.byKey(const ValueKey('drive-17')));
-    await tester.pumpAndSettle();
+    await revealRow(tester, 17);
     final before = requests
         .lastWhere((uri) => uri.path.endsWith('/drives'))
         .queryParameters['from'];
@@ -1098,7 +1134,7 @@ void main() {
       reason: '旧期间的游标不得沿用到新期间',
     );
     expect(find.text('加载更多行程'), findsOneWidget);
-    expect(find.text('已显示全部行程'), findsNothing);
+    expect(find.textContaining('已显示全部'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -1109,8 +1145,7 @@ void main() {
       requests.add(request.url);
       return journeyRoutes(request);
     }, now: () => now);
-    await tester.ensureVisible(find.byKey(const ValueKey('drive-17')));
-    await tester.pumpAndSettle();
+    await revealRow(tester, 17);
     final range = requests
         .lastWhere((uri) => uri.path.endsWith('/drives'))
         .queryParameters;
@@ -1192,14 +1227,14 @@ void main() {
       );
     });
     requests.clear();
-    await tester.tap(find.text('自定义日期'));
+    await tester.tap(find.text('自定义'));
     await tester.pumpAndSettle();
     final inputs = find.byType(TextField);
     await tester.enterText(inputs.at(0), '2026/02/01');
     await tester.enterText(inputs.at(1), '2026/03/30');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-02-01 至 2026-03-30'), findsOneWidget);
+    expect(find.text('2月1日–3月30日'), findsOneWidget);
     expect(
       requests.where((uri) => uri.path.endsWith('/drives')),
       hasLength(1),

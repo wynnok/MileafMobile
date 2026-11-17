@@ -4,6 +4,9 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'currency.dart';
 import 'number_format.dart';
 
+import 'copy/dates.dart' as copy;
+import 'copy/durations.dart' as copy;
+import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -441,7 +444,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       }
     } catch (_) {
       if (mounted && ticket == sequence) {
-        setState(() => chargingError = '补能统计读取失败');
+        setState(() => chargingError = '充电统计读取失败');
       }
     }
   }
@@ -557,42 +560,49 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (topic == 'overview')
+              if (topic != 'overview')
                 Text(
                   _periodLabel(),
-                  style: context.type.label.copyWith(
-                    color: context.colors.textMuted,
-                  ),
-                )
-              else ...[
-                Text(
-                  _periodLabel(),
-                  style: context.type.label.copyWith(
-                    color: context.colors.textMuted,
+                  style: context.type.subheadline.copyWith(
+                    color: context.colors.textSecondary,
                   ),
                 ),
-              ],
-              SizedBox(
-                height: topic == 'overview' ? MileafSpace.s4 : MileafSpace.s8,
-              ),
-              StatisticsPeriodControls(
-                selection: selection,
-                calendar: workspace.calendar!,
-                now: workspace.session.now(),
-                editor: readingEditor,
-                onChanged: (s) {
-                  setState(() {
-                    selection = s;
-                    current = null;
-                    reference = null;
-                    charging = null;
-                    loadedWindow = null;
-                    point = 0;
-                    pointAt = null;
-                    pointTouched = false;
-                  });
-                  load();
-                },
+
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: StatisticsPeriodControls(
+                      selection: selection,
+                      calendar: workspace.calendar!,
+                      now: workspace.session.now(),
+                      editor: readingEditor,
+                      onChanged: (s) {
+                        setState(() {
+                          selection = s;
+                          current = null;
+                          reference = null;
+                          charging = null;
+                          loadedWindow = null;
+                          point = 0;
+                          pointAt = null;
+                          pointTouched = false;
+                        });
+                        load();
+                      },
+                    ),
+                  ),
+                  // R27/PD10：四个根页的期间行尾部各有且只有一个刷新圆钮。
+                  Padding(
+                    padding: const EdgeInsets.only(left: MileafSpace.s8),
+                    child: MileafIconButton(
+                      icon: MileafIconName.refresh,
+                      tooltip: '刷新统计',
+                      fill: MileafIconButtonFill.track,
+                      onPressed: busy ? null : () => load(force: true),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -781,9 +791,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                       SizedBox(height: MileafLayout.rootTopClearance(context)),
                     insightHeader(),
                     Padding(
+                      // §6 退让阶梯第 1 步：去掉与期间行重复的 8 间距。
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),
-                        MileafSpace.s8,
+                        0,
                         MileafLayout.pageInset(context),
                         0,
                       ),
@@ -794,29 +805,44 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                             InlineBanner(
                               message: error!,
                               tone: BannerTone.error,
-                              actionLabel: '重试统计',
+                              actionLabel: '重试',
                               onAction: () => load(force: true),
                             ),
                           if (referenceError != null)
                             InlineBanner(
                               message: referenceError!,
                               tone: BannerTone.warning,
-                              actionLabel: '重试参照',
+                              actionLabel: '重试',
                               onAction: retryReference,
                             ),
-                          _conclusionTile(
-                            stats,
-                            enhanced,
-                            paired,
-                            comparable,
-                            other,
+                          MileafModuleCard(
+                            // §6 退让阶梯：结论卡内边 12 → 8，为 360×800
+                            // 首屏预算（专题第一行完整可见）腾出高度。
+                            padding: const EdgeInsets.all(MileafSpace.s8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _conclusionTile(
+                                  stats,
+                                  enhanced,
+                                  paired,
+                                  comparable,
+                                  other,
+                                ),
+                                const SizedBox(height: MileafSpace.s8),
+                                _mileageChartTile(
+                                  enhanced,
+                                  other,
+                                  comparable,
+                                  cal,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    _mileageChartTile(enhanced, other, comparable, cal),
                     _questionTiles(enhanced, charging),
-                    _secondarySummary(stats, enhanced, paired),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         MileafLayout.pageInset(context),
@@ -842,53 +868,45 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
   }
 
-  Widget _secondarySummary(
-    legacy.DrivingStats stats,
-    insights.DrivingStats enhanced,
-    Map? paired,
-  ) {
-    final net =
-        (paired?['value_wh_km'] as num?) ?? stats.totals.consumptionWhKmNet;
-    final totals = charging?['totals'] as Map?;
-    final cost = chargingError == null ? (totals?['cost'] as num?) : null;
-    final active = enhanced.buckets.where((b) => b.distanceKm > 0).length;
-    final currencyNote = widget.currency.amountNote;
-    return Padding(
-      padding: MileafLayout.pagePadding(
-        context,
-        top: MileafSpace.s12,
-        bottom: 0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '净电耗 ${net == null ? '—' : _whKm(net)} Wh/km',
-            style: context.type.label,
-          ),
-          Text(
-            '已知支出 ${widget.currency.amountValue(cost)}',
-            style: context.type.label,
-          ),
-          Text('$active 个活跃日', style: context.type.label),
-          if (currencyNote != null)
-            Text(currencyNote, style: context.type.micro),
-        ],
-      ),
-    );
-  }
-
   /// C prints whole Wh/km, but keeps a decimal when the API value has one.
   String _whKm(num value) =>
       grouped(value, decimals: value == value.roundToDouble() ? 0 : 1);
 
+  /// CP03：比较结果写成句子（多/少/持平），不用箭头；CP02：比较对象用真实名称。
   String _mileageDeltaText(num current, num? reference, bool comparable) {
-    if (!comparable || reference == null) return '参照口径不可比，仅展示原值';
-    if (reference == 0) return '—（基期为0）';
+    final name = _compareName;
+    if (!comparable || reference == null) return '统计方式不同，暂不比较';
+    if (reference == 0) return '$name为 0，无法比较';
     final delta = current - reference;
-    if (delta.abs() < .05) return '与参照同期持平';
-    return '${delta > 0 ? '↑' : '↓'} ${grouped(delta.abs(), decimals: 1)} km · 较${_referenceRange()}';
+    final range = _referenceRange();
+    if (delta.abs() < .05) return '与$name持平';
+    // 数字与单位之间用不换行空格：窄机位（360）行尾时整段「91.3 km」一起换行，
+    // 单位不单独成行（R22）。
+    final amount = '${grouped(delta.abs(), decimals: 1)}\u00A0km';
+    return delta > 0 ? '比 $range 多 $amount' : '比 $range 少 $amount';
   }
+
+  String get _compareName =>
+      terms.compareNameFor(selection.period.name) ?? _referenceRange();
+
+  /// DF3 本期区间（本地日历）。
+  String _currentRange() {
+    final window = loadedWindow;
+    final cal = workspace.calendar;
+    if (window == null || cal == null) return '';
+    return copy.formatRange(
+      cal.local(window.from),
+      cal.local(window.to.subtract(const Duration(microseconds: 1))),
+    );
+  }
+
+  String get _periodName => switch (selection.period) {
+    StatisticsPeriod.week => '本周',
+    StatisticsPeriod.recent => '近 7 天',
+    StatisticsPeriod.month => '本月',
+    StatisticsPeriod.year => '本年',
+    StatisticsPeriod.custom => '自定义区间',
+  };
 
   String _referenceRange() {
     final query = reference?['query'] as Map?;
@@ -899,13 +917,11 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       DateTime.parse(query['to'] as String)
           .subtract(const Duration(microseconds: 1)),
     );
-    final currentYear = cal.local(loadedWindow!.from).year;
-    final year = from.year == currentYear ? '' : '${from.year}/';
-    final endYear = to.year == from.year ? '' : '${to.year}/';
-    return '$year${from.month}/${from.day}–$endYear${to.month}/${to.day}';
+    return copy.formatRange(from, to);
   }
 
-  /// A conclusion: one dominant number and a delta line, no card.
+  /// P06 结论卡：期间名与区间一句、metricLg 主值、右侧 metricSm 趟数、
+  /// 一句比较（多/少/持平）与「查看对比明细」下钻。
   Widget _conclusionTile(
     legacy.DrivingStats stats,
     insights.DrivingStats enhanced,
@@ -913,45 +929,90 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     bool comparable,
     Map<String, dynamic>? other,
   ) {
-    final reference = other == null
+    final referenceKm = other == null
         ? null
         : legacy.DrivingStats.fromJson(other).totals.distanceKm;
     final colors = context.colors;
     final type = context.type;
+    // CP06 下钻行：以「查看」开头、行尾箭头；命中区 44，视觉只占一行文字高度。
+    final drill = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: MileafLayout.touchTarget(context)),
+      child: InkWell(
+        onTap: () => selectTopic('energy'),
+        borderRadius: MileafRadius.smAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '查看对比明细',
+                style: type.control.copyWith(color: colors.accentStrong),
+              ),
+              const SizedBox(width: MileafSpace.s4),
+              MileafIcon(
+                MileafIconName.chevron,
+                size: MileafIconMetrics.inline,
+                color: colors.accentStrong,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: MileafSpace.s12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            MileafNumber(
-              value: grouped(stats.totals.distanceKm, decimals: 1),
-              unit: 'km',
-              scale: MetricValueScale.metricLg,
-            ),
-            Text('${stats.totals.drives} 趟', style: type.label),
-          ],
+        Text(
+          '$_periodName ${_currentRange()}',
+          style: type.subheadline.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: MileafSpace.s4),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: Text(
-                _mileageDeltaText(
-                  stats.totals.distanceKm,
-                  reference,
-                  comparable,
-                ),
-                style: type.label.copyWith(color: colors.textMuted),
+              child: MetricBlock(
+                value: grouped(stats.totals.distanceKm, decimals: 1),
+                unit: 'km',
+                scale: MetricValueScale.metricLg,
+                semanticLabel:
+                    '$_periodName ${grouped(stats.totals.distanceKm, decimals: 1)} 公里',
               ),
             ),
-            TextButton(
-              onPressed: () => selectTopic('energy'),
-              child: const Text('依据'),
+            const SizedBox(width: MileafSpace.s12),
+            Text(
+              '${stats.totals.drives} 趟',
+              style: type.subheadline.copyWith(color: colors.textSecondary),
             ),
           ],
         ),
+        const SizedBox(height: MileafSpace.s4),
+        // 大字（200%）时句子与下钻分两行：句子占满宽，按钮在下一行左对齐，
+        // 否则右下的按钮会把比较句挤成一字一行。
+        if (MileafLayout.largeText(context)) ...[
+          Text(
+            _mileageDeltaText(stats.totals.distanceKm, referenceKm, comparable),
+            style: type.subheadline.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Align(alignment: AlignmentDirectional.centerStart, child: drill),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _mileageDeltaText(
+                    stats.totals.distanceKm,
+                    referenceKm,
+                    comparable,
+                  ),
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
+                ),
+              ),
+              drill,
+            ],
+          ),
       ],
     );
   }
@@ -986,53 +1047,47 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     }
     if (pointTouched && times.isNotEmpty) selected = _selectedPoint(times);
     return Semantics(
-      label: '里程走势，本期与参照',
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          MileafLayout.pageInset(context),
-          MileafSpace.s8,
-          MileafLayout.pageInset(context),
-          0,
-        ),
-        child: TimeSeriesChart(
-          key: const ValueKey('statistics-insights-chart-frame'),
-          title: '里程走势',
-          unit: 'km',
-          times: times,
-          series: [
+      label: '每日里程，本期与参照',
+      child: TimeSeriesChart(
+        key: const ValueKey('statistics-insights-chart-frame'),
+        title: '每日里程',
+        unit: 'km',
+        times: times,
+        series: [
+          ChartSeries(
+            label: '本期',
+            values: values,
+            style: ChartSeriesStyle.bars,
+          ),
+          if (comparable)
             ChartSeries(
-              label: '本期',
-              values: values,
-              style: ChartSeriesStyle.bars,
+              label: '$_compareName ${_referenceRange()}',
+              values: referenceBuckets,
+              style: ChartSeriesStyle.reference,
             ),
-            if (comparable)
-              ChartSeries(
-                label: '参照 ${_referenceRange()}',
-                values: referenceBuckets,
-                style: ChartSeriesStyle.reference,
-              ),
-          ],
-          semanticsLabel: '里程走势图表',
-          showYAxis: true,
-          height: MileafSpace.chartHeight,
-          tickLabel: tick,
-          readout: (index) {
-            final value = index < values.length ? values[index] : null;
-            final reference = comparable && index < referenceBuckets.length
-                ? referenceBuckets[index]
-                : null;
-            return '${index < times.length ? tick(times[index]) : '—'} '
-                '${value == null ? '—' : grouped(value, decimals: 1)} km'
-                '${reference == null || value == null ? '' : ' / 参照 ${_referenceRange()} ${grouped(reference, decimals: 1)} km（差 ${grouped(value - reference, decimals: 1)} km）'}';
-          },
-          plotKey: const ValueKey('statistics-insights-chart'),
-          selectedIndex: selected,
-          onSelected: (index) => setState(() {
-            point = index;
-            pointAt = index < times.length ? times[index] : null;
-            pointTouched = true;
-          }),
-        ),
+        ],
+        semanticsLabel: '每日里程图表',
+        showYAxis: true,
+        height: MileafSpace.chartHeight,
+        // §6 退让阶梯第 3 步：根页焦点卡改用紧凑读数行，为专题首行腾出高度。
+        compactReadout: true,
+        tickLabel: tick,
+        readout: (index) {
+          final value = index < values.length ? values[index] : null;
+          final reference = comparable && index < referenceBuckets.length
+              ? referenceBuckets[index]
+              : null;
+          return '${index < times.length ? tick(times[index]) : '—'} '
+              '${value == null ? '—' : grouped(value, decimals: 1)} km'
+              '${reference == null || value == null ? '' : ' / 参照 ${_referenceRange()} ${grouped(reference, decimals: 1)} km（差 ${grouped(value - reference, decimals: 1)} km）'}';
+        },
+        plotKey: const ValueKey('statistics-insights-chart'),
+        selectedIndex: selected,
+        onSelected: (index) => setState(() {
+          point = index;
+          pointAt = index < times.length ? times[index] : null;
+          pointTouched = true;
+        }),
       ),
     );
   }
@@ -1042,6 +1097,27 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   int _selectedPoint(List<DateTime> times) =>
       bucketIndexAt(times, pointAt) ?? point.clamp(0, times.length - 1);
 
+  /// 专题卡片的 metricSm 值：数值 + 单位永不拆行（R21.5），不引入 LayoutBuilder。
+  Widget _topicValue(String value, String? unit) {
+    final colors = context.colors;
+    final type = context.type;
+    return Text.rich(
+      TextSpan(
+        text: value,
+        style: type.metricSm.copyWith(color: colors.text),
+        children: [
+          if (unit != null)
+            TextSpan(
+              text: ' $unit',
+              style: type.subheadline.copyWith(color: colors.textSecondary),
+            ),
+        ],
+      ),
+      maxLines: 1,
+    );
+  }
+
+  /// P06 专题卡片：入口图标 + 名称（headline）+ 一个 metricSm 值 + 一句脚注。
   Widget _chapter(
     String title,
     MileafIconName icon,
@@ -1052,40 +1128,42 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   ) {
     final colors = context.colors;
     final type = context.type;
-    return InkWell(
-      key: ValueKey('statistics-topic-$title'),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
+    return MileafModuleCard(
+      padding: const EdgeInsets.all(MileafSpace.s8),
+      child: InkWell(
+        key: ValueKey('statistics-topic-$title'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(MileafRadius.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
+                MileafIcon(
+                  icon,
+                  size: MileafIconMetrics.nav,
+                  color: colors.accentStrong,
+                ),
+                const SizedBox(width: MileafSpace.s8),
                 Expanded(
                   child: Text(
                     title,
-                    style: type.body.copyWith(
-                      color: colors.text,
-                      fontWeight: MileafType.weightSemiBold,
-                    ),
+                    style: type.headline.copyWith(color: colors.text),
                   ),
-                ),
-                MileafIcon(
-                  icon,
-                  size: MileafIconMetrics.inline,
-                  color: colors.textFaint,
                 ),
               ],
             ),
-            const SizedBox(height: MileafSpace.s8),
-            MileafNumber(
-              value: value,
-              unit: unit,
-              scale: MetricValueScale.metricMd,
-            ),
             const SizedBox(height: MileafSpace.s4),
-            Text(note, style: type.micro.copyWith(color: colors.textMuted)),
+            // 页面级等价数值：MileafNumber 内部用 LayoutBuilder，无法参与
+            // IntrinsicHeight 的固有尺寸测量（D-AP07-06）。这里用同一对角色
+            // （metricSm 数值 + subheadline 单位）直接排版，视觉与两列网格的
+            // metricSm 数值一致，同时让同一行两张卡可以拉伸到等高。
+            _topicValue(value, unit),
+            const SizedBox(height: MileafSpace.s4),
+            Text(
+              note,
+              style: type.footnote.copyWith(color: colors.textSecondary),
+            ),
           ],
         ),
       ),
@@ -1133,7 +1211,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         MileafIconName.chart,
         net == null ? '—' : _whKm(net),
         net == null ? null : 'Wh/km',
-        '配对估算\n${_netDeltaNote(net, prior, comparable)}',
+        '有效行程估算\n${_netDeltaNote(net, prior, comparable)}',
         () => selectTopic('energy'),
       ),
       _chapter(
@@ -1143,9 +1221,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         null,
         chargingError ??
             (energy == null
-                ? '补能统计读取失败'
+                ? '充电统计读取失败'
                 : '${known ?? '—'} / ${sessions ?? '—'} 次有记录 · '
-                      '${grouped(energy, decimals: 1)} kWh'
+                      // R22：单位不单独成行，数字与单位之间用不换行空格。
+                      '${grouped(energy, decimals: 1)}\u00A0kWh'
                       '${currencyNote == null ? '' : ' · $currencyNote'}'),
         () => selectTopic('charging'),
       ),
@@ -1154,63 +1233,53 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         MileafIconName.battery,
         '—',
         'km',
-        '进专题查看',
+        '查看专题',
         () => selectTopic('long'),
       ),
     ];
-    final colors = context.colors;
     final inset = MileafLayout.pageInset(context);
-    Widget cell(
-      Widget child, {
-      bool rightLine = false,
-      bool bottomLine = false,
-      bool leftPad = false,
-    }) => Container(
-      decoration: BoxDecoration(
-        border: Border(
-          right: rightLine ? BorderSide(color: colors.line) : BorderSide.none,
-          bottom: bottomLine ? BorderSide(color: colors.line) : BorderSide.none,
-        ),
-      ),
-      padding: EdgeInsets.only(
-        left: leftPad ? MileafSpace.s12 : 0,
-        right: leftPad ? 0 : MileafSpace.s12,
-      ),
-      child: child,
-    );
-    Widget pair(int left, int right, {required bool bottomLine}) => Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: cell(items[left], rightLine: true, bottomLine: bottomLine),
-        ),
-        Expanded(
-          child: cell(items[right], bottomLine: bottomLine, leftPad: true),
-        ),
-      ],
-    );
-    return Padding(
-      padding: EdgeInsets.fromLTRB(inset, 0, inset, 0),
-      child: Column(
+    // R24：卡片网格同一行等高，格与格之间只有 12；行级拉伸由 IntrinsicHeight
+    // 取两卡较高者，避免「元素高低不一样」。
+    Widget pair(int left, int right) => IntrinsicHeight(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (MileafLayout.largeText(context))
-            Column(
+          Expanded(child: items[left]),
+          const SizedBox(width: MileafSpace.s12),
+          Expanded(child: items[right]),
+        ],
+      ),
+    );
+    return Padding(
+      // R24：结论卡（含图表 X 轴标签）与专题网格之间留明确分区距，避免
+      // 轴标签读成压在专题卡顶缘上。用户裁定只要 ≥12；360 宽取 12，≥390 取 20
+      // ——360×800 的首屏预算（专题第一行两张卡完整可见）不放宽。
+      padding: EdgeInsets.fromLTRB(
+        inset,
+        MediaQuery.sizeOf(context).width >= MileafBreakpoints.wide
+            ? MileafSpace.s20
+            : MileafSpace.s12,
+        inset,
+        0,
+      ),
+      child: MileafLayout.largeText(context)
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0)
-                    Divider(height: 1, thickness: 1, color: colors.line),
+                  if (i > 0) const SizedBox(height: MileafSpace.s12),
                   items[i],
                 ],
               ],
             )
-          else ...[
-            pair(0, 1, bottomLine: true),
-            pair(2, 3, bottomLine: false),
-          ],
-        ],
-      ),
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                pair(0, 1),
+                const SizedBox(height: MileafSpace.s12),
+                pair(2, 3),
+              ],
+            ),
     );
   }
 
@@ -1222,109 +1291,82 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     return '较参照${delta < 0 ? '低' : '高'} ${grouped(delta.abs())} Wh/km';
   }
 
-  /// C keeps APIs, coverage and reference provenance behind 数据说明.
+  /// R30.2 页尾「关于这些数据」：口径与估算、记录与缺失、时间与时区、
+  /// 来源与生成时间、技术详情（可复制）。
   Widget _moreSection(
     CalendarContext cal,
     legacy.DrivingStats stats,
     insights.DrivingStats enhanced,
     Map? paired,
     Map<String, dynamic>? other,
-  ) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s8),
-    title: const Text('数据说明与更多'),
-    children: [
-      Text('活跃 ${enhanced.buckets.where((b) => b.distanceKm > 0).length} 天'),
-      MetricGrid(
-        children: [
-          MetricBlock(
-            label: '行驶净电耗（配对估算）',
-            value: '${paired?['value_wh_km'] ?? '—'}',
-            unit: 'Wh/km',
-            note:
-                '有效${enhanced.totals.netConsumptionPaired.eligibleDrives}趟 · ${enhanced.totals.comparisonQuality.distanceCoverage == null ? '里程覆盖未知' : '里程覆盖${(enhanced.totals.comparisonQuality.distanceCoverage! * 100).toStringAsFixed(0)}%'}',
-          ),
-          MetricBlock(
-            label: '已知充电支出',
-            value: chargingError != null
-                ? '—'
-                : widget.currency.amountValue(
-                    (charging?['totals'] as Map?)?['cost'] as num?,
-                  ),
-            note:
-                chargingError ??
-                '费用有记录 ${(charging?['totals'] as Map?)?['cost_known_sessions'] ?? '—'}/${(charging?['totals'] as Map?)?['sessions'] ?? '—'} 次${widget.currency.amountNote == null ? '' : ' · ${widget.currency.amountNote}'}',
-          ),
-          MetricBlock(
-            label: '记录驾驶时长',
-            value: enhanced.totals.drivingCoverage.durationKnownMin == null
-                ? '—'
-                : enhanced.totals.drivingCoverage.durationKnownMin!
-                      .toStringAsFixed(0),
-            unit: enhanced.totals.drivingCoverage.durationKnownMin == null
-                ? null
-                : '分钟',
-            note:
-                '${enhanced.totals.drivingCoverage.durationKnownDrives}/${enhanced.totals.drivingCoverage.completedDrives}趟有记录',
-          ),
-          MetricBlock(
-            label: '已完成行程',
-            value: '${enhanced.totals.drivingCoverage.completedDrives}',
-            unit: '趟',
-            note: '${enhanced.totals.drivingCoverage.ongoingDrives}趟进行中，未计入结果',
-          ),
-          MetricBlock(
-            label: '估算行驶能量',
-            value: stats.totals.energyKwh?.toStringAsFixed(2) ?? '—',
-            unit: stats.totals.energyKwh == null ? null : 'kWh',
-            note:
-                '${enhanced.totals.drivingCoverage.netEnergyKnownDrives}趟能量有记录',
-          ),
-          MetricBlock(
-            label: '能量有效里程',
-            value: enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm
-                ?.toStringAsFixed(1),
-            unit:
-                enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm == null
-                ? null
-                : 'km',
-            note: '与全里程分开核对',
-          ),
-        ],
-      ),
-      if (other != null)
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: const Text('参照原值与质量'),
-          children: [
-            Text(
-              '参照里程 ${legacy.DrivingStats.fromJson(other).totals.distanceKm} km',
-            ),
-            Text(
-              '参照配对净电耗 ${other['totals']['net_consumption_paired']['value_wh_km'] ?? '—'} Wh/km',
-            ),
-            Text(
-              '质量 ${other['totals']['comparison_quality']['sample_status']} · ${other['range_kind']}',
-            ),
-            Text(
-              '${other['query']['from']} — ${other['query']['to']} · ${other['query']['tz']}',
-            ),
-            Text(
-              '参照生成 ${cal.local(insights.DrivingStats.fromJson(other).asOf)}；本期/参照分别生成，不保证原子快照',
-            ),
-          ],
+  ) {
+    final active = enhanced.buckets.where((b) => b.distanceKm > 0).length;
+    final coverage = enhanced.totals.comparisonQuality.distanceCoverage;
+    final durationMin = enhanced.totals.drivingCoverage.durationKnownMin;
+    final totals = charging?['totals'] as Map?;
+    final known = totals?['cost_known_sessions'];
+    final sessions = totals?['sessions'];
+    return MileafDataNotes(
+      groups: [
+        MileafDataNoteGroup(
+          category: DataNoteCategory.caliber,
+          note: [
+            '电耗按续航差和车辆效率估算。',
+            if (paired?['value_wh_km'] != null)
+              '有效行程电耗 ${paired!['value_wh_km']} Wh/km。',
+            '耗时与抽样由服务器汇总，非车辆原始采样。',
+          ].join(''),
         ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: const Text('数据说明'),
-        children: [
-          Text(
-            '${cal.identifier} · 行程按开始日归期\n本期 ${cal.local(enhanced.query.from)} — ${cal.local(enhanced.query.to)}\n生成时间 ${cal.local(enhanced.asOf)}，非车辆采样时间',
+        MileafDataNoteGroup(
+          category: DataNoteCategory.records,
+          note: [
+            '用车 $active 天。',
+            '已完成行程 ${enhanced.totals.drivingCoverage.completedDrives} 趟，'
+                '${enhanced.totals.drivingCoverage.ongoingDrives} 趟进行中，未计入结果。',
+            if (durationMin != null)
+              '有记录的驾驶时长 ${copy.duration(Duration(minutes: durationMin.round()))}，'
+                  '${enhanced.totals.drivingCoverage.durationKnownDrives} 趟有记录。',
+            if (coverage != null)
+              '里程覆盖 ${(coverage * 100).toStringAsFixed(0)}%。',
+            if (sessions != null)
+              '$sessions 次充电中 $known 次有费用。'
+                  '${widget.currency.amountNote ?? ''}',
+            '估算行驶能量 ${stats.totals.energyKwh?.toStringAsFixed(2) ?? '—'} kWh，'
+                '能量有效里程 ${enhanced.totals.drivingCoverage.netEnergyKnownDistanceKm?.toStringAsFixed(1) ?? '—'} km。',
+          ].join(''),
+        ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.time,
+          note:
+              '统计时区 ${cal.identifier}。本期 ${_currentRange()}，'
+              '行程按开始日期统计。',
+        ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.source,
+          note:
+              '数据生成时间 ${copy.formatPrecise(cal.local(enhanced.asOf))}，'
+              '不是车辆采样时间。',
+        ),
+        if (other != null)
+          MileafDataNoteGroup(
+            category: DataNoteCategory.technical,
+            copyable: true,
+            note: [
+              '对比时间 ${_referenceRange()}',
+              '对比里程 ${legacy.DrivingStats.fromJson(other).totals.distanceKm} km',
+              '对比有效行程电耗 '
+                  '${other['totals']['net_consumption_paired']['value_wh_km'] ?? '—'} Wh/km',
+              '样本 ${other['totals']['comparison_quality']['sample_status']}，'
+                  '${other['range_kind']}',
+              '区间 ${other['query']['from']} — ${other['query']['to']}，'
+                  '时区 ${other['query']['tz']}',
+              '对比生成 ${cal.local(insights.DrivingStats.fromJson(other).asOf)}；'
+                  '本期与对比分别生成，不是同一快照',
+            ].join('\n'),
           ),
-        ],
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 bool canCompare(

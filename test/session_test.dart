@@ -233,7 +233,8 @@ void main() {
     expect(find.text('命名车辆'), findsOneWidget);
     await tester.tap(find.text('命名车辆'));
     await tester.pumpAndSettle();
-    expect(find.text('Y · 尾号 1234'), findsOneWidget);
+    // P16：车辆行写「型号，尾号 1234」（CP09.1 逗号，不用「·」）。
+    expect(find.text('Y，尾号 1234'), findsOneWidget);
     expect(find.text('车辆 3'), findsOneWidget);
     expect(find.textContaining('VIN-SYNTHETIC'), findsNothing);
   });
@@ -449,6 +450,6 @@ void main() {
     expect(find.text('行笺测试车'), findsOneWidget);
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    expect(find.text('Y · 尾号 0002'), findsOneWidget);
+    expect(find.text('Y，尾号 0002'), findsOneWidget);
   });
 }

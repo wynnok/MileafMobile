@@ -57,9 +57,12 @@ void main() {
       tester.getCenter(arrow).dx,
       greaterThan(tester.getRect(find.text('地图')).right),
     );
-    await tester.scrollUntilVisible(find.text('服务信息'), 160);
-    await tester.tap(find.text('服务信息'));
+    // 行由 ListView 懒构建：要滚到可命中（真实可达）再点。
+    await tester.scrollUntilVisible(find.text('服务信息').hitTestable(), 160);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('服务信息').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Mileaf Server'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

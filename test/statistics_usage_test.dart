@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture;
+
 import 'package:mileaf/src/design/semantic.dart';
 
 Map<String, dynamic> setCoverage() => {
@@ -157,6 +158,12 @@ void main() {
     expect(usage.queryParameters['tz'], 'Asia/Shanghai');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+    // 返回后首页沿用自己的阅读位置：专题卡可能在视口上方，先往上滚回来。
+    for (var i = 0; i < 20; i++) {
+      if (find.text('节奏').hitTestable().evaluate().isNotEmpty) break;
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 200));
+      await tester.pumpAndSettle();
+    }
     expect(find.text('节奏').hitTestable(), findsWidgets);
     expect(find.text('这段时间的用车节奏'), findsNothing);
   });
@@ -247,9 +254,7 @@ void main() {
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets('${brightness.name} 周柱全部是强调色实色，不靠淡化其他星期突出峰值', (
-      tester,
-    ) async {
+    testWidgets('${brightness.name} 周柱全部是强调色实色，不靠淡化其他星期突出峰值', (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -275,9 +280,7 @@ void main() {
       // than on a widget geometry constant.
       final semantics = tester.ensureSemantics();
       try {
-        final colors = MileafColors.of(
-          tester.element(find.text('一周的用车节奏')),
-        );
+        final colors = MileafColors.of(tester.element(find.text('一周的用车节奏')));
         final checked = <String>[];
         for (final day in const ['一', '二', '三', '四', '五', '六', '日']) {
           final bar = find.descendant(
@@ -293,8 +296,7 @@ void main() {
             (tester.widget<Container>(bar.first).decoration! as BoxDecoration)
                 .color,
             colors.accent,
-            reason:
-                '${brightness.name}: 周$day 的柱应是强调色实色，而不是按峰值淡化',
+            reason: '${brightness.name}: 周$day 的柱应是强调色实色，而不是按峰值淡化',
           );
         }
         expect(

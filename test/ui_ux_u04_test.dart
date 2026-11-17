@@ -56,13 +56,27 @@ void main() {
         ),
       );
     }, briefing: true);
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 200);
-    await tester.tap(find.text('数据说明与更多').hitTestable());
+    // P01：摘要失败不影响统计卡与「关于这些数据」的驾驶/充电读数。
+    await tester.scrollUntilVisible(find.text('本期账目').hitTestable(), 200);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.textContaining('趟'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('充电'),
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('关于这些数据').hitTestable(), 200);
+    await tester.scrollUntilVisible(find.text('口径与估算').hitTestable(), 200);
+    await tester.tap(find.text('口径与估算').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('驾驶统计').hitTestable(), 200);
-    expect(find.text('估算驾驶消耗'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('充电统计').hitTestable(), 200);
-    expect(find.text('充电次数'), findsOneWidget);
+    expect(find.textContaining('估算耗电'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -78,14 +92,21 @@ void main() {
       }
       return overviewResponse(overviewFixture('charging-stats'));
     }, briefing: true);
-    await tester.scrollUntilVisible(find.text('补能').hitTestable(), 200);
-    await tester.tap(find.text('补能').hitTestable());
+    // CP02：分段短标签改成「充电」，图表标题「每日充电量 / 每日已记录费用」。
+    await tester.scrollUntilVisible(
+      find.widgetWithText(StatusChip, '充电').hitTestable(),
+      200,
+    );
+    await tester.tap(find.widgetWithText(StatusChip, '充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('充入电量趋势图表'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('费用').hitTestable(), -120);
-    await tester.tap(find.text('费用').hitTestable());
+    expect(find.bySemanticsLabel('每日充电量图表'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(StatusChip, '费用').hitTestable(),
+      -120,
+    );
+    await tester.tap(find.widgetWithText(StatusChip, '费用').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
+    expect(find.bySemanticsLabel('每日已记录费用图表'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -105,12 +126,13 @@ void main() {
           monthTrend(firstDistance: reference ? 20 : 30.5),
         );
       }, briefing: true);
+      // P01/R29：读值第三行把参照区间与差值写成一句（CP03 多/少 + CP04 DF3）。
       await tester.scrollUntilVisible(
-        find.textContaining('差 +10.5 km').hitTestable(),
+        find.textContaining('多 10.5 km').hitTestable(),
         200,
       );
       expect(
-        find.textContaining('上月同期 02.01 — 02.15，20.0 km'),
+        find.text('上月同期 2月1日–15日 20 km，多 10.5 km'),
         findsOneWidget,
         reason: '参照行的区间与取值仍在同一行成对出现',
       );
