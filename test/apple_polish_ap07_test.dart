@@ -987,7 +987,7 @@ void main() {
       );
       expect(sheet.style, MileafSheetStyle.floating);
       expect(find.text('刷新车辆列表'), findsOneWidget);
-      expect(find.byTooltip('刷新车辆'), findsOneWidget);
+      expect(find.byTooltip('刷新车辆列表'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

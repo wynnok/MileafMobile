@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../design/components/components.dart';
 import '../design/icons.dart';
 import '../design/layout.dart';
-import '../design/motion.dart';
 import '../design/semantic.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -31,11 +30,6 @@ class MapPrivacyPage extends StatefulWidget {
 }
 
 class _MapPrivacyPageState extends State<MapPrivacyPage> {
-  /// Folded chevron points down (0.25), expanded points up (0.75); 180° apart
-  /// (Spec §6.5).
-  static const _chevronFolded = .25;
-  static const _chevronExpanded = .75;
-
   final _input = TextEditingController();
   bool _editing = false;
   bool _visible = false;
@@ -164,18 +158,28 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (keys != null) ...[
-                      _eyebrow(context, '本机配置'),
+                      const MileafGroupHeader(title: '本机配置'),
                       const SizedBox(height: MileafSpace.s8),
-                      ..._configuration(context, keys),
+                      MileafGroupCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _configuration(context, keys),
+                        ),
+                      ),
                       const SizedBox(height: MileafSpace.section),
                     ],
-                    _eyebrow(context, '申请帮助'),
+                    const MileafGroupHeader(title: '申请帮助'),
                     const SizedBox(height: MileafSpace.s8),
-                    _help(context),
+                    MileafGroupCard(child: _help(context)),
                     const SizedBox(height: MileafSpace.section),
-                    _eyebrow(context, '地图隐私'),
+                    const MileafGroupHeader(title: '地图隐私'),
                     const SizedBox(height: MileafSpace.s8),
-                    ..._privacy(context),
+                    MileafGroupCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _privacy(context),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -183,61 +187,6 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           ),
         ),
       ),
-    );
-  }
-
-  /// Group label above each of the three blocks; the AppBar keeps the only
-  /// 18px title on this page (ADR 0010 D1).
-  Widget _eyebrow(BuildContext context, String text) =>
-      Semantics(header: true, child: Text(text, style: context.type.label));
-
-  /// 16px chevron driven by this page: `ExpansionTile` only rotates its own
-  /// built-in caret, never a supplied `trailing` (Spec §0).
-  Widget _chevron(BuildContext context, bool expanded) => AnimatedRotation(
-    turns: expanded ? _chevronExpanded : _chevronFolded,
-    duration: MileafLayout.motion(context, MileafDurations.chevron),
-    curve: MileafCurves.enter,
-    child: MileafIcon(
-      MileafIconName.chevron,
-      size: MileafIconMetrics.inline,
-      color: context.colors.textFaint,
-    ),
-  );
-
-  /// Both disclosure blocks share one borderless, hairline-only tile; the
-  /// page owns the expand state so the chevron can rotate.
-  Widget _fold(
-    BuildContext context, {
-    required String title,
-    required bool expanded,
-    required ValueChanged<bool> onExpansionChanged,
-    required List<Widget> children,
-  }) {
-    final type = context.type;
-    final colors = context.colors;
-    return ExpansionTile(
-      expansionAnimationStyle: const AnimationStyle(
-        duration: Duration.zero,
-        reverseDuration: Duration.zero,
-      ),
-      title: Text(
-        title,
-        style: type.body.copyWith(
-          color: colors.text,
-          fontWeight: MileafType.weightSemiBold,
-        ),
-      ),
-      trailing: _chevron(context, expanded),
-      onExpansionChanged: onExpansionChanged,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
-          ),
-        ),
-      ],
     );
   }
 
@@ -249,10 +198,9 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
       ..._keyBlock(context, keys),
       if (saved != null) ...[
         const SizedBox(height: MileafSpace.s12),
-        MileafDataRow(
+        MileafGroupRow(
           title: '清除已保存的 Key',
           destructive: true,
-          bottomLine: true,
           enabled: !keys.busy,
           onTap: () => _clear(keys),
         ),
@@ -294,10 +242,10 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
                 const SizedBox(height: MileafSpace.s4),
                 Text(
                   keys.restartRequired ? '本次运行仍用原 Key' : '保存在本机 · 所有车辆与站点共用',
-                  style: type.micro.copyWith(
+                  style: type.footnote.copyWith(
                     color: keys.restartRequired
                         ? colors.warning
-                        : colors.textMuted,
+                        : colors.textSecondary,
                   ),
                 ),
               ],
@@ -309,15 +257,12 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
   }
 
   List<Widget> _keyBlock(BuildContext context, MapKeyController keys) {
-    final type = context.type;
-    final colors = context.colors;
     final saved = keys.savedKey;
     if (keys.readFailed) {
       return [
-        MileafDataRow(
+        MileafGroupRow(
           title: '重试读取配置',
-          showChevron: true,
-          bottomLine: true,
+          trailing: _chevron(context),
           enabled: !keys.busy,
           onTap: keys.restore,
         ),
@@ -327,26 +272,41 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
     return [
       if (keys.busy) const MileafProgressLine(),
       if (saved != null && !_editing)
-        MileafDataRow(
-          title: '${widget.binding.platformLabel} 地图 Key',
-          // 脱敏末四位；比整段掩码更短，200% 字号下不撑破行尾。
-          badge: Text(
-            '•••• ${saved.substring(saved.length > 4 ? saved.length - 4 : 0)}',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          showChevron: true,
-          bottomLine: true,
-          enabled: !keys.busy,
-          onTap: () => setState(() {
-            _editing = true;
-            _error = null;
-            _notice = null;
-          }),
-        )
+        _savedKeyRow(context, keys, saved)
       else
         _keyForm(context, keys),
     ];
   }
+
+  /// 已保存折叠态的 Key 摘要行；大字时掩码移到标题下第二行
+  /// （同设置页 D-AP07-05 的大字重排处理）。
+  Widget _savedKeyRow(
+    BuildContext context,
+    MapKeyController keys,
+    String saved,
+  ) {
+    final stacked = MileafLayout.largeText(context);
+    final masked =
+        '•••• ${saved.substring(saved.length > 4 ? saved.length - 4 : 0)}';
+    return MileafGroupRow(
+      title: '${widget.binding.platformLabel} 地图 Key',
+      value: stacked ? null : masked,
+      meta: stacked ? masked : null,
+      trailing: _chevron(context),
+      enabled: !keys.busy,
+      onTap: () => setState(() {
+        _editing = true;
+        _error = null;
+        _notice = null;
+      }),
+    );
+  }
+
+  Widget _chevron(BuildContext context) => MileafIcon(
+    MileafIconName.chevron,
+    size: MileafIconMetrics.nav,
+    color: context.colors.textFaint,
+  );
 
   Widget _keyForm(BuildContext context, MapKeyController keys) {
     final type = context.type;
@@ -378,15 +338,19 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           ),
         ),
         const SizedBox(height: MileafSpace.s12),
-        FilledButton(
+        MileafButton(
+          label: keys.busy ? '正在保存…' : '保存 Key',
+          expand: true,
+          loading: keys.busy,
           onPressed: keys.busy ? null : () => _save(keys),
-          child: Text(keys.busy ? '正在保存…' : '保存 Key'),
         ),
         if (saved != null) ...[
           const SizedBox(height: MileafSpace.s8),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(
+            child: MileafButton(
+              label: '取消更换',
+              kind: MileafButtonKind.ghost,
               onPressed: keys.busy
                   ? null
                   : () => setState(() {
@@ -395,7 +359,6 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
                       _error = null;
                       _visible = false;
                     }),
-              child: const Text('取消更换'),
             ),
           ),
         ],
@@ -424,53 +387,55 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
   Widget _help(BuildContext context) {
     final type = context.type;
     final colors = context.colors;
-    return _fold(
-      context,
-      title: '如何申请 Key',
+    return MileafDisclosure(
+      label: '如何申请 Key',
       expanded: _helpExpanded,
-      onExpansionChanged: (expanded) {
+      onExpandedChanged: (expanded) {
         setState(() => _helpExpanded = expanded);
         if (expanded && _identity == null) _readBinding();
       },
-      children: [
-        const _StepRow(number: '1', text: '登录高德开放平台，创建应用并添加 Key。'),
-        const SizedBox(height: MileafSpace.s8),
-        _StepRow(
-          number: '2',
-          text:
-              '选择「${widget.binding.platformLabel} 平台 SDK」，'
-              '按下列信息绑定当前安装包。',
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        const _StepRow(number: '3', text: '将申请的 Key 粘贴到上方并保存。'),
-        const SizedBox(height: MileafSpace.s12),
-        if (_bindingBusy) const MileafProgressLine(),
-        if (_bindingFailed)
-          InlineBanner(
-            tone: BannerTone.error,
-            message: '安装包绑定信息读取失败',
-            actionLabel: '重试读取绑定信息',
-            onAction: _readBinding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _StepRow(number: '1', text: '登录高德开放平台，创建应用并添加 Key。'),
+          const SizedBox(height: MileafSpace.s8),
+          _StepRow(
+            number: '2',
+            text:
+                '选择「${widget.binding.platformLabel} 平台 SDK」，'
+                '按下列信息绑定当前安装包。',
           ),
-        for (final entry
-            in _identity?.entries ?? const <MapEntry<String, String>>[])
+          const SizedBox(height: MileafSpace.s8),
+          const _StepRow(number: '3', text: '将申请的 Key 粘贴到上方并保存。'),
+          const SizedBox(height: MileafSpace.s12),
+          if (_bindingBusy) const MileafProgressLine(),
+          if (_bindingFailed)
+            InlineBanner(
+              tone: BannerTone.error,
+              message: '安装包绑定信息读取失败',
+              actionLabel: '重试读取绑定信息',
+              onAction: _readBinding,
+            ),
+          for (final entry
+              in _identity?.entries ?? const <MapEntry<String, String>>[])
+            MileafCopyRow(
+              label: entry.key,
+              value: entry.value,
+              onCopy: (text) => _copy(text, entry.key),
+            ),
+          const SizedBox(height: MileafSpace.s12),
+          Text(
+            '按当前安装包信息申请；重签名或更换渠道后需重新核对',
+            style: type.footnote.copyWith(color: colors.textSecondary),
+          ),
           MileafCopyRow(
-            label: entry.key,
-            value: entry.value,
-            onCopy: (text) => _copy(text, entry.key),
+            label: '高德控制台链接',
+            value: 'console.amap.com/dev/key/app',
+            copyText: 'https://console.amap.com/dev/key/app',
+            onCopy: (text) => _copy(text, '高德控制台链接'),
           ),
-        const SizedBox(height: MileafSpace.s12),
-        Text(
-          '按当前安装包信息申请；重签名或更换渠道后需重新核对',
-          style: type.micro.copyWith(color: colors.textMuted),
-        ),
-        MileafCopyRow(
-          label: '高德控制台链接',
-          value: 'console.amap.com/dev/key/app',
-          copyText: 'https://console.amap.com/dev/key/app',
-          onCopy: (text) => _copy(text, '高德控制台链接'),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -480,14 +445,14 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
     final granted = widget.consent.isGrantedFor(widget.providerName);
     final policy = mapPrivacyUrl(widget.providerName);
     return [
-      MileafDataRow(
+      MileafGroupRow(
         title: '底图授权',
         meta: granted ? '当前已允许加载底图' : '当前未允许加载底图',
         bottomLine: true,
       ),
-      MileafDataRow(
+      MileafGroupRow(
         title: granted ? '关闭底图' : '重新启用地图',
-        showChevron: true,
+        trailing: _chevron(context),
         bottomLine: true,
         onTap: () async {
           if (granted) {
@@ -501,31 +466,33 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           }
         },
       ),
-      _fold(
-        context,
-        title: '数据使用说明',
+      MileafDisclosure(
+        label: '数据使用说明',
         expanded: _privacyDetailsExpanded,
-        onExpansionChanged: (expanded) =>
+        onExpandedChanged: (expanded) =>
             setState(() => _privacyDetailsExpanded = expanded),
-        children: [
-          Text(
-            '底图由${widget.providerName}提供：加载时会向其处理 IP、设备/网络信息和当前地图范围。'
-            '行笺不向地图发送站点凭据，也不申请手机定位权限。',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s12),
-          Text(
-            '关闭后，新打开的地图使用路线速写。'
-            '已加载的地图 SDK 内存状态可能持续到进程结束。',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          if (policy.isNotEmpty)
-            MileafCopyRow(
-              label: '隐私政策链接',
-              value: policy,
-              onCopy: (text) => _copy(text, '隐私政策链接'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '底图由${widget.providerName}提供：加载时会向其处理 IP、设备/网络信息和当前地图范围。'
+              '行笺不向地图发送站点凭据，也不申请手机定位权限。',
+              style: type.body.copyWith(color: colors.textSecondary),
             ),
-        ],
+            const SizedBox(height: MileafSpace.s12),
+            Text(
+              '关闭后，新打开的地图使用路线速写。'
+              '已加载的地图 SDK 内存状态可能持续到进程结束。',
+              style: type.body.copyWith(color: colors.textSecondary),
+            ),
+            if (policy.isNotEmpty)
+              MileafCopyRow(
+                label: '隐私政策链接',
+                value: policy,
+                onCopy: (text) => _copy(text, '隐私政策链接'),
+              ),
+          ],
+        ),
       ),
     ];
   }
@@ -545,7 +512,9 @@ class _StepRow extends StatelessWidget {
         width: MileafSpace.s20,
         child: Text(
           number,
-          style: context.type.label.copyWith(color: context.colors.textFaint),
+          style: context.type.subheadline.copyWith(
+            color: context.colors.textFaint,
+          ),
         ),
       ),
       const SizedBox(width: MileafSpace.s8),

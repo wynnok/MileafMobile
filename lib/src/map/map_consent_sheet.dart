@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../design/components/components.dart';
+import '../design/icons.dart';
+import '../design/semantic.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
 import 'map_consent.dart';
 
 const amapPrivacyUrl = 'https://lbs.amap.com/pages/privacy/';
@@ -8,63 +13,70 @@ const amapPrivacyUrl = 'https://lbs.amap.com/pages/privacy/';
 String mapPrivacyUrl(String providerName) =>
     providerName.contains('高德') ? amapPrivacyUrl : '';
 
+const _declineLabel = '暂不';
+
 Future<void> showMapConsentSheet(
   BuildContext context,
   MapConsentController consent, {
   required String providerName,
 }) async {
-  final granted = await showModalBottomSheet<bool>(
+  final granted = await showMileafSheet<bool>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => _MapConsentSheet(providerName: providerName),
+    // 标题行文案冻结（CP12 地图隐私与底图授权）。
+    title: '地图由$providerName提供',
+    // R28：地图同意属高内容弹层，用贴边样式（顶部 28、不透明）。
+    style: MileafSheetStyle.edge,
+    // R28：地图同意属高内容弹层，用贴边样式。
+    builder: (sheetContext) => _MapConsentSheet(
+      providerName: providerName,
+      declineLabel: _declineLabel,
+    ),
   );
   if (granted == true) await consent.grant(providerName);
 }
 
 class _MapConsentSheet extends StatelessWidget {
-  const _MapConsentSheet({required this.providerName});
+  const _MapConsentSheet({
+    required this.providerName,
+    required this.declineLabel,
+  });
   final String providerName;
+  final String declineLabel;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final type = context.type;
+    final colors = context.colors;
     final policyUrl = mapPrivacyUrl(providerName);
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        4,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('地图由$providerName提供', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 10),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          // CP12 冻结文案逐字保留；MileafSheetFrame 已提供 headline 标题行，
+          // 这里是标题行之后的说明正文。
+          '加载地图后，$providerName会处理 IP、设备/网络信息和当前地图范围，用于显示底图。'
+          '行笺不会向地图发送站点凭据，也不会读取手机定位。',
+          style: type.body.copyWith(color: colors.textSecondary),
+        ),
+        if (policyUrl.isNotEmpty) ...[
+          const SizedBox(height: MileafSpace.s12),
           Text(
-            '加载地图后，$providerName会处理 IP、设备/网络信息和当前地图范围，用于显示底图。'
-            '行笺不会向地图发送站点凭据，也不会读取手机定位。',
-            style: theme.textTheme.bodyMedium,
+            '高德隐私政策',
+            style: type.subheadline.copyWith(color: colors.accentStrong),
           ),
-          if (policyUrl.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              '高德隐私政策',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            SelectableText(
-              policyUrl,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            TextButton.icon(
+          const SizedBox(height: MileafSpace.s4),
+          SelectableText(
+            policyUrl,
+            style: type.footnote.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MileafButton(
+              label: '复制链接',
+              kind: MileafButtonKind.ghost,
+              icon: MileafIconName.copy,
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: policyUrl));
                 if (context.mounted) {
@@ -72,30 +84,29 @@ class _MapConsentSheet extends StatelessWidget {
                       .showSnackBar(const SnackBar(content: Text('隐私政策链接已复制')));
                 }
               },
-              icon: const Icon(Icons.copy_all_outlined, size: 18),
-              label: const Text('复制链接'),
             ),
-          ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('暂不'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('允许加载'),
-                ),
-              ),
-            ],
           ),
         ],
-      ),
+        const SizedBox(height: MileafSpace.s16),
+        Row(
+          children: [
+            Expanded(
+              child: MileafButton(
+                label: declineLabel,
+                kind: MileafButtonKind.secondary,
+                onPressed: () => Navigator.pop(context, false),
+              ),
+            ),
+            const SizedBox(width: MileafSpace.s12),
+            Expanded(
+              child: MileafButton(
+                label: '允许加载',
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

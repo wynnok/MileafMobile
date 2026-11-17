@@ -397,7 +397,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     await openCostSheet(tester);
-    expect(find.text('充电单价'), findsOneWidget);
+    expect(find.text('单价（CNY/kWh）'), findsOneWidget);
     expect(find.text('充电详情 #1'), findsNothing);
     await tester.enterText(find.byType(TextField), '1.25');
     await tester.pumpAndSettle();
@@ -445,7 +445,7 @@ void main() {
     final site = CostSite();
     await openCostDetail(tester, site);
     await openCostSheet(tester);
-    expect(find.text('充电单价'), findsOneWidget);
+    expect(find.text('单价（CNY/kWh）'), findsOneWidget);
     expect(find.textContaining('保存后无法在 App 中修改'), findsOneWidget);
     await tester.enterText(find.byType(TextField), '1.25');
     await tester.pumpAndSettle();

@@ -1,0 +1,217 @@
+{
+  "input_freeze": "FP3",
+  "ticket": "AP13",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "images": [
+    "AP13-settings-glass-dark-390x844-100-top.png",
+    "AP13-appearance-glass-dark-390x844-100-top.png",
+    "AP13-currency-glass-dark-390x844-100-top.png",
+    "AP13-map-glass-dark-390x844-100-top.png",
+    "AP13-map-help-glass-dark-390x844-100-top.png",
+    "AP13-connection-glass-dark-390x844-100-top.png",
+    "AP13-connection-edit-glass-dark-390x844-100-top.png",
+    "AP13-login-glass-dark-390x844-100-top.png",
+    "AP13-setup-glass-dark-390x844-100-top.png",
+    "AP13-cost-form-glass-dark-390x844-100-top.png",
+    "AP13-settings-glass-dark-320x568-200-top.png",
+    "AP13-appearance-glass-dark-320x568-200-top.png",
+    "AP13-currency-glass-dark-320x568-200-top.png",
+    "AP13-map-glass-dark-320x568-200-top.png",
+    "AP13-map-help-glass-dark-320x568-200-top.png",
+    "AP13-connection-glass-dark-320x568-200-top.png",
+    "AP13-connection-edit-glass-dark-320x568-200-top.png",
+    "AP13-login-glass-dark-320x568-200-top.png",
+    "AP13-setup-glass-dark-320x568-200-top.png",
+    "AP13-cost-form-glass-dark-320x568-200-top.png",
+    "AP13-settings-glass-light-390x844-100-top.png",
+    "AP13-appearance-glass-light-390x844-100-top.png",
+    "AP13-currency-glass-light-390x844-100-top.png",
+    "AP13-map-glass-light-390x844-100-top.png",
+    "AP13-map-help-glass-light-390x844-100-top.png",
+    "AP13-connection-glass-light-390x844-100-top.png",
+    "AP13-connection-edit-glass-light-390x844-100-top.png",
+    "AP13-login-glass-light-390x844-100-top.png",
+    "AP13-setup-glass-light-390x844-100-top.png",
+    "AP13-cost-form-glass-light-390x844-100-top.png",
+    "AP13-settings-glass-light-320x568-200-top.png",
+    "AP13-appearance-glass-light-320x568-200-top.png",
+    "AP13-currency-glass-light-320x568-200-top.png",
+    "AP13-map-glass-light-320x568-200-top.png",
+    "AP13-map-help-glass-light-320x568-200-top.png",
+    "AP13-connection-glass-light-320x568-200-top.png",
+    "AP13-connection-edit-glass-light-320x568-200-top.png",
+    "AP13-login-glass-light-320x568-200-top.png",
+    "AP13-setup-glass-light-320x568-200-top.png",
+    "AP13-cost-form-glass-light-320x568-200-top.png"
+  ],
+  "input_sha": "8ea7e29",
+  "freeze_point": "FP3",
+  "sampled_at": "2026-11-17T10:57:58Z",
+  "dpr": 1,
+  "timezone": "Asia/Shanghai",
+  "keyboard": "none",
+  "font_path": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec",
+  "image_sha256": {
+    "AP13-settings-glass-dark-390x844-100-top.png": {
+      "sha256": "a566093ea6ffc54780bfc40d306642097b55f78f07165a3a8648d3c03ec3edff",
+      "bytes": 67189
+    },
+    "AP13-appearance-glass-dark-390x844-100-top.png": {
+      "sha256": "edfa5c94f142dc074458bf2e8907a6c4875809afa9ae43f22f179f5ab4072889",
+      "bytes": 92429
+    },
+    "AP13-currency-glass-dark-390x844-100-top.png": {
+      "sha256": "d71b66309a4b6faf471e8c765350cb02589efe5f102009a927dd088a95a66403",
+      "bytes": 84908
+    },
+    "AP13-map-glass-dark-390x844-100-top.png": {
+      "sha256": "a568c6b6e2f99c898b3101a7785845cac6bab1002f6862b4278355e30f0c500f",
+      "bytes": 86552
+    },
+    "AP13-map-help-glass-dark-390x844-100-top.png": {
+      "sha256": "1cdd840f4c67663a0059c8e042d2b0a7bee74ad861a3f48b09148f948668896d",
+      "bytes": 156984
+    },
+    "AP13-connection-glass-dark-390x844-100-top.png": {
+      "sha256": "2a8a26aa29247d6b1943983cf4af71cf12c1c7dd620b618fbf12e61da8e87340",
+      "bytes": 112636
+    },
+    "AP13-connection-edit-glass-dark-390x844-100-top.png": {
+      "sha256": "da82ff7d094d5781485c0a1d0833ea2b025f5a277a39ca674d04582541f3ff8d",
+      "bytes": 142144
+    },
+    "AP13-login-glass-dark-390x844-100-top.png": {
+      "sha256": "8094e4dce20d489a97e86de91373ab916438811d56921a5925cfd10b5fdba8f4",
+      "bytes": 70293
+    },
+    "AP13-setup-glass-dark-390x844-100-top.png": {
+      "sha256": "71d3f8da50e93fcaf87682a9c0c4290aed8302a51a41cd36334be0b276f741e6",
+      "bytes": 91547
+    },
+    "AP13-cost-form-glass-dark-390x844-100-top.png": {
+      "sha256": "ce37d436ff0c2c6177277a01ac29d3d1013c031186a342c99bb72b209c4978bd",
+      "bytes": 145874
+    },
+    "AP13-settings-glass-dark-320x568-200-top.png": {
+      "sha256": "8b649bcaf949f7786e9270cf9d29e401a3d7ba0abd41b3045b5d93ff63fd671e",
+      "bytes": 59695
+    },
+    "AP13-appearance-glass-dark-320x568-200-top.png": {
+      "sha256": "732d90586ac433dd92168af0bf9ae78d931cf100db9c8418c08d9598cc55f5eb",
+      "bytes": 69699
+    },
+    "AP13-currency-glass-dark-320x568-200-top.png": {
+      "sha256": "37bef1b13c8829dfda3b16491ac55a9fa3a9e4c7afa8264be637eb94de664e0f",
+      "bytes": 114258
+    },
+    "AP13-map-glass-dark-320x568-200-top.png": {
+      "sha256": "9dac7c403c96892ed479a61d05ba994a8ebdb28dda4e5d2d3a3fa9b3bc44e078",
+      "bytes": 65478
+    },
+    "AP13-map-help-glass-dark-320x568-200-top.png": {
+      "sha256": "06c7a70f9fdb569a2bc114ed5578adbe67a829cce7fec1ce9790ed5de637a1b4",
+      "bytes": 94913
+    },
+    "AP13-connection-glass-dark-320x568-200-top.png": {
+      "sha256": "4bf667bcbb38a784d57ea7216bfca49522a3d9532c1d0d4117a8df3fdf4143b5",
+      "bytes": 81559
+    },
+    "AP13-connection-edit-glass-dark-320x568-200-top.png": {
+      "sha256": "13a608e6fab6863572279c53a4568c579741ef2ed92a0f229f09c57294ba7c41",
+      "bytes": 98240
+    },
+    "AP13-login-glass-dark-320x568-200-top.png": {
+      "sha256": "828760d43e65a4412340341e7a633b8f9c36f9ef22786aef6c1899d5fb125922",
+      "bytes": 99877
+    },
+    "AP13-setup-glass-dark-320x568-200-top.png": {
+      "sha256": "5797099652709de0f8b1af6c53e1962a48839060a4e851544101b5150aa25ae6",
+      "bytes": 117034
+    },
+    "AP13-cost-form-glass-dark-320x568-200-top.png": {
+      "sha256": "362ab3b07a318c1284439278b06a4cafd4084d96e1a1e800e2054384b022af34",
+      "bytes": 91207
+    },
+    "AP13-settings-glass-light-390x844-100-top.png": {
+      "sha256": "2b381c64fff81cfdba2f3bf3fbc1fbcdeb475b99861b2cb221a8712546f74f71",
+      "bytes": 67231
+    },
+    "AP13-appearance-glass-light-390x844-100-top.png": {
+      "sha256": "43b5517f13ed571ce82dc4b86e78c1ca2ab9858c4a3059aa31df20c9ed3abe74",
+      "bytes": 95351
+    },
+    "AP13-currency-glass-light-390x844-100-top.png": {
+      "sha256": "8175c04b5678f9eef95874070daaa9ad8fef05b3a01bcc11b3dfc7f0c6628eca",
+      "bytes": 84718
+    },
+    "AP13-map-glass-light-390x844-100-top.png": {
+      "sha256": "eaecf6b1f6c248ce99965131a8937fc70e6c1eefc4331668028592fc3c7c5d8e",
+      "bytes": 86116
+    },
+    "AP13-map-help-glass-light-390x844-100-top.png": {
+      "sha256": "c65c3d0f0e08b5736b1168dc02ed37439ab9db8377853214d2bccff6b64df672",
+      "bytes": 156803
+    },
+    "AP13-connection-glass-light-390x844-100-top.png": {
+      "sha256": "5862a5e8f3d811aa2ef9ecd03432d15053564a230f95e1eb176ab6b3ac3fa66b",
+      "bytes": 112362
+    },
+    "AP13-connection-edit-glass-light-390x844-100-top.png": {
+      "sha256": "678678834225b955d21ab38491f5fdc9814ddc1215916c8494a51eaee9014864",
+      "bytes": 142299
+    },
+    "AP13-login-glass-light-390x844-100-top.png": {
+      "sha256": "319496751647eb15ad3f6037fc69a0b94eafd68d380b65e9bc0cae7bb6833fee",
+      "bytes": 69002
+    },
+    "AP13-setup-glass-light-390x844-100-top.png": {
+      "sha256": "2ef80666acf8fa4974ab1fc111eef271b7a8c40a64c91f6dc4c4161a5ebcb594",
+      "bytes": 90563
+    },
+    "AP13-cost-form-glass-light-390x844-100-top.png": {
+      "sha256": "18c07b69cacbc4420703e036c9a18badcd1dbce5124a9ea7ff4177fffc34e714",
+      "bytes": 148641
+    },
+    "AP13-settings-glass-light-320x568-200-top.png": {
+      "sha256": "01fe895bc7e957e6475211f0b08e8c23329b451e9caa1574d9957b80fc42a4a3",
+      "bytes": 59169
+    },
+    "AP13-appearance-glass-light-320x568-200-top.png": {
+      "sha256": "b3ebef125bf994655f7c83fd1f31a8b63db09ead700b9bde8e3d13a2f93d1940",
+      "bytes": 70011
+    },
+    "AP13-currency-glass-light-320x568-200-top.png": {
+      "sha256": "82c4895ecc3825a590c0f9df1bcc8f6a04c9025bb5819dd10481505d7e6e0a1b",
+      "bytes": 113708
+    },
+    "AP13-map-glass-light-320x568-200-top.png": {
+      "sha256": "a5198a7051d32ab59fc8357288a6da917decd9f2d42319d20cc896422a1f7748",
+      "bytes": 64789
+    },
+    "AP13-map-help-glass-light-320x568-200-top.png": {
+      "sha256": "0bcb9005ee77742a722971baea3cfd541e262a0ef36b57d131cc4bb971aaf0b2",
+      "bytes": 94350
+    },
+    "AP13-connection-glass-light-320x568-200-top.png": {
+      "sha256": "a6ee5035c0726103174afe86821df5657482b6d6dc54805783546a6300cee165",
+      "bytes": 81071
+    },
+    "AP13-connection-edit-glass-light-320x568-200-top.png": {
+      "sha256": "d6d1a12bb28ac34014afd94be5257570d7e844328f62bb21308abde5bbe6af5f",
+      "bytes": 97903
+    },
+    "AP13-login-glass-light-320x568-200-top.png": {
+      "sha256": "1ed3ac7484cf3d93090bf5b0f2ca975ab6b220ee9bc61e7616e3dde76069f8d0",
+      "bytes": 97858
+    },
+    "AP13-setup-glass-light-320x568-200-top.png": {
+      "sha256": "f82d352a91eee78866cbce8e97da2a0861f2426397ecdbe7b4e3ea9864cda7a4",
+      "bytes": 114881
+    },
+    "AP13-cost-form-glass-light-320x568-200-top.png": {
+      "sha256": "952b2675a849d0045514f433e6cfa8d8b6a0eb86d96d7f7bd6a91ea128fa4670",
+      "bytes": 91770
+    }
+  }
+}

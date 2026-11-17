@@ -7,8 +7,8 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/currency.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/theme.dart';
-import 'package:mileaf/src/design/components/chip.dart';
 import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/workspace.dart';
 
@@ -216,17 +216,15 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         // Material starts its disabled text-colour transition on that frame.
         await tester.pump(const Duration(milliseconds: 300));
+        // AP13（R27）：主按钮处理中保留原文字，只在尾部加活动指示器。
         expect(
-          find.text(switch (scene) {
-            'connect' => '正在检查…',
-            'login' => '正在登录…',
-            'setup' => '正在初始化…',
-            _ => '正在验证…',
-          }),
-          findsOneWidget,
+          tester.widget<MileafButton>(find.byType(MileafButton)).loading,
+          isTrue,
+          reason: scene,
         );
+        expect(find.text(label), findsOneWidget, reason: '处理中保留文字');
         expect(
-          tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+          tester.widget<MileafButton>(find.byType(MileafButton)).onPressed,
           isNull,
         );
         final prefix = '$_output/u10-$scene';
