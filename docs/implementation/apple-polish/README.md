@@ -10,6 +10,7 @@
 | FP1 | W1（AP01、AP06）合入 + 集成窗口基线补登 | c18f2fc（W1 合入） |
 | FP2 | W2（AP02–AP05）合入 + 集成窗口收口，共享 API 唯一清单 | 8edd1ec（W2 合入） |
 | FP3 | AP07 代表页经用户裁定通过后冻结：token 表、组件 API、动效参数、首屏预算、共享符号签名 | eeefe83（AP07 合入）；清单见 [fp3-freeze.md](fp3-freeze.md) |
+| FP4 | W4（AP08、AP09、AP10、AP11、AP12a、AP12b、AP13）全部合入 + 集成窗口收口 | 773886a（W4 末次集成提交） |
 
 ## 文件与测试租约（交付手册 §3.3）
 
@@ -45,13 +46,15 @@
 | AP04 | （已删）…/MileafMobile-ap04 | codex/apple-polish-ap04 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP05 | （已删）…/MileafMobile-ap05 | codex/apple-polish-ap05 | FP1 | 已合入 FP2，工作树已删，分支保留 |
 | AP07 | （已删）…/MileafMobile-ap07 | codex/apple-polish-ap07 | FP2 | 已合入 FP3，工作树已删，分支保留 |
-| AP08 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap08 | codex/apple-polish-ap08 | FP3 | 已创建（W4），依赖已备 |
-| AP09 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap09 | codex/apple-polish-ap09 | FP3 | 已创建（W4），依赖已备 |
-| AP10 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap10 | codex/apple-polish-ap10 | FP3 | 已创建（W4），依赖已备 |
-| AP11 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap11 | codex/apple-polish-ap11 | FP3 | 已创建（W4），依赖已备 |
-| AP12a | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 已创建（W4），依赖已备 |
-| AP12b | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已创建（W4），依赖已备 |
-| AP13 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已创建（W4），依赖已备 |
+| AP08 | （已删）…/MileafMobile-ap08 | codex/apple-polish-ap08 | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP09 | （已删）…/MileafMobile-ap09 | codex/apple-polish-ap09 | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP10 | （已删）…/MileafMobile-ap10 | codex/apple-polish-ap10 | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP11 | （已删）…/MileafMobile-ap11 | codex/apple-polish-ap11 | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP12a | （已删）…/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP12b | （已删）…/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP13 | （已删）…/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已合入 FP4，工作树已删，分支保留 |
+| AP14 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已创建（W5），依赖已备 |
+| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP4 | 已创建（W5），依赖已备 |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
@@ -135,6 +138,41 @@ W1 遗留交下游的事实：AP01 `AU-AP01`（controlBorder 采纳 #7A8390/#677
 - 页面移交：`charging_page.dart` 由 AP07 临时持有（本轮修版式），合入后交 **AP10**；`overview_page.dart` → AP08，`drives_page.dart` → AP09，`charging_detail.dart` → AP10，`statistics_insights_page.dart` → AP11，`settings_page.dart` → AP13。
 - 裁定是否同步进 `AGENTS.md` 由用户决定；本轮未改 `AGENTS.md`。
 - W4 七个工作树从本节的 FP3 登记提交创建（见下方工作树租约表），依赖用 `cp -cR` 克隆 `.cache/pub` 后 `pub get --offline` 验证。
+
+## W4 合入记录（FP4 = 773886a）
+
+合入顺序按 §3.1 第 6 点「按实际完成顺序」（各票最后一笔提交时间）：AP09 → AP08 → AP11 → AP12b → AP13 → AP12a → AP10。七次合入均无文本冲突（AP09/AP11 的总控补丁、AP12a/AP10 对 `charging_reading_test.dart` 与 `apple_polish_ap07_test.dart` 的改动落在不同 hunk，git 自动合并后逐处复核）。
+
+| 顺序 | 票 | 分支 | 票末提交 | 合入提交 | 合入后验证 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | AP09 行程与详情 | codex/apple-polish-ap09 | 0a40a8d | 5e49d93（--no-ff） | 本票 73 通过 / 1 跳过（ap09 11 + drives/a_drives/drive_detail/a_drive_detail/drive_detail_reading/u05）；跨页 88 通过 |
+| 2 | AP08 概览 | codex/apple-polish-ap08 | f680fa7 | 335fc3c（--no-ff） | 本票 46 通过 / 4 跳过（ap08 19/1 + overview/overview_briefing/overview_a_regression/u04）；跨页 88 通过 |
+| 3 | AP11 统计首页 | codex/apple-polish-ap11 | e7e8afa | 45c91ce（--no-ff） | 本票 + 补丁 60 通过 / 2 跳过（ap11/statistics/statistics_insights/a_statistics/u08/charging_statistics/u09a）；跨页 88 通过 |
+| 4 | AP12b 长期续航与停放 | codex/apple-polish-ap12b | 869ce3d | 5e739fb（--no-ff） | 本票 41 通过 / 2 跳过（ap12b/range/parking/u09d/u09e）；跨页 88 通过 |
+| 5 | AP13 设置与接入 | codex/apple-polish-ap13 | 798e926 | ebcb71b（--no-ff） | 本票 + 跨票等价 141 通过 / 3 跳过（ap13/session/connection/map_key/ap07/appearance/charging_cost/u10/u11/widget_test）；analyze 无诊断；跨页 88 通过 |
+| 6 | AP12a 三个专题 | codex/apple-polish-ap12a | 9467d54 | a17cdfe（--no-ff） | 本票 + 专题批 149 通过 / 5 跳过（ap12a/usage/conditions/charging/u09a–u09e/ap11/insights/statistics/owner/nav_bar；含宿主修正后复跑）；跨页 88 通过 |
+| 7 | AP10 充电与详情 | codex/apple-polish-ap10 | e8292da | ebf171f（--no-ff） | 本票 + 组件批全绿（ap10/charging_*/a_charging/u06/collage_charging/cost/statistics/design_components/share_ring/drive_detail/u01/ap07/守卫）；跨页 88 通过 |
+
+**补丁与集成窗口**（全部由总控落地并单独提交）：
+
+| 来源 | 内容 | 落点 |
+| --- | --- | --- |
+| AP09 §7.2 | 共享日期弹层「改为输入」×3、CP07 失败句 ×3、`行驶过程` 定位、u07 读数头 HH:mm | 4daf259 |
+| AP11 §附 | charging_statistics 日期入口键盘路径 + 730 新句 + MileafSheetFrame；u09a 说明折叠改 MileafDisclosure | bd1811f |
+| AP13 §7.2 | widget_test/appearance_shell/ap07 等 4 处跨票等价修正随票合入，总控复核通过 | 随 ebcb71b |
+| AP13 §7.3 | 币种页 D-AP13-03：MileafDataRow 徽标列表 → MileafGroupCard + MileafSelectionList（含未用导入清理） | eef9230 |
+| AP12a D-AP12a-01 | 专题路由宿主折叠只为 long/legacy 保留，五个 W4 专题页不再叠加区间/说明；insights 时区口径改 long 路由、u09a/b/c 说明行定位迁移、u09a 768 左线改身份块标题 | 2b68bc5 |
+| AP10 §11.1 | SocIntervalBar 端点标签参数化（默认「出发/到达」不变，充电行传「开始/结束」，D-AP10-03） | 0c19ee6 |
+| AP10 §11.2 | share_ring 图例标签包 Flexible（200% 溢出 2px，D-AP10-05） | 0c19ee6 |
+| AP10 §11.3 | 图表下钻可见文字改 `activationLabel`（概览/行程「查看当天」、充电「查看这一天的充电」、其余「查看这一天」，D-AP10-04/D-AP07-04 收口）；200% 大字下紧凑读数行下钻换行尾独占一行（实测 88px 溢出修复）；「看当天」既有断言统一迁移 | 0c19ee6 |
+| AP10 集成 | charging_page/currency 守卫基线 112→114、8→9（总控新增的端点标签与「站点币种」语义标签登记） | 0c19ee6 |
+| AP09 §7.2-4 收口 | u07 展开地图用例移除 DF8 时代全日期可见性断言（DF9 读数头 HH:mm；选点保持由 contains(before) 承担） | 773886a |
+
+- 集成后状态：`analyze` 无诊断；全量 `tool/flutterw test --no-pub` **1046 通过 / 49 跳过 / 0 失败**（FP3 基线 961/40；+85 通过 + 9 跳过 = 七票合同测试与 opt-in 渲染入口）；`git diff --check` 无输出。
+- 格式注记：本波所有改动文件 `dart format` 0 changed；另有 6 个 W4 未触碰的既有文件（`test/apple_polish_render_test.dart`、`test/map_key_render_test.dart`、`test/render_fonts_test.dart`、`test/support/color_math.dart`、`test/support/pixel_probe.dart`、`test/support/render_fonts.dart`，最后改动均在 FP3 之前）存在格式漂移，属工具链版本差异，留 AP14 收口。
+- 图证：`docs/implementation/apple-polish-renders/AP08|AP09|AP10|AP11|AP12a|AP12b|AP13/`（各票 manifest，`input_sha` 均为 FP3 `8ea7e29`）。
+- W4 遗留交 AP14/用户：D-AP08-11（概览首屏预算退让第 5 步待用户裁定）、D-AP08-05（电量弧 130% 环内换行，AP05 组件层）、D-AP08-06（参照句 km 与逗号间多一空格，组件层）、D-AP08-03（InlineBanner/StateView 读屏对象名需组件参数）、D-AP09-01/02（copy 库补页面专属文案构造器）、D-AP10-02（充电三格移出账本卡，待视觉复确认）、D-AP11-01/02（统计首页守卫归零与图例只列参照）、D-AP13-01（服务信息行版本号注入）、D-AP13-04（「服务正常 · 版本」措辞）、D-AP07-14（P05「按电量」横轴是否补回）与 D-AP07-17/18/20/21/24（FP3 遗留）；AP14 一并收守卫归零与统一图册。
+- W5 两个工作树（AP14、AP15）从本节的 FP4 登记提交创建，依赖用 `cp -cR` 克隆 `.cache/pub` 后 `pub get --offline` 验证。
 
 ## AP00 交付物
 
