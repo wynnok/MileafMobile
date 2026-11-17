@@ -143,9 +143,9 @@ void main() {
     expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
     await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('活跃 12 天'), 200);
-    expect(find.text('活跃 12 天'), findsOneWidget);
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('用车 12 天'), 200);
+    expect(find.text('用车 12 天'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     expect(
       seen.any(
         (u) =>
@@ -165,7 +165,7 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('节奏').hitTestable(), findsWidgets);
-    expect(find.text('这段时间的用车节奏'), findsNothing);
+    expect(find.text('用车节奏'), findsNothing);
   });
   testWidgets('无已完成行程与未知指标明确区分', (tester) async {
     await openStats(
@@ -215,7 +215,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('0–10 km').hitTestable(), 200);
     await tester.tap(find.text('0–10 km'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('完整匹配 3 趟'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
     now = now.add(const Duration(hours: 1));
     await tester.tap(find.text('加载更多行程'));
     await tester.pumpAndSettle();

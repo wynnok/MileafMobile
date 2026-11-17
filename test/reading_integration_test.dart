@@ -189,7 +189,7 @@ void main() {
     final beforeTopic = seen.length;
     await tester.tap(topicCard.first);
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     final bin = find.text('0–10 km').hitTestable();
     await bring(tester, bin);
     await tester.tap(bin);
@@ -267,7 +267,7 @@ void main() {
     await bring(tester, find.text('节奏').hitTestable());
     await tester.tap(find.text('节奏').hitTestable().first);
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     final bin = find.text('0–10 km').hitTestable();
     await bring(tester, bin);
     await tester.tap(bin);

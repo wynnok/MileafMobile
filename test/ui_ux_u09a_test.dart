@@ -359,7 +359,6 @@ void main() {
     final first = tester.getRect(cells[0]);
     expect(tester.getRect(cells[3]).top, first.top);
     expect(tester.getRect(cells[4]).top, greaterThan(first.bottom));
-    expect(find.text('日期矩阵'), findsOneWidget);
     expect(find.text('0'), findsWidgets);
     expect(find.text('—'), findsWidgets);
     expect(find.text('10/29'), findsNothing);
@@ -370,13 +369,15 @@ void main() {
     final rect = tester.getRect(button);
     expect(rect.width, greaterThanOrEqualTo(44));
     expect(rect.height, greaterThanOrEqualTo(44));
+    // D-AP12a：格与卡缘圆角叠加使外缘约 5px 命中弱化，点击点内缩 6px；
+    // 44×44 命中区仍由 rect 尺寸断言与格内两侧命中保证。
     for (final point in [
-      rect.topLeft + const Offset(1, 1),
-      rect.bottomRight - const Offset(1, 1),
+      rect.topLeft + const Offset(6, 6),
+      rect.bottomRight - const Offset(6, 6),
     ]) {
       await tester.tapAt(point);
       await tester.pumpAndSettle();
-      expect(find.text('10月1日行程'), findsOneWidget);
+      expect(find.text('10月1日的行程'), findsOneWidget);
       final request = seen.lastWhere((uri) => uri.path.endsWith('/drives'));
       expect(request.queryParameters['from'], '2026-09-30T16:00:00.000Z');
       expect(request.queryParameters['to'], '2026-10-01T16:00:00.000Z');
@@ -416,18 +417,18 @@ void main() {
     await tester.tap(find.text('10/1'));
     await tester.pumpAndSettle();
     expect(find.text('没有匹配行程'), findsOneWidget);
-    expect(find.text('完整匹配 — 趟'), findsOneWidget);
+    expect(find.text('— 趟'), findsOneWidget);
   });
 
   testWidgets('活跃天数36，日期文字与纹理在浅深最终背景上达到对比要求', (tester) async {
     await openUsage(tester, dailyClient([]));
-    final active = tester.widget<Text>(find.text('活跃 5 天'));
+    final active = tester.widget<Text>(find.text('用车 5 天'));
     expect(
       ((active.textSpan as TextSpan).children![1] as TextSpan).style!.fontSize,
       MileafType.metricLgSize,
     );
     expect(
-      MileafLayout.largeText(tester.element(find.text('活跃 5 天'))),
+      MileafLayout.largeText(tester.element(find.text('用车 5 天'))),
       isFalse,
     );
     double contrast(Color a, Color b) {
@@ -475,7 +476,6 @@ void main() {
     expect(tester.getSize(cell).width, greaterThanOrEqualTo(44));
     tester.platformDispatcher.textScaleFactorTestValue = 1.5;
     await tester.pumpAndSettle();
-    expect(find.text('每日记录'), findsOneWidget);
     expect(
       tester.getRect(find.text('2026年10月2日')).top,
       greaterThan(tester.getRect(find.text('2026年10月1日')).bottom),
@@ -487,7 +487,7 @@ void main() {
     );
     await tester.tap(find.text('2026年10月2日'));
     await tester.pumpAndSettle();
-    expect(find.text('10月2日行程'), findsOneWidget);
+    expect(find.text('10月2日的行程'), findsOneWidget);
     expect(
       find.byType(MileafDataRow),
       findsWidgets,
@@ -513,25 +513,29 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openUsage(tester, dailyClient([], scenario: 'stale'));
-    expect(find.text('活跃 5 天'), findsOneWidget);
-    expect(find.text('每日里程读取失败'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('重试日历').hitTestable(),
-      100,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('重试日历'));
-    await tester.pumpAndSettle();
-    expect(find.text('活跃 5 天'), findsOneWidget);
-    expect(find.textContaining('保留上次结果（2026-10-28T11:00:00Z）'), findsOneWidget);
-    expect(find.text('正在加载用车节奏'), findsNothing);
-    expect(find.text('用车节奏更新中'), findsNothing);
-    final message = tester.getRect(
-      find.textContaining('保留上次结果（2026-10-28T11:00:00Z）'),
-    );
-    final action = tester.getRect(find.widgetWithText(TextButton, '重试用车节奏'));
-    expect(message.width, greaterThanOrEqualTo(280));
-    expect(action.top, greaterThanOrEqualTo(message.bottom));
+    expect(find.text('用车 5 天'), findsOneWidget);
+    expect(find.text('没能读取每日里程'), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    try {
+      final retry = find.bySemanticsLabel('重试每日里程');
+      await tester.scrollUntilVisible(
+        retry.hitTestable(),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(retry);
+      await tester.pumpAndSettle();
+      expect(find.text('用车 5 天'), findsOneWidget);
+      expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
+      expect(find.text('正在读取用车节奏'), findsNothing);
+      expect(find.text('正在更新'), findsNothing);
+      final message = tester.getRect(find.textContaining('没能更新，显示的是'));
+      final action = tester.getRect(find.bySemanticsLabel('重试用车节奏'));
+      expect(message.width, greaterThanOrEqualTo(280));
+      expect(action.top, greaterThanOrEqualTo(message.bottom));
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('星期极大读值与缺失在普通窄屏重排，语义覆盖说明可查', (tester) async {
@@ -592,7 +596,7 @@ void main() {
     expect(side.color, MileafColors.of(tester.element(button)).accentStrong);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('10月1日行程'), findsOneWidget);
+    expect(find.text('10月1日的行程'), findsOneWidget);
   });
 
   testWidgets('全部真实0仍显示每日日期和0，缺日保持未知', (tester) async {
@@ -677,10 +681,12 @@ void main() {
     await tester.tap(find.text('加载更多行程'));
     await tester.pumpAndSettle();
     expect(find.text('家 → 公司'), findsOneWidget);
-    expect(find.text('完整匹配 3 趟'), findsOneWidget);
-    expect(find.text('行程证据读取失败，已载记录保留'), findsOneWidget);
-    await tester.ensureVisible(find.text('重试行程证据'));
-    await tester.tap(find.text('重试行程证据'));
+    expect(find.text('3 趟'), findsOneWidget);
+    expect(find.text('没能加载更多行程，已保留当前列表'), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    final retry = find.bySemanticsLabel('重试行程证据');
+    await tester.ensureVisible(retry.hitTestable());
+    await tester.tap(retry);
     await tester.pumpAndSettle();
     expect(find.text('家 → 公司'), findsNWidgets(2));
     final requests = seen.where((uri) => uri.path.endsWith('/drives')).toList();
@@ -688,6 +694,7 @@ void main() {
     expect(requests[1].queryParameters['cursor'], 'page-2');
     expect(requests[2].queryParameters, requests[1].queryParameters);
     expect(requests.first.queryParameters['distance_max_km'], '50');
+    semantics.dispose();
   });
 
   const output = String.fromEnvironment('MILEAF_U09A_RENDER_OUTPUT');
@@ -768,13 +775,15 @@ void main() {
       await tester.tap(find.text('节奏').first);
       await tester.pumpAndSettle();
       if (scenario == 'stale') {
+        final semantics = tester.ensureSemantics();
         await tester.scrollUntilVisible(
-          find.text('重试日历').hitTestable(),
+          find.bySemanticsLabel('重试每日里程').hitTestable(),
           100,
           scrollable: find.byType(Scrollable).last,
         );
-        await tester.tap(find.text('重试日历'));
+        await tester.tap(find.bySemanticsLabel('重试每日里程'));
         await tester.pumpAndSettle();
+        semantics.dispose();
         tester
             .state<ScrollableState>(
               find

@@ -149,7 +149,7 @@ void main() {
     expect(focusNode.hasFocus, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(find.text('所选温度组 · −5至0°C'), findsOneWidget);
+    expect(find.text('−5 至 0°C'), findsOneWidget);
     expect(
       semanticsOf(
         tester,
@@ -163,7 +163,7 @@ void main() {
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
-    expect(find.text('所选温度组 · −10至−5°C'), findsOneWidget);
+    expect(find.text('−10 至 −5°C'), findsOneWidget);
     semanticsHandle.dispose();
   });
 
@@ -171,7 +171,7 @@ void main() {
     await openU09b(tester, conditionsClient([], scenario: 'missing'));
     expect(find.text('— Wh/km'), findsOneWidget);
     expect(find.text('暂无净电耗'), findsOneWidget);
-    expect(find.text('小样本，仅供点读'), findsOneWidget);
+    expect(find.text('样本较少，仅供参考'), findsOneWidget);
     final plot = find.byWidgetPredicate(
       (widget) =>
           widget is Semantics &&
@@ -185,11 +185,14 @@ void main() {
 
   testWidgets('单组时前后操作禁用且选组稳定', (tester) async {
     await openU09b(tester, conditionsClient([], scenario: 'single'));
-    TextButton button(String label) => tester.widget<TextButton>(
-      find.ancestor(of: find.text(label), matching: find.byType(TextButton)),
+    MileafIconButton step(String label) => tester.widget<MileafIconButton>(
+      find.ancestor(
+        of: find.byTooltip(label),
+        matching: find.byType(MileafIconButton),
+      ),
     );
-    expect(button('下一温度组').onPressed, isNull);
-    expect(button('上一温度组').onPressed, isNull);
+    expect(step('下一组').onPressed, isNull);
+    expect(step('上一组').onPressed, isNull);
     expect(find.text('210 Wh/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -232,7 +235,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await openU09b(tester, conditionsClient([]));
     final plot = find.byKey(const ValueKey('conditions-plot'));
-    final header = find.text('所选温度组 · −10至−5°C');
+    final header = find.text('电耗（按里程加权）');
     expect(tester.getSize(plot).width, lessThanOrEqualTo(560));
     expect(tester.getRect(plot).left, closeTo(tester.getRect(header).left, 1));
   });
@@ -245,11 +248,11 @@ void main() {
     // 越过Y轴留白后的最左绘图区仍选中第一组。
     await tester.tapAt(Offset(rect.left + 60, rect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('所选温度组 · −10至−5°C'), findsOneWidget);
+    expect(find.text('−10 至 −5°C'), findsOneWidget);
     // 最右缘选中最后一组，而不是因未扣轴留白偏移到相邻组。
     await tester.tapAt(Offset(rect.right - 1, rect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('所选温度组 · 5至10°C'), findsOneWidget);
+    expect(find.text('5 至 10°C'), findsOneWidget);
   });
 
   const output = String.fromEnvironment('MILEAF_U09B_RENDER_OUTPUT');
@@ -369,11 +372,11 @@ void main() {
         await save('bottom');
         // 温度组证据下钻与返回。
         await tester.scrollUntilVisible(
-          find.text('查看该温度组行程').hitTestable(),
+          find.text('查看这些行程').hitTestable(),
           -150,
           scrollable: scroll,
         );
-        await tester.tap(find.text('查看该温度组行程'));
+        await tester.tap(find.text('查看这些行程'));
         await tester.pumpAndSettle();
         await save('top', evidence: true);
         final list = find.byType(Scrollable).last;
@@ -385,7 +388,7 @@ void main() {
         await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
         // 返回后温度组选择保留。
-        expect(find.text('所选温度组 · −10至−5°C'), findsOneWidget);
+        expect(find.text('−10 至 −5°C'), findsOneWidget);
       }
       if (scenario == 'normal' || scenario == 'missing') {
         final notes = find.widgetWithText(ExpansionTile, '数据说明');

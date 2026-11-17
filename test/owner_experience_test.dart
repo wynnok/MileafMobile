@@ -207,7 +207,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 160);
     await tester.tap(find.text('节奏').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('活跃 12 天'), findsOneWidget);
+    expect(find.text('用车 12 天'), findsOneWidget);
     final query = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(query.path, contains('/vehicles/1/'));
     expect(query.queryParameters['tz'], 'Asia/Shanghai');
@@ -221,7 +221,7 @@ void main() {
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('活跃 12 天'), findsOneWidget);
+    expect(find.text('用车 12 天'), findsOneWidget);
   });
 
   testWidgets('统计主结果包含驾驶时长和有效趟数，节奏有显式入口', (tester) async {

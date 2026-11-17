@@ -491,7 +491,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('补能账目'), findsOneWidget);
+      expect(find.text('充电费用'), findsOneWidget);
       expect(find.byType(MileafProgressLine), findsNothing);
     },
   );
