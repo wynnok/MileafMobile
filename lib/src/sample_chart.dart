@@ -69,19 +69,17 @@ class SampleChart extends StatelessWidget {
       height: height,
       showYAxis: showYAxis,
       yRange: yRange,
+      // R21.3：详情页读数头用 metricSm；R29：读数头在绘图区之上。
+      readoutScale: ChartReadoutScale.detail,
+      readoutDate: readoutTimestamp == null
+          ? null
+          : (time) => readoutTimestamp!(time),
       tickLabel: (time) {
         final local = timestamp(time);
         return local;
       },
-      readout: (index) {
-        if (index < 0 || index >= points.length) return '$label读数 —';
-        final at = readoutTimestamp?.call(points[index].$1);
-        return '${at == null ? '' : '$at\n'}$label读数 ${_value(points[index].$2)}';
-      },
       emptyMessage: '没有采样点',
       plotKey: plotKey,
-      // 提示语跟着读值走，占窗口槽位会被读成「这张图覆盖的时间」。
-      trailing: onSelected == null ? null : const Text('点按图形读值'),
     );
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,7 +109,7 @@ class SampleChart extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: Text(
-              '仅1个采样点，无法绘制趋势',
+              '只有 1 个数据点，无法画出变化',
               style: type.micro.copyWith(color: colors.textMuted),
             ),
           ),
@@ -119,7 +117,7 @@ class SampleChart extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: Text(
-              '此指标没有已知读数',
+              '这一项没有记录',
               style: type.micro.copyWith(color: colors.textMuted),
             ),
           ),

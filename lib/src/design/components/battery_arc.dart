@@ -9,8 +9,9 @@ import '../typography.dart';
 
 /// 88px SOC arc (72 at large text): 2.5px stroke, 10% track, round caps.
 ///
-/// `start` turns the same arc into an interval (18→82) without pretending to
-/// be a 0→82 progress bar.
+/// 环内只放数值（含单位）：标签移到环外的一句说明，环里不再挤「值 + 单位 +
+/// 标签」三行（R29）。[start] turns the same arc into an interval (18→82)
+/// without pretending to be a 0→82 progress bar.
 class BatteryArc extends StatelessWidget {
   const BatteryArc({
     super.key,
@@ -34,6 +35,7 @@ class BatteryArc extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final type = context.type;
     final Size resolved = Size.square(
       size ??
           (MileafLayout.largeText(context)
@@ -50,7 +52,9 @@ class BatteryArc extends StatelessWidget {
             ? '电池电量 ${level == null ? '未知' : '${level!.toStringAsFixed(0)}%'}'
             : '电量区间 ${start == null ? '未知' : '${start!.toStringAsFixed(0)}%'} 至 '
                   '${level == null ? '未知' : '${level!.toStringAsFixed(0)}%'}，尺度0至100%');
-    final separate = MileafLayout.largeText(context) && showLabel;
+    final large = MileafLayout.largeText(context);
+    // 大字下环内放不下读数，数值移到环外（沿既有行为）；标签只在小字出现。
+    final separate = large && showLabel;
     final arc = SizedBox.fromSize(
       size: resolved,
       child: CustomPaint(
@@ -60,59 +64,58 @@ class BatteryArc extends StatelessWidget {
           arc: arcColor,
           track: trackColor,
         ),
-        child: !showLabel || separate
+        child: separate
             ? null
             : Center(
-                child: _ArcCenter(
+                child: _ArcValue(
                   level: level,
-                  label: label,
-                  showLabel: showLabel,
                   onHero: onHero,
                   diameter: resolved.width,
                 ),
               ),
       ),
     );
+    final labelText = Text(
+      label,
+      textAlign: TextAlign.center,
+      style: type.subheadline.copyWith(
+        color: onHero ? colors.heroMuted : colors.textSecondary,
+      ),
+    );
     return Semantics(
       container: true,
       label: semantics,
       excludeSemantics: true,
-      child: separate
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                arc,
-                Text(
-                  level == null ? '—' : '${level!.toStringAsFixed(0)} %',
-                  style: context.type.metricMd.copyWith(
-                    color: onHero ? colors.heroText : colors.text,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: context.type.micro.copyWith(
-                    color: onHero ? colors.heroMuted : colors.textMuted,
-                  ),
-                ),
-              ],
-            )
-          : arc,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          arc,
+          if (separate)
+            Text(
+              level == null ? '—' : '${level!.toStringAsFixed(0)} %',
+              style: type.metricMd.copyWith(
+                color: onHero ? colors.heroText : colors.text,
+              ),
+            ),
+          if (showLabel && !large) ...[
+            const SizedBox(height: MileafSpace.s4),
+            labelText,
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _ArcCenter extends StatelessWidget {
-  const _ArcCenter({
+/// 环内读数：只有数值与单位（R22：单位 subheadline textSecondary）。
+class _ArcValue extends StatelessWidget {
+  const _ArcValue({
     required this.level,
-    required this.label,
-    required this.showLabel,
     required this.onHero,
     required this.diameter,
   });
 
   final num? level;
-  final String label;
-  final bool showLabel;
   final bool onHero;
   final double diameter;
 
@@ -121,7 +124,7 @@ class _ArcCenter extends StatelessWidget {
     final colors = context.colors;
     final type = context.type;
     final valueColor = onHero ? colors.heroText : colors.text;
-    final unitColor = onHero ? colors.heroFaint : colors.textFaint;
+    final unitColor = onHero ? colors.heroMuted : colors.textSecondary;
     final maxWidth = diameter * .62;
     final valueText = level == null ? '—' : level!.toStringAsFixed(0);
     final valueStyle = type.metricMd.copyWith(
@@ -133,7 +136,7 @@ class _ArcCenter extends StatelessWidget {
       fontSize: MileafBatteryMetrics.valueSize,
       height: 1.2,
     );
-    final unitStyle = type.micro.copyWith(color: unitColor);
+    final unitStyle = type.subheadline.copyWith(color: unitColor);
     final scaler = MediaQuery.textScalerOf(context);
     bool fits(TextStyle style, {required bool unit}) {
       final painter = TextPainter(
@@ -157,7 +160,6 @@ class _ArcCenter extends StatelessWidget {
       style = smallStyle;
       withUnit = level != null && fits(smallStyle, unit: true);
     }
-    final show = showLabel && !MileafLayout.largeText(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -173,9 +175,6 @@ class _ArcCenter extends StatelessWidget {
         // too narrow (200% uses the 72px arc).
         if (!withUnit && level != null)
           Text('%', textAlign: TextAlign.center, style: unitStyle),
-        if (show) ...[
-          Text(label, textAlign: TextAlign.center, style: unitStyle),
-        ],
       ],
     );
   }
