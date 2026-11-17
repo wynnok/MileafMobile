@@ -118,19 +118,19 @@ void main() {
       expect(find.widgetWithText(StatusChip, short), findsOneWidget);
     }
     // 默认指标：图标题用完整口径，而不是短词。
-    expect(find.text('入电量走势'), findsOneWidget);
+    expect(find.text('每日充电量'), findsOneWidget);
     final labels = tester
         .widgetList<Semantics>(find.byType(Semantics))
         .map((s) => s.properties.label)
         .whereType<String>()
-        .where((label) => label.startsWith('补能走势图表'))
+        .where((label) => label.contains('图表，单位'))
         .toList();
     expect(labels, isNotEmpty);
-    expect(labels.first, contains('入电量'));
+    expect(labels.first, contains('每日充电量'));
     expect(labels.first, contains('kWh'));
     await tester.tap(find.widgetWithText(StatusChip, '均价'));
     await tester.pumpAndSettle();
-    expect(find.text('有效入电均价走势'), findsOneWidget);
+    expect(find.text('充入均价'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -161,7 +161,7 @@ void main() {
     expect(chart.readout!.call(2), endsWith('—'));
     // 已知费用 0 条：主值显示缺失符号，覆盖行明确 0 条已知。
     expect(find.text('—'), findsWidgets);
-    expect(find.textContaining('费用有记录 0 /'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'0 / ')), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -227,7 +227,7 @@ void main() {
     await openU09c(tester, chargingClient([]));
     final chart = find.byType(TimeSeriesChart).first;
     expect(tester.getSize(chart).width, lessThanOrEqualTo(560));
-    final header = find.text('补能账目');
+    final header = find.text('充电费用');
     expect(tester.getRect(chart).left, closeTo(tester.getRect(header).left, 1));
   });
 

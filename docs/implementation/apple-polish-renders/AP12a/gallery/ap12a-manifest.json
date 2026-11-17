@@ -1,0 +1,309 @@
+{
+  "ticket": "AP12a",
+  "input": "FP3 (8ea7e29) + 本票分段提交",
+  "fixture": "dailyClient / conditionsClient / chargingClient",
+  "timezone": "Asia/Shanghai（补能 UTC）",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "dpr": 1,
+  "keyboard": "hidden",
+  "images": {
+    "AP12a-能耗-empty-light-360x800-100-top.png": {
+      "sha256": "f1df80ed8eac11b26fd2967d63aa050c724037509f2368325af01ec1d56edec0",
+      "bytes": 61884
+    },
+    "AP12a-能耗-error-light-360x800-100-top.png": {
+      "sha256": "48fbae701307aca1327bb63314cec7b18b6797d91416c76dabb3cb169fee1bec",
+      "bytes": 52296
+    },
+    "AP12a-能耗-missing-light-360x800-100-top.png": {
+      "sha256": "0217472f815f36142aa4594a649cf50d685f918740bfaf43e497c2fc698f6ce1",
+      "bytes": 133703
+    },
+    "AP12a-能耗-missing-light-360x800-200-top.png": {
+      "sha256": "ce211804eeaf7b12d49c97268776fa7aeb6340209fa1a1e3da381dd584556deb",
+      "bytes": 129561
+    },
+    "AP12a-能耗-normal-dark-360x800-100-top-bottom.png": {
+      "sha256": "7577a1a054cd7d51641019c2898decab6de4af3d4c9e3c8bdcabfd750f9df2ba",
+      "bytes": 100937
+    },
+    "AP12a-能耗-normal-dark-360x800-100-top-scroll1.png": {
+      "sha256": "19f121af43d6a2b6d818373dcd4693c10b7a03a9f9333a620deb5a3a3dd8daa5",
+      "bytes": 112605
+    },
+    "AP12a-能耗-normal-dark-360x800-100-top-scroll2.png": {
+      "sha256": "7577a1a054cd7d51641019c2898decab6de4af3d4c9e3c8bdcabfd750f9df2ba",
+      "bytes": 100937
+    },
+    "AP12a-能耗-normal-dark-360x800-100-top.png": {
+      "sha256": "fb213c2054990ae8c2e74a99160c3c81d8e5360722d4d192d8d6c4b1dd3063be",
+      "bytes": 143404
+    },
+    "AP12a-能耗-normal-dark-360x800-200-top.png": {
+      "sha256": "ec7f73cb1f0e175c466beb6d47e7e1c8856a1a1419e713356b5604b9d1dde279",
+      "bytes": 132005
+    },
+    "AP12a-能耗-normal-light-320x568-200-top.png": {
+      "sha256": "7ed78dbf3bb8e41250125efd0beeab1fbbe74f31b54265315ad80f5bbe6f6f22",
+      "bytes": 77785
+    },
+    "AP12a-能耗-normal-light-360x800-100-noSafeArea-top.png": {
+      "sha256": "506bb9b9f73e721d670fd57153099f7d09895bfd87e76743709413da6bc0b331",
+      "bytes": 147175
+    },
+    "AP12a-能耗-normal-light-360x800-100-top-bottom.png": {
+      "sha256": "ab5bae3221797b1c857837faf56221182604af0a328e0d6632cc6b29f37c7979",
+      "bytes": 100937
+    },
+    "AP12a-能耗-normal-light-360x800-100-top-scroll1.png": {
+      "sha256": "518c301513958cd0d5f53f27f5a5c84db9eaa22f1de5a427c43fea141e14deb0",
+      "bytes": 113035
+    },
+    "AP12a-能耗-normal-light-360x800-100-top-scroll2.png": {
+      "sha256": "ab5bae3221797b1c857837faf56221182604af0a328e0d6632cc6b29f37c7979",
+      "bytes": 100937
+    },
+    "AP12a-能耗-normal-light-360x800-100-top.png": {
+      "sha256": "898a3eccf14b07acc1651c224351b1f559c1813ff2ca9d4b4ab02cc2a67854b7",
+      "bytes": 143403
+    },
+    "AP12a-能耗-normal-light-360x800-130-top.png": {
+      "sha256": "8a080976bb42b8ee5b42a1762fb18edbd0b00b1f282c859dce220de7dc69dcf7",
+      "bytes": 131430
+    },
+    "AP12a-能耗-normal-light-360x800-200-top.png": {
+      "sha256": "82e3992bc7c6184778f0d4a21c4a6d208adf6b971763e20a7763c24b217ae813",
+      "bytes": 130888
+    },
+    "AP12a-能耗-normal-light-430x900-100-top.png": {
+      "sha256": "39991ed1ef201f62e6cd33da14d2cf07cdca38a4adaaf56767d2b7e260781cc2",
+      "bytes": 157420
+    },
+    "AP12a-能耗-single-light-360x800-100-top.png": {
+      "sha256": "6093df64c0a53131d86e29f77c021083049a9ba273fd65e892ea2a76b536bf95",
+      "bytes": 130077
+    },
+    "AP12a-能耗-unsupported-light-360x800-100-top.png": {
+      "sha256": "83bc832a6180c09fa23deec4aad98eb8ac078d01360b98403914899dcc67675c",
+      "bytes": 68117
+    },
+    "AP12a-节奏-empty-light-360x800-100-top.png": {
+      "sha256": "2d330d89b2556c4c943f0fc5f4ead26cd00c3c800b89f64e5d6b4f237f7bf5af",
+      "bytes": 61721
+    },
+    "AP12a-节奏-missing-light-360x800-100-top.png": {
+      "sha256": "53f5b2b59db1ab4bb3b79ef1034991c73baf361db1ecf5be8923b69f2728b46d",
+      "bytes": 106994
+    },
+    "AP12a-节奏-missing-light-360x800-200-top.png": {
+      "sha256": "bb5ff2d7754971d53c8ec38b73fa8162377d9b227099ff1d33cae13255900023",
+      "bytes": 113533
+    },
+    "AP12a-节奏-normal-dark-360x800-100-top-bottom.png": {
+      "sha256": "61887b8500026ae81b831784a158bbe18555b861510196522ba1cc2c782234ec",
+      "bytes": 120790
+    },
+    "AP12a-节奏-normal-dark-360x800-100-top-scroll1.png": {
+      "sha256": "6bbba37c95d3e7d3127cbce05ee994fcec2d6a2dc7e7616eb59241df09404eb0",
+      "bytes": 128360
+    },
+    "AP12a-节奏-normal-dark-360x800-100-top-scroll2.png": {
+      "sha256": "d408eb853feff10e26fa93e65f9e545c49acc2e02d7889636ddcf6a9c00da6df",
+      "bytes": 138642
+    },
+    "AP12a-节奏-normal-dark-360x800-100-top-scroll3.png": {
+      "sha256": "61887b8500026ae81b831784a158bbe18555b861510196522ba1cc2c782234ec",
+      "bytes": 120790
+    },
+    "AP12a-节奏-normal-dark-360x800-100-top.png": {
+      "sha256": "0d6026d113b97ebca5392a034e7f06b60e0c410d5dd9ed201d499493b09dde1a",
+      "bytes": 107757
+    },
+    "AP12a-节奏-normal-dark-360x800-200-top.png": {
+      "sha256": "c1a8b12a8855d574927e39f54ca91ce12ac7575897a7c888ecf4ee44a17cf9f8",
+      "bytes": 114394
+    },
+    "AP12a-节奏-normal-light-320x568-200-top.png": {
+      "sha256": "39e6b2ee0349bae6b8b917ddf7aef8230759ce6ca5c996145f2b089634a9992e",
+      "bytes": 82394
+    },
+    "AP12a-节奏-normal-light-360x800-100-noSafeArea-top.png": {
+      "sha256": "023a0f20e41a904449ed818876401ebe5a51fb2f55275930224c611fa6a18ba3",
+      "bytes": 112614
+    },
+    "AP12a-节奏-normal-light-360x800-100-top-bottom.png": {
+      "sha256": "6f29e8250456c6bddbd2ddfead62222303135cac8443e8279257fb09ae5513db",
+      "bytes": 120512
+    },
+    "AP12a-节奏-normal-light-360x800-100-top-scroll1.png": {
+      "sha256": "3e296b3c5921afa98f5017583dc956ce246cca28441884b043c236d0d72518ca",
+      "bytes": 129081
+    },
+    "AP12a-节奏-normal-light-360x800-100-top-scroll2.png": {
+      "sha256": "c8b3c9e3f1aabfc766a89b624f9d741e34fc0eb4f32c2e501f58e3add95d9046",
+      "bytes": 137702
+    },
+    "AP12a-节奏-normal-light-360x800-100-top-scroll3.png": {
+      "sha256": "6f29e8250456c6bddbd2ddfead62222303135cac8443e8279257fb09ae5513db",
+      "bytes": 120512
+    },
+    "AP12a-节奏-normal-light-360x800-100-top.png": {
+      "sha256": "53f5b2b59db1ab4bb3b79ef1034991c73baf361db1ecf5be8923b69f2728b46d",
+      "bytes": 106994
+    },
+    "AP12a-节奏-normal-light-360x800-130-top.png": {
+      "sha256": "b795cf129224a613d4770884403fce39eff93445b26bb21f01c53410bedcfb56",
+      "bytes": 118979
+    },
+    "AP12a-节奏-normal-light-360x800-150-top.png": {
+      "sha256": "c8020cd3e741bf8bd4a599946d4cf9c341099fb3904d50808044b036bd62af45",
+      "bytes": 107520
+    },
+    "AP12a-节奏-normal-light-360x800-200-top.png": {
+      "sha256": "bb5ff2d7754971d53c8ec38b73fa8162377d9b227099ff1d33cae13255900023",
+      "bytes": 113533
+    },
+    "AP12a-节奏-normal-light-430x900-100-top.png": {
+      "sha256": "694969c0d4f0b86421e3db70fe17f589d148f9903c9a7ddd22bf8af8a2d33925",
+      "bytes": 189255
+    },
+    "AP12a-节奏-stale-light-360x800-100-top.png": {
+      "sha256": "6beec693ad717cbc4ec3247886e39c7301ae5210c10a33354d88b0f34887a12c",
+      "bytes": 132794
+    },
+    "AP12a-节奏-unsupported-light-360x800-100-top.png": {
+      "sha256": "0aa92884a8522c5e2985914313f352c03b237254c5a5d07e2703798328add1d2",
+      "bytes": 58103
+    },
+    "AP12a-节奏-zero-light-360x800-100-top.png": {
+      "sha256": "f998a6e9633b782679eeb1762c16dcbec0f0032572655b1e51af81f2004b8c0f",
+      "bytes": 87076
+    },
+    "AP12a-补能-empty-light-360x800-100-top.png": {
+      "sha256": "4d5332d0e8991ba4ddeee9b724f3afdca017f175e03daca350974eb518cc6020",
+      "bytes": 65745
+    },
+    "AP12a-补能-error-light-360x800-100-top.png": {
+      "sha256": "fffd124ffcc197d7fc30dc51b9ce1e806ea3026296c2675edbecb13e1daf88bc",
+      "bytes": 59839
+    },
+    "AP12a-补能-legacy-light-360x800-100-top.png": {
+      "sha256": "b899c6f780e6be56f4d87141d6ea9efb312b9a772aa54338d7c9a9b182152696",
+      "bytes": 96374
+    },
+    "AP12a-补能-missing-light-360x800-100-top.png": {
+      "sha256": "094fc46d623d8b98cc78a12bcb9153982a857cb06d595d0c1b28b23e04f24892",
+      "bytes": 104040
+    },
+    "AP12a-补能-missing-light-360x800-200-top.png": {
+      "sha256": "d0417974aa2f8560a055cbf5e28c5cfb37ebd4863853175a09d33cfdcdc9bc6a",
+      "bytes": 137595
+    },
+    "AP12a-补能-normal-dark-360x800-100-top-bottom.png": {
+      "sha256": "b0295704ed9c7266c00c4ff0bd9e5ca6cd1bbceb25cce13e11e5da2119a41501",
+      "bytes": 108581
+    },
+    "AP12a-补能-normal-dark-360x800-100-top-scroll1.png": {
+      "sha256": "1b498c3ab2549ec2e2e8a4fbf3a0f3cc501c6281d3d0153ee390a15fc1274be8",
+      "bytes": 91121
+    },
+    "AP12a-补能-normal-dark-360x800-100-top-scroll2.png": {
+      "sha256": "69bd06e7833a7fac66dd5575fa423387e21e8fef23a930a8053ed73a6922d66c",
+      "bytes": 109862
+    },
+    "AP12a-补能-normal-dark-360x800-100-top-scroll3.png": {
+      "sha256": "b0295704ed9c7266c00c4ff0bd9e5ca6cd1bbceb25cce13e11e5da2119a41501",
+      "bytes": 108581
+    },
+    "AP12a-补能-normal-dark-360x800-100-top.png": {
+      "sha256": "ac83546d4ca64c32ebac8521af48d47599443121d117c5b71729d6084836ab31",
+      "bytes": 104603
+    },
+    "AP12a-补能-normal-dark-360x800-200-top.png": {
+      "sha256": "ae3b3cb3eb99ffdc5112e018cc3efcb3d158fdd570a3c5b5eee699eae3c6f912",
+      "bytes": 140627
+    },
+    "AP12a-补能-normal-light-320x568-200-top.png": {
+      "sha256": "350998c11c85507065aed4aa2cf194c8b3972425261b2baf14eb4b3821f93023",
+      "bytes": 82851
+    },
+    "AP12a-补能-normal-light-360x800-100-noSafeArea-top.png": {
+      "sha256": "37ab729b8ba9f205bea8028258182654f87c532a954d4bb7198bbff7ce871233",
+      "bytes": 103565
+    },
+    "AP12a-补能-normal-light-360x800-100-top-bottom.png": {
+      "sha256": "82840f88813bf685057aa3d093666dab8433a0db534773ed8dbaf1a6ba417114",
+      "bytes": 107960
+    },
+    "AP12a-补能-normal-light-360x800-100-top-scroll1.png": {
+      "sha256": "afcb08ba9b2a67d81d6625cb987ae5ef40eebe84026454dc39dfa18c1973dd0f",
+      "bytes": 90879
+    },
+    "AP12a-补能-normal-light-360x800-100-top-scroll2.png": {
+      "sha256": "31dcaa95c85441b3ba6f570ecb5dc03d877890efc2157a2f6ad624e027260dff",
+      "bytes": 108899
+    },
+    "AP12a-补能-normal-light-360x800-100-top-scroll3.png": {
+      "sha256": "82840f88813bf685057aa3d093666dab8433a0db534773ed8dbaf1a6ba417114",
+      "bytes": 107960
+    },
+    "AP12a-补能-normal-light-360x800-100-top.png": {
+      "sha256": "3815e3f15c60ebd3ea8bea068924305e552840f0f8379f604818a21a937ee468",
+      "bytes": 103460
+    },
+    "AP12a-补能-normal-light-360x800-130-top.png": {
+      "sha256": "907b8b57866b5bae9e1f534f2fd5446038c7a3974304c0cace3c8f5fde0533ea",
+      "bytes": 124698
+    },
+    "AP12a-补能-normal-light-360x800-200-top.png": {
+      "sha256": "cb77edeea74dd5466da13998f69ae63412979c6c0213d77364c8360e75d029b6",
+      "bytes": 139385
+    },
+    "AP12a-补能-normal-light-430x900-100-top.png": {
+      "sha256": "4e8c8fc488f1c64587fca63fcfc683b30ea9036f382ce41975db4c0ec78ef198",
+      "bytes": 118488
+    }
+  },
+  "measurements": [
+    {
+      "name": "AP12a-节奏-normal-light-360x800-100",
+      "plotTop": 359.0,
+      "navBottom": 80.0,
+      "plotVisible": 439.0
+    },
+    {
+      "name": "AP12a-节奏-normal-dark-360x800-100",
+      "plotTop": 359.0,
+      "navBottom": 80.0,
+      "plotVisible": 439.0
+    },
+    {
+      "name": "AP12a-能耗-normal-light-360x800-100",
+      "plotTop": 428.0,
+      "navBottom": 80.0,
+      "plotVisible": 200.0
+    },
+    {
+      "name": "AP12a-能耗-normal-dark-360x800-100",
+      "plotTop": 428.0,
+      "navBottom": 80.0,
+      "plotVisible": 200.0
+    },
+    {
+      "name": "AP12a-补能-normal-light-360x800-100",
+      "plotTop": 604.0,
+      "navBottom": 80.0,
+      "plotVisible": 234.0
+    },
+    {
+      "name": "AP12a-补能-normal-dark-360x800-100",
+      "plotTop": 604.0,
+      "navBottom": 80.0,
+      "plotVisible": 234.0
+    }
+  ],
+  "info": {
+    "cases": 42
+  },
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec"
+}

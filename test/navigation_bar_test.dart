@@ -56,7 +56,12 @@ void main() {
       await tester.pumpAndSettle();
       final period = tester.getRect(find.text('期间 · 2026年10月'));
       final icon = tester.getRect(backIcon);
-      final title = tester.getRect(find.text('用车节奏'));
+      final title = tester.getRect(
+        find.descendant(
+          of: find.byType(MileafNavigationRow),
+          matching: find.text('用车节奏'),
+        ),
+      );
       expect(icon.left, closeTo(period.left, .01));
       expect(title.left - icon.right, closeTo(12, .01));
       final action = tester.getRect(find.text('全部指标'));

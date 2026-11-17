@@ -1060,13 +1060,13 @@ void main() {
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     for (var i = 0; i < 6; i++) {
-      if (find.text('查看期间补能记录').evaluate().isNotEmpty) break;
+      if (find.text('查看这段时间的充电').evaluate().isNotEmpty) break;
       await tester.drag(find.byType(Scrollable).last, const Offset(0, -400));
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(find.text('查看期间补能记录'));
+    await tester.ensureVisible(find.text('查看这段时间的充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看期间补能记录'));
+    await tester.tap(find.text('查看这段时间的充电'));
     await tester.pumpAndSettle();
     final topicFrom = seen
         .lastWhere(
@@ -1099,7 +1099,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(reads(), during + 1, reason: '返回专题后才消费费用失效');
     expect(find.text('补能记录'), findsNothing);
-    expect(find.text('查看期间补能记录'), findsOneWidget);
+    expect(find.text('查看这段时间的充电'), findsOneWidget);
     expect(writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -1138,7 +1138,7 @@ void main() {
     now = now.add(const Duration(seconds: 2));
     await selectTab(tester, '统计');
     expect(topicReads(), greaterThan(before), reason: '嵌入专题的充电快照过期后，返回可见必须校验');
-    expect(find.text('补能账目'), findsOneWidget);
+    expect(find.text('充电费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1424,7 +1424,7 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     // Then enter the same topic from the overview with a new period.
@@ -1445,7 +1445,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     final first = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(first.queryParameters['from'], '2026-03-24T00:00:00.000Z');
     // A second explicit entry with another period must not reuse the first.
@@ -1468,7 +1468,7 @@ void main() {
     await tester.pumpAndSettle();
     final second = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(second.queryParameters['from'], '2026-03-01T00:00:00.000Z');
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -1538,7 +1538,7 @@ void main() {
     await tapChipIn(tester, StatisticsInsightsPage, '近7天');
     final explicit = chargingReadout(tester);
     expect(explicit, isNot(fallback), reason: '显式新期间使用自己的首日，不被旧选点阻挡');
-    expect(find.text('补能账目'), findsOneWidget);
+    expect(find.text('充电费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

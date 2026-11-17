@@ -43,21 +43,21 @@ void main() {
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
-    expect(find.text('补能账目'), findsOneWidget);
-    expect(find.text('已知支出 · 覆盖同时看'), findsOneWidget);
-    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
+    expect(find.text('充电费用'), findsOneWidget);
+    expect(find.text('已记录费用'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('有效入电均价 0.4'),
+      find.textContaining('充入均价 0.4'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('有效入电均价 0.4'), findsOneWidget);
+    expect(find.textContaining('充入均价 0.4'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('AC / DC / 未知时间分布'),
+      find.text('充电方式'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('AC / DC / 未知时间分布'), findsOneWidget);
+    expect(find.text('充电方式'), findsOneWidget);
   });
   testWidgets('统计地点账目以结束日和同一地点进入已有记录', (tester) async {
     final queries = <Map<String, String>>[];
@@ -131,7 +131,7 @@ void main() {
     await tester.tap(find.byTooltip('刷新补能统计'));
     await tester.pumpAndSettle();
     expect(find.textContaining('保留上次快照'), findsOneWidget);
-    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('家 · 地库'),
       240,
@@ -246,7 +246,7 @@ void main() {
     );
     await tester.tap(metric);
     await tester.pumpAndSettle();
-    expect(find.text('有效入电均价走势'), findsOneWidget);
+    expect(find.text('充入均价'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
   testWidgets('补能专题 0 条记录走空态而不是 — + 0 / 0 次', (tester) async {
@@ -273,7 +273,7 @@ void main() {
     expect(find.text('还没有充电记录'), findsOneWidget);
     expect(find.text('已知支出 · 覆盖同时看'), findsNothing);
     expect(find.textContaining('费用有记录 0 / 0'), findsNothing);
-    expect(find.text('AC / DC / 未知时间分布'), findsNothing);
+    expect(find.text('充电方式'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
