@@ -168,22 +168,6 @@ class VehiclePage extends StatelessWidget {
   final SessionController session;
   final VoidCallback onSettings;
 
-  /// P16/CP09：行内区分信息用「型号，尾号」；车辆编号只在无任何区分信息时
-  /// 作为回退出现，不再与名称并列为元信息。
-  static String? _distinction(Vehicle vehicle) {
-    final suffix = vehicle.vinSuffix.trim();
-    final lastFour = suffix.length > 4
-        ? suffix.substring(suffix.length - 4)
-        : suffix;
-    final model = vehicle.model?.trim() ?? '';
-    final parts = [
-      if (model.isNotEmpty) model,
-      if (lastFour.isNotEmpty) '尾号 $lastFour',
-    ];
-    if (parts.isEmpty) return null;
-    return parts.join('，');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,7 +226,7 @@ class VehiclePage extends StatelessWidget {
                           title: vehicleName(vehicle),
                           // 名称缺失时标题回退已携带区分信息，副文置空避免重复。
                           meta: (vehicle.name?.trim().isNotEmpty ?? false)
-                              ? _distinction(vehicle)
+                              ? vehicleDistinction(vehicle)
                               : null,
                           bottomLine: index != session.vehicles.length - 1,
                         ),

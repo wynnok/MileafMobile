@@ -160,17 +160,17 @@ class MetricBlock extends StatelessWidget {
           Text(
             label!,
             textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-            style: type.label.copyWith(color: labelColor),
+            style: type.subheadline.copyWith(color: labelColor),
           ),
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
         ],
         number,
         if (note != null) ...[
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
           Text(
             note!,
             textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-            style: type.micro.copyWith(color: noteColor),
+            style: type.footnote.copyWith(color: noteColor),
           ),
         ],
       ],
@@ -333,7 +333,7 @@ class MetricDelta extends StatelessWidget {
           Text(
             label!,
             textAlign: TextAlign.end,
-            style: type.micro.copyWith(
+            style: type.footnote.copyWith(
               color: onHero ? colors.heroMuted : colors.textMuted,
             ),
           ),

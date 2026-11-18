@@ -1,0 +1,212 @@
+{
+  "ticket": "AP14",
+  "freeze_point": "FP4 (a5f0ee7)",
+  "input_sha": "a5f0ee7",
+  "note": "AP14 集成收口机位：入口复用 ap08 渲染测试，代码含电量弧 D-AP08-05 与文案收口修复；与 AP08/ 目录逐机位对照即修复前后的可视差异。",
+  "fixture": "test/fixtures/{summary,driving-stats,charging-stats,meta,vehicles}.json",
+  "timezone": "Asia/Shanghai（timezone 机位为 UTC 回退）",
+  "sampled_at": "2026-03-15T12:00:00Z",
+  "font": {
+    "path": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    "fnv1a64": "3dbc05ebd911cf0b"
+  },
+  "dpr": 1,
+  "safe_area": "上下各 24（safe0 机位为 0）",
+  "keyboard": "hidden",
+  "material_preferences": "glass",
+  "hash_algorithm": "fnv1a64",
+  "images": {
+    "AP08-overview-normal-glass-dark-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "353fcf429ac1829c"
+    },
+    "AP08-overview-normal-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "6d7f2ec45c5057a4"
+    },
+    "AP08-overview-normal-glass-light-360x800-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "fnv1a64": "1e4d38d05108ea90"
+    },
+    "AP08-overview-normal-glass-light-430x932-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "430x932-100",
+      "size": "Size(430.0, 932.0)",
+      "fnv1a64": "0205bc83193c3396"
+    },
+    "AP08-overview-normal-glass-light-320x568-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "320x568-100",
+      "size": "Size(320.0, 568.0)",
+      "fnv1a64": "0d7896198eb087fb"
+    },
+    "AP08-overview-normal-glass-dark-360x800-100-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "360x800-100",
+      "size": "Size(360.0, 800.0)",
+      "fnv1a64": "3e86bbc102b508e5"
+    },
+    "AP08-overview-normal-glass-light-360x800-130-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-130",
+      "size": "Size(360.0, 800.0)",
+      "fnv1a64": "3575e4f31ef33a5a"
+    },
+    "AP08-overview-normal-glass-light-360x800-150-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-150",
+      "size": "Size(360.0, 800.0)",
+      "fnv1a64": "232d76c24612b883"
+    },
+    "AP08-overview-normal-glass-light-390x844-200-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-200",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "484e23cf8d20d382"
+    },
+    "AP08-overview-normal-glass-light-768x1024-200-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "768x1024-200",
+      "size": "Size(768.0, 1024.0)",
+      "fnv1a64": "747a0b03fbd66c3b"
+    },
+    "AP08-overview-normal-glass-light-360x800-100-safe0-top.png": {
+      "page": "overview",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "360x800-100-safe0",
+      "size": "Size(360.0, 800.0)",
+      "fnv1a64": "1584ddef8b74fb4b"
+    },
+    "AP08-overview-no-status-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "no-status",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "4e9095f2e24cd8cb"
+    },
+    "AP08-overview-missing-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "missing",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "259c8a2de57cfee9"
+    },
+    "AP08-overview-asleep-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "asleep",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "55b23e5a7951221c"
+    },
+    "AP08-overview-offline-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "offline",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "75a48e95ac103055"
+    },
+    "AP08-overview-capability-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "capability",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "109e3ee894df5aa5"
+    },
+    "AP08-overview-no-reference-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "no-reference",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "50dc290d911ed3b4"
+    },
+    "AP08-overview-charging-fail-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "charging-fail",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "6600a7085ef17343"
+    },
+    "AP08-overview-timezone-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "timezone",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "334d4876acac2b9f"
+    },
+    "AP08-overview-empty-period-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "empty-period",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "58e99ed8942d1c45"
+    },
+    "AP08-overview-loading-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "loading",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "0d0eba1eaff0ec19"
+    },
+    "AP08-overview-refresh-failed-glass-light-390x844-100-top.png": {
+      "page": "overview",
+      "scene": "refresh-failed",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "46536d468b695ce0"
+    },
+    "AP08-service-normal-glass-dark-390x844-100-top.png": {
+      "page": "service",
+      "scene": "normal",
+      "mode": "dark",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "45b41aabded2905a"
+    },
+    "AP08-service-normal-glass-light-390x844-100-top.png": {
+      "page": "service",
+      "scene": "normal",
+      "mode": "light",
+      "camera": "390x844-100",
+      "size": "Size(390.0, 844.0)",
+      "fnv1a64": "44273ed305d5ce49"
+    }
+  }
+}

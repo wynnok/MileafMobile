@@ -21,7 +21,7 @@ import 'statistics_test.dart' show openStats;
 import 'support/statistics_insights_fixture.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 dynamic fixture(String name) =>
     jsonDecode(File('test/fixtures/$name.json').readAsStringSync());

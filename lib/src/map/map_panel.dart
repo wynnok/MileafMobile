@@ -273,7 +273,7 @@ class _MapPanelState extends State<MapPanel> {
             if (_status == _MapStatus.unsupported) _unsupportedPanel(context),
             if (_status == _MapStatus.failed) _failurePanel(context),
             if (_keys?.restartRequired == true)
-              Text(_keys!.status, style: context.type.micro),
+              Text(_keys!.status, style: context.type.footnote),
             if (widget.onExpand != null &&
                 degraded &&
                 _status != _MapStatus.consent)
@@ -472,7 +472,7 @@ class _MapPanelState extends State<MapPanel> {
           Expanded(
             child: Text(
               '底图未启用，显示路线示意',
-              style: type.label.copyWith(color: colors.text),
+              style: type.subheadline.copyWith(color: colors.text),
             ),
           ),
           TextButton(

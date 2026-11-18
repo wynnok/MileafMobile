@@ -187,7 +187,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
   /// R06：趋势图例用真实编码色样，区分月中位数折线与波动带。
   Widget _legend(BuildContext context) {
     final colors = context.colors;
-    final style = context.type.label.copyWith(color: colors.textMuted);
+    final style = context.type.subheadline.copyWith(color: colors.textMuted);
     return Wrap(
       spacing: MileafSpace.s16,
       runSpacing: MileafSpace.s4,
@@ -289,7 +289,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                     selected.clamp(0, rows.length - 1),
                     context.colors,
                     calendar,
-                    context.type.micro.copyWith(
+                    context.type.caption.copyWith(
                       color: context.colors.textFaint,
                     ),
                     MediaQuery.textScalerOf(context),
@@ -422,7 +422,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                   Builder(
                     builder: (chartContext) {
                       final large = MileafLayout.largeText(context);
-                      final axisStyle = context.type.micro.copyWith(
+                      final axisStyle = context.type.caption.copyWith(
                         color: context.colors.textFaint,
                       );
                       final scale = _RangeScale(rows, large);

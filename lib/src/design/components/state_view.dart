@@ -22,6 +22,7 @@ class StateView extends StatelessWidget {
     this.message,
     this.actionLabel,
     this.onAction,
+    this.actionSemanticLabel,
     this.icon,
     this.onHero = false,
     this.compact = false,
@@ -32,6 +33,10 @@ class StateView extends StatelessWidget {
   final String? message;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// D-AP08-03：读屏对象名。传「重试读取概览」这类完整对象名，可见文字
+  /// 仍用 [actionLabel]；不传时维持原语义（只朗读可见文字）。
+  final String? actionSemanticLabel;
   final MileafIconName? icon;
   final bool onHero;
 
@@ -112,7 +117,11 @@ class StateView extends StatelessWidget {
           ],
           if (onAction != null && actionLabel != null) ...[
             const SizedBox(height: MileafSpace.s12),
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            Semantics(
+              label: actionSemanticLabel,
+              button: true,
+              child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            ),
           ],
         ],
       ),
@@ -133,6 +142,7 @@ class InlineBanner extends StatelessWidget {
     this.tone = BannerTone.info,
     this.actionLabel,
     this.onAction,
+    this.actionSemanticLabel,
     this.liveRegion = true,
     this.visible = true,
   });
@@ -141,6 +151,9 @@ class InlineBanner extends StatelessWidget {
   final BannerTone tone;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// D-AP08-03：动作按钮的读屏对象名（如「重试读取充电数据」）。
+  final String? actionSemanticLabel;
   final bool liveRegion;
   final bool visible;
 
@@ -180,7 +193,11 @@ class InlineBanner extends StatelessWidget {
             ),
           ),
           if (onAction != null && actionLabel != null)
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            Semantics(
+              label: actionSemanticLabel,
+              button: true,
+              child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            ),
         ],
       ),
     );

@@ -19,12 +19,7 @@ class PixelProbe {
   Color at(int x, int y) {
     assert(x >= 0 && x < width && y >= 0 && y < height, '(x, y) = ($x, $y)');
     final i = (y * width + x) * 4;
-    return Color.fromARGB(
-      _rgba[i + 3],
-      _rgba[i],
-      _rgba[i + 1],
-      _rgba[i + 2],
-    );
+    return Color.fromARGB(_rgba[i + 3], _rgba[i], _rgba[i + 1], _rgba[i + 2]);
   }
 
   /// How many pixels equal [color] within [tolerance] per channel.
@@ -51,7 +46,8 @@ class PixelProbe {
   }) => [
     for (var y = 0; y < height; y++)
       for (var x = 0; x < width; x++)
-        if ((where == null || where(x, y)) && _matches(at(x, y), color, tolerance))
+        if ((where == null || where(x, y)) &&
+            _matches(at(x, y), color, tolerance))
           Offset(x.toDouble(), y.toDouble()),
   ];
 
@@ -59,10 +55,7 @@ class PixelProbe {
   ///
   /// Bars and stems are separated horizontally, so one run means one drawn
   /// data mark; a merged run means a mark is missing or two marks touch.
-  List<({int from, int to})> columns(
-    Color color, {
-    int tolerance = 1,
-  }) {
+  List<({int from, int to})> columns(Color color, {int tolerance = 1}) {
     final seen = <int>{};
     for (var y = 0; y < height; y++) {
       for (var x = 0; x < width; x++) {
@@ -102,9 +95,14 @@ class PixelProbe {
 
   /// Bounding box of [color] inside the x band `[from, to]`.
   Rect? columnBounds(Color color, int from, int to, {int tolerance = 1}) =>
-      bounds(color, tolerance: tolerance, where: (x, _) => x >= from && x <= to);
+      bounds(
+        color,
+        tolerance: tolerance,
+        where: (x, _) => x >= from && x <= to,
+      );
 
-  bool _matches(Color a, Color b, int tolerance) => (a.r * 255 - b.r * 255).abs() <= tolerance &&
+  bool _matches(Color a, Color b, int tolerance) =>
+      (a.r * 255 - b.r * 255).abs() <= tolerance &&
       (a.g * 255 - b.g * 255).abs() <= tolerance &&
       (a.b * 255 - b.b * 255).abs() <= tolerance;
 }

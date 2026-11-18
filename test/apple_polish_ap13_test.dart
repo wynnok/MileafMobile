@@ -20,10 +20,10 @@ import 'package:mileaf/src/map/map_consent_sheet.dart';
 import 'package:mileaf/src/session.dart';
 import 'package:mileaf/src/session_pages.dart';
 
-import 'appearance_shell_test.dart' show pumpShell;
+import 'support/shell_harness.dart' show pumpShell;
 import 'charging_cost_test.dart' show CostSite, pumpCostApp, openCostSheet;
 import 'support/session_store.dart' show MemorySessionStore;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// AP13 票合同测试（P12 设置子页、P13 接入页、P14 费用补录、P16 车辆弹层）。
 ///

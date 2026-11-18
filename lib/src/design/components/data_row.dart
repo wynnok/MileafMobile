@@ -93,7 +93,7 @@ class _MileafDataRowState extends State<MileafDataRow> {
         ),
         if (widget.meta != null) ...[
           const SizedBox(height: MileafSpace.inline2),
-          Text(widget.meta!, style: type.micro.copyWith(color: metaColor)),
+          Text(widget.meta!, style: type.footnote.copyWith(color: metaColor)),
         ],
       ],
     );

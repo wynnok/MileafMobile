@@ -15,7 +15,7 @@ import 'reading_continuity_test.dart' show workspaceClient;
 import 'drives_test.dart' show jsonResponse;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 void main() {
   testWidgets('U12 减动效初始化等待时只显示静态加载文字', (tester) async {
@@ -89,7 +89,7 @@ void main() {
       expect(decoration.border!.top.color, colors.focusRing);
       expect(decoration.border!.top.width, 2);
     });
-    testWidgets('R12 $brightness 浮动标签实际字号保持14且跟随大字', (tester) async {
+    testWidgets('R12→R22 $brightness 浮动标签实际字号保持15且跟随大字', (tester) async {
       for (final scale in [1.0, 2.0]) {
         await tester.pumpWidget(
           MaterialApp(
@@ -111,8 +111,9 @@ void main() {
         final transform = paragraph.getTransformTo(null);
         final verticalScale = transform.entry(1, 1).abs();
         final text = paragraph.text as TextSpan;
-        expect(text.style!.fontSize! * verticalScale, closeTo(14, 0.01));
-        expect(paragraph.textScaler.scale(14), closeTo(14 * scale, 0.01));
+        // R22 收口（AP14）：浮动标签随字段名角色迁到 subheadline（15/21）。
+        expect(text.style!.fontSize! * verticalScale, closeTo(15, 0.01));
+        expect(paragraph.textScaler.scale(15), closeTo(15 * scale, 0.01));
       }
     });
 

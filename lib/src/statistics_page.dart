@@ -421,7 +421,7 @@ class _StatisticsViewState extends State<_StatisticsView>
                 Expanded(
                   child: Text(
                     widget.kind == 'driving' ? '驾驶结果' : '充电结果',
-                    style: context.type.title,
+                    style: context.type.headline,
                   ),
                 ),
                 MileafIconButton(
@@ -448,7 +448,7 @@ class _StatisticsViewState extends State<_StatisticsView>
               padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
               child: Text(
                 '统计时区：${calendar.identifier}',
-                style: context.type.micro.copyWith(
+                style: context.type.footnote.copyWith(
                   color: context.colors.textMuted,
                 ),
               ),
@@ -577,7 +577,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       const SizedBox(height: MileafSpace.s12),
       Text(
         '按开始时间归期 · 仅统计已完成行程',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.drives == 0)
         Padding(
@@ -596,7 +596,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: MileafSpace.section),
       const SectionHeader(title: '时间桶明细'),
@@ -781,14 +781,16 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (richer != null)
         Text(
           richer.totals.durationKnownSessions == 0
               ? '分类记录时长缺失'
-              : 'AC ${decimal(richer.totals.acDurationMin)} 分钟 · DC ${decimal(richer.totals.dcDurationMin)} 分钟 · 未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
+              : 'AC ${decimal(richer.totals.acDurationMin)} 分钟、DC ${decimal(richer.totals.dcDurationMin)} 分钟、未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
+          style: context.type.footnote.copyWith(
+            color: context.colors.textMuted,
+          ),
         ),
       const SizedBox(height: MileafSpace.section),
       _classification(context, calendar, buckets, richer, times),
@@ -813,7 +815,7 @@ class _StatisticsViewState extends State<_StatisticsView>
         Text(
           richer.totals.durationKnownSessions == 0
               ? '记录时长 —'
-              : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
+              : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟，${richer.totals.durationKnownSessions} 次有效',
           style: context.type.body.copyWith(color: context.colors.text),
         ),
         _amountLine('有效网侧均价', richer.totals.unitCostGrid.value, perKwh: true),
@@ -821,7 +823,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       const SizedBox(height: MileafSpace.s12),
       Text(
         '按结束时间归期 · 仅统计已结束充电',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.sessions == 0)
         Padding(
@@ -840,7 +842,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: MileafSpace.section),
       const SectionHeader(title: '时间桶明细'),
@@ -865,7 +867,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           if (note != null)
             Text(
               note,
-              style: context.type.micro.copyWith(
+              style: context.type.footnote.copyWith(
                 color: context.colors.textMuted,
               ),
             ),
@@ -955,7 +957,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           if (note != null)
             Text(
               note,
-              style: context.type.micro.copyWith(
+              style: context.type.footnote.copyWith(
                 color: context.colors.textMuted,
               ),
             ),

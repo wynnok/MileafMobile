@@ -97,30 +97,24 @@ void main() {
       expect(t.controlSelected.fontSize, t.control.fontSize);
     });
 
-    test('旧角色保留原值作为过渡别名', () {
+    test('R22 旧角色别名已删除（AP14），新角色取值不变', () {
       final t = MileafTextStyles.resolve(const MileafColors.dark());
-      // title 20/28/600 → text（迁移去向：区块/身份/空状态 → title2）。
-      expect(t.title.fontSize, 20);
-      expect(t.title.height, closeTo(28 / 20, 1e-9));
-      expect(t.title.fontWeight, FontWeight.w600);
-      expect(t.title.color, const MileafColors.dark().text);
-      // label 14/20/500 → textMuted（去向：subheadline/control）。
-      expect(t.label.fontSize, 14);
-      expect(t.label.height, closeTo(20 / 14, 1e-9));
-      expect(t.label.fontWeight, FontWeight.w500);
-      expect(t.label.color, const MileafColors.dark().textMuted);
-      // micro 12/18/400 → textFaint（去向：footnote/caption）。
-      expect(t.micro.fontSize, 12);
-      expect(t.micro.height, closeTo(18 / 12, 1e-9));
-      expect(t.micro.fontWeight, FontWeight.w400);
-      expect(t.micro.color, const MileafColors.dark().textFaint);
-      // pageTitle/navigationTitle/bodyStrong 原值不变。
-      expect(t.pageTitle.fontSize, 28);
-      expect(t.pageTitle.height, closeTo(34 / 28, 1e-9));
-      expect(t.navigationTitle.fontSize, 18);
-      expect(t.navigationTitle.height, closeTo(26 / 18, 1e-9));
-      expect(t.bodyStrong.fontWeight, FontWeight.w500);
-      expect(t.bodyStrong.fontSize, t.body.fontSize);
+      // title 20/28/600 的迁移去向：区块/身份/空状态 → title2 22/28/600。
+      expect(t.title2.fontSize, 22);
+      expect(t.title2.height, closeTo(28 / 22, 1e-9));
+      expect(t.title2.fontWeight, FontWeight.w600);
+      // label 14/20/500 的迁移去向：字段名/图例/单位 → subheadline 15/21。
+      expect(t.subheadline.fontSize, 15);
+      expect(t.subheadline.height, closeTo(21 / 15, 1e-9));
+      // micro 12/18/400 的迁移去向：脚注 → footnote 13/18、图轴 → caption 12/16。
+      expect(t.footnote.fontSize, 13);
+      expect(t.footnote.height, closeTo(18 / 13, 1e-9));
+      expect(t.caption.fontSize, 12);
+      expect(t.caption.height, closeTo(16 / 12, 1e-9));
+      // pageTitle/navigationTitle/bodyStrong 已删除，由 headline 承接。
+      expect(t.headline.fontSize, 17);
+      expect(t.headline.height, closeTo(24 / 17, 1e-9));
+      expect(t.headline.fontWeight, FontWeight.w600);
       // 未迁移角色原值不变。
       expect(t.display.fontSize, 40);
       expect(t.metricLg.fontSize, 32);
@@ -226,14 +220,9 @@ void main() {
       expect(MileafStroke.hairline, 0);
     });
 
-    test('规范间距集合与弃用档位保留原值', () {
+    test('规范间距集合（AP14 已删除弃用档位）', () {
       expect([...MileafSpace.canonical]..sort(), [2, 4, 8, 12, 16, 20, 24, 32]);
-      // 弃用标注不删除：原值保留，所属文件迁移时清零，AP14 全局归零。
-      expect(MileafSpace.inline6, 6);
-      expect(MileafSpace.inline10, 10);
-      expect(MileafSpace.s18, 18);
-      expect(MileafSpace.s40, 40);
-      expect(MileafSpace.s56, 56);
+      // R24 弃用档位 inline6/inline10/s18/s40/s56 已随 AP14 删除。
     });
   });
 

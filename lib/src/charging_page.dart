@@ -5,6 +5,7 @@ import 'api.dart';
 import 'charging_cost.dart';
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
+import 'copy/page_actions.dart' as copy_actions;
 import 'copy/messages.dart' as messages;
 import 'copy/terms.dart' as terms;
 
@@ -1484,9 +1485,9 @@ class _ChargingPageState extends State<ChargingPage>
         children: [
           Text(
             category.label,
-            style: type.label.copyWith(color: colors.textMuted),
+            style: type.subheadline.copyWith(color: colors.textMuted),
           ),
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
           // 单位紧跟在空格之后：列宽不够时由文本引擎把它换到下一行，
           // 不缩小字号、不用 FittedBox（Spec §10.1）。
           Text.rich(
@@ -1497,15 +1498,15 @@ class _ChargingPageState extends State<ChargingPage>
                 if (category.unit != null)
                   TextSpan(
                     text: ' ${category.unit}',
-                    style: type.micro.copyWith(color: colors.textFaint),
+                    style: type.footnote.copyWith(color: colors.textFaint),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
           Text(
             category.note,
-            style: type.micro.copyWith(color: colors.textFaint),
+            style: type.footnote.copyWith(color: colors.textFaint),
           ),
         ],
       ),
@@ -1693,7 +1694,7 @@ class _ChargingPageState extends State<ChargingPage>
         ),
         if (widget.filter.first != null || !expandedAvailable) ...[
           const SizedBox(height: MileafSpace.s8),
-          Text(range, style: context.type.micro),
+          Text(range, style: context.type.footnote),
         ],
       ],
     );
@@ -1725,7 +1726,7 @@ class _ChargingPageState extends State<ChargingPage>
                     overflow: MileafLayout.largeText(context)
                         ? null
                         : TextOverflow.ellipsis,
-                    style: type.bodyStrong,
+                    style: type.headline,
                   ),
                   const SizedBox(height: MileafSpace.inline2),
                   Text(
@@ -1756,10 +1757,10 @@ class _ChargingPageState extends State<ChargingPage>
         Text(
           // 0.1/0.2 合约没有费用覆盖计数，无法区分「未知」与「0 元」。
           '${terms.recordedCost} ${widget.currency.amountValue(stats.totals.cost)}',
-          style: type.title.copyWith(color: colors.text),
+          style: type.headline.copyWith(color: colors.text),
         ),
         if (widget.currency.amountNote case final note?)
-          Text(note, style: type.micro.copyWith(color: colors.textFaint)),
+          Text(note, style: type.footnote.copyWith(color: colors.textFaint)),
         const SizedBox(height: MileafSpace.s4),
         Text(
           '充入电量 ${number(stats.totals.energyAddedKwh, 'kWh')}，'
@@ -1769,7 +1770,7 @@ class _ChargingPageState extends State<ChargingPage>
         const SizedBox(height: MileafSpace.s4),
         Text(
           '当前服务未提供费用覆盖和充入均价。',
-          style: type.micro.copyWith(color: colors.textFaint),
+          style: type.footnote.copyWith(color: colors.textFaint),
         ),
       ],
     );
@@ -1827,7 +1828,7 @@ class _ChargingPageState extends State<ChargingPage>
                         ? null
                         : TextOverflow.ellipsis,
                     // R22：记录类行标题用 headline（bodyStrong 别名同值）。
-                    style: type.bodyStrong,
+                    style: type.headline,
                   ),
                 ),
                 // R31：进行中用小胶囊标签；AC/DC 是独立小标签（CP09）。
@@ -1864,7 +1865,7 @@ class _ChargingPageState extends State<ChargingPage>
                 Text.rich(
                   TextSpan(
                     text: '充入 ',
-                    style: type.label.copyWith(color: colors.textMuted),
+                    style: type.subheadline.copyWith(color: colors.textMuted),
                     children: [
                       TextSpan(
                         text: value.energyAddedKwh == null
@@ -1874,7 +1875,7 @@ class _ChargingPageState extends State<ChargingPage>
                         style: type.metricSm.copyWith(color: colors.text),
                       ),
                       if (value.energyAddedKwh != null)
-                        TextSpan(text: ' kWh', style: type.label),
+                        TextSpan(text: ' kWh', style: type.subheadline),
                     ],
                   ),
                 ),
@@ -2117,14 +2118,14 @@ class _ChargingPageState extends State<ChargingPage>
                             if (searchTerm.isNotEmpty)
                               Text(
                                 '地点搜索：$searchTerm',
-                                style: type.micro.copyWith(
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
                             if (locationId != null)
                               Text(
                                 '地点：${locationName ?? '未知地点'}',
-                                style: type.micro.copyWith(
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
@@ -2135,7 +2136,7 @@ class _ChargingPageState extends State<ChargingPage>
                                   'dc' => 'DC',
                                   _ => '未知',
                                 }}',
-                                style: type.micro.copyWith(
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
@@ -2146,7 +2147,7 @@ class _ChargingPageState extends State<ChargingPage>
                                   'unknown' => '未知',
                                   _ => '为零',
                                 }}',
-                                style: type.micro.copyWith(
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
@@ -2162,7 +2163,9 @@ class _ChargingPageState extends State<ChargingPage>
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
                           '— 表示数据缺失；进行中指标不代表最终结果',
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
                     if (workspace.calendar!.fallback)
@@ -2170,7 +2173,7 @@ class _ChargingPageState extends State<ChargingPage>
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
                           messages.timezoneUnreadableMessage(),
-                          style: type.micro.copyWith(color: colors.warning),
+                          style: type.footnote.copyWith(color: colors.warning),
                         ),
                       ),
                     if (capabilityChecked && !expandedAvailable)
@@ -2178,7 +2181,9 @@ class _ChargingPageState extends State<ChargingPage>
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
                           '${messages.unsupportedMessage('扩展充电数据')}，显示已有记录。',
-                          style: type.micro.copyWith(color: colors.textMuted),
+                          style: type.footnote.copyWith(
+                            color: colors.textMuted,
+                          ),
                         ),
                       ),
                     if (capabilityError != null)
@@ -2186,6 +2191,7 @@ class _ChargingPageState extends State<ChargingPage>
                         message: capabilityError!,
                         tone: BannerTone.error,
                         actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryCapabilities,
                         onAction: () => loadCapability(force: true),
                       ),
                     if (activeError != null)
@@ -2193,6 +2199,7 @@ class _ChargingPageState extends State<ChargingPage>
                         message: activeError!,
                         tone: BannerTone.error,
                         actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingActive,
                         onAction: () => loadActive(force: true),
                       ),
                     if (activeConfirmed &&
@@ -2223,6 +2230,7 @@ class _ChargingPageState extends State<ChargingPage>
                         message: statsError!,
                         tone: BannerTone.error,
                         actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingStats,
                         onAction: () => loadStats(force: true),
                       ),
                   ],
@@ -2243,7 +2251,7 @@ class _ChargingPageState extends State<ChargingPage>
                     ),
                     child: Text(
                       '充入均价不含 ${stats.totals.unitCostAdded.excludedCostSessions} 次能量无效的已记录费用。',
-                      style: type.micro.copyWith(color: colors.textMuted),
+                      style: type.footnote.copyWith(color: colors.textMuted),
                     ),
                   ),
               ] else if (legacyStats != null && !recordsOnly)
@@ -2278,7 +2286,7 @@ class _ChargingPageState extends State<ChargingPage>
                             children: [
                               Text(
                                 '只看 ${copy.formatDay(selectedDay!, _today)}结束的充电',
-                                style: type.micro.copyWith(
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
@@ -2294,7 +2302,9 @@ class _ChargingPageState extends State<ChargingPage>
                           padding: const EdgeInsets.only(top: MileafSpace.s4),
                           child: Text(
                             '按充入均价从低到高排序；单次均价可在详情查看。',
-                            style: type.micro.copyWith(color: colors.textMuted),
+                            style: type.footnote.copyWith(
+                              color: colors.textMuted,
+                            ),
                           ),
                         ),
                       if (matchedSessions != null)
@@ -2302,7 +2312,9 @@ class _ChargingPageState extends State<ChargingPage>
                           padding: const EdgeInsets.only(top: MileafSpace.s4),
                           child: Text(
                             '匹配 $matchedSessions 次充电',
-                            style: type.micro.copyWith(color: colors.textFaint),
+                            style: type.footnote.copyWith(
+                              color: colors.textFaint,
+                            ),
                           ),
                         ),
                     ],
@@ -2330,6 +2342,8 @@ class _ChargingPageState extends State<ChargingPage>
                           message: locationError!,
                           tone: BannerTone.error,
                           actionLabel: '重试',
+                          actionSemanticLabel:
+                              copy_actions.retryChargingLocations,
                           onAction: () => loadLocations(
                             more: locationFailedMore,
                             force: true,
@@ -2385,6 +2399,7 @@ class _ChargingPageState extends State<ChargingPage>
                         message: error!,
                         tone: BannerTone.error,
                         actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingRecords,
                         onAction: retryLoad,
                       ),
                     if (loaded &&
@@ -2408,7 +2423,9 @@ class _ChargingPageState extends State<ChargingPage>
                         child: Text(
                           '已显示全部充电',
                           textAlign: TextAlign.center,
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
                     _notes(),

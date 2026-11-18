@@ -92,7 +92,7 @@ class SampleChart extends StatelessWidget {
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: Text(
               '只有 1 个数据点，无法画出变化',
-              style: type.micro.copyWith(color: colors.textMuted),
+              style: type.caption.copyWith(color: colors.textMuted),
             ),
           ),
         if (points.isNotEmpty && values.isEmpty)
@@ -100,7 +100,7 @@ class SampleChart extends StatelessWidget {
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: Text(
               '这一项没有记录',
-              style: type.micro.copyWith(color: colors.textMuted),
+              style: type.caption.copyWith(color: colors.textMuted),
             ),
           ),
         MileafDisclosure(
@@ -110,7 +110,7 @@ class SampleChart extends StatelessWidget {
             children: [
               Text(
                 '连线仅为采样示意，不代表连续观测；缺失值断线，不补点或补零。',
-                style: type.micro.copyWith(color: colors.textMuted),
+                style: type.caption.copyWith(color: colors.textMuted),
               ),
               if (values.isNotEmpty) ...[
                 const SizedBox(height: MileafSpace.s4),
@@ -118,7 +118,7 @@ class SampleChart extends StatelessWidget {
                   '$label采样：${points.length} 点；已知 ${values.length} 点；'
                   '范围 ${_value(values.reduce(math.min))} 至 '
                   '${_value(values.reduce(math.max))}，不是原始极值。',
-                  style: type.micro.copyWith(color: colors.textFaint),
+                  style: type.caption.copyWith(color: colors.textFaint),
                 ),
               ],
             ],

@@ -9,7 +9,7 @@ import 'package:mileaf/main.dart';
 
 import 'session_test.dart' show connect;
 import 'support/session_store.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 void main() {
   testWidgets('仅主动初始化后设置口令，再登录并读取车辆', (tester) async {

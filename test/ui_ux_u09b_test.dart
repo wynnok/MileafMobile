@@ -19,7 +19,7 @@ import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'ui_ux_u09a_test.dart' show dailyClient;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09b 专属回归：旧测试未覆盖的组边界短标签与读屏、全缺失/单组、
 /// 200% 分组控件、点图键盘与语义增减、刷新 44 命中及宽屏限宽。

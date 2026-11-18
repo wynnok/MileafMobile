@@ -8,6 +8,9 @@ import '../tokens.dart';
 import '../typography.dart';
 import 'button.dart' show MileafControlMetrics, MileafPressOverlay;
 
+/// 小胶囊菜单的宽度下限（原 s56*4 的既有值；非间距语义，本地化保留原值）。
+const double kPullDownMenuMinWide = 224.0;
+
 /// 下拉菜单的一个选项。
 @immutable
 class MileafPullDownOption<T> {
@@ -72,7 +75,7 @@ class _MileafPullDownState<T> extends State<MileafPullDown<T>> {
       ),
       constraints: BoxConstraints(
         minWidth: width,
-        maxWidth: math.max(width, MileafSpace.s56 * 4),
+        maxWidth: math.max(width, kPullDownMenuMinWide),
       ),
       items: [
         for (final option in widget.options)

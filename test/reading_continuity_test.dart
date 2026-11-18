@@ -20,7 +20,7 @@ import 'statistics_test.dart' show openStats, custom;
 import 'statistics_usage_test.dart' show usageClient;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Future<void> selectTab(WidgetTester tester, String label) async {
   await tester.tap(

@@ -1040,6 +1040,9 @@ class _UsageSwatch extends StatelessWidget {
 }
 
 class _UsagePatternPainter extends CustomPainter {
+  /// 斜线纹理步距（原 inline6；图形绘制参数，非布局间距，本地化保留原值）。
+  static const _hatchStep = 6.0;
+
   const _UsagePatternPainter(this.value, this.color);
   final num? value;
   final Color color;
@@ -1064,7 +1067,7 @@ class _UsagePatternPainter extends CustomPainter {
         paint,
       );
     } else if (value! >= 50) {
-      for (var x = -size.height; x < size.width; x += MileafSpace.inline6) {
+      for (var x = -size.height; x < size.width; x += _hatchStep) {
         canvas.drawLine(
           Offset(x, size.height),
           Offset(x + size.height, 0),

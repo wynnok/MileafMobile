@@ -1,96 +1,17 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/top_bar.dart';
 import 'package:mileaf/src/workspace.dart';
-import 'package:mileaf/src/map/map_key.dart';
 
 import 'support/session_store.dart';
+import 'support/shell_harness.dart';
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
-
-class MemoryAppearanceStore implements AppearancePreferenceStore {
-  String? value;
-  bool failWrites = false;
-  @override
-  Future<String?> read() async => value;
-  @override
-  Future<void> write(String? next) async {
-    if (failWrites) throw StateError('disk full');
-    value = next;
-  }
-}
-
-dynamic fixture(String name) =>
-    jsonDecode(File('test/fixtures/$name.json').readAsStringSync());
-
-http.Response _ok(Object body) => http.Response(
-  jsonEncode(body),
-  200,
-  headers: {'content-type': 'application/json; charset=utf-8'},
-);
-
-MockClient shellClient({List<Uri>? calls}) => MockClient((request) async {
-  calls?.add(request.url);
-  final path = request.url.path;
-  if (path.endsWith('/vehicles')) return _ok(fixture('vehicles'));
-  if (path.endsWith('/meta')) return _ok(fixture('meta'));
-  if (path.endsWith('/summary')) return _ok(fixture('summary'));
-  if (path.endsWith('/stats')) {
-    return _ok(
-      fixture(
-        request.url.queryParameters['kind'] == 'charging'
-            ? 'charging-stats'
-            : 'driving-stats',
-      ),
-    );
-  }
-  if (path.endsWith('/drives')) return _ok(fixture('drives'));
-  if (path.endsWith('/charging-sessions')) {
-    return _ok({'items': [], 'next_cursor': null});
-  }
-  return http.Response('{}', 404);
-});
-
-Future<AppearanceController> pumpShell(
-  WidgetTester tester, {
-  AppearanceController? appearance,
-  List<Uri>? calls,
-  double textScale = 1,
-  MapKeyController? mapKeys,
-}) async {
-  tester.platformDispatcher.textScaleFactorTestValue = textScale;
-  addTearDown(() => tester.platformDispatcher.clearTextScaleFactorTestValue());
-  final controller =
-      appearance ?? AppearanceController(MemoryAppearanceStore());
-  final store = MemorySessionStore()
-    ..value = jsonEncode({
-      'site': 'https://example.com/prefix',
-      'token': 'test',
-      'expires_at': '2099-01-01T00:00:00Z',
-    });
-  await tester.pumpWidget(
-    MileafApp(
-      client: shellClient(calls: calls),
-      mapKeys: mapKeys,
-      appearance: controller,
-      sessionStore: store,
-      trustStore: MemoryTrustStore(),
-      vehiclePreferences: MemoryVehiclePreferences(),
-      now: () => DateTime.utc(2026, 10, 26, 10, 40),
-      calendar: () async => CalendarContext('Asia/Shanghai'),
-    ),
-  );
-  await tester.pumpAndSettle();
-  return controller;
-}
 
 void main() {
   group('外观控制器', () {

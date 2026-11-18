@@ -304,7 +304,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                   Flexible(
                     child: Text(
                       value,
-                      style: context.type.label.copyWith(
+                      style: context.type.subheadline.copyWith(
                         color: colors.textMuted,
                       ),
                     ),
@@ -515,7 +515,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                 Builder(
                   builder: (chartContext) {
                     final large = MileafLayout.largeText(context);
-                    final axisStyle = context.type.micro.copyWith(
+                    final axisStyle = context.type.caption.copyWith(
                       color: context.colors.textFaint,
                     );
                     final scale = _ParkingScale(rows, large);
@@ -814,7 +814,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                     selected.clamp(0, rows.length - 1),
                     calendar,
                     context.colors,
-                    context.type.micro.copyWith(
+                    context.type.caption.copyWith(
                       color: context.colors.textFaint,
                     ),
                     MediaQuery.textScalerOf(context),

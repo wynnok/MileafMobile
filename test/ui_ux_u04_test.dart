@@ -13,7 +13,7 @@ import 'support/c_fixture.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

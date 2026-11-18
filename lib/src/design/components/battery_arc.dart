@@ -188,9 +188,16 @@ class _ArcValue extends StatelessWidget {
 
     var style = valueStyle;
     var withUnit = level != null && fits(valueStyle, unit: true);
-    if (!withUnit && !fits(valueStyle, unit: false)) {
-      style = smallStyle;
-      withUnit = level != null && fits(smallStyle, unit: true);
+    if (!withUnit && level != null) {
+      // R29/D-AP08-05：环内只放数值与紧贴的 %。数值 + % 放不下时，先试
+      // 缩一号的数值保住紧贴单位，而不是把 % 挪到下一行。
+      if (fits(smallStyle, unit: true)) {
+        style = smallStyle;
+        withUnit = true;
+      } else if (!fits(valueStyle, unit: false)) {
+        style = smallStyle;
+        withUnit = fits(smallStyle, unit: true);
+      }
     }
     // 圆心的内圆高度：数值 + 换行单位放不下时宁可省掉单位行，也绝不让圆心
     // 溢出（单位仍由语义标签朗读）。

@@ -44,7 +44,7 @@ class MileafCompositionBar extends StatelessWidget {
     if (total <= 0) {
       return Text(
         emptyMessage,
-        style: context.type.micro.copyWith(color: context.colors.textFaint),
+        style: context.type.footnote.copyWith(color: context.colors.textFaint),
       );
     }
     return ClipRRect(

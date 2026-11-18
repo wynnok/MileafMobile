@@ -129,12 +129,6 @@ abstract final class MileafSpace {
   const MileafSpace._();
 
   static const inline2 = 2.0;
-
-  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
-  static const inline6 = 6.0;
-
-  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
-  static const inline10 = 10.0;
   static const row14 = 14.0;
   static const section = 32.0;
 
@@ -145,18 +139,9 @@ abstract final class MileafSpace {
   static const s8 = 8.0;
   static const s12 = 12.0;
   static const s16 = 16.0;
-
-  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
-  static const s18 = 18.0;
   static const s20 = 20.0;
   static const s24 = 24.0;
   static const s32 = 32.0;
-
-  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
-  static const s40 = 40.0;
-
-  /// 弃用（R24/PD07）：非规范间距，所属文件迁移时清零，AP14 删除。
-  static const s56 = 56.0;
 
   /// Fixed structural measurements from the spec.
   static const heroTop = 16.0;
@@ -270,6 +255,9 @@ abstract final class MileafDurations {
   /// §4 M11：行内状态条高度 200ms、透明度 160ms。
   static const statusHeight = Duration(milliseconds: 200);
   static const statusOpacity = Duration(milliseconds: 160);
+
+  /// 主题（浅深）切换动画，200ms。非 M01–M12 动效，收口 main.dart 裸值时入表。
+  static const themeSwitch = Duration(milliseconds: 200);
 }
 
 /// Only two shadow levels exist: sheet/overlay and toast.
@@ -426,35 +414,11 @@ abstract final class MileafType {
   static const captionHeight = 16.0;
   static const captionTracking = 0.0;
 
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除。迁移去向：
-  /// 区块/身份/空状态 → title2，卡片/弹层 → headline。
-  static const pageTitleSize = 28.0;
-  static const pageTitleHeight = 34.0;
-
   static const navLabelSize = 12.0;
   static const navLabelHeight = 16.0;
 
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除。
-  static const titleSize = 20.0;
-  static const titleHeight = 28.0;
-  static const titleTracking = 0.0;
-
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 headline。
-  static const navigationTitleSize = 18.0;
-  static const navigationTitleHeight = 26.0;
-
   static const bodySize = 17.0;
   static const bodyHeight = 25.0;
-
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 subheadline/control。
-  static const labelSize = 14.0;
-  static const labelHeight = 20.0;
-  static const labelTracking = 0.0;
-
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 footnote/caption。
-  static const microSize = 12.0;
-  static const microHeight = 18.0;
-  static const microTracking = 0.0;
 
   /// Technical table values and form error text.
   static const detailSize = 12.0;

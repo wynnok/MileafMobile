@@ -352,21 +352,7 @@ class _VehicleSheet extends StatelessWidget {
   static String _label(Vehicle vehicle) =>
       vehicle.name?.trim().isNotEmpty ?? false
       ? vehicle.name!.trim()
-      : _distinction(vehicle) ?? '车辆 ${vehicle.id}';
-
-  static String? _distinction(Vehicle vehicle) {
-    final suffix = vehicle.vinSuffix.trim();
-    final lastFour = suffix.length > 4
-        ? suffix.substring(suffix.length - 4)
-        : suffix;
-    final model = vehicle.model?.trim() ?? '';
-    final parts = [
-      if (model.isNotEmpty) model,
-      if (lastFour.isNotEmpty) '尾号 $lastFour',
-    ];
-    if (parts.isEmpty) return null;
-    return parts.join('，');
-  }
+      : vehicleDistinction(vehicle) ?? '车辆 ${vehicle.id}';
 
   @override
   Widget build(BuildContext context) {
@@ -388,7 +374,7 @@ class _VehicleSheet extends StatelessWidget {
                     title: _label(vehicle),
                     // 无名称时区分信息就是名称，不再重复第二行。
                     meta: vehicle.name?.trim().isNotEmpty ?? false
-                        ? _distinction(vehicle)
+                        ? vehicleDistinction(vehicle)
                         : null,
                     selected: vehicle.id == selectedId,
                     trailing: vehicle.id == selectedId

@@ -115,7 +115,7 @@ class _Gallery extends StatelessWidget {
                         Flexible(
                           child: Text(
                             '充电中 · 11.0 kW',
-                            style: context.type.label.copyWith(
+                            style: context.type.subheadline.copyWith(
                               color: context.colors.heroMuted,
                             ),
                           ),
@@ -124,7 +124,7 @@ class _Gallery extends StatelessWidget {
                         Flexible(
                           child: Text(
                             '2 分钟前',
-                            style: context.type.label.copyWith(
+                            style: context.type.subheadline.copyWith(
                               color: context.colors.heroFaint,
                             ),
                             textAlign: TextAlign.end,
@@ -149,7 +149,7 @@ class _Gallery extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 '额定续航 · 非实时',
-                                style: context.type.micro.copyWith(
+                                style: context.type.footnote.copyWith(
                                   color: context.colors.heroMuted,
                                 ),
                               ),
@@ -414,7 +414,7 @@ class _LongGallery extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '暂无本月数据 · 期间 10.01 — 10.31 · 估算口径',
-                    style: context.type.micro.copyWith(
+                    style: context.type.footnote.copyWith(
                       color: context.colors.textMuted,
                     ),
                   ),
@@ -445,7 +445,7 @@ class _StatesGallery extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('处理中 / 禁用', style: context.type.title),
+                  Text('处理中 / 禁用', style: context.type.title2),
                   const SizedBox(height: 12),
                   const MileafButton(
                     label: '正在提交',
@@ -491,7 +491,7 @@ class _StatesGallery extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Text('图形组件', style: context.type.title),
+                  Text('图形组件', style: context.type.title2),
                   const SizedBox(height: 12),
                   const Row(
                     children: [
@@ -537,7 +537,7 @@ class _StatesGallery extends StatelessWidget {
                     share: '38%',
                   ),
                   const SizedBox(height: 20),
-                  Text('弹层框架', style: context.type.title),
+                  Text('弹层框架', style: context.type.title2),
                   const SizedBox(height: 12),
                   MileafSheetFrame(
                     title: '外观',
@@ -552,7 +552,7 @@ class _StatesGallery extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text('底栏', style: context.type.title),
+                  Text('底栏', style: context.type.title2),
                   const SizedBox(height: 12),
                   // 底栏预览：固定高度组件可直接内嵌，选中标记与实色可查。
                   ClipRect(child: MileafNavBar(index: 0, onSelected: (_) {})),
@@ -577,7 +577,7 @@ class _FocusSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('焦点（键盘可达，即时 2px 外环）', style: context.type.title),
+          Text('焦点（键盘可达，即时 2px 外环）', style: context.type.title2),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,

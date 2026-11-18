@@ -821,9 +821,14 @@ void main() {
     testWidgets('圆心只有数值（含单位），标签移到环外', (tester) async {
       await pumpChart(tester, const BatteryArc(level: 82));
       final value = tester.widget<Text>(find.text('82'));
+      // D-AP08-05（AP14）：数值 + % 放不下时先缩一号数值保住紧贴单位；
+      // 测试字体无实字宽时会走 0.85 回退档。
       expect(
         (value.style?.fontSize ?? 0),
-        MileafBatteryMetrics.valueSize,
+        anyOf(
+          MileafBatteryMetrics.valueSize,
+          closeTo(MileafBatteryMetrics.valueSize * .85, 0.01),
+        ),
         reason: '环内是数值本身（CP03：% 紧贴）',
       );
       expect(find.text('%'), findsOneWidget, reason: '单位仍与数值同处圆心');

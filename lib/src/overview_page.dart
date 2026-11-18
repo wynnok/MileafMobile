@@ -7,6 +7,7 @@ import 'currency.dart';
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
 import 'copy/messages.dart' as messages;
+import 'copy/page_actions.dart' as copy_actions;
 import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -669,7 +670,7 @@ class _OverviewPageState extends State<OverviewPage>
       ],
     );
     final arc = d.battery?.level == null
-        ? Text('电量未知', style: type.micro.copyWith(color: colors.heroMuted))
+        ? Text('电量未知', style: type.footnote.copyWith(color: colors.heroMuted))
         : BatteryArc(
             level: d.battery?.level,
             onHero: true,
@@ -781,7 +782,7 @@ class _OverviewPageState extends State<OverviewPage>
                       ],
                     ],
                   ),
-                const SizedBox(height: MileafSpace.inline6),
+                const SizedBox(height: MileafSpace.s4),
                 if (large) ...[
                   range,
                   const SizedBox(height: MileafSpace.s12),
@@ -869,6 +870,7 @@ class _OverviewPageState extends State<OverviewPage>
             title: retryable ? '车况暂不可用' : '暂无车况',
             message: error ?? '下拉刷新或检查站点连接',
             actionLabel: _retry,
+            actionSemanticLabel: copy_actions.retryVehicleStatus,
             onAction: () => loadSummary(force: true),
           ),
         ],
@@ -1741,6 +1743,7 @@ class _OverviewPageState extends State<OverviewPage>
                           message: '比较暂不可用：$comparisonError',
                           tone: BannerTone.error,
                           actionLabel: _retry,
+                          actionSemanticLabel: copy_actions.retryComparison,
                           onAction: () => loadComparison(force: true),
                         ),
                       ),
@@ -1933,7 +1936,7 @@ class _OverviewPageState extends State<OverviewPage>
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
                           messages.timezoneUnreadableMessage(),
-                          style: context.type.micro.copyWith(
+                          style: context.type.footnote.copyWith(
                             color: context.colors.warning,
                           ),
                         ),
@@ -1947,6 +1950,7 @@ class _OverviewPageState extends State<OverviewPage>
                         message: error!,
                         tone: BannerTone.error,
                         actionLabel: _retry,
+                        actionSemanticLabel: copy_actions.retryOverview,
                         onAction: () => loadSummary(force: true),
                       ),
                     _periodBar(),
@@ -1957,6 +1961,7 @@ class _OverviewPageState extends State<OverviewPage>
                         message: capabilityError!,
                         tone: BannerTone.warning,
                         actionLabel: _retry,
+                        actionSemanticLabel: copy_actions.retryCapabilities,
                         onAction: () => loadCapabilities(force: true),
                       ),
                     if (errors['driving'] != null)
@@ -1964,6 +1969,7 @@ class _OverviewPageState extends State<OverviewPage>
                         message: errors['driving']!,
                         tone: BannerTone.error,
                         actionLabel: _retry,
+                        actionSemanticLabel: copy_actions.retryDrivingData,
                         onAction: () => loadStats('driving', force: true),
                       ),
                     if (errors['charging'] != null)
@@ -1971,6 +1977,7 @@ class _OverviewPageState extends State<OverviewPage>
                         message: errors['charging']!,
                         tone: BannerTone.error,
                         actionLabel: _retry,
+                        actionSemanticLabel: copy_actions.retryChargingData,
                         onAction: () => loadStats('charging', force: true),
                       ),
                     _focusCard(),
@@ -2137,6 +2144,7 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
                   message: error!,
                   tone: BannerTone.error,
                   actionLabel: _retry,
+                  actionSemanticLabel: copy_actions.retryServiceInfo,
                   onAction: () {
                     setState(() => error = null);
                     load();

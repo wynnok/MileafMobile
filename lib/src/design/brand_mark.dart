@@ -91,14 +91,14 @@ class MileafWordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolved = color ?? context.colors.accent;
-    final word = context.type.title.copyWith(
+    final word = context.type.headline.copyWith(
       fontSize: MileafBrand.wordSize,
       height: 1.1,
       letterSpacing: MileafBrand.wordTracking * MileafBrand.wordSize,
       color: resolved,
       fontWeight: MileafType.weightSemiBold,
     );
-    final latin = context.type.micro.copyWith(
+    final latin = context.type.caption.copyWith(
       fontSize: MileafBrand.latinSize,
       height: 1.1,
       letterSpacing: MileafBrand.latinTracking * MileafBrand.latinSize,

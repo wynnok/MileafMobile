@@ -17,7 +17,7 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 import 'charging_test.dart' show MemoryCurrency;
 
 Map<String, dynamic> fixture(String name) =>

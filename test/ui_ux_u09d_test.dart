@@ -20,7 +20,7 @@ import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/statistics_insights_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09d 专属回归：旧测试未覆盖的图例与轴范围注记、单月/中间缺月/全缺失、
 /// 长数值轴留白、200%与前后按钮实际触控、键盘左右与语义增减、宽屏限宽。

@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/design/components/components.dart';
-import 'package:mileaf/src/api.dart';
 
 import 'support/session_store.dart';
+import 'support/test_trust_store.dart';
 
 void main() {
   testWidgets('授权偏好读取失败时拒绝联网并提示恢复', (tester) async {
@@ -56,7 +56,7 @@ void main() {
     denied = false;
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
-    expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+    expect(find.text('服务正常，版本 0.1.0'), findsOneWidget);
   });
 
   testWidgets('重定向不继续请求，明确提示实际服务地址', (tester) async {
@@ -120,7 +120,7 @@ void main() {
     );
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
-    expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+    expect(find.text('服务正常，版本 0.1.0'), findsOneWidget);
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pumpAndSettle();
     await tester.tap(find.text('检查连接'));
@@ -150,7 +150,7 @@ void main() {
     );
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
-    expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+    expect(find.text('服务正常，版本 0.1.0'), findsOneWidget);
   });
   testWidgets('HTTP 未授权不联网，主动信任后仅对确切站点生效', (tester) async {
     var requests = 0;
@@ -179,7 +179,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
-    expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+    expect(find.text('服务正常，版本 0.1.0'), findsOneWidget);
     expect(requests, 1);
     await tester.enterText(
       find.byType(TextFormField),
@@ -189,7 +189,7 @@ void main() {
     await tester.tap(find.text('检查连接'));
     await tester.pumpAndSettle();
     expect(requests, 1);
-    expect(find.text('服务正常 · 版本 0.1.0'), findsNothing);
+    expect(find.text('服务正常，版本 0.1.0'), findsNothing);
   });
   for (final isJson in [true, false]) {
     testWidgets('数据库503后保留输入并可重试成功 JSON=$isJson', (tester) async {
@@ -225,7 +225,7 @@ void main() {
       unavailable = false;
       await tester.tap(find.text('检查连接'));
       await tester.pumpAndSettle();
-      expect(find.text('服务正常 · 版本 0.1.0'), findsOneWidget);
+      expect(find.text('服务正常，版本 0.1.0'), findsOneWidget);
     });
   }
   testWidgets('总时限涵盖等待响应头，超时后可以重试', (tester) async {
@@ -328,23 +328,5 @@ void main() {
   });
 }
 
-class MemoryTrustStore implements HttpTrustStore {
-  final _sites = <String>{};
-  @override
-  Future<bool> isTrusted(SiteAddress site) async =>
-      _sites.contains(site.uri.toString());
-  @override
-  Future<void> setTrusted(SiteAddress site, bool trusted) async {
-    if (trusted) {
-      _sites.add(site.uri.toString());
-    } else {
-      _sites.remove(site.uri.toString());
-    }
-  }
-}
-
-class UnavailableTrustStore extends MemoryTrustStore {
-  @override
-  Future<bool> isTrusted(SiteAddress site) async =>
-      throw const FileSystemException('storage unavailable');
-}
+// MemoryTrustStore / UnavailableTrustStore 已迁至 test/support/test_trust_store.dart
+// （AP13 归拢，AP14 落地）。本文件经 support 导入继续使用。

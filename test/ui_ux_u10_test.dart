@@ -12,7 +12,7 @@ import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/workspace.dart';
 
-import 'appearance_shell_test.dart'
+import 'support/shell_harness.dart'
     show MemoryAppearanceStore, shellClient, fixture;
 import 'charging_test.dart' show MemoryCurrency;
 import 'support/session_store.dart';
@@ -20,13 +20,13 @@ import 'support/vehicle_preferences.dart';
 import 'support/map_key_fixture.dart';
 import 'support/render_fonts.dart';
 import 'support/render_png.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'appearance_shell_test.dart' show pumpShell;
+import 'support/shell_harness.dart' show pumpShell;
 
 const _output = String.fromEnvironment('MILEAF_U10_RENDER_OUTPUT');
 const _font = String.fromEnvironment('MILEAF_RENDER_FONT');

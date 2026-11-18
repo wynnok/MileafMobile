@@ -849,7 +849,7 @@ class _DrivesPageState extends State<DrivesPage>
         badge: d.endedAt == null
             ? Text(
                 '进行中',
-                style: context.type.micro.copyWith(
+                style: context.type.footnote.copyWith(
                   color: context.colors.warning,
                 ),
               )
@@ -1081,7 +1081,9 @@ class _DrivesPageState extends State<DrivesPage>
                         child: Text(
                           '已显示全部 ${items.length} 趟',
                           textAlign: TextAlign.center,
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
                     _rhythmSection(driving),
