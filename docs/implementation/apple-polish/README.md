@@ -55,7 +55,7 @@
 | AP12b | （已删）…/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP13 | （已删）…/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP14 | （已删）…/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已合入 FP5，工作树已删，分支保留 |
-| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已更新至 FP5（fbe5cfc），依赖已备 |
+| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已更新至 FP5（0dce651，含登记提交 692263a），依赖已备 |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
@@ -192,7 +192,7 @@ AP14 为总控票，单票合入无顺序问题；合入 `codex/apple-polish-ap1
 - 图证：`docs/implementation/apple-polish-renders/AP14/`（24 PNG + manifest，输入 SHA 为 `a5f0ee7` 上的集成收口代码）与统一索引 `MANIFEST.md`。
 - 能力迁移：`capability-map.md` 新增 A36–A39。
 - 待用户裁定（交 AP15/用户）：守卫口径 B 确认（D-AP08-01）、D-AP08-11 首屏预算退让候选（留档 AP08.md）、D-AP07-14/17/21、D-AP08-08、D-AP10-02、D-AP11-02、D-AP12b-06、D-AP13-01。
-- AP15 工作树已快进至 FP5 登记提交 `fbe5cfc`（依赖沿用原克隆并复验 `pub get --offline`）。
+- AP15 工作树已更新至 FP5（FP5 登记提交 `692263a`；ap15 工作树提交 `0dce651`），依赖沿用原克隆并复验 `pub get --offline`。
 
 ## AP00 交付物
 
