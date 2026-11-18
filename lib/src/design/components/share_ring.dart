@@ -178,7 +178,7 @@ class _MileafShareRingState extends State<MileafShareRing>
     final value = widget.centerValue ?? '—';
     final unit = widget.centerValue == null ? null : widget.centerUnit;
     final valueStyle = type.metricMd.copyWith(color: colors.text);
-    final unitStyle = type.micro.copyWith(color: colors.textFaint);
+    final unitStyle = type.footnote.copyWith(color: colors.textFaint);
     final (valueWidth, valueHeight) = _measure(context, value, valueStyle);
     final (unitWidth, unitHeight) = unit == null
         ? (0.0, 0.0)
@@ -379,7 +379,7 @@ class _ShareRingLegendRowState extends State<ShareRingLegendRow> {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: MileafSpace.inline10),
+          const SizedBox(width: MileafSpace.s8),
           // 200% 大字下标签自然宽可超过图例行宽（D-AP10-05，充电方式卡实测
           // 溢出 2px）；标签可收，占比仍靠右。
           Flexible(

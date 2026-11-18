@@ -9,6 +9,9 @@ import 'glass_surface.dart';
 import 'large_content_viewer.dart';
 import 'navigation_material.dart';
 
+/// 选中镜片的垂直内边距（原 inline6；镜片几何随底栏冻结，本地化保留原值）。
+const double kNavLensVerticalPad = 6.0;
+
 class MileafNavItem {
   const MileafNavItem(this.label, this.icon);
   final String label;
@@ -155,7 +158,7 @@ class _MileafNavBarState extends State<MileafNavBar> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: MileafSpace.s4,
-                            vertical: MileafSpace.inline6,
+                            vertical: kNavLensVerticalPad,
                           ),
                           child: _LensStretch(
                             index: widget.index,

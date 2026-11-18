@@ -21,7 +21,7 @@ import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/statistics_insights_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09e 专属回归：旧测试未覆盖的正/负/0分桶、中间缺失不补零、离线/未知
 /// 状态编码、窄片段真实比例、200%读值实际触控、键盘左右与语义增减、宽屏

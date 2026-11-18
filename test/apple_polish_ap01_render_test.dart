@@ -34,12 +34,6 @@ List<(String, String, TextStyle)> _roleRows(MileafTextStyles t) => [
   ('footnote', '限定语与页尾脚注', t.footnote),
   ('caption', '图轴刻度', t.caption),
   ('navLabel', '概览', t.navLabel),
-  ('title（过渡别名）', '区块标题', t.title),
-  ('label（过渡别名）', '字段名', t.label),
-  ('micro（过渡别名）', '元信息', t.micro),
-  ('pageTitle（过渡别名）', '概览', t.pageTitle),
-  ('navigationTitle（过渡别名）', '行程', t.navigationTitle),
-  ('bodyStrong（过渡别名）', '设置行标题', t.bodyStrong),
 ];
 
 Widget _roleBoard(Brightness brightness) {

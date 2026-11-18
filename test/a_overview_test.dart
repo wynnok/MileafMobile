@@ -14,7 +14,7 @@ import 'support/c_gallery_client.dart';
 import 'support/c_fixture.dart' show cNow, cSite;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 class _Cny implements CurrencyPreferenceStore {
   @override

@@ -104,13 +104,13 @@ class SocIntervalBar extends StatelessWidget {
             children: [
               Text(
                 '$beginLabel ${_value(start)}',
-                style: (large ? type.body : type.label).copyWith(
+                style: (large ? type.body : type.subheadline).copyWith(
                   color: colors.textMuted,
                 ),
               ),
               Text(
                 '$endLabel ${_value(end)}',
-                style: (large ? type.body : type.label).copyWith(
+                style: (large ? type.body : type.subheadline).copyWith(
                   color: colors.textMuted,
                 ),
               ),

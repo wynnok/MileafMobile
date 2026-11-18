@@ -470,7 +470,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             ),
           if (widget.currency.amountNote case final note?) ...[
             const SizedBox(height: MileafSpace.s8),
-            Text(note, style: type.micro.copyWith(color: colors.textMuted)),
+            Text(note, style: type.footnote.copyWith(color: colors.textMuted)),
           ],
         ],
       ),
@@ -515,8 +515,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('费用', style: type.label.copyWith(color: colors.textFaint)),
-        const SizedBox(height: MileafSpace.inline6),
+        Text('费用', style: type.subheadline.copyWith(color: colors.textFaint)),
+        const SizedBox(height: MileafSpace.s4),
         if (fillable)
           Align(
             alignment: Alignment.centerLeft,

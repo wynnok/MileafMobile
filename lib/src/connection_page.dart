@@ -118,7 +118,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
     String result;
     try {
       final version = await widget.api.health(SiteAddress.parse(_address.text));
-      result = '服务正常 · 版本 $version';
+      result = '服务正常，版本 $version';
       _healthySite = SiteAddress.parse(_address.text);
     } on ApiFailure catch (error) {
       result = error.message;

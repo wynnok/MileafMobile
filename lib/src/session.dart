@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import 'api.dart';
 import 'auth_contract.g.dart';
 export 'auth_contract.g.dart' show Vehicle;
+export 'vehicle_display.dart'
+    show vehicleDistinction, vehicleDistinctionParts, vehicleName;
 
 abstract interface class SessionStore {
   Future<String?> read();
@@ -444,17 +446,4 @@ class SessionController extends ChangeNotifier {
     _retryTimer?.cancel();
     super.dispose();
   }
-}
-
-String vehicleName(Vehicle vehicle) {
-  if (vehicle.name?.trim().isNotEmpty ?? false) return vehicle.name!.trim();
-  final suffix = vehicle.vinSuffix.trim();
-  final lastFour = suffix.length > 4
-      ? suffix.substring(suffix.length - 4)
-      : suffix;
-  final parts = [
-    if (vehicle.model?.trim().isNotEmpty ?? false) vehicle.model!.trim(),
-    if (lastFour.isNotEmpty) '尾号 $lastFour',
-  ];
-  return parts.isEmpty ? '车辆 ${vehicle.id}' : parts.join(' · ');
 }

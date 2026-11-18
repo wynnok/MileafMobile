@@ -14,7 +14,7 @@ import 'support/vehicle_preferences.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 http.Response overviewTrendResponse([String? kind]) => http.Response(
   File(

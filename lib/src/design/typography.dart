@@ -20,10 +20,10 @@ TextStyle _style({
   fontFeatures: const [FontFeature.tabularFigures()],
 );
 
-/// R22 字体角色表（ADR0014 / PD04）：新增角色 largeTitle、title2、headline、
-/// metricSm、subheadline、control、footnote、caption；旧角色 title、label、
-/// micro、pageTitle、navigationTitle、bodyStrong 保留原值作为过渡别名
-/// （AP14 删除）。每个数字样式带 tabular figures。
+/// R22 字体角色表（ADR0014 / PD04）：display、metricLg、metricMd、metricSm、
+/// largeTitle、title2、headline、body、subheadline、control、footnote、caption。
+/// AP14 已删除旧角色 title、label、micro、pageTitle、navigationTitle、
+/// bodyStrong（R22 过渡别名收口）。每个数字样式带 tabular figures。
 @immutable
 class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
   const MileafTextStyles({
@@ -34,14 +34,11 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     required this.largeTitle,
     required this.title2,
     required this.headline,
-    required this.title,
     required this.body,
     required this.subheadline,
     required this.control,
     required this.footnote,
     required this.caption,
-    required this.label,
-    required this.micro,
   });
 
   factory MileafTextStyles.resolve(MileafColors colors) => MileafTextStyles(
@@ -94,13 +91,6 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
       tracking: MileafType.headlineTracking,
       color: colors.text,
     ),
-    title: _style(
-      size: MileafType.titleSize,
-      height: MileafType.titleHeight,
-      weight: MileafType.weightSemiBold,
-      tracking: MileafType.titleTracking,
-      color: colors.text,
-    ),
     body: _style(
       size: MileafType.bodySize,
       height: MileafType.bodyHeight,
@@ -135,20 +125,6 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
       tracking: MileafType.captionTracking,
       color: colors.textSecondary,
     ),
-    label: _style(
-      size: MileafType.labelSize,
-      height: MileafType.labelHeight,
-      weight: MileafType.weightMedium,
-      tracking: MileafType.labelTracking,
-      color: colors.textMuted,
-    ),
-    micro: _style(
-      size: MileafType.microSize,
-      height: MileafType.microHeight,
-      weight: MileafType.weightRegular,
-      tracking: MileafType.microTracking,
-      color: colors.textFaint,
-    ),
   );
 
   /// R22：分组标题用 subheadline 的 500 变体。
@@ -159,26 +135,9 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
   TextStyle get controlSelected =>
       control.copyWith(fontWeight: MileafType.weightSemiBold);
 
-  /// 过渡别名（R22/PD04）：原值保留，去向 largeTitle，AP14 删除。
-  TextStyle get pageTitle => title.copyWith(
-    fontSize: MileafType.pageTitleSize,
-    height: MileafType.pageTitleHeight / MileafType.pageTitleSize,
-  );
-
-  /// 过渡别名（R22/PD04）：原值保留，去向 headline，AP14 删除。
-  TextStyle get navigationTitle => title.copyWith(
-    fontSize: MileafType.navigationTitleSize,
-    height: MileafType.navigationTitleHeight / MileafType.navigationTitleSize,
-  );
-
-  /// 过渡别名（R22/PD04）：原值保留。导航/设置行标题随 body 400（R22）、
-  /// 记录行标题随 headline，AP14 删除。
-  TextStyle get bodyStrong =>
-      body.copyWith(fontWeight: MileafType.weightMedium);
-  TextStyle get navLabel => label.copyWith(
-    fontSize: MileafType.navLabelSize,
-    height: MileafType.navLabelHeight / MileafType.navLabelSize,
-  );
+  /// R22 底栏标签：12/16/500，由 caption 400 加 500 字重构成。
+  TextStyle get navLabel =>
+      caption.copyWith(fontWeight: MileafType.weightMedium);
 
   final TextStyle display;
   final TextStyle metricLg;
@@ -188,19 +147,11 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
   final TextStyle title2;
   final TextStyle headline;
 
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 title2/headline。
-  final TextStyle title;
   final TextStyle body;
   final TextStyle subheadline;
   final TextStyle control;
   final TextStyle footnote;
   final TextStyle caption;
-
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 subheadline/control。
-  final TextStyle label;
-
-  /// 过渡别名（R22/PD04）：原值保留，AP14 删除；去向 footnote/caption。
-  final TextStyle micro;
 
   static MileafTextStyles of(BuildContext context) {
     final styles = Theme.of(context).extension<MileafTextStyles>();
@@ -213,9 +164,6 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
         );
   }
 
-  /// Unit style: one or two levels below the number and never louder.
-  TextStyle unitColor(Color color) => label.copyWith(color: color);
-
   /// Material text theme for built-in widgets; still five levels.
   TextTheme materialTheme(MileafColors colors) {
     final base = TextTheme(
@@ -224,16 +172,16 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
       displaySmall: metricMd,
       headlineLarge: metricLg,
       headlineMedium: metricMd,
-      headlineSmall: title,
-      titleLarge: title,
-      titleMedium: title.copyWith(fontWeight: MileafType.weightMedium),
+      headlineSmall: headline,
+      titleLarge: title2,
+      titleMedium: headline,
       titleSmall: body.copyWith(fontWeight: MileafType.weightSemiBold),
       bodyLarge: body,
       bodyMedium: body,
-      bodySmall: micro.copyWith(color: colors.textMuted),
-      labelLarge: label,
-      labelMedium: label,
-      labelSmall: micro,
+      bodySmall: footnote.copyWith(color: colors.textMuted),
+      labelLarge: control,
+      labelMedium: control,
+      labelSmall: caption,
     );
     return base.apply(
       bodyColor: colors.text,
@@ -252,14 +200,11 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     TextStyle? largeTitle,
     TextStyle? title2,
     TextStyle? headline,
-    TextStyle? title,
     TextStyle? body,
     TextStyle? subheadline,
     TextStyle? control,
     TextStyle? footnote,
     TextStyle? caption,
-    TextStyle? label,
-    TextStyle? micro,
   }) => MileafTextStyles(
     display: display ?? this.display,
     metricLg: metricLg ?? this.metricLg,
@@ -268,14 +213,11 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     largeTitle: largeTitle ?? this.largeTitle,
     title2: title2 ?? this.title2,
     headline: headline ?? this.headline,
-    title: title ?? this.title,
     body: body ?? this.body,
     subheadline: subheadline ?? this.subheadline,
     control: control ?? this.control,
     footnote: footnote ?? this.footnote,
     caption: caption ?? this.caption,
-    label: label ?? this.label,
-    micro: micro ?? this.micro,
   );
 
   @override
@@ -290,19 +232,16 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
       largeTitle: mix(largeTitle, other.largeTitle),
       title2: mix(title2, other.title2),
       headline: mix(headline, other.headline),
-      title: mix(title, other.title),
       body: mix(body, other.body),
       subheadline: mix(subheadline, other.subheadline),
       control: mix(control, other.control),
       footnote: mix(footnote, other.footnote),
       caption: mix(caption, other.caption),
-      label: mix(label, other.label),
-      micro: mix(micro, other.micro),
     );
   }
 }
 
 extension MileafTextContext on BuildContext {
-  /// Shorthand for the five-level type scale: `context.type.title`.
+  /// Shorthand for the type scale: `context.type.headline`.
   MileafTextStyles get type => MileafTextStyles.of(this);
 }

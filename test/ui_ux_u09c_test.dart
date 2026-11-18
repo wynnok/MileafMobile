@@ -20,7 +20,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09c 专属回归：旧测试未覆盖的指标短词与完整口径、320/大字与 200%
 /// 均 2×2、费用缺失不画假 0、刷新 44 命中、宽屏限宽及期间记录返回。

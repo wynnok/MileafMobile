@@ -21,5 +21,9 @@
 | A33 统一信息披露 | 服务端字段/枚举原值出现在主界面 | R30.4：服务端字段名/枚举原值/快照 ID/算法版本只出现在可复制技术详情 | 技术详情分组、人话标签 | AP04、页面包 |
 | A34 动效语言扩展 | M01–M08 | §4：保留 M01–M08 并细化，新增 M09–M12；按压无涟漪 0.97 缩放、折叠高度动画、图表离散触觉 | 逐帧图板、减动效归零、连续输入 | AP01、AP04、AP05 |
 | A35 字体角色表 | MileafType 旧角色 | R22/PD04：新增 largeTitle/title2/headline/subheadline/control/footnote/caption/metricSm；旧角色保留原值作过渡，逐页迁移 | 角色表、两级文字对比矩阵、controlBorder ≥3:1 | AP01 |
+| A36 旧角色收口 | 过渡别名 title/label/micro/pageTitle/navigationTitle/bodyStrong 与弃用间距 inline6/inline10/s18/s40/s56 仍在 tokens | R22/R24 收口（AP14）：删除旧角色与弃用间距，Material TextTheme 重映射到新角色 | apple_polish_ap14 守卫（lib 无旧引用）、design_tokens/ap01 等价修正、analyze 无诊断 | AP14 |
+| A37 守卫全局归零 | 文案守卫内容检查只覆盖持有非页面文件与 copy 库；裸值守卫余 1 | AQ08/R32 收口（AP14）：CP09 内容检查扩展到 copy 库外全部源文件（插值表达式豁免），裸值全部清零；页面级文案留在页面文件（口径 B，见 AP14.md） | apple_polish_ap14 CP09 全域用例、raw 归零用例、copy_probe（AP12a/AP12b） | AP14 |
+| A38 状态动作读屏对象名 | InlineBanner/StateView 重试按钮只朗读「重试」 | D-AP08-03（AP14）：组件新增可选 actionSemanticLabel，概览/充电页传入完整对象名 | ap14 语义用例（bySemanticsLabel） | AP14 |
+| A39 环内读数紧贴 | 电量弧 130% 时 % 落到数值下一行 | D-AP08-05（AP14）：BatteryArc 判定顺序改为先缩一号数值保住紧贴 % | ap14 130%/100% 紧贴用例（实字宽）、AP14 图册 130% 机位 | AP14 |
 
 AU25 两处既有 opt-in 失败（统计首页专题卡首屏预算、充电四项分段 130% 折行）由 AP00 复现并归因，登记给 AP07 按规格 §6 处理，不在本表新增能力。

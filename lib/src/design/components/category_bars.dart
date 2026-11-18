@@ -9,6 +9,9 @@ import '../typography.dart';
 /// Use for per-category comparison inside a table-like block; the single
 /// segmented share bar is [MileafCompositionBar]. One accent, one darker step
 /// of the same hue and a neutral, never a second accent colour (Spec §8).
+/// 分类条进度条的视觉高度（图形尺寸，非布局间距；R24 弃用间距迁移后本地化）。
+const double kCategoryBarHeight = 6.0;
+
 class MileafCategoryBars extends StatelessWidget {
   const MileafCategoryBars({super.key, required this.values, this.note});
 
@@ -73,7 +76,7 @@ class MileafCategoryBars extends StatelessWidget {
                   const SizedBox(height: MileafSpace.s8),
                   LayoutBuilder(
                     builder: (context, constraints) => Container(
-                      height: MileafSpace.inline6,
+                      height: kCategoryBarHeight,
                       decoration: BoxDecoration(
                         color: colors.line,
                         borderRadius: MileafRadius.xsAll,
@@ -100,7 +103,7 @@ class MileafCategoryBars extends StatelessWidget {
             ),
           ),
         if (note != null)
-          Text(note!, style: type.micro.copyWith(color: colors.textMuted)),
+          Text(note!, style: type.footnote.copyWith(color: colors.textMuted)),
       ],
     );
   }

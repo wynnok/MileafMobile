@@ -9,6 +9,7 @@ import 'package:http/io_client.dart';
 
 import 'src/api.dart';
 import 'src/appearance.dart';
+import 'src/design/tokens.dart';
 import 'src/design/theme.dart';
 import 'src/design/display_preferences.dart';
 import 'src/performance_trace.dart';
@@ -148,7 +149,7 @@ class _MileafAppState extends State<MileafApp> with WidgetsBindingObserver {
       // `system` resolves to the platform brightness, which is exactly what the
       // status bar icons below are derived from, so the two cannot disagree.
       themeMode: appearance.themeMode,
-      themeAnimationDuration: const Duration(milliseconds: 200),
+      themeAnimationDuration: MileafDurations.themeSwitch,
       builder: (context, child) {
         final dark = switch (appearance.mode) {
           MileafAppearance.dark => true,

@@ -25,7 +25,7 @@ import 'overview_test.dart' show background, foreground;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'charging_test.dart' show MemoryCurrency;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Future<void> pumpReadingApp(
   WidgetTester tester,

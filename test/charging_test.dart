@@ -17,7 +17,7 @@ import 'charging_expansion_test.dart' show expansionResponse;
 import 'support/c_fixture.dart' show cEmptyChargingV2;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 import 'overview_test.dart' show background, foreground;
 
 Map<String, dynamic> chargingFixture() =>

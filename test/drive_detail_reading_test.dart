@@ -138,7 +138,7 @@ void main() {
         .widget<Text>(find.descendant(of: facts, matching: find.text('平均速度')))
         .style!;
     expect(numberStyle.fontSize, MileafType.bodySize);
-    expect(labelStyle.fontSize, MileafType.labelSize);
+    expect(labelStyle.fontSize, MileafType.subheadlineSize);
   });
 
   testWidgets('缺失的驾驶与环境值只出「—」，且仍落在同一条数字右线', (tester) async {

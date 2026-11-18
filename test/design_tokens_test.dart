@@ -216,10 +216,8 @@ void main() {
         MileafSpace.s20,
         MileafSpace.s24,
         MileafSpace.section,
-        MileafSpace.s40,
-        MileafSpace.s56,
       };
-      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0, 40.0, 56.0});
+      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0});
       expect(MileafSpace.section % 4, 0);
       expect(MileafSpace.touch, 44);
       expect(MileafSpace.touchAndroid, 48);
@@ -272,14 +270,15 @@ void main() {
       expect(MileafType.displaySize, 40);
       expect(MileafType.metricLgSize, 32);
       expect(MileafType.metricMdSize, 24);
-      expect(MileafType.pageTitleSize, 28);
-      expect(MileafType.titleSize, 20);
-      expect(MileafType.navigationTitleSize, 18);
+      expect(MileafType.largeTitleSize, 34);
+      expect(MileafType.title2Size, 22);
+      expect(MileafType.headlineSize, 17);
       expect(MileafType.bodySize, 17);
-      expect(MileafType.labelSize, 14);
-      expect(MileafType.microSize, 12);
+      expect(MileafType.subheadlineSize, 15);
+      expect(MileafType.footnoteSize, 13);
+      expect(MileafType.captionSize, 12);
       expect(MileafType.displayTracking, -.02);
-      expect(MileafType.labelTracking, 0);
+      expect(MileafType.headlineTracking, 0);
     });
 
     test('每个字号 level 都带 tabular figures', () {
@@ -288,10 +287,10 @@ void main() {
         type.display,
         type.metricLg,
         type.metricMd,
-        type.title,
+        type.title2,
         type.body,
-        type.label,
-        type.micro,
+        type.subheadline,
+        type.footnote,
       ]) {
         expect(style.fontFamily, 'Inter');
         expect(style.fontFamilyFallback, contains('PingFang SC'));
@@ -367,7 +366,7 @@ void main() {
       final dark = mileafTheme(Brightness.dark);
       expect(dark.scaffoldBackgroundColor, const MileafColors.dark().canvas);
       expect(dark.extension<MileafColors>(), isA<MileafColors>());
-      expect(dark.extension<MileafTextStyles>()?.title.fontSize, 20);
+      expect(dark.extension<MileafTextStyles>()?.headline.fontSize, 17);
       final light = mileafTheme(Brightness.light);
       expect(light.scaffoldBackgroundColor, const MileafColors.light().canvas);
       expect(

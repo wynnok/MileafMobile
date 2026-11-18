@@ -20,7 +20,7 @@ import 'package:mileaf/src/map/map_platform.dart';
 import 'support/session_store.dart';
 import 'support/map_key_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 http.Response jsonResponse(
   String body, {

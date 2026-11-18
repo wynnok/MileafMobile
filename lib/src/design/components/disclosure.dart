@@ -87,7 +87,7 @@ class _MileafDisclosureState extends State<MileafDisclosure> {
         ),
         if (widget.meta case final meta?) ...[
           const SizedBox(height: MileafSpace.inline2),
-          Text(meta, style: type.micro.copyWith(color: colors.textMuted)),
+          Text(meta, style: type.footnote.copyWith(color: colors.textMuted)),
         ],
       ],
     );

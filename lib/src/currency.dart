@@ -119,14 +119,14 @@ class _CurrencyPageState extends State<CurrencyPage> {
             children: [
               const Text('后端没有币种信息。此设置仅添加币种代码标签，不换汇、不改变费用数字。请确保站点所有记录使用同一币种。'),
               const SizedBox(height: MileafSpace.s8),
-              Text('仅保存当前连接的普通偏好，不修改数据库。', style: context.type.micro),
+              Text('仅保存当前连接的普通偏好，不修改数据库。', style: context.type.footnote),
               const SizedBox(height: MileafSpace.s12),
               if (error != null)
                 Semantics(liveRegion: true, child: Text(error!)),
               if (saving) ...[
                 Semantics(
                   liveRegion: true,
-                  child: Text('正在保存币种偏好…', style: context.type.micro),
+                  child: Text('正在保存币种偏好…', style: context.type.footnote),
                 ),
                 const SizedBox(height: MileafSpace.s8),
                 const MileafProgressLine(),

@@ -48,8 +48,8 @@ class MileafFactList extends StatelessWidget {
       color: colors.text,
       fontWeight: MileafType.weightMedium,
     );
-    final unitStyle = type.label.copyWith(color: colors.textFaint);
-    final labelStyle = type.label.copyWith(color: colors.textMuted);
+    final unitStyle = type.subheadline.copyWith(color: colors.textFaint);
+    final labelStyle = type.subheadline.copyWith(color: colors.textMuted);
 
     /// 单位列宽：本表最长单位的实测宽度。用尺而不是固定数字，换字体或
     /// 放大字号时列宽随之变化，数字仍对齐。

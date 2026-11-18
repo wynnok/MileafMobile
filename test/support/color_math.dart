@@ -26,9 +26,10 @@ double contrastRatio(Color foreground, Color background) {
 int _byte(double channel) => (channel * 255).round().clamp(0, 255);
 
 /// Opaque result of painting [color] at [alpha] over [background].
-Color compositeOver(Color color, double alpha, Color background) => Color.fromARGB(
-  255,
-  _byte(color.r * alpha + background.r * (1 - alpha)),
-  _byte(color.g * alpha + background.g * (1 - alpha)),
-  _byte(color.b * alpha + background.b * (1 - alpha)),
-);
+Color compositeOver(Color color, double alpha, Color background) =>
+    Color.fromARGB(
+      255,
+      _byte(color.r * alpha + background.r * (1 - alpha)),
+      _byte(color.g * alpha + background.g * (1 - alpha)),
+      _byte(color.b * alpha + background.b * (1 - alpha)),
+    );

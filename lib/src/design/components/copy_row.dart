@@ -47,7 +47,7 @@ class MileafCopyRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: type.label.copyWith(color: colors.textMuted)),
+        Text(label, style: type.subheadline.copyWith(color: colors.textMuted)),
         const SizedBox(height: MileafSpace.s4),
         SelectableText(value, style: type.body.copyWith(color: colors.text)),
       ],

@@ -19,7 +19,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');

@@ -1,0 +1,7 @@
+# AP14 新增共享文件（车辆区分信息归拢）：无裸值。
+# lib/src/vehicle_display.dart
+fontSize=0
+color0x=0
+durationMilliseconds=0
+radiusCircular=0
+total=0

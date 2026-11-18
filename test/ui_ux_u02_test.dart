@@ -349,7 +349,8 @@ void main() {
     test('图形文字 token 均不低于 12', () {
       expect(MileafChartMetrics.axisLabelSize, greaterThanOrEqualTo(12));
       expect(MileafBatteryMetrics.valueSize, greaterThanOrEqualTo(12));
-      expect(MileafType.microSize, greaterThanOrEqualTo(12));
+      expect(MileafType.footnoteSize, greaterThanOrEqualTo(12));
+      expect(MileafType.captionSize, greaterThanOrEqualTo(12));
       expect(MileafType.navLabelSize, greaterThanOrEqualTo(12));
       expect(MileafType.detailSize, greaterThanOrEqualTo(12));
     });

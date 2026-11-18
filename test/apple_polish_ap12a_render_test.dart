@@ -24,7 +24,7 @@ import 'support/vehicle_preferences.dart';
 import 'ui_ux_u09a_test.dart' show dailyClient;
 import 'ui_ux_u09b_test.dart' show conditionsClient;
 import 'ui_ux_u09c_test.dart' show chargingClient;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const font = String.fromEnvironment('MILEAF_RENDER_FONT');

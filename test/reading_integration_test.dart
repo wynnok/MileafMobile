@@ -23,7 +23,7 @@ import 'overview_test.dart' show background, foreground;
 import 'statistics_usage_test.dart' show usageFixture;
 import 'support/statistics_insights_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Object fixture(String name) =>
     jsonDecode(File('test/fixtures/$name.json').readAsStringSync()) as Object;

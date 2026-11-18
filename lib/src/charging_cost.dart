@@ -386,7 +386,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
       if (!mounted || !current) return;
       Navigator.pop(
         context,
-        '费用已补录 · ${_amount(cost.money(), widget.currency)}${refreshed ? '' : '；部分汇总暂未更新，请刷新'}',
+        '费用已补录，${_amount(cost.money(), widget.currency)}${refreshed ? '' : '；部分汇总暂未更新，请刷新'}',
       );
     } catch (_) {
       if (current) {
@@ -426,7 +426,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
         onVerticalDragStart: (_) => dragDistance = 0,
         onVerticalDragUpdate: (event) => dragDistance += event.delta.dy,
         onVerticalDragEnd: (_) {
-          if (!saving && dragDistance > MileafSpace.s40) Navigator.pop(context);
+          if (!saving && dragDistance > MileafSpace.s32) Navigator.pop(context);
         },
         child: Padding(
           padding: EdgeInsets.only(
@@ -465,7 +465,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                     ),
                   ),
                   const SizedBox(height: MileafSpace.s24),
-                  Text('单价（$unit）', style: type.label),
+                  Text('单价（$unit）', style: type.subheadline),
                   gap8,
                   Semantics(
                     label: '单价（$unit）',
@@ -492,7 +492,10 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                         errorText:
                             fieldError ??
                             (showValidation ? _priceError(input.text) : null),
-                        errorStyle: type.micro.copyWith(color: colors.error),
+                        errorStyle: type.body.copyWith(
+                          fontSize: MileafType.detailSize,
+                          color: colors.error,
+                        ),
                         errorMaxLines: 4,
                       ),
                     ),
@@ -502,7 +505,7 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                     widget.currency.code == null
                         ? '请按 TeslaMate 原账本币种填写；当前未配置币种标签。'
                         : '币种标签来自本机设置，请与 TeslaMate 原账本保持一致。',
-                    style: type.micro.copyWith(color: colors.textMuted),
+                    style: type.footnote.copyWith(color: colors.textMuted),
                   ),
                   const SizedBox(height: MileafSpace.section),
                   Text(
@@ -512,12 +515,12 @@ class _ChargingCostSheetState extends State<_ChargingCostSheet> {
                   const SizedBox(height: MileafSpace.s4),
                   Text(
                     '按两类电量的较大可用值计费，最终费用以服务端为准。',
-                    style: type.micro.copyWith(color: colors.textMuted),
+                    style: type.footnote.copyWith(color: colors.textMuted),
                   ),
                   const SizedBox(height: MileafSpace.s12),
                   Text(
                     '预估费用',
-                    style: type.label.copyWith(color: colors.textMuted),
+                    style: type.subheadline.copyWith(color: colors.textMuted),
                   ),
                   gap8,
                   _amountText(

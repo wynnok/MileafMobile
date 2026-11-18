@@ -18,7 +18,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
@@ -123,8 +123,8 @@ void main() {
         'bottom_bar': tester.getRect(find.byType(MileafNavBar)),
       };
     }
-    File('$output/geometry.json').writeAsStringSync(
-      const JsonEncoder.withIndent('  ').convert(geometry),
-    );
+    File(
+      '$output/geometry.json',
+    ).writeAsStringSync(const JsonEncoder.withIndent('  ').convert(geometry));
   }, skip: output.isEmpty || fontPath.isEmpty);
 }

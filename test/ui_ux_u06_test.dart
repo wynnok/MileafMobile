@@ -19,7 +19,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'dart:convert';
 
@@ -223,7 +223,7 @@ void main() {
       if (scenario == 'normal' && scale == 1.3) {
         expect(
           tester.getSize(find.text('均价')).height,
-          lessThanOrEqualTo(MileafType.labelHeight * scale + .5),
+          lessThanOrEqualTo(MileafType.subheadlineHeight * scale + .5),
         );
         expect(
           tester.getTopLeft(find.text('均价')).dy,
