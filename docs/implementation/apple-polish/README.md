@@ -11,6 +11,7 @@
 | FP2 | W2（AP02–AP05）合入 + 集成窗口收口，共享 API 唯一清单 | 8edd1ec（W2 合入） |
 | FP3 | AP07 代表页经用户裁定通过后冻结：token 表、组件 API、动效参数、首屏预算、共享符号签名 | eeefe83（AP07 合入）；清单见 [fp3-freeze.md](fp3-freeze.md) |
 | FP4 | W4（AP08、AP09、AP10、AP11、AP12a、AP12b、AP13）全部合入 + 集成窗口收口 | 773886a（W4 末次集成提交） |
+| FP5 | AP14（W5 集成收口）合入：守卫归零、跨页与性能证据、AP13 归拢、统一图册索引 | 96e0cd4（AP14 合入提交） |
 
 ## 文件与测试租约（交付手册 §3.3）
 
@@ -53,8 +54,8 @@
 | AP12a | （已删）…/MileafMobile-ap12a | codex/apple-polish-ap12a | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP12b | （已删）…/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP13 | （已删）…/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已合入 FP4，工作树已删，分支保留 |
-| AP14 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已创建（W5），依赖已备 |
-| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP4 | 已创建（W5），依赖已备 |
+| AP14 | （已删）…/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已合入 FP5，工作树已删，分支保留 |
+| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已更新至 FP5（fbe5cfc），依赖已备 |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
@@ -173,6 +174,25 @@ W1 遗留交下游的事实：AP01 `AU-AP01`（controlBorder 采纳 #7A8390/#677
 - 图证：`docs/implementation/apple-polish-renders/AP08|AP09|AP10|AP11|AP12a|AP12b|AP13/`（各票 manifest，`input_sha` 均为 FP3 `8ea7e29`）。
 - W4 遗留交 AP14/用户：D-AP08-11（概览首屏预算退让第 5 步待用户裁定）、D-AP08-05（电量弧 130% 环内换行，AP05 组件层）、D-AP08-06（参照句 km 与逗号间多一空格，组件层）、D-AP08-03（InlineBanner/StateView 读屏对象名需组件参数）、D-AP09-01/02（copy 库补页面专属文案构造器）、D-AP10-02（充电三格移出账本卡，待视觉复确认）、D-AP11-01/02（统计首页守卫归零与图例只列参照）、D-AP13-01（服务信息行版本号注入）、D-AP13-04（「服务正常 · 版本」措辞）、D-AP07-14（P05「按电量」横轴是否补回）与 D-AP07-17/18/20/21/24（FP3 遗留）；AP14 一并收守卫归零与统一图册。
 - W5 两个工作树（AP14、AP15）从本节的 FP4 登记提交创建，依赖用 `cp -cR` 克隆 `.cache/pub` 后 `pub get --offline` 验证。
+
+## W5 合入记录（FP5 = 96e0cd4）
+
+AP14 为总控票，单票合入无顺序问题；合入 `codex/apple-polish-ap14`（票末提交 `0179601`）为 `96e0cd4`（--no-ff），无文本冲突。
+
+| 项 | 结果 |
+| --- | --- |
+| 本票测试 | 15 通过（apple_polish_ap14 10 + raw_value_guard 3 + copy_guard 2） |
+| 跨页测试 | 七件 88 通过 |
+| 全量 | `tool/flutterw test --no-pub` **1056 通过 / 49 跳过 / 0 失败**（FP4 基线 1046/49；+10 = ap14 新增） |
+| analyze | 仓库内无诊断（本地未跟踪的 `creator/` 视频工作区有 2 条既有诊断，不在版本库，工作树复跑无诊断） |
+| 格式与 diff | `dart format` 0 changed（含 FP4 登记时列出的 6 个既有漂移文件，本票已一并归零）；`git diff --check` 无输出 |
+
+补丁核对：AP14.md §7 的既有测试等价修正已随票提交（AP14 持有 `test/support/`、跨页测试与冻结组件修正权，属「修正交总控」且本票即总控）；交接 §8 中刻意不做或留裁定的项（D-AP08-01 守卫口径 B、D-AP08-11、D-AP07-14/17、D-AP10-02、D-AP11-02/03、D-AP12b-06、D-AP13-01 等）未在本窗口改动。
+
+- 图证：`docs/implementation/apple-polish-renders/AP14/`（24 PNG + manifest，输入 SHA 为 `a5f0ee7` 上的集成收口代码）与统一索引 `MANIFEST.md`。
+- 能力迁移：`capability-map.md` 新增 A36–A39。
+- 待用户裁定（交 AP15/用户）：守卫口径 B 确认（D-AP08-01）、D-AP08-11 首屏预算退让候选（留档 AP08.md）、D-AP07-14/17/21、D-AP08-08、D-AP10-02、D-AP11-02、D-AP12b-06、D-AP13-01。
+- AP15 工作树已快进至 FP5 登记提交 `fbe5cfc`（依赖沿用原克隆并复验 `pub get --offline`）。
 
 ## AP00 交付物
 
