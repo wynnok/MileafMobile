@@ -56,7 +56,7 @@
 | AP12b | （已删）…/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP13 | （已删）…/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP14 | （已删）…/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已合入 FP5，工作树已删，分支保留 |
-| AP15 | （已删）…/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已合入 FP6，工作树已删，分支保留；合入 main 待总控复核 gate |
+| AP15 | （已删）…/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已合入 FP6，工作树已删，分支保留；已按 P-3 合入 main（b82923b） |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
@@ -211,7 +211,7 @@ AP15 为总控收口票（两个提交：代码 `1894100`、交付记录与图�
 
 - 证据：`AP15.md` §6 双端隔离构建（Android exit 0，arm64 66.8MB；iOS exit 0，Runner.app 79.6MB --no-codesign，CocoaPods 项目内安装）、`capability-map.md` A40、AP11/AP12a/AP13 图册重采（输入 `1894100`）、`MANIFEST.md` 注记。
 - AP15 §8.2 更正存档：基线上升核实（workspace_page 实际 AP07 后恒为 10，AP14.md §2 与 Spec 轴 b5 的表述与提交史不符，已按提交史更正）。
-- 合入 `main`（P-3）为总控复核后的单独 gate，本窗口未执行；推送/发布仍需用户逐次确认。
+- 合入 `main`（P-3）：总控复核（analyze 仅 `creator/` 噪声、格式 0 changed、diff --check 干净、全量 1061/49/0，两次独立运行一致）通过后已本地执行，合并提交 `b82923b`（--no-ff，父为 `6492c83` 与 `2a7e3e6`，树与集成分支尖端逐字节相同，均为 `b9c504f4…`）；未推送，推送/发布仍需用户逐次确认。
 - 无下一波次：AP15 之后 Apple 质感精修（ADR0014）无待开票；待裁定清单见 AP15.md §8.4。
 
 ## AP00 交付物
