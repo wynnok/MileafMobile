@@ -81,7 +81,14 @@ class MileafCopyRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.line)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
+      // 卡内用法：容器左缘即文字起始线（由调用方对齐到卡片内边距），
+      // 底部细线横贯整个容器，于是从文字起始处画到卡片右缘（R24）；
+      // 这里的右内边距只作用于文字，不影响细线终点。
+      padding: const EdgeInsets.only(
+        right: MileafSpace.cardPad,
+        top: MileafSpace.s12,
+        bottom: MileafSpace.s12,
+      ),
       alignment: Alignment.centerLeft,
       child: body,
     );

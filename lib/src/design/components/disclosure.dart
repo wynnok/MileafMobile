@@ -25,6 +25,7 @@ class MileafDisclosure extends StatefulWidget {
     this.meta,
     this.emphasis = false,
     this.topLine = false,
+    this.inset = 0,
     this.expanded,
     this.onExpandedChanged,
   });
@@ -43,6 +44,10 @@ class MileafDisclosure extends StatefulWidget {
 
   /// 行上方的 1px 分隔线，用于把「图表 + 数据说明」与「追加动作」分开。
   final bool topLine;
+
+  /// 卡内使用时的水平内边距：头部（标签与箭头）两侧、内容左缘对齐卡片内边距；
+  /// 默认 0 保持页面上与章节标题共用起始线的既有用法。
+  final double inset;
 
   /// 受控展开态；为 null 时组件自己持有状态。页面把状态提出去，
   /// 同一行在相邻控件（例如切指标）卸载重建后仍保持原来的开合。
@@ -150,7 +155,10 @@ class _MileafDisclosureState extends State<MileafDisclosure> {
                   splashColor: colors.pressOverlay,
                   // 语义由外层 container 承载，点击不新增第二个节点。
                   excludeFromSemantics: true,
-                  child: header,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: widget.inset),
+                    child: header,
+                  ),
                 ),
               ),
             ),
@@ -168,7 +176,14 @@ class _MileafDisclosureState extends State<MileafDisclosure> {
             alignment: Alignment.topCenter,
             child: _expanded
                 ? Padding(
-                    padding: const EdgeInsets.only(top: MileafSpace.s8),
+                    // 卡内用法：内容左缘对齐卡片内边距，右缘不收——其中的
+                    // MileafCopyRow 分隔线仍能画到卡片右缘（R24）。
+                    padding: EdgeInsets.fromLTRB(
+                      widget.inset,
+                      MileafSpace.s8,
+                      0,
+                      0,
+                    ),
                     child: widget.child,
                   )
                 : const SizedBox(width: double.infinity, height: 0),

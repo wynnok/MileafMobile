@@ -396,4 +396,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsOneWidget);
   });
+
+  testWidgets('秩序断言：分组标题、行文字与脚注共用起始线（R24）', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final keys = await configuredMapKeys();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mileafTheme(Brightness.light),
+        home: MapPrivacyPage(
+          consent: MapConsentController(),
+          providerName: '高德地图',
+          keys: keys,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    double left(String text) => tester.getTopLeft(find.text(text)).dx;
+    final header = left('本机配置');
+    // 分组标题与组内行文字同一条起始线（页面边距 + 16）。
+    expect(left('Android 地图 Key'), header);
+    expect(left('清除已保存的 Key'), header);
+    expect(left('底图授权'), header);
+    // 状态块：图标落在卡内内边距处，文字按「图标 + 间距」内收。
+    final icon = find.byWidgetPredicate(
+      (widget) => widget is MileafIcon && widget.name == MileafIconName.mapPin,
+    );
+    expect(tester.getTopLeft(icon.first).dx, header);
+    final statusText = left('已保存');
+    // 细线缩进公式与状态文字起点一致：卡内边距 + 图标 20 + 间距 12。
+    expect(
+      statusText,
+      header + MileafIconMetrics.nav + MileafSpace.s12,
+    );
+    expect(left('保存在本机 · 所有车辆与站点共用'), statusText);
+
+    // 保存后的结果句是画布层脚注：与分组标题同一条起始线。
+    await tester.tap(find.text('Android 地图 Key'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'a' * 32);
+    await tester.tap(find.text('保存 Key'));
+    await tester.pumpAndSettle();
+    expect(left('打开详情地图后可查看加载结果。'), header);
+    expect(tester.takeException(), isNull);
+  });
 }

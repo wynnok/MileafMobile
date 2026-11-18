@@ -72,10 +72,22 @@ class MileafGroupCard extends StatelessWidget {
 }
 
 /// R24 分组标题：卡片内或页尾的分组名，subheadline 500（R22）。
+///
+/// [inset] 用于 R24「两条起始线」的卡内用法：分组标题对齐卡片内边距
+/// （页面边距 + 16）。默认 0 保持页面上直接落在页面边距的既有用法，
+/// 其余页面按 AP13 迁移时逐页传入。
 class MileafGroupHeader extends StatelessWidget {
-  const MileafGroupHeader({super.key, required this.title, this.footnote});
+  const MileafGroupHeader({
+    super.key,
+    required this.title,
+    this.footnote,
+    this.inset = 0,
+  });
 
   final String title;
+
+  /// 标题与脚注两侧的水平内边距（卡内用法传 `MileafSpace.cardPad`）。
+  final double inset;
 
   /// 分组标题下的一句脚注（例如「两项分别计量，不能相加」）。
   final String? footnote;
@@ -84,22 +96,25 @@ class MileafGroupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          title,
-          style: type.groupTitle.copyWith(color: colors.textSecondary),
-        ),
-        if (footnote case final footnote?) ...[
-          const SizedBox(height: MileafSpace.s4),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: inset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Text(
-            footnote,
-            style: type.footnote.copyWith(color: colors.textSecondary),
+            title,
+            style: type.groupTitle.copyWith(color: colors.textSecondary),
           ),
+          if (footnote case final footnote?) ...[
+            const SizedBox(height: MileafSpace.s4),
+            Text(
+              footnote,
+              style: type.footnote.copyWith(color: colors.textSecondary),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

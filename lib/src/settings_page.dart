@@ -83,7 +83,11 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
           children: [
-            const MileafGroupHeader(title: '使用偏好'),
+            // R24 两条起始线：分组标题与分组脚注对齐卡片内边距（页面 + 16）。
+            const MileafGroupHeader(
+              title: '使用偏好',
+              inset: MileafSpace.cardPad,
+            ),
             const SizedBox(height: MileafSpace.s8),
             MileafGroupCard(
               child: Column(
@@ -131,7 +135,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Padding(
                 // R24 两条起始线：分组脚注对齐卡片内边距。
                 padding: const EdgeInsets.only(
-                  left: MileafSpace.cardInset,
+                  left: MileafSpace.cardPad,
                   top: MileafSpace.s8,
                 ),
                 child: Text(
@@ -142,7 +146,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
             const SizedBox(height: MileafSpace.section),
-            const MileafGroupHeader(title: '当前站点'),
+            const MileafGroupHeader(
+              title: '当前站点',
+              inset: MileafSpace.cardPad,
+            ),
             const SizedBox(height: MileafSpace.s8),
             MileafGroupCard(
               child: Column(
