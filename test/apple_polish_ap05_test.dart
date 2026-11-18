@@ -135,7 +135,7 @@ void main() {
       await pumpChart(tester, chart(const [10, 20], reference: const [8, 9]));
       expect(_fontSize(tester, '10 km'), MileafType.metricMdSize);
       expect(_fontSize(tester, '10月1日'), MileafType.subheadlineSize);
-      expect(_fontSize(tester, '上月同期 8 km，多 2 km'), MileafType.subheadlineSize);
+      expect(_fontSize(tester, '上月同期 8 km，多 2 km'), MileafType.footnoteSize);
       final dateText = tester.widget<Text>(find.text('10月1日'));
       expect(dateText.style?.color, colors.textSecondary, reason: 'R23 两级文字');
     });

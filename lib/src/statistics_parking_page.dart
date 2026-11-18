@@ -387,7 +387,8 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       dateStyle: type.subheadline.copyWith(color: colors.textSecondary),
       // R29：专题读数头数值用 metricSm（R21.3）。
       valueStyle: type.metricSm.copyWith(color: colors.text),
-      contextStyle: type.subheadline.copyWith(color: colors.textSecondary),
+      // 第三行与完整读数头一致：footnote 小一号，单行读感。
+      contextStyle: type.footnote.copyWith(color: colors.textSecondary),
       colors: colors,
       type: type,
       onPrevious: selected > 0 ? () => setState(() => selected--) : null,

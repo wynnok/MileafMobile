@@ -593,7 +593,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
       reserveContext: _longestContext(),
       dateStyle: dateStyle,
       valueStyle: valueStyle,
-      contextStyle: dateStyle,
+      // 同期对比一句（参照 + 差值）比日期行再小一号（footnote 13）：保持
+      // 单行读感，不把「上月同期 …，多 …」折成两行。
+      contextStyle: type.footnote.copyWith(
+        color: widget.onHero ? colors.heroMuted : colors.textSecondary,
+      ),
       colors: colors,
       type: type,
       compact: widget.compactReadout,

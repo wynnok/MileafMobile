@@ -452,7 +452,8 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                             valueStyle: context.type.metricSm.copyWith(
                               color: context.colors.text,
                             ),
-                            contextStyle: context.type.subheadline.copyWith(
+                            // 第三行与完整读数头一致：footnote 小一号，单行读感。
+                            contextStyle: context.type.footnote.copyWith(
                               color: context.colors.textSecondary,
                             ),
                             colors: context.colors,
