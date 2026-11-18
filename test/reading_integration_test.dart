@@ -162,11 +162,8 @@ void main() {
     await bring(tester, find.text('驾驶统计').hitTestable());
     await tester.tap(find.text('驾驶统计'));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('3月24日'),
-      findsOneWidget,
-      reason: '统计使用概览入口携带的期间',
-    );
+    // 期间行与卡片副标题（含洞察身份块）同源 DF3，均含该日期。
+    expect(find.textContaining('3月24日'), findsWidgets, reason: '统计使用概览入口携带的期间');
 
     // 3. A deliberate chart point and a real reading position.
     await showChart(tester);

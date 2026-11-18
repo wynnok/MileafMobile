@@ -25,5 +25,6 @@
 | A37 守卫全局归零 | 文案守卫内容检查只覆盖持有非页面文件与 copy 库；裸值守卫余 1 | AQ08/R32 收口（AP14）：CP09 内容检查扩展到 copy 库外全部源文件（插值表达式豁免），裸值全部清零；页面级文案留在页面文件（口径 B，见 AP14.md） | apple_polish_ap14 CP09 全域用例、raw 归零用例、copy_probe（AP12a/AP12b） | AP14 |
 | A38 状态动作读屏对象名 | InlineBanner/StateView 重试按钮只朗读「重试」 | D-AP08-03（AP14）：组件新增可选 actionSemanticLabel，概览/充电页传入完整对象名 | ap14 语义用例（bySemanticsLabel） | AP14 |
 | A39 环内读数紧贴 | 电量弧 130% 时 % 落到数值下一行 | D-AP08-05（AP14）：BatteryArc 判定顺序改为先缩一号数值保住紧贴 % | ap14 130%/100% 紧贴用例（实字宽）、AP14 图册 130% 机位 | AP14 |
+| A40 收口文案最小修正 | CP02 归期/按结束日、CP04 自拼日期（ISO、—、至、M/D）、CP09.1 点号拼接在页面层仍有残留；读数头日期随图轴 tickLabel 缩写 | 双轴复核（AP15）：残留清零，全部改走 copy/dates DF1/DF3/DF9；readoutDate 显式注入 DF1 与图轴解耦 | apple_polish_ap15（5 用例）+ 等价修正 10 文件；全量 1061/49/0；AP11/AP12a/AP13 图册重采 | AP15 |
 
 AU25 两处既有 opt-in 失败（统计首页专题卡首屏预算、充电四项分段 130% 折行）由 AP00 复现并归因，登记给 AP07 按规格 §6 处理，不在本表新增能力。

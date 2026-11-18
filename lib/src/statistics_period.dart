@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'copy/dates.dart' as copy_dates;
 import 'design/components/components.dart';
 import 'design/tokens.dart';
 import 'workspace.dart';
@@ -219,9 +220,7 @@ class StatisticsPeriodControls extends StatelessWidget {
       ),
       if (selection.period == StatisticsPeriod.custom) ...[
         const SizedBox(height: MileafSpace.s8),
-        Text(
-          '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
-        ),
+        Text(copy_dates.formatRange(selection.start!, selection.end!)),
       ],
     ],
   );

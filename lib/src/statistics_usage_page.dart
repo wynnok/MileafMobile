@@ -462,6 +462,11 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
           byDate[statisticsDate(date)] ??
               {'bucket_start': zone.midnight(date).toIso8601String()},
     ];
+    // CP04 DF9：日历格日期走共享格式化器（首格与每月首格 M月D日，其余 D日）。
+    final dayLabels = copy_dates.formatAxisDayTicks([
+      for (final bucket in buckets)
+        zone.local(DateTime.parse(bucket['bucket_start'] as String)),
+    ], zone.local(source.workspace.session.now()));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -520,8 +525,13 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
                         spacing: gap,
                         runSpacing: gap,
                         children: [
-                          for (final bucket in buckets)
-                            _dayCell(bucket, width: width, large: large),
+                          for (final (index, bucket) in buckets.indexed)
+                            _dayCell(
+                              bucket,
+                              dayLabel: dayLabels[index],
+                              width: width,
+                              large: large,
+                            ),
                         ],
                       ),
                     ),
@@ -583,6 +593,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
   /// 选中为 2 像素 accent 环；焦点仍用 accentStrong 描边（键盘可达）。
   Widget _dayCell(
     Map<String, dynamic> b, {
+    required String dayLabel,
     required double width,
     required bool large,
   }) {
@@ -642,9 +653,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                large
-                    ? '${local.year}年${local.month}月${local.day}日'
-                    : '${local.month}/${local.day}',
+                dayLabel,
                 style: type.caption.copyWith(color: colors.textSecondary),
               ),
               Text(

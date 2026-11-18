@@ -111,7 +111,7 @@ void main() {
     expect(find.text('187.5 Wh/km'), findsOneWidget);
     // 专题卡各自独立：能耗与补能（费用记录覆盖）不互相依赖。
     expect(find.byKey(const ValueKey('statistics-topic-能耗')), findsOneWidget);
-    expect(find.textContaining('次有记录'), findsWidgets);
+    expect(find.textContaining('次有费用'), findsWidgets);
   });
   testWidgets('全部指标保留驾驶与充电原始指标入口', (tester) async {
     await openStats(

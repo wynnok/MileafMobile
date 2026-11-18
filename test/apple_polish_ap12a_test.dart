@@ -67,7 +67,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await openUsage(tester, dailyClient([]));
-      final date = find.text('10/1');
+      final date = find.text('10月1日');
       final dateStyle = tester.widget<Text>(date).style!;
       expect(dateStyle.fontSize, MileafType.captionSize);
       final valueStyle = tester

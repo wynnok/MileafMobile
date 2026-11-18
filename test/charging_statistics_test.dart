@@ -128,9 +128,9 @@ void main() {
       await tester.scrollUntilVisible(find.text('已知费用均价  —/kWh'), 60);
       await tester.pumpAndSettle();
       expect(find.text('已知费用均价  —/kWh'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('2025-12-31 · 20.00 kWh'), 250);
+      await tester.scrollUntilVisible(find.text('2025年12月31日 20.00 kWh'), 250);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('2025-12-31 · 20.00 kWh'));
+      await tester.tap(find.text('2025年12月31日 20.00 kWh'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('会话数  1 次'), 200);
       await tester.pumpAndSettle();
@@ -275,12 +275,9 @@ void main() {
       );
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.textContaining('2026-03-01 至 2026-03-02'),
-        -250,
-      );
+      await tester.scrollUntilVisible(find.textContaining('3月1日–2日'), -250);
       await tester.pumpAndSettle();
-      expect(find.textContaining('2026-03-01 至 2026-03-02'), findsOneWidget);
+      expect(find.textContaining('3月1日–2日'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('会话数  8 次'), 250);
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
@@ -424,7 +421,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
       expect(find.text('已知费用均价  0.51/kWh'), findsOneWidget);
-      expect(find.text('按结束时间归期 · 仅统计已结束充电'), findsOneWidget);
+      expect(find.text('按结束日期统计，仅含已完成的充电'), findsOneWidget);
     } finally {
       semantics.dispose();
     }

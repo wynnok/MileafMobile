@@ -425,13 +425,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('净电耗  —'), 300);
     expect(find.text('净电耗  —'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('2025-12-31 · 620.0 km'),
+      find.textContaining('2025年12月31日 620.0 km'),
       300,
     );
     // 200% 下该行停在视口边缘，滚动到“已构建”不等于可命中；先整行可见再展开。
-    await tester.ensureVisible(find.textContaining('2025-12-31 · 620.0 km'));
+    await tester.ensureVisible(find.textContaining('2025年12月31日 620.0 km'));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('2025-12-31 · 620.0 km'));
+    await tester.tap(find.textContaining('2025年12月31日 620.0 km'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('行程数  31 次'), 200);
     expect(find.text('行程数  31 次'), findsOneWidget);
@@ -539,7 +539,8 @@ void main() {
     expect(queries.last['to'], '2026-03-03T00:00:00.000Z');
     pending.complete(fixture('driving-stats'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-03-01 至 2026-03-02'), findsOneWidget);
+    // 期间行与卡片副标题同源，出现两处属预期。
+    expect(find.textContaining('3月1日–2日'), findsWidgets);
   });
 
   testWidgets('驾驶统计默认本月，真实响应totals不平均桶比率，手动304与失败保留快照', (tester) async {
