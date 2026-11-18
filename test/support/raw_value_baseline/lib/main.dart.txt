@@ -1,0 +1,8 @@
+# AP01 页面裸值守卫基线 — AP14 集成收口（R32 全局归零，200ms 主题动画入 MileafDurations.themeSwitch）。
+# 扫描集：lib/**/*.dart 排除 lib/src/design/** 与 *.g.dart；只许下降（R32）。
+# lib/main.dart
+fontSize=0
+color0x=0
+durationMilliseconds=0
+radiusCircular=0
+total=0

@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'statistics_test.dart' show openStats, fixture;
+
 import 'package:mileaf/src/design/semantic.dart';
 
 Map<String, dynamic> setCoverage() => {
@@ -142,9 +143,9 @@ void main() {
     expect(seen.where((u) => u.path.endsWith('/driving-analysis')), isEmpty);
     await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('活跃 12 天'), 200);
-    expect(find.text('活跃 12 天'), findsOneWidget);
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('用车 12 天'), 200);
+    expect(find.text('用车 12 天'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     expect(
       seen.any(
         (u) =>
@@ -157,8 +158,14 @@ void main() {
     expect(usage.queryParameters['tz'], 'Asia/Shanghai');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+    // 返回后首页沿用自己的阅读位置：专题卡可能在视口上方，先往上滚回来。
+    for (var i = 0; i < 20; i++) {
+      if (find.text('节奏').hitTestable().evaluate().isNotEmpty) break;
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 200));
+      await tester.pumpAndSettle();
+    }
     expect(find.text('节奏').hitTestable(), findsWidgets);
-    expect(find.text('这段时间的用车节奏'), findsNothing);
+    expect(find.text('用车节奏'), findsNothing);
   });
   testWidgets('无已完成行程与未知指标明确区分', (tester) async {
     await openStats(
@@ -208,7 +215,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('0–10 km').hitTestable(), 200);
     await tester.tap(find.text('0–10 km'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('完整匹配 3 趟'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
     now = now.add(const Duration(hours: 1));
     await tester.tap(find.text('加载更多行程'));
     await tester.pumpAndSettle();
@@ -247,9 +254,7 @@ void main() {
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets('${brightness.name} 周柱全部是强调色实色，不靠淡化其他星期突出峰值', (
-      tester,
-    ) async {
+    testWidgets('${brightness.name} 周柱全部是强调色实色，不靠淡化其他星期突出峰值', (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -275,9 +280,7 @@ void main() {
       // than on a widget geometry constant.
       final semantics = tester.ensureSemantics();
       try {
-        final colors = MileafColors.of(
-          tester.element(find.text('一周的用车节奏')),
-        );
+        final colors = MileafColors.of(tester.element(find.text('一周的用车节奏')));
         final checked = <String>[];
         for (final day in const ['一', '二', '三', '四', '五', '六', '日']) {
           final bar = find.descendant(
@@ -293,8 +296,7 @@ void main() {
             (tester.widget<Container>(bar.first).decoration! as BoxDecoration)
                 .color,
             colors.accent,
-            reason:
-                '${brightness.name}: 周$day 的柱应是强调色实色，而不是按峰值淡化',
+            reason: '${brightness.name}: 周$day 的柱应是强调色实色，而不是按峰值淡化',
           );
         }
         expect(

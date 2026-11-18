@@ -13,7 +13,7 @@ import 'support/c_fixture.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,13 +56,27 @@ void main() {
         ),
       );
     }, briefing: true);
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 200);
-    await tester.tap(find.text('数据说明与更多').hitTestable());
+    // P01：摘要失败不影响统计卡与「关于这些数据」的驾驶/充电读数。
+    await tester.scrollUntilVisible(find.text('本期账目').hitTestable(), 200);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.textContaining('趟'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-reading-plate')),
+        matching: find.text('充电'),
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('关于这些数据').hitTestable(), 200);
+    await tester.scrollUntilVisible(find.text('口径与估算').hitTestable(), 200);
+    await tester.tap(find.text('口径与估算').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('驾驶统计').hitTestable(), 200);
-    expect(find.text('估算驾驶消耗'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('充电统计').hitTestable(), 200);
-    expect(find.text('充电次数'), findsOneWidget);
+    expect(find.textContaining('估算耗电'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -78,14 +92,21 @@ void main() {
       }
       return overviewResponse(overviewFixture('charging-stats'));
     }, briefing: true);
-    await tester.scrollUntilVisible(find.text('补能').hitTestable(), 200);
-    await tester.tap(find.text('补能').hitTestable());
+    // CP02：分段短标签改成「充电」，图表标题「每日充电量 / 每日已记录费用」。
+    await tester.scrollUntilVisible(
+      find.widgetWithText(StatusChip, '充电').hitTestable(),
+      200,
+    );
+    await tester.tap(find.widgetWithText(StatusChip, '充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('充入电量趋势图表'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('费用').hitTestable(), -120);
-    await tester.tap(find.text('费用').hitTestable());
+    expect(find.bySemanticsLabel('每日充电量图表'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(StatusChip, '费用').hitTestable(),
+      -120,
+    );
+    await tester.tap(find.widgetWithText(StatusChip, '费用').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('已知费用趋势图表'), findsOneWidget);
+    expect(find.bySemanticsLabel('每日已记录费用图表'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -105,12 +126,13 @@ void main() {
           monthTrend(firstDistance: reference ? 20 : 30.5),
         );
       }, briefing: true);
+      // P01/R29：读值第三行把参照区间与差值写成一句（CP03 多/少 + CP04 DF3）。
       await tester.scrollUntilVisible(
-        find.textContaining('差 +10.5 km').hitTestable(),
+        find.textContaining('多 10.5 km').hitTestable(),
         200,
       );
       expect(
-        find.textContaining('上月同期 02.01 — 02.15，20.0 km'),
+        find.text('上月同期 2月1日–15日 20 km，多 10.5 km'),
         findsOneWidget,
         reason: '参照行的区间与取值仍在同一行成对出现',
       );
@@ -288,7 +310,7 @@ void main() {
         tester.widget<StatusChip>(month).onTap!();
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();
-        for (final label in ['电耗', '补能', '费用', '里程']) {
+        for (final label in ['电耗', '充电', '费用', '里程']) {
           tester.state<ScrollableState>(scrollable).position.jumpTo(0);
           await tester.pumpAndSettle();
           final control = find.widgetWithText(StatusChip, label);
@@ -311,12 +333,13 @@ void main() {
           '$prefix-controls.png',
         );
       }
+      // P01/R30：旧「数据说明与更多」弹层并入页尾「关于这些数据」分组卡，
+      // 不再有可点开的入口；这里只确认说明层在整页末尾仍可达。
       await tester.scrollUntilVisible(
-        find.text('数据说明与更多').hitTestable(),
+        find.text('关于这些数据').hitTestable(),
         300,
         scrollable: scrollable,
       );
-      await tester.tap(find.text('数据说明与更多').hitTestable());
       await tester.pumpAndSettle();
       // Every scenario reaches the last explanatory action at full text scale.
       final fullSequence =
@@ -341,10 +364,14 @@ void main() {
         }
       }
       await tester.scrollUntilVisible(
-        find.text('车辆与数据时间').hitTestable(),
+        find.text('技术详情').hitTestable(),
         300,
         scrollable: scrollable,
       );
+      // R30.4：说明层不是只截折叠标题——展开后技术详情必须可读、可复制。
+      await tester.tap(find.text('技术详情').hitTestable());
+      await tester.pumpAndSettle();
+      expect(find.byType(SelectableText), findsWidgets);
       await saveRenderPng(tester, find.byKey(boundary), '$prefix-end.png');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());

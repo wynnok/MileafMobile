@@ -15,11 +15,11 @@ void main() {
   test('R12 exposes the accepted Apple renewal type roles', () {
     expect(MileafType.displaySize, 40);
     expect(MileafType.metricLgSize, 32);
-    expect(MileafType.pageTitleSize, 28);
-    expect(MileafType.titleSize, 20);
-    expect(MileafType.navigationTitleSize, 18);
+    expect(MileafType.title2Size, 22);
+    expect(MileafType.headlineSize, 17);
+    expect(MileafType.subheadlineSize, 15);
     expect(MileafType.bodySize, 17);
-    expect(MileafType.labelSize, 14);
+    expect(MileafType.footnoteSize, 13);
     expect(MileafRadius.surface, 24);
     expect(MileafRadius.sheet, 28);
   });
@@ -45,7 +45,7 @@ void main() {
     expect(colors.hero, colors.surface);
     expect(colors.heroText, colors.text);
     expect(colors.heroMuted, colors.textMuted);
-    expect(type.navigationTitle.fontSize, MileafType.navigationTitleSize);
+    expect(type.headline.fontSize, MileafType.headlineSize);
   });
 
   test(
@@ -438,7 +438,7 @@ void main() {
     expect(MileafDurations.chevron, const Duration(milliseconds: 160));
   });
 
-  testWidgets('M01 isolated button press uses the fixed 0.98 target', (
+  testWidgets('M01 isolated button press uses the fixed 0.97 target', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -455,7 +455,7 @@ void main() {
       tester.getCenter(find.text('确认')),
     );
     await tester.pump();
-    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, .98);
+    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, .97);
     await gesture.up();
     await tester.pump();
     expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);

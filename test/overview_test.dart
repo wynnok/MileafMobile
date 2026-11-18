@@ -14,7 +14,7 @@ import 'support/vehicle_preferences.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 http.Response overviewTrendResponse([String? kind]) => http.Response(
   File(
@@ -49,9 +49,9 @@ void background(WidgetTester tester) {
 Finder battery(int level) => find.bySemanticsLabel('电池电量 $level%');
 
 Future<void> openNotes(WidgetTester tester) async {
-  await tester.scrollUntilVisible(find.text('数据说明与更多'), 300);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('数据说明与更多'));
+  // P01 页尾改为 R30.2「关于这些数据」分组卡：入口不再是一个弹层，而是页尾
+  // 可折叠的说明分组，默认折叠。
+  await tester.scrollUntilVisible(find.text('关于这些数据'), 300);
   await tester.pumpAndSettle();
 }
 
@@ -121,16 +121,18 @@ void main() {
     expect(refreshed, isTrue);
     expect(battery(68), findsOneWidget);
     await openNotes(tester);
-    await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    // 旧「车辆与数据时间」弹层并入「关于这些数据」；独立校验时间对应
+    // 「来源与生成时间」分组里的「数据生成于」。
+    await tester.scrollUntilVisible(find.text('来源与生成时间'), 300);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('车辆与数据时间'));
+    await tester.tap(find.text('来源与生成时间'));
     await tester.pumpAndSettle();
     expect(find.byType(Card), findsNothing, reason: 'A 概览内容不使用卡片');
-    expect(find.text('车辆与数据时间'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('校验时间'), 300);
-    expect(find.textContaining('校验时间'), findsOneWidget);
-    await tester.ensureVisible(find.text('车辆与数据时间'));
-    await tester.tap(find.text('车辆与数据时间'));
+    expect(find.text('来源与生成时间'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('数据生成于'), 300);
+    expect(find.textContaining('数据生成于'), findsOneWidget);
+    await tester.ensureVisible(find.text('来源与生成时间'));
+    await tester.tap(find.text('来源与生成时间'));
     await tester.pumpAndSettle();
     semantics.dispose();
   });
@@ -184,7 +186,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16 车辆行：完整名称或「型号，尾号 0002」（CP09.1 逗号，不用「·」）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(battery(21), findsOneWidget);
     old.complete(
@@ -200,7 +203,8 @@ void main() {
     await tester.tap(find.byTooltip('刷新概览'));
     await tester.pumpAndSettle();
     expect(battery(21), findsOneWidget);
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    // CP07 刷新失败有旧数据：「，显示的是上次的数据」。
+    expect(find.textContaining('显示的是上次的数据'), findsOneWidget);
     fail = false;
     await tester.pumpWidget(app('restart'));
     await tester.pumpAndSettle();
@@ -275,9 +279,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(queries.last, 'America/New_York');
     await openNotes(tester);
-    await tester.scrollUntilVisible(find.text('车辆与数据时间'), 300);
+    // 切换后的时区仍可从「关于这些数据」的「时间与时区」读到。
+    await tester.scrollUntilVisible(find.text('时间与时区'), 300);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('车辆与数据时间'));
+    await tester.tap(find.text('时间与时区'));
     await tester.pumpAndSettle();
     expect(find.textContaining('America/New_York'), findsOneWidget);
     semantics.dispose();
@@ -406,8 +411,8 @@ void main() {
     expect(find.textContaining('额定续航'), findsOneWidget);
     expect(find.textContaining('最近充电功率'), findsNothing);
     // 200% 下数据说明区位于首屏之外，仅按需构建；滚动确认回退文案仍可达。
-    await tester.scrollUntilVisible(find.textContaining('无法读取设备 IANA'), 240);
-    expect(find.textContaining('无法读取设备 IANA'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('无法读取手机时区'), 240);
+    expect(find.textContaining('无法读取手机时区'), findsOneWidget);
     expect(tester.takeException(), isNull);
     // 上一步把列表内品牌/设置行滚出了视口；先回到顶栏入口再进入设置。
     await tester.scrollUntilVisible(find.byTooltip('设置').hitTestable(), -200);
@@ -415,10 +420,16 @@ void main() {
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('服务信息'), 180);
+    // ensureVisible 跳转后要再泵一帧，命中区才落在新位置。
+    await tester.pumpAndSettle();
     await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('未声明已测兼容'), findsOneWidget);
-    expect(find.text('schema 检查正常'), findsOneWidget);
+    // 行尾值 + 分组脚注各一处：原文「不代表 schema 不兼容」的意义按 CP08 保留。
+    expect(find.textContaining('未声明已测兼容'), findsNWidgets(2));
+    expect(find.textContaining('不代表不兼容'), findsOneWidget);
+    // P12：服务信息改为分组卡，兼容性以「行标题 + 尾部当前值」呈现。
+    expect(find.text('Schema 检查'), findsOneWidget);
+    expect(find.text('正常'), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
@@ -471,6 +482,7 @@ void main() {
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('服务信息'), 180);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.text('Mileaf Server 0.1.0'), findsOneWidget);

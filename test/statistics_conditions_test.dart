@@ -99,7 +99,7 @@ void main() {
       statisticsInsights: true,
     );
     await openConditions(tester);
-    expect(find.text('温度下的用车能耗'), findsOneWidget);
+    expect(find.text('不同温度下的电耗'), findsOneWidget);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.widgetWithText(StatusChip, '−5至0°C').hitTestable(),
@@ -108,10 +108,10 @@ void main() {
     expect(find.text('−5至0°C'), findsWidgets);
     await tester.scrollUntilVisible(find.textContaining('210 Wh/km'), -150);
     expect(find.textContaining('210 Wh/km'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('查看该温度组行程').hitTestable(), 200);
-    await tester.tap(find.text('查看该温度组行程'));
+    await tester.scrollUntilVisible(find.text('查看这些行程').hitTestable(), 200);
+    await tester.tap(find.text('查看这些行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('完整匹配 3 趟'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
     expect(seen.last.queryParameters['outside_temp_min_c'], '-5');
     expect(seen.last.queryParameters['outside_temp_max_c'], '0');
     final firstQuery = Map<String, String>.from(seen.last.queryParameters);
@@ -119,7 +119,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(seen.last.queryParameters['cursor'], 'temperature-next');
     expect({...seen.last.queryParameters}..remove('cursor'), firstQuery);
-    expect(find.textContaining('完整匹配 3 趟'), findsOneWidget);
+    expect(find.text('3 趟'), findsOneWidget);
   });
   testWidgets('360宽深色200%温度选组区分零与缺失', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
@@ -155,11 +155,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('0 Wh/km'), -120);
     expect(find.text('0 Wh/km'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('下一温度组').hitTestable(), 120);
-    await tester.tap(find.text('下一温度组'));
+    final next = find.byTooltip('下一组');
+    await tester.scrollUntilVisible(next.hitTestable(), 120);
+    await tester.tap(next);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('— Wh/km'), -120);
-    expect(find.text('配对样本不足'), findsOneWidget);
+    expect(find.text('样本较少，仅供参考'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('条件请求失败独立重试并保留上次快照', (tester) async {
@@ -168,9 +169,10 @@ void main() {
     final client = MockClient((r) async {
       if (r.url.path.endsWith('/driving-analysis') &&
           r.url.queryParameters['view'] == 'conditions') {
-        return fail
-            ? http.Response('{}', 500)
-            : http.Response(jsonEncode(conditionsFixture()), 200);
+        if (fail) return http.Response('{}', 500);
+        // 快照时刻提前两小时：CP07 的「没能更新」句要用站点墙钟写时刻。
+        final body = conditionsFixture()..['as_of'] = '2026-10-28T09:00:00Z';
+        return http.Response(jsonEncode(body), 200);
       }
       return base.get(r.url);
     });
@@ -182,15 +184,16 @@ void main() {
       statisticsInsights: true,
     );
     await openConditions(tester);
-    expect(find.text('能耗条件读取失败'), findsOneWidget);
+    expect(find.text('没能读取能耗条件'), findsOneWidget);
     fail = false;
-    await tester.tap(find.text('重试能耗条件'));
+    await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
     expect(find.text('未知温度 2 趟'), findsOneWidget);
     fail = true;
     await tester.tap(find.byTooltip('刷新能耗条件'));
     await tester.pumpAndSettle();
-    expect(find.text('能耗条件读取失败，保留上次结果（2026-10-28T11:00:00Z）'), findsOneWidget);
+    expect(find.text('没能更新，显示的是 17:00 的数据'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'2026-10-28T')), findsNothing);
     expect(find.text('未知温度 2 趟'), findsOneWidget);
   });
   testWidgets('章节专题返回后切换期间仅按新期间请求', (tester) async {
@@ -254,7 +257,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆弹层行改「Y，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     await openConditions(tester);
     expect(find.text('未知温度 7 趟'), findsOneWidget);

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-
 import 'api.dart';
+import 'copy/dates.dart' as copy_dates;
+import 'copy/durations.dart' as copy_durations;
+import 'copy/messages.dart' as copy_msg;
 import 'charging_page.dart';
 import 'charging_detail.dart';
 import 'charging_experience_contract.g.dart' as expanded;
@@ -369,31 +371,15 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     builder: (context, _) {
       final stats = data, detail = richer;
       final totals = stats?.totals, rich = detail?.totals;
-      final labels = ['入电量', '已知支出', '有效入电均价', '充电次数'];
-      final units = [
-        'kWh',
-        scope.currency.symbol,
-        '${scope.currency.symbol}/kWh',
-        '次',
-      ];
       final children = <Widget>[
-        SectionHeader(
-          title: '补能账目',
-          range: '按结束日 · 仅已完成充电',
-          // R09：刷新用图标按钮并保留具体 tooltip，实际命中区 44×44。
-          action: MileafIconButton(
-            icon: MileafIconName.refresh,
-            tooltip: '刷新补能统计',
-            onPressed: loading ? null : () => load(force: true),
-          ),
-        ),
+        _identity(),
         if (capabilityError != null)
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s8),
             child: InlineBanner(
               message: capabilityError!,
               tone: BannerTone.warning,
-              actionLabel: '重试补能能力',
+              actionLabel: '重试',
               onAction: () => load(force: true),
             ),
           ),
@@ -403,7 +389,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             child: InlineBanner(
               message: error!,
               tone: BannerTone.error,
-              actionLabel: '刷新补能统计',
+              actionLabel: '重试',
               onAction: () => load(force: true),
             ),
           ),
@@ -412,31 +398,28 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             padding: EdgeInsets.only(top: MileafSpace.s8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [MileafProgressLine(), Text('补能统计更新中')],
+              children: [MileafProgressLine(), Text('正在更新')],
             ),
           ),
         // 0 条记录不是「费用 0 元、0 次 0 kWh」：直接走空态，不画空账目。
         if (totals != null && totals.sessions > 0) ...[
           _conclusion(totals, rich),
-          _trend(stats!, detail, labels, units),
+          _trend(stats!, detail),
           if (expandedAvailable && stats.buckets.isNotEmpty)
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: openBucket,
-                child: const Text('查看此期间补能'),
+              child: Padding(
+                padding: const EdgeInsets.only(top: MileafSpace.s8),
+                child: TextButton(
+                  onPressed: openBucket,
+                  child: const Text('查看此期间补能'),
+                ),
               ),
             ),
-          const SizedBox(height: MileafSpace.section),
           _facts(totals, rich),
-          const SizedBox(height: MileafSpace.section),
           _composition(totals, rich),
-          if (expandedAvailable) ...[
-            const SizedBox(height: MileafSpace.section),
-            _locationSection(),
-          ],
-          const SizedBox(height: MileafSpace.section),
-          _notes(detail),
+          if (expandedAvailable) _locationSection(),
+          _dataNotes(detail),
         ] else if (!loading && error == null)
           const StateView(
             kind: StateViewKind.empty,
@@ -463,6 +446,43 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     },
   );
 
+  /// R25 专题骨架身份块：问题式标题 + 区间与归期口径；专题刷新圆钮在行尾。
+  Widget _identity() {
+    final colors = context.colors;
+    final type = context.type;
+    final calendar = scope.workspace.calendar!;
+    final first = calendar.local(scope.window.from);
+    final last = calendar.local(
+      scope.window.to.subtract(const Duration(microseconds: 1)),
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('充电费用', style: type.title2.copyWith(color: colors.text)),
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                '${copy_dates.formatRange(first, last)}，按结束日期统计，仅含已完成的充电',
+                style: type.subheadline.copyWith(color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: MileafSpace.s8),
+        MileafIconButton(
+          icon: MileafIconName.refresh,
+          tooltip: '刷新补能统计',
+          onPressed: loading ? null : () => load(force: true),
+        ),
+      ],
+    );
+  }
+
+  /// P09 结论卡：已记录费用 metricLg +「N 次中 M 次有费用」+ 充入均价。
+  /// S05：legacy 契约呈现服务端费用总计；expanded 且 0 条已知费用是缺失。
   Widget _conclusion(
     legacy.ChargingMetrics totals,
     expanded.ChargingMetrics? rich,
@@ -471,108 +491,87 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     final type = context.type;
     final known = rich?.costKnownSessions ?? 0;
     final legacyStats = rich == null;
-    // S05：只有 expanded 契约能区分「已知费用」与「未覆盖」；legacy 只有
-    // 服务端费用总计，直接呈现真实值，不伪造覆盖，也不写「暂无」。
-    // 没有一条记录带费用时是缺失：MileafNumber 以 24 号「—」呈现，
-    // 不充当巨大主视觉；没有记录不等于花了 0 元（Spec §9.5）。
     final cost = legacyStats
         ? (totals.cost == null ? null : scope.currency.amountValue(totals.cost))
         : known == 0
         ? null
         : scope.currency.amountValue(totals.cost);
-    final coverage = totals.sessions == 0
-        ? 0.0
-        : (known / totals.sessions).clamp(0.0, 1.0);
     final note = scope.currency.amountNote;
     final costEnergy = rich == null
         ? null
         : '${rich.costKnownEnergyKwh.toStringAsFixed(1)} kWh';
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s16),
+    return MileafModuleCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            legacyStats ? '已知支出' : '已知支出 · 覆盖同时看',
-            style: type.label.copyWith(color: colors.textMuted),
+            '已记录费用',
+            style: type.subheadline.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: MileafSpace.s4),
-          // P09/R02：专题主值 36；display 仅保留给概览车况。
           MileafNumber(value: cost, scale: MetricValueScale.metricLg),
           // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
           if (!legacyStats && known == 0)
-            Text('暂无已知费用', style: type.micro.copyWith(color: colors.textMuted)),
-          if (note != null) ...[
+            Text(
+              '暂无已知费用',
+              style: type.footnote.copyWith(color: colors.textSecondary),
+            ),
+          // CP03/CP09：币种未设置时数值不带符号，口径写在旁注。
+          if (note != null)
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s4),
+              child: Text(
+                note,
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+            ),
+          if (!legacyStats) ...[
+            const SizedBox(height: MileafSpace.s8),
+            Text(
+              '${totals.sessions} 次中 $known 次有费用',
+              style: type.body.copyWith(
+                color: colors.text,
+                fontWeight: MileafType.weightSemiBold,
+              ),
+            ),
             const SizedBox(height: MileafSpace.s4),
-            Text(note, style: type.micro.copyWith(color: colors.textFaint)),
-          ],
-          if (legacyStats)
+            Text(
+              '充入均价 ${scope.currency.amountValue(rich.unitCostAdded.value)}/kWh',
+              style: type.body.copyWith(color: colors.textSecondary),
+            ),
+            if (costEnergy != null)
+              Padding(
+                padding: const EdgeInsets.only(top: MileafSpace.s4),
+                child: Text(
+                  '有费用的 $known 次共入电 $costEnergy',
+                  style: type.footnote.copyWith(color: colors.textMuted),
+                ),
+              ),
+          ] else
             Padding(
               padding: const EdgeInsets.only(top: MileafSpace.s8),
               child: Text(
                 '旧版统计不含费用覆盖与配对均价口径。',
-                style: type.micro.copyWith(color: colors.textMuted),
-              ),
-            )
-          else ...[
-            const SizedBox(height: MileafSpace.s8),
-            // P09/P03 同口径：覆盖与均价同用 13 号标签行。
-            Text(
-              '有效入电均价 ${scope.currency.amountValue(rich.unitCostAdded.value)}/kWh',
-              style: type.label.copyWith(color: colors.text),
-            ),
-            const SizedBox(height: MileafSpace.s12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '费用覆盖',
-                    style: type.label.copyWith(color: colors.textMuted),
-                  ),
-                ),
-                Text(
-                  '$known / ${totals.sessions} 次',
-                  style: type.label.copyWith(color: colors.text),
-                ),
-              ],
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            Semantics(
-              label: '费用记录覆盖：$known/${totals.sessions}次',
-              child: ClipRRect(
-                borderRadius: MileafRadius.fullAll,
-                child: Container(
-                  height: 4,
-                  color: colors.line,
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: coverage,
-                    heightFactor: 1,
-                    child: ColoredBox(color: colors.accent),
-                  ),
-                ),
+                style: type.footnote.copyWith(color: colors.textSecondary),
               ),
             ),
-            const SizedBox(height: MileafSpace.s8),
-            Text(
-              '费用有记录 $known / ${totals.sessions} 次 · '
-              '对应入电 $costEnergy',
-              style: type.micro.copyWith(color: colors.textMuted),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _trend(
-    legacy.ChargingStats stats,
-    expanded.ChargingStats? detail,
-    List<String> labels,
-    List<String> units,
-  ) {
+  /// P09 主图卡：每日充电量（分段：电量/费用/均价/次数）；完整口径在图题与读屏，
+  /// 「点按读值」类提示删除（R29/CP11）；读数头数值角色用专题档 metricSm。
+  Widget _trend(legacy.ChargingStats stats, expanded.ChargingStats? detail) {
     final buckets = stats.buckets;
     if (buckets.isEmpty) return const SizedBox.shrink();
+    final titles = ['每日充电量', '每日已记录费用', '充入均价', '每日充电次数'];
+    final units = [
+      'kWh',
+      scope.currency.symbol,
+      '${scope.currency.symbol}/kWh',
+      '次',
+    ];
     final values = [
       for (var i = 0; i < buckets.length; i++)
         switch (metric) {
@@ -596,27 +595,36 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
         },
     ];
     final selected = selectedBucket.clamp(0, buckets.length - 1);
+    // CP04 DF9：图轴刻度走共享格式化器；读数头单点日期走 DF1。
+    final today = scope.workspace.calendar!.local(
+      scope.workspace.session.now(),
+    );
+    final axisLabels = copy_dates.formatAxisDayTicks([
+      for (final bucket in buckets)
+        scope.workspace.calendar!.local(bucket.bucketStart),
+    ], today);
     String tick(DateTime t) {
-      final d = scope.workspace.calendar!.local(t);
-      return '${d.month}/${d.day}';
+      for (var i = 0; i < buckets.length; i++) {
+        if (buckets[i].bucketStart == t) return axisLabels[i];
+      }
+      return copy_dates.formatDay(scope.workspace.calendar!.local(t), today);
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s16),
+      padding: const EdgeInsets.only(top: MileafSpace.section),
       child: TimeSeriesChart(
-        title: '${labels[metric]}走势',
+        title: titles[metric],
         unit: units[metric],
-        subtitle: '按结束日',
+        subtitle: '按结束日期统计',
         times: [for (final bucket in buckets) bucket.bucketStart],
         series: [
           ChartSeries(
-            label: labels[metric],
+            label: titles[metric],
             values: values,
             style: metric == 2 ? ChartSeriesStyle.line : ChartSeriesStyle.bars,
           ),
         ],
-        // P09/R09：读屏保留完整口径，可见短词由指标控件提供。
-        semanticsLabel: '补能走势图表，${labels[metric]}，单位${units[metric]}，按结束日。',
+        semanticsLabel: '${titles[metric]}图表，单位${units[metric]}，按结束日。',
         controls: _metricControls(),
         plotKey: const ValueKey('charging-topic-plot'),
         selectedIndex: selected,
@@ -624,16 +632,22 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           selectedBucket = value;
           bucketAt = value < buckets.length ? buckets[value].bucketStart : null;
         }),
-        // R06.3：专题主图绘图区 200；R06.4 大字扩大所需高度
-        //（240 沿 MileafLayout.mapHeight 的大字先例）。
+        readoutScale: ChartReadoutScale.detail,
+        // R06.3：专题主图绘图区 200；R06.4 大字扩大所需高度。
         height: MileafLayout.largeText(context)
             ? 240
             : MileafSpace.detailChartHeight,
         tickLabel: tick,
+        // CP04：读数头单点日期走 DF1，不随图轴 DF9 缩写。
+        readoutDate: (time) =>
+            copy_dates.formatDay(scope.workspace.calendar!.local(time), today),
         readout: (index) {
           if (index < 0 || index >= buckets.length) return '—';
           final value = values[index];
-          final date = tick(buckets[index].bucketStart);
+          final date = copy_dates.formatDay(
+            scope.workspace.calendar!.local(buckets[index].bucketStart),
+            today,
+          );
           return switch (metric) {
             0 =>
               '$date ${value == null ? '—' : '${value.toStringAsFixed(1)} kWh'}',
@@ -642,14 +656,11 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             _ => '$date ${value == null ? '—' : '${value.toInt()} 次'}',
           };
         },
-        trailing: Text(
-          '点按读值',
-          style: context.type.label.copyWith(color: context.colors.textFaint),
-        ),
       ),
     );
   }
 
+  /// P09 样本明细卡（充入电量、次数、时长、费用覆盖、DC 份额）。
   Widget _facts(legacy.ChargingMetrics totals, expanded.ChargingMetrics? rich) {
     final energyMissing =
         rich != null && rich.sessions > 0 && rich.energyKnownSessions == 0;
@@ -661,49 +672,53 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     final duration = rich == null || durationMissing
         ? '—'
         : '${rich.durationMinTotal}';
-    return StatisticsTopicFacts(
-      facts: [
-        StatisticsTopicFact(
-          label: '充入电池',
-          value: energy,
-          unit: 'kWh',
-          note: rich == null
-              ? null
-              : '${rich.energyKnownSessions}/${rich.sessions} 次有记录',
-        ),
-        StatisticsTopicFact(
-          label: '充电次数',
-          value: '${totals.sessions}',
-          unit: '次',
-          note: '已完成',
-        ),
-        StatisticsTopicFact(
-          label: '记录时长',
-          value: duration,
-          unit: '分钟',
-          note: rich == null
-              ? null
-              : '${rich.durationKnownSessions}/${rich.sessions} 次有记录 · 非等待时间',
-        ),
-        StatisticsTopicFact(
-          label: '费用有记录',
-          value: rich == null
-              ? '—'
-              : '${rich.costKnownSessions} / ${rich.sessions}',
-          unit: '次',
-        ),
-        StatisticsTopicFact(
-          label: 'DC 占已知分类',
-          // 已知分类能量为 0 时分母为空：比例未知，不是 0%。
-          value: energyMissing || totals.dcEnergyShare == null
-              ? '—'
-              : (totals.dcEnergyShare! * 100).toStringAsFixed(1),
-          unit: '%',
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.section),
+      child: StatisticsTopicFacts(
+        facts: [
+          StatisticsTopicFact(
+            label: '充入电量',
+            value: energy,
+            unit: 'kWh',
+            note: rich == null
+                ? null
+                : '${rich.energyKnownSessions} / ${rich.sessions} 次有记录',
+          ),
+          StatisticsTopicFact(
+            label: '充电次数',
+            value: '${totals.sessions}',
+            unit: '次',
+            note: '已完成',
+          ),
+          StatisticsTopicFact(
+            label: '记录时长',
+            value: duration,
+            unit: '分钟',
+            note: rich == null
+                ? null
+                : '${rich.durationKnownSessions} / ${rich.sessions} 次有记录，非等待时间',
+          ),
+          StatisticsTopicFact(
+            label: '费用有记录',
+            value: rich == null
+                ? '—'
+                : '${rich.costKnownSessions} / ${rich.sessions}',
+            unit: '次',
+          ),
+          StatisticsTopicFact(
+            label: 'DC 占已知分类',
+            // 已知分类能量为 0 时分母为空：比例未知，不是 0%。
+            value: energyMissing || totals.dcEnergyShare == null
+                ? '—'
+                : (totals.dcEnergyShare! * 100).toStringAsFixed(1),
+            unit: '%',
+          ),
+        ],
+      ),
     );
   }
 
+  /// P09 充电方式卡：构成条 + 分类时长三行（CP03 分级写法）。
   Widget _composition(
     legacy.ChargingMetrics totals,
     expanded.ChargingMetrics? rich,
@@ -719,119 +734,229 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     ];
     final durationMissing =
         rich != null && rich.sessions > 0 && rich.durationKnownSessions == 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: '补能结构', range: 'AC / DC / 未知时间分布'),
-        const SizedBox(height: MileafSpace.s8),
-        MileafCompositionBar(segments: rows),
-        const SizedBox(height: MileafSpace.s8),
-        Wrap(
-          spacing: MileafSpace.s16,
-          runSpacing: MileafSpace.s4,
-          children: [
-            for (final (label, value) in rows)
-              Text(
-                '$label ${value == null ? '—' : '${value.toStringAsFixed(2)} kWh'}',
-                style: type.micro.copyWith(color: colors.textMuted),
-              ),
-          ],
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        Text(
-          'DC占已知分类 ${energyMissing || totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
-          style: type.body.copyWith(color: colors.text),
-        ),
-        if (rich != null) ...[
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            durationMissing
-                ? '分类记录时长缺失'
-                : '分类记录时长：AC ${rich.acDurationMin} / DC ${rich.dcDurationMin} / 未知 ${rich.unknownDurationMin} 分钟',
-            style: type.body.copyWith(color: colors.textMuted),
+    final large = MileafLayout.largeText(context);
+    String durationLine(int? minutes) => durationMissing || minutes == null
+        ? '—'
+        : copy_durations.duration(Duration(minutes: minutes));
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(title: '充电方式'),
+          const SizedBox(height: MileafSpace.s8),
+          MileafModuleCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MileafCompositionBar(segments: rows),
+                const SizedBox(height: MileafSpace.s12),
+                Wrap(
+                  spacing: MileafSpace.s16,
+                  runSpacing: MileafSpace.s4,
+                  children: [
+                    for (final (label, value) in rows)
+                      Text(
+                        value == null
+                            ? '$label —'
+                            : '$label ${value.toStringAsFixed(2)} kWh',
+                        style: type.footnote.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                Text(
+                  'DC 占已知分类 ${energyMissing || totals.dcEnergyShare == null ? '—' : '${(totals.dcEnergyShare! * 100).toStringAsFixed(1)}%'}',
+                  style: type.body.copyWith(color: colors.text),
+                ),
+              ],
+            ),
           ),
+          if (rich != null) ...[
+            const SizedBox(height: MileafSpace.s8),
+            MileafGroupCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (index, row) in [
+                    ('AC', durationLine(rich.acDurationMin.round())),
+                    ('DC', durationLine(rich.dcDurationMin.round())),
+                    ('未知', durationLine(rich.unknownDurationMin.round())),
+                  ].indexed) ...[
+                    if (index > 0) _hairline(),
+                    // D-AP07-05 同款页面级处理：大字时数值走第二行，
+                    // 分组行的行尾值不支持换行（组件冻结，不改）。
+                    MileafGroupRow(
+                      title: row.$1,
+                      meta: large ? row.$2 : null,
+                      value: large ? null : row.$2,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s4),
+              child: Text(
+                durationMissing ? '分类记录时长缺失' : '记录时长不是等待时间。',
+                style: type.footnote.copyWith(color: colors.textMuted),
+              ),
+            ),
+          ],
         ],
-        const SizedBox(height: MileafSpace.s4),
-        Text(
-          'DC 占比分母：AC + DC 已知分类能量 · 未知不归AC；记录时长不是等待时间',
-          style: type.micro.copyWith(color: colors.textMuted),
-        ),
-      ],
+      ),
     );
   }
 
+  /// R24：发丝线只画在行与行之间，从卡内文字起始处到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
+
+  /// P09 充电地点：地点行 + 分类下钻行（对照表：查看 AC 充电等）。
   Widget _locationSection() {
     final colors = context.colors;
     final type = context.type;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: '自己的地点账目'),
-        if (locationsLoading) const MileafProgressLine(),
-        if (locationsError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: MileafSpace.s8),
-            child: InlineBanner(
-              message: locationsError!,
-              tone: BannerTone.error,
-              actionLabel: '重试地点账目',
-              onAction: () => loadLocations(force: true),
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(title: '充电地点'),
+          if (locationsLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: MileafSpace.s8),
+              child: MileafProgressLine(),
             ),
-          ),
-        const SizedBox(height: MileafSpace.s4),
-        if (locations.isEmpty && !locationsLoading && locationsError == null)
-          Text('还没有地点账目', style: type.body.copyWith(color: colors.textMuted)),
-        for (final place in locations)
-          MileafDataRow(
-            title: place.location.displayName ?? '未知地点',
-            meta:
-                '${place.sessions} 次 · '
-                '${place.energyKnownSessions == 0 && place.sessions > 0 ? '—' : '${place.energyAddedKwh.toStringAsFixed(1)} kWh'} · '
-                '费用有记录 ${place.costKnownSessions}/${place.sessions}次',
-            topLine: true,
-            showChevron: true,
-            onTap: () => openRecords(place: place),
-          ),
-        if (locationCursor != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: locationsLoading
-                  ? null
-                  : () => loadLocations(more: true),
-              child: const Text('加载更多地点'),
-            ),
-          ),
-        const SizedBox(height: MileafSpace.s8),
-        Wrap(
-          spacing: MileafSpace.s8,
-          runSpacing: MileafSpace.s8,
-          children: [
-            for (final entry in const {
-              'ac': 'AC记录',
-              'dc': 'DC记录',
-              'unknown': '未知分类记录',
-            }.entries)
-              StatusChip(
-                label: entry.value,
-                onTap: () => openRecords(type: entry.key),
+          if (locationsError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: InlineBanner(
+                message: locationsError!,
+                tone: BannerTone.error,
+                actionLabel: '重试',
+                onAction: () => loadLocations(force: true),
               ),
-            StatusChip(label: '查看期间补能记录', onTap: () => openRecords()),
-          ],
+            ),
+          const SizedBox(height: MileafSpace.s8),
+          if (locations.isEmpty && !locationsLoading && locationsError == null)
+            Text(
+              copy_msg.emptyMessage('地点账目'),
+              style: type.body.copyWith(color: colors.textSecondary),
+            ),
+          if (locations.isNotEmpty)
+            MileafGroupCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (index, place) in locations.indexed) ...[
+                    if (index > 0) _hairline(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: MileafSpace.cardPad,
+                      ),
+                      child: MileafDataRow(
+                        title: place.location.displayName ?? '未知地点',
+                        meta:
+                            '${place.sessions} 次，'
+                            '${place.energyKnownSessions == 0 && place.sessions > 0 ? '—' : '${place.energyAddedKwh.toStringAsFixed(1)} kWh'}，'
+                            '其中 ${place.costKnownSessions} 次有费用',
+                        showChevron: true,
+                        onTap: () => openRecords(place: place),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          if (locationCursor != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: MileafSpace.s8),
+                child: TextButton(
+                  onPressed: locationsLoading
+                      ? null
+                      : () => loadLocations(more: true),
+                  child: const Text('加载更多地点'),
+                ),
+              ),
+            ),
+          const SizedBox(height: MileafSpace.s8),
+          Wrap(
+            spacing: MileafSpace.s8,
+            runSpacing: MileafSpace.s8,
+            children: [
+              for (final entry in const {
+                'ac': '查看 AC 充电',
+                'dc': '查看 DC 充电',
+                'unknown': '查看未知类型',
+              }.entries)
+                StatusChip(
+                  label: entry.value,
+                  onTap: () => openRecords(type: entry.key),
+                ),
+              StatusChip(label: '查看这段时间的充电', onTap: () => openRecords()),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// R30.2 页尾「关于这些数据」：口径、记录与缺失、时间、技术详情。
+  Widget _dataNotes(expanded.ChargingStats? rich) {
+    final calendar = scope.workspace.calendar!;
+    final records = StringBuffer();
+    if (rich != null) {
+      records.write(
+        '入电配对费用 ${scope.currency.amountValue(rich.totals.unitCostAdded.numeratorCost)} / '
+        '${rich.totals.unitCostAdded.denominatorKwh} kWh；'
+        '网侧配对费用 ${scope.currency.amountValue(rich.totals.unitCostGrid.numeratorCost)} / '
+        '${rich.totals.unitCostGrid.denominatorKwh} kWh。'
+        '均价和总计直接来自服务端，不平均桶比率'
+        '${scope.currency.amountNote == null ? '' : '；${scope.currency.amountNote}'}。',
+      );
+    }
+    final checked = checkedAt == null
+        ? null
+        : copy_dates.formatPrecise(calendar.local(checkedAt!));
+    return MileafDataNotes(
+      groups: [
+        const MileafDataNoteGroup(
+          category: DataNoteCategory.caliber,
+          note:
+              '仅已结束的充电按结束时间归期；充电列表按开始日，'
+              '跨夜记录的日期可能不同。',
+        ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.records,
+          note: records.isEmpty ? '账本快照暂缺。' : records.toString(),
+        ),
+        if (checked != null)
+          MileafDataNoteGroup(
+            category: DataNoteCategory.time,
+            note: '查询校验时间 $checked，不是车辆采样时间。',
+          ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.technical,
+          copyable: true,
+          note:
+              'time_basis ended_at，from ${scope.window.from.toIso8601String()}，'
+              'to ${scope.window.to.toIso8601String()}，tz ${calendar.identifier}。',
         ),
       ],
     );
   }
-
-  Widget _notes(expanded.ChargingStats? rich) => StatisticsTopicNotes(
-    children: [
-      const Text('仅已结束充电按 ended_at 归期；充电列表按开始日，跨夜记录的日期可能不同。'),
-      if (rich != null)
-        Text(
-          '入电配对费用 ${scope.currency.amountValue(rich.totals.unitCostAdded.numeratorCost)} / ${rich.totals.unitCostAdded.denominatorKwh} kWh；网侧配对费用 ${scope.currency.amountValue(rich.totals.unitCostGrid.numeratorCost)} / ${rich.totals.unitCostGrid.denominatorKwh} kWh。均价和总计直接来自服务端，不平均桶比率${scope.currency.amountNote == null ? '' : '；${scope.currency.amountNote}'}。',
-        ),
-      if (checkedAt != null)
-        Text('查询校验 ${scope.workspace.calendar!.local(checkedAt!)}，不是车辆采样时间'),
-    ],
-  );
 }

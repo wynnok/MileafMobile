@@ -7,13 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Future<void> connect(WidgetTester tester) async {
   await tester.enterText(
@@ -167,13 +168,17 @@ void main() {
       isEmpty,
     );
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNull,
     );
     now = now.add(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNotNull,
     );
     expect(attempts, 1);
@@ -233,7 +238,8 @@ void main() {
     expect(find.text('命名车辆'), findsOneWidget);
     await tester.tap(find.text('命名车辆'));
     await tester.pumpAndSettle();
-    expect(find.text('Y · 尾号 1234'), findsOneWidget);
+    // P16：车辆行写「型号，尾号 1234」（CP09.1 逗号，不用「·」）。
+    expect(find.text('Y，尾号 1234'), findsOneWidget);
     expect(find.text('车辆 3'), findsOneWidget);
     expect(find.textContaining('VIN-SYNTHETIC'), findsNothing);
   });
@@ -351,7 +357,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('请求过于频繁'), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<MileafButton>(find.widgetWithText(MileafButton, '登录'))
+          .onPressed,
       isNotNull,
     );
     expect(find.textContaining('服务要求等待'), findsNothing);
@@ -449,6 +457,6 @@ void main() {
     expect(find.text('行笺测试车'), findsOneWidget);
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    expect(find.text('Y · 尾号 0002'), findsOneWidget);
+    expect(find.text('Y，尾号 0002'), findsOneWidget);
   });
 }

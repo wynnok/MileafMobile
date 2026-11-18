@@ -9,11 +9,13 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/currency.dart';
+import 'package:mileaf/src/design/components/state_view.dart'
+    show InlineBanner, StateView;
 
 import 'overview_test.dart' show background, foreground;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Finder battery(int level) => find.bySemanticsLabel('电池电量 $level%');
 
@@ -159,7 +161,18 @@ void main() {
       }
       expect(find.textContaining('服务暂不可用'), findsOneWidget);
       failing = false;
-      final retry = find.text(failedResource == 'stats' ? '重试里程趋势' : '重试概览');
+      // CP06：重试统一「重试」，对象由所在状态条/状态视图表达。
+      // summary 首次失败时车况卡是空态（StateView），统计失败时是状态条。
+      final retry = failedResource == 'stats'
+          ? find.descendant(
+              of: find.byType(InlineBanner),
+              matching: find.text('重试'),
+            )
+          : find.descendant(
+              of: find.byType(StateView),
+              matching: find.text('重试'),
+            );
+      expect(retry, findsOneWidget);
       await tester.ensureVisible(retry);
       await tester.tap(retry);
       await tester.pumpAndSettle();
@@ -210,8 +223,9 @@ void main() {
     await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(requests, hasLength(4));
-    await tester.scrollUntilVisible(find.textContaining('保留上次趋势快照'), -150);
-    expect(find.textContaining('保留上次趋势快照'), findsOneWidget);
+    // CP07 刷新失败有旧数据：「，显示的是上次的数据」。
+    await tester.scrollUntilVisible(find.textContaining('显示的是上次的数据'), -150);
+    expect(find.textContaining('显示的是上次的数据'), findsOneWidget);
     expect(find.textContaining('960'), findsOneWidget);
     await tester.scrollUntilVisible(battery(68), -150);
     expect(battery(68), findsOneWidget);
@@ -235,15 +249,17 @@ void main() {
     expect(battery(68), findsOneWidget);
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16 车辆行：无名称时写「型号，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(battery(21), findsOneWidget);
-    expect(find.textContaining('88.0 km'), findsWidgets);
+    // R29：读数头数值按整数精度写（88.0 → 88 km）。
+    expect(find.text('88 km'), findsWidgets);
     old.complete(overviewResponse(monthTrend(firstDistance: 4)));
     await tester.pumpAndSettle();
     expect(battery(21), findsOneWidget);
     expect(battery(68), findsNothing);
-    expect(find.textContaining('4.0 km'), findsNothing);
+    expect(find.text('4 km'), findsNothing);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
@@ -263,8 +279,9 @@ void main() {
             : monthTrend(),
       ),
     );
+    // P01：焦点卡期间名「本月驾驶」+ DF3 区间；朗读句用中文单位（CP11）并带一句比较。
     expect(
-      tester.getSize(find.bySemanticsLabel('本月驾驶里程 960.0 km，49 趟')).width,
+      tester.getSize(find.bySemanticsLabel('本月驾驶 960.0 公里，49 趟，与上月同期持平')).width,
       greaterThan(150),
     );
     final graph = tester.getRect(find.bySemanticsLabel('每日里程图表'));
@@ -280,7 +297,7 @@ void main() {
     );
     expect(battery(68), findsOneWidget);
     expect(find.textContaining('320').hitTestable(), findsWidgets);
-    expect(find.text('今日 km').hitTestable(), findsOneWidget);
+    expect(find.text('今日里程').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'drive_detail_test.dart' show openDetail, fixture;
 import 'drives_test.dart' show jsonResponse;
@@ -49,23 +50,49 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('速度过程图表'), findsOneWidget);
       expect(find.text('km/h'), findsWidgets);
-      expect(find.textContaining('速度读数 10 km/h'), findsOneWidget);
+      // R29：读数头在绘图区之上，可见读数是「时间 + 数值 + 单位」，
+      // 「速度读数 …」这句只作朗读句。
+      expect(
+        find.descendant(
+          of: find.byType(MileafChartReadout),
+          matching: find.text('10 km/h'),
+        ),
+        findsOneWidget,
+      );
       await tester.drag(
         find.byKey(const ValueKey('sample-chart')),
         const Offset(0, -60),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('速度读数 10 km/h'), findsOneWidget);
-      await tester.ensureVisible(find.text('后一个采样'));
+      expect(
+        find.descendant(
+          of: find.byType(MileafChartReadout),
+          matching: find.text('10 km/h'),
+        ),
+        findsOneWidget,
+      );
+      // R29：步进只有读数头尾部那一对圆钮（旧「后一个采样」文字按钮已删）。
+      final next = find.bySemanticsLabel(MileafChartGrammar.nextStep);
+      await tester.ensureVisible(next);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('后一个采样').hitTestable());
-      await tester.pump();
-      expect(find.textContaining('速度读数 —'), findsOneWidget);
-      await tester.ensureVisible(find.text('后一个采样'));
+      await tester.tap(next.hitTestable());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('后一个采样').hitTestable());
-      await tester.pump();
-      expect(find.textContaining('速度读数 90 km/h'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MileafChartReadout),
+          matching: find.text('—'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(next.hitTestable());
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(MileafChartReadout),
+          matching: find.text('90 km/h'),
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();

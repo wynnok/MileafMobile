@@ -15,7 +15,7 @@ import 'session_test.dart' show connect;
 import 'support/battery_finder.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Object sample(String name) =>
     jsonDecode(File('test/fixtures/$name.json').readAsStringSync());
@@ -118,8 +118,9 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.scrollUntilVisible(find.textContaining('速度读数'), 250);
-    expect(find.textContaining('速度读数'), findsOneWidget);
+    // R29：可见读值改为读数头（时间行 + 数值行），「速度读数」句只进语义。
+    await tester.scrollUntilVisible(find.text('行驶过程'), 250);
+    expect(find.text('60 km/h'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电').last);
@@ -132,9 +133,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('charge-1')));
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('两类能量'), 180);
+    await tester.scrollUntilVisible(find.text('电量计量'), 180);
     await tester.pumpAndSettle();
-    expect(find.text('电网侧'), findsOneWidget);
+    expect(find.text('电网用电'), findsOneWidget);
     expect(find.text('22.00 kWh'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();

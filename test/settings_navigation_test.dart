@@ -7,11 +7,11 @@ import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/map/map_privacy_page.dart';
 import 'package:mileaf/src/map/map_key.dart';
 
-import 'appearance_shell_test.dart' show pumpShell;
+import 'support/shell_harness.dart' show pumpShell;
 import 'support/map_key_fixture.dart';
 import 'support/vehicle_preferences.dart';
 import 'connection_management_test.dart' show saved;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 void main() {
   testWidgets('无车辆时仍可从统一设置首页进入地图', (tester) async {
@@ -57,9 +57,12 @@ void main() {
       tester.getCenter(arrow).dx,
       greaterThan(tester.getRect(find.text('地图')).right),
     );
-    await tester.scrollUntilVisible(find.text('服务信息'), 160);
-    await tester.tap(find.text('服务信息'));
+    // 行由 ListView 懒构建：要滚到可命中（真实可达）再点。
+    await tester.scrollUntilVisible(find.text('服务信息').hitTestable(), 160);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('服务信息').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Mileaf Server'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -86,7 +89,7 @@ void main() {
     keys.keyForMap();
     await keys.save('b' * 32);
     await tester.pumpAndSettle();
-    expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+    expect(find.text('已保存，重新启动后生效'), findsOneWidget);
     await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Mileaf Server'), findsOneWidget);

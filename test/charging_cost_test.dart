@@ -129,12 +129,17 @@ Future<void> openCostSheet(WidgetTester tester) async {
             widget is Scrollable && widget.axisDirection == AxisDirection.down,
       )
       .first;
+  // 列表页行内动作写「补录费用」；P05 充电详情把同一动作收成费用格里的
+  // 小胶囊「补录」，两个入口共用同一个底部表单。
+  final action = find.text('补录').hitTestable().evaluate().isNotEmpty
+      ? find.text('补录')
+      : find.text('补录费用');
   await tester.scrollUntilVisible(
-    find.text('补录费用').hitTestable(),
+    action.hitTestable(),
     150,
     scrollable: pageScrollable,
   );
-  await tester.tap(find.text('补录费用').hitTestable());
+  await tester.tap(action.hitTestable());
   await tester.pumpAndSettle();
 }
 
@@ -392,7 +397,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     await openCostSheet(tester);
-    expect(find.text('充电单价'), findsOneWidget);
+    expect(find.text('单价（CNY/kWh）'), findsOneWidget);
     expect(find.text('充电详情 #1'), findsNothing);
     await tester.enterText(find.byType(TextField), '1.25');
     await tester.pumpAndSettle();
@@ -440,7 +445,7 @@ void main() {
     final site = CostSite();
     await openCostDetail(tester, site);
     await openCostSheet(tester);
-    expect(find.text('充电单价'), findsOneWidget);
+    expect(find.text('单价（CNY/kWh）'), findsOneWidget);
     expect(find.textContaining('保存后无法在 App 中修改'), findsOneWidget);
     await tester.enterText(find.byType(TextField), '1.25');
     await tester.pumpAndSettle();

@@ -23,7 +23,7 @@ import 'overview_test.dart' show background, foreground;
 import 'statistics_usage_test.dart' show usageFixture;
 import 'support/statistics_insights_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Object fixture(String name) =>
     jsonDecode(File('test/fixtures/$name.json').readAsStringSync()) as Object;
@@ -110,6 +110,38 @@ Future<void> reveal(WidgetTester tester, Finder target) async {
   await tester.pumpAndSettle();
 }
 
+/// P02：记录按天分组后单行更高，第二页的行在断言时可能还没构建；
+/// 先滚到它再断言，避免把「未构建」误判成「未保留」。
+Future<void> revealRow(WidgetTester tester, int id) async {
+  final row = find.byKey(ValueKey('drive-$id'));
+  if (row.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      row,
+      240,
+      scrollable: find
+          .descendant(
+            of: find.byType(DrivesPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+  }
+  await Scrollable.ensureVisible(tester.element(row), alignment: .5);
+  await tester.pumpAndSettle();
+}
+
+/// P02：记录区上移到顶栏之下，「加载更多行程」常停在视口顶端被顶栏盖住；
+/// 先居中对齐再点。
+Future<void> tapLoadMore(WidgetTester tester) async {
+  final more = find.text('加载更多行程');
+  await tester.ensureVisible(more);
+  await Scrollable.ensureVisible(tester.element(more), alignment: .5);
+  await tester.pumpAndSettle();
+  await tester.tap(more);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('复合旅程：概览近7天→统计专题→行程详情→返回→充电→回统计各自正确', (tester) async {
     final seen = <Uri>[];
@@ -125,17 +157,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. An explicit drill-down carries that period into statistics.
-    await bring(tester, find.text('数据说明与更多').hitTestable());
-    await tester.tap(find.text('数据说明与更多').hitTestable());
-    await tester.pumpAndSettle();
+    // P01 把旧「数据说明与更多」弹层收进页尾，「驾驶统计」下钻仍在页尾，
+    // 回调 onStatistics 与 StatisticsSelection 未变。
     await bring(tester, find.text('驾驶统计').hitTestable());
     await tester.tap(find.text('驾驶统计'));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('2026-03-24 至 2026-03-30'),
-      findsOneWidget,
-      reason: '统计使用概览入口携带的期间',
-    );
+    // 期间行与卡片副标题（含洞察身份块）同源 DF3，均含该日期。
+    expect(find.textContaining('3月24日'), findsWidgets, reason: '统计使用概览入口携带的期间');
 
     // 3. A deliberate chart point and a real reading position.
     await showChart(tester);
@@ -158,7 +186,7 @@ void main() {
     final beforeTopic = seen.length;
     await tester.tap(topicCard.first);
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     final bin = find.text('0–10 km').hitTestable();
     await bring(tester, bin);
     await tester.tap(bin);
@@ -236,7 +264,7 @@ void main() {
     await bring(tester, find.text('节奏').hitTestable());
     await tester.tap(find.text('节奏').hitTestable().first);
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsOneWidget);
     final bin = find.text('0–10 km').hitTestable();
     await bring(tester, bin);
     await tester.tap(bin);
@@ -436,16 +464,15 @@ void main() {
       if (failing) return http.Response('', 503);
       return journeyPage(request);
     }, now: () => now);
-    await tester.ensureVisible(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('加载更多行程'));
-    await tester.pumpAndSettle();
+    await tapLoadMore(tester);
+    await revealRow(tester, 15);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     failing = true;
     await selectTab(tester, '概览');
     now = now.add(const Duration(minutes: 10));
     await selectTab(tester, '行程');
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
+    await revealRow(tester, 15);
     expect(find.byKey(const ValueKey('drive-15')), findsOneWidget);
     failing = false;
     await Scrollable.ensureVisible(
@@ -455,14 +482,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('重试行程'));
     await tester.pumpAndSettle();
+    await revealRow(tester, 15);
     expect(
       find.byKey(const ValueKey('drive-15')),
       findsOneWidget,
       reason: '重试仍覆盖已读的第二页',
     );
+    await revealRow(tester, 14);
     expect(find.byKey(const ValueKey('drive-14')), findsOneWidget);
+    await revealRow(tester, 17);
     expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
-    expect(find.textContaining('保留上次快照'), findsNothing);
+    expect(find.textContaining('没能更新，显示的是'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -509,24 +539,25 @@ void main() {
       return pages(request);
     }, now: () => now);
     for (var i = 0; i < 2; i++) {
-      await tester.ensureVisible(find.text('加载更多行程'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('加载更多行程'));
-      await tester.pumpAndSettle();
+      await tapLoadMore(tester);
     }
+    await revealRow(tester, 13);
     expect(find.byKey(const ValueKey('drive-13')), findsOneWidget);
-    expect(find.text('已显示全部行程'), findsOneWidget);
+    expect(find.textContaining('已显示全部'), findsOneWidget);
     repeating = true;
     await selectTab(tester, '概览');
     now = now.add(const Duration(minutes: 10));
     await selectTab(tester, '行程');
+    // CP07：重复游标的人话是「没能加载更多行程，已保留当前列表」。
     expect(
-      find.textContaining('分页游标未前进'),
+      find.textContaining('没能加载更多行程'),
       findsOneWidget,
       reason: '重复游标是数据条件，不是契约版本问题',
     );
     expect(find.textContaining('格式不兼容'), findsNothing);
+    await revealRow(tester, 13);
     expect(find.byKey(const ValueKey('drive-13')), findsOneWidget);
+    await revealRow(tester, 17);
     expect(find.byKey(const ValueKey('drive-17')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

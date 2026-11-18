@@ -34,7 +34,7 @@ void main() {
       await tester.tap(find.text('充电').last);
       await tester.pumpAndSettle();
       await openCostSheet(tester);
-      expect(find.bySemanticsLabel(RegExp('充电单价')), findsWidgets);
+      expect(find.bySemanticsLabel(RegExp('单价（CNY/kWh）')), findsWidgets);
       expect(
         tester.getSize(find.byTooltip('关闭费用补录')).shortestSide,
         greaterThanOrEqualTo(44),
@@ -142,7 +142,7 @@ void main() {
                 );
               } else {
                 await openCostSheet(tester);
-                expect(find.text('充电单价'), findsOneWidget);
+                expect(find.text('单价（CNY/kWh）'), findsOneWidget);
                 if (scenario != 'empty') {
                   await tester.enterText(
                     find.byType(TextField),

@@ -10,7 +10,7 @@ import 'drive_detail_test.dart' show fixture, openDetail;
 
 /// 读值区与事实表的排版合同：一处左线、一条右线、一个折叠动作。
 void main() {
-  testWidgets('对照电量与同页文字共用左线，不再是缩进的文本按钮', (tester) async {
+  testWidgets('同时查看电量与同页文字共用左线，不再是缩进的文本按钮', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -21,19 +21,19 @@ void main() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 200);
-    final toggle = tester.getRect(find.text('对照电量'));
-    final note = tester.getRect(find.text('采样数据说明'));
-    final title = tester.getRect(find.text('速度过程'));
-    expect(toggle.left, note.left, reason: '折叠行、说明行与图表标题同一条左线');
+    await tester.scrollUntilVisible(find.text('同时查看电量').hitTestable(), 200);
+    final toggle = tester.getRect(find.text('同时查看电量'));
+    final heading = tester.getRect(find.text('行驶过程'));
+    final title = tester.getRect(find.text('行驶过程'));
+    expect(toggle.left, heading.left, reason: '折叠行与卡片标题同一条左线');
     expect(toggle.left, title.left);
     // 旧实现在 Align + TextButton，标签因此缩进 16。
-    expect(find.widgetWithText(TextButton, '对照电量'), findsNothing);
+    expect(find.widgetWithText(TextButton, '同时查看电量'), findsNothing);
     // 标签与第二行说明都从内容左沿起算。
-    expect(tester.getRect(find.text('与速度过程同屏')).left, toggle.left);
+    expect(tester.getRect(find.text('与行驶过程同屏')).left, toggle.left);
   });
 
-  testWidgets('对照电量就地展开第二张图，箭头 160ms 翻转并可再收起', (tester) async {
+  testWidgets('同时查看电量就地展开第二张图，箭头 160ms 翻转并可再收起', (tester) async {
     final semantics = tester.ensureSemantics();
     try {
       await openDetail(
@@ -46,10 +46,10 @@ void main() {
           ),
         ),
       );
-      await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 200);
+      await tester.scrollUntilVisible(find.text('同时查看电量').hitTestable(), 200);
       expect(find.byKey(const ValueKey('paired-sample-chart')), findsNothing);
       expect(
-        find.bySemanticsLabel('对照电量'),
+        find.bySemanticsLabel('同时查看电量'),
         findsOneWidget,
         reason: '折叠行读成一个可展开的按钮',
       );
@@ -64,12 +64,12 @@ void main() {
       expect(rotation().turns, .25, reason: '收起时箭头朝下');
       expect(rotation().duration, MileafDurations.chevron);
 
-      await tester.tap(find.text('对照电量'));
+      await tester.tap(find.text('同时查看电量'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('paired-sample-chart')), findsOneWidget);
       expect(rotation().turns, -.25, reason: '展开时箭头朝上');
 
-      await tester.tap(find.text('对照电量'));
+      await tester.tap(find.text('同时查看电量'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('paired-sample-chart')), findsNothing);
       expect(rotation().turns, .25);
@@ -92,7 +92,7 @@ void main() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 200);
+    await tester.scrollUntilVisible(find.text('同时查看电量').hitTestable(), 200);
     final rotation = tester.widget<AnimatedRotation>(
       find
           .descendant(
@@ -138,7 +138,7 @@ void main() {
         .widget<Text>(find.descendant(of: facts, matching: find.text('平均速度')))
         .style!;
     expect(numberStyle.fontSize, MileafType.bodySize);
-    expect(labelStyle.fontSize, MileafType.labelSize);
+    expect(labelStyle.fontSize, MileafType.subheadlineSize);
   });
 
   testWidgets('缺失的驾驶与环境值只出「—」，且仍落在同一条数字右线', (tester) async {
@@ -206,7 +206,7 @@ void main() {
     expect(number.left, label.left);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('切到电量指标再回到速度，对照电量保持上次的展开状态', (tester) async {
+  testWidgets('切到电量指标再回到速度，同时查看电量保持上次的展开状态', (tester) async {
     await openDetail(
       tester,
       (r) async => jsonResponse(
@@ -217,8 +217,8 @@ void main() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 200);
-    await tester.tap(find.text('对照电量'));
+    await tester.scrollUntilVisible(find.text('同时查看电量').hitTestable(), 200);
+    await tester.tap(find.text('同时查看电量'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('paired-sample-chart')), findsOneWidget);
     // 切到「电量」指标时该行被卸载，再切回来时由页面状态恢复展开。
@@ -228,11 +228,11 @@ void main() {
     await tester.scrollUntilVisible(chip('电量'), -160);
     await tester.tap(chip('电量'));
     await tester.pumpAndSettle();
-    expect(find.text('对照电量'), findsNothing);
+    expect(find.text('同时查看电量'), findsNothing);
     await tester.scrollUntilVisible(chip('速度'), -160);
     await tester.tap(chip('速度'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('对照电量').hitTestable(), 200);
+    await tester.scrollUntilVisible(find.text('同时查看电量').hitTestable(), 200);
     expect(find.byKey(const ValueKey('paired-sample-chart')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

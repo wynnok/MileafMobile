@@ -76,7 +76,7 @@ void main() {
   testWidgets('P14 单价输入52高，计费电量先于预估费用，记录元信息分行', (tester) async {
     await openForm(tester, CostSite());
     expect(tester.getSize(find.byType(TextField)).height, 52);
-    expect(find.text('CNY / kWh').hitTestable(), findsOneWidget);
+    expect(find.text('单价（CNY/kWh）').hitTestable(), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('计费电量 22 kWh')).dy,
       lessThan(tester.getTopLeft(find.text('预估费用')).dy),

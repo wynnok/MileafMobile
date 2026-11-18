@@ -95,7 +95,9 @@ void main() {
       final reading = ChargingMethodReading.from(
         metrics(ac: 30, dc: 10, unknown: 20),
       );
-      expect(reading.conclusion, 'AC 更多，DC 占 25% · 类型未知 20 kWh');
+      // CP09：结论与「类型未知 X kWh」分行。
+      expect(reading.conclusion, 'AC 更多，DC 占 25%');
+      expect(reading.unknownLine, '类型未知 20 kWh');
       expect(reading.dcShare, closeTo(.25, .0001));
     });
 
@@ -103,14 +105,15 @@ void main() {
       final reading = ChargingMethodReading.from(
         metrics(ac: 0, dc: 0, unknown: 9),
       );
-      expect(reading.conclusion, '补能类型未知');
+      expect(reading.conclusion, '充电类型未知');
       expect(reading.centerValue, isNull);
       expect(reading.centerLabel, isNull);
     });
 
     test('百分比去尾零', () {
       final reading = ChargingMethodReading.from(metrics(ac: 10, dc: 1));
-      expect(reading.note, contains('DC 占已知分类能量 9.09%'));
+      expect(reading.dcShare, closeTo(.0909, .0001));
+      expect(reading.note, contains('只计已知类型的充电'));
     });
   });
 
@@ -118,13 +121,15 @@ void main() {
     test('未知为 0 且分类完整时不出现第三列', () {
       final reading = ChargingMethodReading.from(metrics());
       expect(reading.categories.map((c) => c.label), ['AC', 'DC']);
-      expect(reading.note, 'DC 占已知分类能量 0% · 分类已知 2/2 次');
+      expect(reading.note, '只计已知类型的充电，2 次类型都已知');
     });
 
     test('未知能量大于 0 时出现第三列并声明不计入构成', () {
       final reading = ChargingMethodReading.from(metrics(unknown: 5));
       expect(reading.categories.map((c) => c.label), ['AC', 'DC', '未知']);
-      expect(reading.note, contains('未知不计入构成'));
+      // 分母口径进脚注，未知能量单独一行（CP09）。
+      expect(reading.unknownLine, '类型未知 5 kWh');
+      expect(reading.note, contains('只计已知类型的充电'));
       expect(reading.categories.last.value, '5');
     });
 
@@ -133,7 +138,7 @@ void main() {
         metrics(classificationKnown: 1),
       );
       expect(reading.categories.map((c) => c.label), ['AC', 'DC', '未知']);
-      expect(reading.note, contains('分类已知 1/2 次'));
+      expect(reading.note, contains('只计已知类型的充电，2 次中 1 次类型已知'));
     });
 
     test('时长缺失显示 —，不补 0', () {
@@ -141,9 +146,10 @@ void main() {
       expect(reading.categories.first.note, '—');
     });
 
-    test('时长按分类累计并分组千位', () {
+    test('时长按分类累计并按 CP03 分级', () {
       final reading = ChargingMethodReading.from(metrics());
-      expect(reading.categories.first.note, '1,614 分钟');
+      // CP03：1614 分钟 → 1 天 2 小时 54 分钟。
+      expect(reading.categories.first.note, '1 天 2 小时 54 分钟');
       expect(reading.categories[1].note, '0 分钟');
     });
   });
@@ -169,7 +175,7 @@ void main() {
       expect(reading.conclusion, '分类能量未记录');
       expect(reading.categories.map((c) => c.value), everyElement('—'));
       expect(reading.categories.first.unit, isNull);
-      expect(reading.note, contains('DC 占已知分类能量 —'));
+      expect(reading.note, '只计已知类型的充电，2 次类型都已知');
     });
 
     test('能量未知时字段残留也不画进环', () {

@@ -216,10 +216,8 @@ void main() {
         MileafSpace.s20,
         MileafSpace.s24,
         MileafSpace.section,
-        MileafSpace.s40,
-        MileafSpace.s56,
       };
-      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0, 40.0, 56.0});
+      expect(spacing, {4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0});
       expect(MileafSpace.section % 4, 0);
       expect(MileafSpace.touch, 44);
       expect(MileafSpace.touchAndroid, 48);
@@ -246,7 +244,8 @@ void main() {
         {0.0, 4.0, 10.0, 12.0, 20.0, 24.0, 28.0, 999.0},
       );
       // R07 时长合同（原值 120/160/180/220/240/500）：
-      // press 120→100（按压 100ms）、value 220→160（局部快照更新 160ms）、
+      // AP01（§4 M01/PD11）：press 100→120（按压覆盖层消退 120ms easeOut，
+      // 修订 R07 的 100ms）；value 220→160（局部快照更新 160ms）、
       // chart 500 删除（图表首次/刷新 0，无绘制生长，A13）、skeleton 1200
       // 删除（U03：静态骨架，无无限脉冲）。enter 180 保留：MileafPageEnter
       // 已改为即时直出（U03），仅剩 map_privacy_page 自绘 chevron 消费，
@@ -261,7 +260,7 @@ void main() {
           MileafDurations.sheetIn.inMilliseconds,
           MileafDurations.sheetOut.inMilliseconds,
         },
-        {100, 120, 160, 180, 220, 280},
+        {120, 160, 180, 220, 280},
       );
       // R06：参照线 1.5 虚线 4/4，比 2px 主线细一档。
       expect(MileafChartMetrics.referenceStroke, 1.5);
@@ -271,14 +270,15 @@ void main() {
       expect(MileafType.displaySize, 40);
       expect(MileafType.metricLgSize, 32);
       expect(MileafType.metricMdSize, 24);
-      expect(MileafType.pageTitleSize, 28);
-      expect(MileafType.titleSize, 20);
-      expect(MileafType.navigationTitleSize, 18);
+      expect(MileafType.largeTitleSize, 34);
+      expect(MileafType.title2Size, 22);
+      expect(MileafType.headlineSize, 17);
       expect(MileafType.bodySize, 17);
-      expect(MileafType.labelSize, 14);
-      expect(MileafType.microSize, 12);
+      expect(MileafType.subheadlineSize, 15);
+      expect(MileafType.footnoteSize, 13);
+      expect(MileafType.captionSize, 12);
       expect(MileafType.displayTracking, -.02);
-      expect(MileafType.labelTracking, 0);
+      expect(MileafType.headlineTracking, 0);
     });
 
     test('每个字号 level 都带 tabular figures', () {
@@ -287,10 +287,10 @@ void main() {
         type.display,
         type.metricLg,
         type.metricMd,
-        type.title,
+        type.title2,
         type.body,
-        type.label,
-        type.micro,
+        type.subheadline,
+        type.footnote,
       ]) {
         expect(style.fontFamily, 'Inter');
         expect(style.fontFamilyFallback, contains('PingFang SC'));
@@ -366,7 +366,7 @@ void main() {
       final dark = mileafTheme(Brightness.dark);
       expect(dark.scaffoldBackgroundColor, const MileafColors.dark().canvas);
       expect(dark.extension<MileafColors>(), isA<MileafColors>());
-      expect(dark.extension<MileafTextStyles>()?.title.fontSize, 20);
+      expect(dark.extension<MileafTextStyles>()?.headline.fontSize, 17);
       final light = mileafTheme(Brightness.light);
       expect(light.scaffoldBackgroundColor, const MileafColors.light().canvas);
       expect(
@@ -458,8 +458,10 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('16 个关键图标在 16/20/24 都可绘制', (tester) async {
-      expect(MileafIconName.values.length, 16);
+    testWidgets('25 个关键图标在 16/20/24 都可绘制', (tester) async {
+      // AP01（R32）：新增 calendar/more/expand/chevronDown/back/plus/
+      // minus/moon/offline 九个自绘图标，总数 16→25。
+      expect(MileafIconName.values.length, 25);
       for (final brightness in Brightness.values) {
         for (final size in [
           MileafIconMetrics.inline,

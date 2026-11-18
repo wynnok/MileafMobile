@@ -52,6 +52,9 @@ ThemeData mileafTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
+    // R32/PD11：按压反馈只用 M01（覆盖层 + 缩放），不得出现 Material 涟漪；
+    // 页面过渡保持平台默认（不自写路由动画）。
+    splashFactory: NoSplash.splashFactory,
     colorScheme: scheme,
     scaffoldBackgroundColor: colors.canvas,
     canvasColor: colors.canvas,
@@ -72,7 +75,7 @@ ThemeData mileafTheme(Brightness brightness) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: type.title,
+      titleTextStyle: type.headline,
       iconTheme: IconThemeData(color: colors.textMuted, size: 20),
     ),
     cardTheme: CardThemeData(
@@ -94,11 +97,11 @@ ThemeData mileafTheme(Brightness brightness) {
         horizontal: MileafSpace.s16,
         vertical: MileafSpace.s12,
       ),
-      labelStyle: type.label,
+      labelStyle: type.subheadline,
       // InputDecorator applies a 0.75 floating-label transform. Compensate
-      // before TextScaler so the final label retains its R05 13px role.
-      floatingLabelStyle: type.label.copyWith(
-        fontSize: MileafType.labelSize / 0.75,
+      // before TextScaler so the floating label keeps the field-label role.
+      floatingLabelStyle: type.subheadline.copyWith(
+        fontSize: MileafType.subheadlineSize / 0.75,
         color: colors.accentStrong,
       ),
       hintStyle: type.body.copyWith(color: colors.textFaint),
@@ -134,7 +137,7 @@ ThemeData mileafTheme(Brightness brightness) {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: const RoundedRectangleBorder(borderRadius: MileafRadius.mdAll),
-      titleTextStyle: type.title,
+      titleTextStyle: type.headline,
       contentTextStyle: type.body,
     ),
     navigationBarTheme: NavigationBarThemeData(
@@ -142,7 +145,7 @@ ThemeData mileafTheme(Brightness brightness) {
       indicatorColor: colors.accentSoft,
       elevation: 0,
       height: MileafSpace.navHeight,
-      labelTextStyle: WidgetStatePropertyAll(type.micro),
+      labelTextStyle: WidgetStatePropertyAll(type.navLabel),
       iconTheme: WidgetStatePropertyAll(
         IconThemeData(color: colors.textFaint, size: MileafIconMetrics.nav),
       ),
@@ -164,7 +167,7 @@ ThemeData mileafTheme(Brightness brightness) {
         borderRadius: MileafRadius.mdAll,
         border: Border.all(color: colors.line),
       ),
-      textStyle: type.micro.copyWith(color: colors.text),
+      textStyle: type.caption.copyWith(color: colors.text),
       waitDuration: const Duration(milliseconds: 500),
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -181,7 +184,7 @@ ThemeData mileafTheme(Brightness brightness) {
       iconColor: colors.textMuted,
       textColor: colors.text,
       titleTextStyle: type.body.copyWith(fontWeight: MileafType.weightSemiBold),
-      subtitleTextStyle: type.micro.copyWith(color: colors.textMuted),
+      subtitleTextStyle: type.footnote.copyWith(color: colors.textMuted),
       minVerticalPadding: MileafSpace.s12,
       contentPadding: EdgeInsets.zero,
     ),
@@ -216,7 +219,7 @@ ThemeData mileafTheme(Brightness brightness) {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: colors.accentStrong,
-        textStyle: type.label.copyWith(
+        textStyle: type.control.copyWith(
           fontSize: MileafType.bodySize,
           letterSpacing: 0,
         ),
@@ -274,8 +277,8 @@ ThemeData mileafTheme(Brightness brightness) {
       disabledColor: Colors.transparent,
       side: BorderSide(color: colors.line),
       shape: const StadiumBorder(),
-      labelStyle: type.label,
-      secondaryLabelStyle: type.label.copyWith(color: colors.accentStrong),
+      labelStyle: type.control,
+      secondaryLabelStyle: type.control.copyWith(color: colors.accentStrong),
       padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
       showCheckmark: false,
     ),

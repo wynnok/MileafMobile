@@ -47,9 +47,9 @@ class MapKeyController extends ChangeNotifier {
     if (readFailed) return '地图配置读取失败';
     if (!loaded) return '正在读取地图配置';
     if (restartRequired) {
-      return _saved == null ? '已清除 · 重新启动可结束地图 SDK' : '已保存 · 重新启动后生效';
+      return _saved == null ? '已清除，重新启动可结束地图 SDK' : '已保存，重新启动后生效';
     }
-    return available ? '已保存' : '未配置 · 使用路线速写';
+    return available ? '已保存' : '未配置';
   }
 
   @override

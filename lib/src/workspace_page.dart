@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'appearance.dart';
 import 'reading_scope.dart';
-import 'design/components/icon_button.dart';
-import 'design/components/data_row.dart';
+import 'design/components/button.dart';
 import 'design/components/sheet.dart';
+import 'design/components/module.dart';
 import 'design/components/nav_bar.dart';
 import 'design/components/top_bar.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
-import 'design/typography.dart';
 import 'session.dart';
 import 'charging_page.dart';
 import 'charging_detail.dart';
@@ -69,7 +68,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
   String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
-  final chromeScrolledByTab = <int, bool>{};
+
+  /// 根页滚动位置（每目的地一个，保留各自的阅读位置与外壳状态）。外壳自己
+  /// 监听这个值并只重建自己（R26）。
+  final chromeScrollByTab = <int, ValueNotifier<double>>{};
   @override
   void initState() {
     super.initState();
@@ -90,10 +92,16 @@ class _WorkspacePageState extends State<WorkspacePage> {
   @override
   void dispose() {
     widget.session.removeListener(changed);
+    for (final notifier in chromeScrollByTab.values) {
+      notifier.dispose();
+    }
     workspace.dispose();
     currency.dispose();
     super.dispose();
   }
+
+  ValueNotifier<double> chromeScroll(int tab) =>
+      chromeScrollByTab.putIfAbsent(tab, () => ValueNotifier<double>(0));
 
   Future<void> openSettings() async {
     await Navigator.push(
@@ -123,6 +131,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
     final id = await showMileafSheet<int>(
       context: context,
       title: '选择车辆',
+      style: MileafSheetStyle.floating,
       builder: (_) => _VehicleSheet(
         session: widget.session,
         selectedId: workspace.selectedId,
@@ -146,7 +155,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
       statisticsKind = kind;
       statisticsTopic = topic;
       statisticsSelection = selection;
-      chromeScrolledByTab[3] = false;
+      chromeScroll(3).value = 0;
       tab = 3;
     });
   }
@@ -213,13 +222,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
         return const Scaffold(body: Center(child: Text('正在恢复车辆选择')));
       }
       final modalCovered = !(ModalRoute.of(context)?.isCurrent ?? true);
-      final chromeScrolled = chromeScrolledByTab[tab] ?? false;
       Widget topBar(String title) => MileafTopBar(
         title: title,
         vehicleName: vehicleName(vehicle),
         onVehicle: openVehicleSheet,
         onSettings: openSettings,
-        forceSolid: modalCovered || !chromeScrolled,
+        forceSolid: modalCovered,
+        scrollListenable: chromeScroll(tab),
       );
       if (readingVehicle != selected) {
         readingVehicle = selected;
@@ -228,7 +237,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
         statisticsKind = 0;
         statisticsTopic = null;
         statisticsSelection = const StatisticsSelection();
-        chromeScrolledByTab.clear();
+        for (final notifier in chromeScrollByTab.values) {
+          notifier.dispose();
+        }
+        chromeScrollByTab.clear();
       }
       final page = switch (tab) {
         0 => OverviewPage(
@@ -278,9 +290,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
               NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   if (notification.depth != 0) return false;
-                  final next = notification.metrics.pixels > 0;
-                  if (next != chromeScrolled) {
-                    setState(() => chromeScrolledByTab[tab] = next);
+                  // 只更新外壳的滚动值：外壳自己重建，页面与工作区不重建。
+                  final notifier = chromeScroll(tab);
+                  if (notifier.value != notification.metrics.pixels) {
+                    notifier.value = notification.metrics.pixels;
                   }
                   return false;
                 },
@@ -305,8 +318,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     topBar(title),
-                    if (workspace.notice != null)
-                      _NoticeBanner(text: workspace.notice!),
+                    MileafNoticeBanner(text: workspace.notice),
                   ],
                 ),
               ),
@@ -330,86 +342,73 @@ class _WorkspacePageState extends State<WorkspacePage> {
   );
 }
 
-class _NoticeBanner extends StatelessWidget {
-  const _NoticeBanner({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: double.infinity,
-      color: colors.surface,
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        MileafSpace.s12,
-        MileafLayout.pageInset(context),
-        MileafSpace.s12,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MileafIcon(
-            MileafIconName.info,
-            size: MileafIconMetrics.inline,
-            color: colors.warning,
-          ),
-          const SizedBox(width: MileafSpace.s8),
-          Expanded(
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                text,
-                style: context.type.body.copyWith(color: colors.textMuted),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _VehicleSheet extends StatelessWidget {
   const _VehicleSheet({required this.session, required this.selectedId});
   final SessionController session;
   final int? selectedId;
 
+  /// P16：车辆行显示完整名称与「Model Y，尾号 0002」类区分信息（CP09.1 用逗号，
+  /// 不用「·」拼接）；当前车辆尾部勾选；刷新车辆列表是弹层底部文字按钮。
+  static String _label(Vehicle vehicle) =>
+      vehicle.name?.trim().isNotEmpty ?? false
+      ? vehicle.name!.trim()
+      : vehicleDistinction(vehicle) ?? '车辆 ${vehicle.id}';
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ListenableBuilder(
       listenable: session,
       builder: (context, _) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: MileafIconButton(
-              icon: MileafIconName.refresh,
-              tooltip: '刷新车辆',
-              onPressed: session.loading
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      session.loadVehicles();
-                    },
+          if (session.loading) const MileafProgressLine(),
+          MileafGroupCard(
+            clip: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final vehicle in session.vehicles)
+                  MileafGroupRow(
+                    title: _label(vehicle),
+                    // 无名称时区分信息就是名称，不再重复第二行。
+                    meta: vehicle.name?.trim().isNotEmpty ?? false
+                        ? vehicleDistinction(vehicle)
+                        : null,
+                    selected: vehicle.id == selectedId,
+                    trailing: vehicle.id == selectedId
+                        ? MileafIcon(
+                            MileafIconName.check,
+                            size: MileafIconMetrics.nav,
+                            color: colors.accentStrong,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(context, vehicle.id),
+                  ),
+              ],
             ),
           ),
-          if (session.loading) const MileafProgressLine(),
-          for (final vehicle in session.vehicles)
-            MileafDataRow(
-              title: vehicleName(vehicle),
-              meta: '车辆 ID ${vehicle.id}',
-              selected: vehicle.id == selectedId,
-              badge: vehicle.id == selectedId
-                  ? MileafIcon(
-                      MileafIconName.check,
-                      size: MileafIconMetrics.nav,
-                      color: context.colors.accentStrong,
-                    )
-                  : null,
-              onTap: () => Navigator.pop(context, vehicle.id),
+          const SizedBox(height: MileafSpace.s8),
+          Align(
+            alignment: Alignment.centerLeft,
+            // 既有的「刷新车辆」入口：仍是车辆列表唯一的刷新，改为 P16 的
+            // 弹层底部文字按钮；D-AP07-10：语义（tooltip）与可见文字统一为
+            // 「刷新车辆列表」，读屏不再朗读另一个短词。
+            child: Tooltip(
+              message: '刷新车辆列表',
+              child: MileafButton(
+                label: '刷新车辆列表',
+                kind: MileafButtonKind.ghost,
+                onPressed: session.loading
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        session.loadVehicles();
+                      },
+              ),
             ),
+          ),
         ],
       ),
     );

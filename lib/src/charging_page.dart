@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'charging_cost.dart';
+import 'copy/dates.dart' as copy;
+import 'copy/durations.dart' as copy;
+import 'copy/page_actions.dart' as copy_actions;
+import 'copy/messages.dart' as messages;
+import 'copy/terms.dart' as terms;
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -23,8 +28,8 @@ import 'workspace.dart';
 import 'currency.dart';
 
 /// A server cursor that never advances would page forever; the ledger keeps
-/// what it already read and says so instead of blaming the contract version.
-const _cursorStalled = '分页游标未前进，已保留现有充电，请刷新或手动重试';
+/// what it already read and reports it with the shared CP07 pagination message
+/// instead of blaming the contract version.
 
 class ChargingFilter {
   DateTime? first, last;
@@ -71,6 +76,10 @@ class _ChargingPageState extends State<ChargingPage>
   final items = <dto.ChargingSession>[];
   String? next, error;
   bool loading = false, loaded = false, failedMore = false;
+
+  /// 当最近一次成功读取的 `checkedAt`：失败且有已读页时，CP07 的「失败有旧
+  /// 数据」用它说明当前显示的是什么时候的数据。
+  DateTime? listCheckedAt;
 
   /// Set when a revalidation was cut short because the ledger stopped being
   /// visible. The records already on screen keep their range and cursor, and
@@ -317,7 +326,7 @@ class _ChargingPageState extends State<ChargingPage>
         items.clear();
         next = null;
         loaded = false;
-        error = '站点暂不支持此结束日筛选，请更新能力后重试';
+        error = '${messages.unsupportedMessage('按结束日筛选')}，请更新能力后重试';
       });
       return;
     }
@@ -519,7 +528,7 @@ class _ChargingPageState extends State<ChargingPage>
           attempt == activeSequence &&
           workspace.session.isCurrent(owner) &&
           workspace.selectedId == vehicle) {
-        setState(() => activeError = '进行中充电暂时不可用，请重试');
+        setState(() => activeError = messages.readFailedMessage('进行中的充电'));
       }
     }
   }
@@ -535,7 +544,7 @@ class _ChargingPageState extends State<ChargingPage>
         locations.clear();
         locationCursor = null;
         locationsLoading = false;
-        locationError = '地点账目仅支持不超过730天的区间';
+        locationError = '充电地点最长支持 730 天的区间';
       });
       return;
     }
@@ -572,7 +581,7 @@ class _ChargingPageState extends State<ChargingPage>
         locationsKey = key;
         locationsCheckedAt = result.checkedAt;
         if (more && page.nextCursor != null && page.nextCursor == cursor) {
-          locationError = '地点分页游标未前进，请重试';
+          locationError = messages.paginationFailedMessage('地点');
         }
       });
     } catch (_) {
@@ -580,9 +589,14 @@ class _ChargingPageState extends State<ChargingPage>
           attempt == locationSequence &&
           workspace.session.isCurrent(owner) &&
           workspace.selectedId == vehicle) {
+        final hadSnapshot = locationsKey == key && locationsCheckedAt != null;
         setState(
-          () => locationError =
-              '地点账目暂时不可用，请重试${locationsKey == key ? '；保留上次快照' : ''}',
+          () => locationError = hadSnapshot
+              ? messages.staleMessage(
+                  workspace.calendar!.local(locationsCheckedAt!),
+                  workspace.calendar!.local(workspace.session.now()),
+                )
+              : messages.readFailedMessage('充电地点'),
         );
       }
     } finally {
@@ -613,7 +627,7 @@ class _ChargingPageState extends State<ChargingPage>
         expandedStats = null;
         legacyStats = null;
         statsLoading = false;
-        statsError = '此日期范围无法显示统计，请选择不超过730天的区间';
+        statsError = '统计最长支持 730 天，请缩短时间段';
       });
       return;
     }
@@ -652,8 +666,14 @@ class _ChargingPageState extends State<ChargingPage>
           attempt == statsSequence &&
           workspace.session.isCurrent(owner) &&
           workspace.selectedId == vehicle) {
+        final hadSnapshot = statsKey == key && statsCheckedAt != null;
         setState(
-          () => statsError = '充电统计暂时不可用，请重试${statsKey == key ? '；保留上次快照' : ''}',
+          () => statsError = hadSnapshot
+              ? messages.staleMessage(
+                  workspace.calendar!.local(statsCheckedAt!),
+                  workspace.calendar!.local(workspace.session.now()),
+                )
+              : messages.readFailedMessage('充电统计'),
         );
       }
     } finally {
@@ -871,6 +891,7 @@ class _ChargingPageState extends State<ChargingPage>
           break;
         }
         final decoded = dto.ChargingSessionPage.fromJson(value.body);
+        listCheckedAt = value.checkedAt;
         matched = expandedAvailable
             ? expanded.ChargingSessionPage.fromJson(value.body).matchedSessions
             : null;
@@ -895,7 +916,7 @@ class _ChargingPageState extends State<ChargingPage>
         // read, so the visible pages and their cursor stay exactly as they
         // were instead of being replaced by a truncated list.
         setState(() {
-          error = _cursorStalled;
+          error = messages.paginationFailedMessage('充电');
           failedMore = false;
         });
         return;
@@ -911,7 +932,7 @@ class _ChargingPageState extends State<ChargingPage>
         listRange = range;
         matchedSessions = matched;
         if (more && following != null && following == cursor) {
-          error = _cursorStalled;
+          error = messages.paginationFailedMessage('充电');
           failedMore = false;
         }
         loaded = true;
@@ -929,10 +950,20 @@ class _ChargingPageState extends State<ChargingPage>
           attempt == sequence &&
           workspace.session.isCurrent(session) &&
           workspace.selectedId == id) {
+        final clock = workspace.calendar!.local(workspace.session.now());
+        final snapshot = items.isNotEmpty && listCheckedAt != null;
         setState(() {
           error = e is FormatException
-              ? '服务返回格式不兼容，请核对版本'
-              : '${e is ApiFailure ? e.message : '充电读取失败，请重试'}${items.isEmpty ? '' : '；保留已加载记录，请重试'}';
+              ? messages.versionIncompatibleMessage()
+              : e is ApiFailure
+              ? e.message
+              : messages.readFailedMessage('充电记录');
+          if (snapshot) {
+            error = messages.staleMessage(
+              workspace.calendar!.local(listCheckedAt!),
+              clock,
+            );
+          }
           if (!more) revalidatePending = false;
         });
       }
@@ -955,78 +986,33 @@ class _ChargingPageState extends State<ChargingPage>
   Future<void> filterDates() async {
     final calendar = workspace.calendar!;
     final today = calendar.local(workspace.session.now());
-    String day(DateTime value) =>
-        '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
-    var start = day(widget.filter.first ?? calendar.local(from));
-    var end = day(widget.filter.last ?? today);
-    String? validation;
-    DateTime? parse(String text) {
-      if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(text)) return null;
-      final date = DateTime.tryParse(text);
-      return date != null && day(date) == text ? date : null;
-    }
-
-    final dates = await readingEditor(
-      () => showDialog<List<DateTime>>(
+    final last = DateTime(today.year, today.month, today.day);
+    // R27/PD10：三套日期输入合并为共享弹层。默认区间沿用本页的原窗口；归期
+    // 口径与原校验（开始不晚于结束、不选未来日期）由本页注入，730 天上限仍由
+    // 统计与地点的读取路径执行，组件不内置业务规则。
+    final initial = DateTimeRange(
+      start:
+          widget.filter.first ?? DateTime(today.year, today.month, today.day),
+      end: widget.filter.last ?? last,
+    );
+    final range = await readingEditor(
+      () => showMileafDateRangeSheet(
         context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, update) => AlertDialog(
-            title: const Text('按日期筛选'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    initialValue: start,
-                    onChanged: (value) => start = value,
-                    decoration: const InputDecoration(
-                      labelText: '开始日期 YYYY-MM-DD',
-                    ),
-                    keyboardType: TextInputType.datetime,
-                  ),
-                  TextFormField(
-                    initialValue: end,
-                    onChanged: (value) => end = value,
-                    decoration: const InputDecoration(
-                      labelText: '结束日期 YYYY-MM-DD',
-                    ),
-                    keyboardType: TextInputType.datetime,
-                  ),
-                  Text(
-                    '含首尾日期；今天截至当前时刻。按充电${expandedAvailable ? '结束' : '开始'}时间归期。',
-                  ),
-                  if (validation != null) Text(validation!),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () {
-                  final a = parse(start), b = parse(end);
-                  if (a == null ||
-                      b == null ||
-                      a.year < 1970 ||
-                      a.isAfter(b) ||
-                      day(b).compareTo(day(today)) > 0) {
-                    update(() => validation = '请输入有效日期，开始不晚于结束，且不能选择未来日期');
-                    return;
-                  }
-                  Navigator.pop(context, [a, b]);
-                },
-                child: const Text('应用日期'),
-              ),
-            ],
-          ),
-        ),
+        initialRange: initial,
+        firstDate: DateTime(1900),
+        lastDate: last,
+        today: today,
+        validator: (start, end) {
+          if (end.isAfter(last)) return '结束日期不能晚于今天';
+          if (start.isAfter(end)) return '开始日期不能晚于结束日期';
+          if (start.year < 1970) return '开始日期不能早于 1970 年';
+          return null;
+        },
       ),
     );
-    if (!mounted || dates == null) return;
-    widget.filter.first = dates.first;
-    widget.filter.last = dates.last;
+    if (!mounted || range == null) return;
+    widget.filter.first = range.start;
+    widget.filter.last = range.end;
     interval();
     items.clear();
     next = null;
@@ -1048,10 +1034,10 @@ class _ChargingPageState extends State<ChargingPage>
   }
 
   String number(num? v, String unit) => v == null ? '—' : '${decimal(v)} $unit';
-  String recordDay(DateTime value) {
-    final local = workspace.calendar!.local(value);
-    return '${local.year}年${local.month}月${local.day}日';
-  }
+  DateTime get _today => workspace.calendar!.local(workspace.session.now());
+  String recordDay(DateTime value) =>
+      // CP04 DF1：记录日走共享格式化器，页面不自拼。
+      copy.formatDay(workspace.calendar!.local(value), _today);
 
   DateTime recordTime(dto.ChargingSession value) =>
       expandedAvailable ? value.endedAt ?? value.startedAt : value.startedAt;
@@ -1073,122 +1059,112 @@ class _ChargingPageState extends State<ChargingPage>
     load();
   }
 
+  /// 回到顶部：先同步跳到 0，再等这一帧结束后兜底一次。内容模式切换会让
+  /// 页面骤然变短，若等到下一帧才收敛位置，视口会在布局阶段因夹紧而发出滚动
+  /// 通知，外层外壳的滚动监听因此会在布局中被唤醒（「Build scheduled during
+  /// frame」）。先跳再换内容就不会走到那条路径。
   void scrollToTop() {
+    if (scroll.hasClients && scroll.offset > 0) scroll.jumpTo(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && scroll.hasClients) scroll.jumpTo(0);
+      if (mounted && scroll.hasClients && scroll.offset > 0) scroll.jumpTo(0);
     });
   }
 
-  Widget _accountSummary(expanded.ChargingStats stats) {
-    final total = stats.totals;
-    final colors = context.colors;
+  /// P03 账目卡：已记录费用（metricLg）+ 覆盖句 + 币种注。三格（充入电量 /
+  /// 充入均价 / 充电时长）按 §6 退让阶梯第 4 步移到每日充电图之后（见
+  /// [_accountCellsCard]）；充入均价的口径限定语随格就近出现（CP08）。
+  Widget _accountCard(expanded.ChargingStats stats) {
     final type = context.type;
+    final colors = context.colors;
+    final total = stats.totals;
     final missing = total.cost == null || total.costKnownSessions == 0;
-    final unitCost = total.unitCostAdded.value == null
-        ? '—'
-        : decimal(total.unitCostAdded.value!);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
-        MileafSpace.s8,
+        MileafSpace.s4,
         MileafLayout.pageInset(context),
         0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: MileafSpace.s8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '已知充电费用',
-                    style: type.label.copyWith(color: colors.textMuted),
-                  ),
-                  Text(
-                    '有效入电均价 $unitCost ${widget.currency.symbol}/kWh',
-                    style: type.label.copyWith(color: colors.textMuted),
-                  ),
-                ],
-              ),
-              MileafNumber(
-                value: missing ? null : widget.currency.amountValue(total.cost),
-                scale: MetricValueScale.metricLg,
+      child: MileafModuleCard(
+        // §6 阶梯第 2 步：焦点卡内边 16 → 12。
+        padding: const EdgeInsets.all(MileafSpace.cardInset),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              terms.recordedCost,
+              style: type.subheadline.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: MileafSpace.s4),
+            // S06：0 元是真实 0，只有「无费用记录」才显示 —。
+            MileafNumber(
+              value: missing ? null : widget.currency.amountValue(total.cost),
+              scale: MetricValueScale.metricLg,
+            ),
+            const SizedBox(height: MileafSpace.s4),
+            Text(
+              // CP02 覆盖句式：9 次中 8 次有费用，对应充入 214 kWh。
+              '${total.sessions} 次中 ${total.costKnownSessions} 次有费用，'
+              '对应充入 ${decimal(total.costKnownEnergyKwh)} kWh',
+              style: type.subheadline.copyWith(color: colors.textSecondary),
+            ),
+            if (widget.currency.amountNote case final note?) ...[
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                note,
+                style: type.footnote.copyWith(color: colors.textMuted),
               ),
             ],
-          ),
-          if (missing)
-            Text('暂无费用记录', style: type.label.copyWith(color: colors.textMuted)),
-          Text(
-            '费用有记录 ${total.costKnownSessions} / ${total.sessions} 次，'
-            '对应入电 ${decimal(total.costKnownEnergyKwh)} kWh',
-            style: type.label.copyWith(color: colors.textMuted),
-          ),
-          if (widget.currency.amountNote case final note?)
-            Text(note, style: type.micro.copyWith(color: colors.textMuted)),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _readings(expanded.ChargingStats stats) {
+  /// §6 阶梯第 4 步：账目三格（充入电量 / 充入均价 / 充电时长，R21.5 只用
+  /// metricSm）放在每日充电图之后，保住「无进行中时第一条记录完整」的首屏预算。
+  Widget _accountCellsCard(expanded.ChargingStats stats) {
     final total = stats.totals;
-    // 「0/0 次有记录」说明能量与时长未知，而不是 0（Spec §9.5 空态）。
     final energyMissing = total.energyKnownSessions == 0;
     final durationMissing = total.durationKnownSessions == 0;
-    final energy = energyMissing ? '—' : decimal(total.energyAddedKwh);
-    final duration = durationMissing
-        ? '—'
-        : _formatDuration(total.durationMinTotal);
-    final energyBlock = MetricBlock(
-      label: '补入电池',
-      value: energy,
-      unit: energyMissing ? null : 'kWh',
-      note: total.energyKnownSessions < total.sessions
-          ? '${total.energyKnownSessions}/${total.sessions}次有记录'
-          : null,
-      semanticLabel: '补入电池 $energy${energyMissing ? '' : ' kWh'}',
-    );
-    final countBlock = MetricBlock(
-      label: '充电次数',
-      value: '${total.sessions}',
-      unit: '次',
-      semanticLabel: '充电次数 ${total.sessions} 次',
-    );
-    final durationBlock = MetricBlock(
-      label: '记录时长',
-      value: duration,
-      note: total.durationKnownSessions < total.sessions
-          ? '${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间'
-          : null,
-      semanticLabel:
-          '记录时长 $duration，${total.durationKnownSessions}/${total.sessions}次有记录 · 非等待时间',
-    );
-    final content = MileafLayout.largeText(context)
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              energyBlock,
-              const SizedBox(height: MileafSpace.s16),
-              countBlock,
-              const SizedBox(height: MileafSpace.s16),
-              durationBlock,
-            ],
-          )
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: energyBlock),
-              const SizedBox(width: MileafSpace.s8),
-              Expanded(flex: 2, child: countBlock),
-              const SizedBox(width: MileafSpace.s8),
-              Expanded(flex: 2, child: durationBlock),
-            ],
-          );
+    final unitCost = total.unitCostAdded.value;
+    final energy = energyMissing ? null : decimal(total.energyAddedKwh);
+    final energyNote =
+        total.sessions > 0 && total.energyKnownSessions < total.sessions
+        ? '${total.sessions} 次中 ${total.energyKnownSessions} 次有记录'
+        : null;
+    final cells = [
+      MetricBlock(
+        label: terms.chargedEnergy,
+        value: energy,
+        unit: energyMissing ? null : 'kWh',
+        scale: MetricValueScale.metricSm,
+        note: energyNote,
+        semanticLabel: energyMissing
+            ? '${terms.chargedEnergy}未知'
+            : '${terms.chargedEnergy} ${decimal(total.energyAddedKwh)} 千瓦时',
+      ),
+      MetricBlock(
+        label: terms.averagePrice,
+        value: unitCost == null ? null : decimal(unitCost),
+        unit: unitCost == null ? null : '${widget.currency.symbol}/kWh',
+        scale: MetricValueScale.metricSm,
+        note: '按充入电池的电量计，仅含有费用的充电',
+        semanticLabel: unitCost == null
+            ? '${terms.averagePrice}未知'
+            : '${terms.averagePrice} ${decimal(unitCost)}，按充入电池的电量计',
+      ),
+      MetricBlock(
+        label: '充电时长',
+        value: durationMissing
+            ? null
+            : copy.duration(Duration(minutes: total.durationMinTotal.round())),
+        scale: MetricValueScale.metricSm,
+        semanticLabel: durationMissing
+            ? '充电时长未知'
+            : '充电时长 ${copy.duration(Duration(minutes: total.durationMinTotal.round()))}',
+      ),
+    ];
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1196,33 +1172,57 @@ class _ChargingPageState extends State<ChargingPage>
         MileafLayout.pageInset(context),
         0,
       ),
-      child: content,
+      child: MileafModuleCard(
+        padding: const EdgeInsets.all(MileafSpace.cardInset),
+        child: MileafLayout.largeText(context)
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final cell in cells) ...[
+                    cell,
+                    const SizedBox(height: MileafSpace.s12),
+                  ],
+                ],
+              )
+            : // R21.5：三列网格只用 metricSm；放不下时网格先两列再单列。
+              MetricGrid(columns: 3, spacing: MileafSpace.s12, children: cells),
+      ),
     );
   }
 
-  Widget trend(expanded.ChargingStats stats) {
+  /// P03 每日充电卡：分段（电量/费用/均价/次数）+ 紧凑读数行 + 88 高的图（R29）。
+  Widget _trendCard(expanded.ChargingStats stats) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        MileafLayout.pageInset(context),
+        MileafSpace.s8,
+        MileafLayout.pageInset(context),
+        0,
+      ),
+      child: MileafModuleCard(
+        // §6 阶梯第 2 步：卡内边 16 → 12。
+        padding: const EdgeInsets.all(MileafSpace.cardInset),
+        child: _trend(stats),
+      ),
+    );
+  }
+
+  Widget _trend(expanded.ChargingStats stats) {
     final active = stats.buckets.any((bucket) => bucket.sessions > 0);
     if (!active) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          MileafLayout.pageInset(context),
-          MileafSpace.s24,
-          MileafLayout.pageInset(context),
-          0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(title: '每日补能'),
-            const SizedBox(height: MileafSpace.s8),
-            Text(
-              '这段时间还没有充电记录',
-              style: context.type.body.copyWith(
-                color: context.colors.textMuted,
-              ),
-            ),
-          ],
-        ),
+      final colors = context.colors;
+      final type = context.type;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('每日充电', style: type.headline.copyWith(color: colors.text)),
+          const SizedBox(height: MileafSpace.s8),
+          Text(
+            // CP07 空：这段时间没有充电（与方式的首次空「还没有充电记录」区分）。
+            messages.emptyMessage('充电'),
+            style: type.body.copyWith(color: colors.textSecondary),
+          ),
+        ],
       );
     }
     final entries = [
@@ -1232,7 +1232,12 @@ class _ChargingPageState extends State<ChargingPage>
       ('次数', '次'),
     ];
     final metric = entries[chartMetric];
-    final times = [for (final bucket in stats.buckets) bucket.bucketStart];
+    // AP05 的图表按本地墙钟写轴与读数；bucket_start 是 UTC 瞬时，先换墙钟，
+    // 否则读数行与 X 轴会比站点日历早一天（与 AP07 概览/行程同一修正）。
+    final times = [
+      for (final bucket in stats.buckets)
+        workspace.calendar!.local(bucket.bucketStart),
+    ];
     final lastActive = stats.buckets.lastIndexWhere((b) => b.sessions > 0);
     final selected =
         bucketIndexAt(times, chartDayAt) ??
@@ -1251,103 +1256,119 @@ class _ChargingPageState extends State<ChargingPage>
           _ => bucket.sessions,
         },
     ];
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        MileafLayout.pageInset(context),
-        MileafSpace.s16,
-        MileafLayout.pageInset(context),
-        0,
-      ),
-      child: StemChart(
-        title: '每日补能',
-        unit: metric.$2,
-
-        times: times,
-        values: values,
-        semanticsLabel: '每日补能图表',
-        plotKey: const Key('charging-briefing-chart'),
-        selectedIndex: selected,
-        onSelected: (index) =>
-            setState(() => chartDayAt = stats.buckets[index].bucketStart),
-        height: MileafSpace.rhythmHeight,
-        readout: (index) {
-          if (index < 0 || index >= stats.buckets.length) return '—';
-          final bucket = stats.buckets[index];
-          final local = workspace.calendar!.local(bucket.bucketStart);
-          final value = switch (chartMetric) {
-            0 =>
-              bucket.sessions > 0 && bucket.energyKnownSessions == 0
-                  ? '—'
-                  : '${decimal(bucket.energyAddedKwh)} kWh',
-            1 => widget.currency.amountValue(bucket.cost),
-            2 => switch (bucket.unitCostAdded.value) {
-              final value? => '${decimal(value)} ${widget.currency.symbol}/kWh',
-              null => '—',
+    return StemChart(
+      title: '每日充电',
+      unit: metric.$2,
+      times: times,
+      values: values,
+      semanticsLabel: '每日充电图表',
+      plotKey: const Key('charging-briefing-chart'),
+      selectedIndex: selected,
+      onSelected: (index) => setState(() => chartDayAt = times[index]),
+      height: MileafSpace.rhythmHeight,
+      // R29 紧凑读数行：一行内日期、数值与行尾下钻；朗读句用 DF1 日期。
+      compactReadout: true,
+      readout: (index) {
+        if (index < 0 || index >= stats.buckets.length) return '—';
+        final bucket = stats.buckets[index];
+        final day = copy.formatDay(times[index], _today);
+        final value = switch (chartMetric) {
+          0 =>
+            bucket.sessions > 0 && bucket.energyKnownSessions == 0
+                ? '—'
+                : '${decimal(bucket.energyAddedKwh)} kWh',
+          1 => widget.currency.amountValue(bucket.cost),
+          2 => switch (bucket.unitCostAdded.value) {
+            final value? => '${decimal(value)} ${widget.currency.symbol}/kWh',
+            null => '—',
+          },
+          _ => '${bucket.sessions} 次',
+        };
+        return '$day，$value';
+      },
+      onActivateSelected: stats.buckets.isEmpty
+          ? null
+          : () {
+              final local = times[selected];
+              showDay(DateTime(local.year, local.month, local.day));
             },
-            _ => '${bucket.sessions} 次',
-          };
-          return '${local.month}/${local.day} $value';
-        },
-        onActivateSelected: stats.buckets.isEmpty
-            ? null
-            : () {
-                final local = workspace.calendar!.local(
-                  stats.buckets[selected].bucketStart,
-                );
-                showDay(DateTime(local.year, local.month, local.day));
-              },
-        activationLabel: '查看这一天的充电',
-        headerTrailing: ChipRow(
-          equalWidth: true,
-          children: [
-            for (final (index, entry) in entries.indexed)
-              StatusChip(
-                label: entry.$1,
-                selected: chartMetric == index,
-                onTap: () => setState(() => chartMetric = index),
-              ),
-          ],
-        ),
+      activationLabel: '查看这一天的充电',
+      headerTrailing: ChipRow(
+        equalWidth: true,
+        children: [
+          for (final (index, entry) in entries.indexed)
+            StatusChip(
+              label: entry.$1,
+              selected: chartMetric == index,
+              onTap: () => setState(() => chartMetric = index),
+            ),
+        ],
       ),
     );
   }
 
-  /// 「我的补能方式」：一句结论 → 构成环 + 图例 → 三列绝对量 → 一句口径。
+  /// 「充电方式」：一句结论（类型未知分行）→ 构成环 + 图例 → 三列绝对量 →
+  /// 分母口径脚注。
   ///
-  /// The ring shares the exact denominator of `dc_energy_share` (AC + DC known
+  /// The ring shares the exact denominator of \`dc_energy_share\` (AC + DC known
   /// energy); unknown energy is declared in the note instead of becoming a
   /// third arc, so one screen never shows two different DC percentages.
-  Widget _composition(expanded.ChargingStats stats) {
+  Widget _methodCard(expanded.ChargingStats stats) {
     final reading = ChargingMethodReading.from(stats.totals);
     final colors = context.colors;
     final type = context.type;
-    final inset = MileafLayout.pageInset(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(inset, MileafSpace.section, inset, 0),
+      padding: EdgeInsets.fromLTRB(
+        MileafLayout.pageInset(context),
+        MileafSpace.section,
+        MileafLayout.pageInset(context),
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '我的补能方式'),
+          const SectionHeader(title: '充电方式'),
           const SizedBox(height: MileafSpace.s8),
-          Text(
-            reading.conclusion,
-            style: type.body.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: MileafSpace.s16),
-          _supplyRing(reading),
-          if (reading.categories.isNotEmpty) ...[
-            const SizedBox(height: MileafSpace.s20),
-            Container(height: 1, color: colors.line),
-            const SizedBox(height: MileafSpace.s16),
-            _categoryColumns(reading.categories),
-          ],
-          if (reading.note.isNotEmpty) ...[
-            const SizedBox(height: MileafSpace.s12),
-            Text(
-              reading.note,
-              style: type.micro.copyWith(color: colors.textFaint),
+          MileafModuleCard(
+            padding: const EdgeInsets.fromLTRB(
+              MileafSpace.s8,
+              MileafSpace.s12,
+              MileafSpace.s8,
+              MileafSpace.s12,
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  reading.conclusion,
+                  style: type.body.copyWith(color: colors.text),
+                ),
+                if (reading.unknownLine.isNotEmpty) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  // CP09：类型未知不拼进结论句，单独一行。
+                  Text(
+                    reading.unknownLine,
+                    style: type.body.copyWith(color: colors.text),
+                  ),
+                ],
+                const SizedBox(height: MileafSpace.s16),
+                _supplyRing(reading),
+                if (reading.categories.isNotEmpty) ...[
+                  const SizedBox(height: MileafSpace.s20),
+                  Container(height: 1, color: colors.line),
+                  const SizedBox(height: MileafSpace.s16),
+                  _categoryColumns(reading.categories),
+                ],
+                if (reading.note.isNotEmpty) ...[
+                  const SizedBox(height: MileafSpace.s12),
+                  Text(
+                    reading.note,
+                    style: type.footnote.copyWith(color: colors.textSecondary),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1463,9 +1484,9 @@ class _ChargingPageState extends State<ChargingPage>
         children: [
           Text(
             category.label,
-            style: type.label.copyWith(color: colors.textMuted),
+            style: type.subheadline.copyWith(color: colors.textMuted),
           ),
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
           // 单位紧跟在空格之后：列宽不够时由文本引擎把它换到下一行，
           // 不缩小字号、不用 FittedBox（Spec §10.1）。
           Text.rich(
@@ -1476,15 +1497,15 @@ class _ChargingPageState extends State<ChargingPage>
                 if (category.unit != null)
                   TextSpan(
                     text: ' ${category.unit}',
-                    style: type.micro.copyWith(color: colors.textFaint),
+                    style: type.footnote.copyWith(color: colors.textFaint),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: MileafSpace.inline6),
+          const SizedBox(height: MileafSpace.s4),
           Text(
             category.note,
-            style: type.micro.copyWith(color: colors.textFaint),
+            style: type.footnote.copyWith(color: colors.textFaint),
           ),
         ],
       ),
@@ -1506,7 +1527,7 @@ class _ChargingPageState extends State<ChargingPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '我的补能方式'),
+          const SectionHeader(title: '充电方式'),
           const SizedBox(height: MileafSpace.s8),
           const SkeletonBlock(width: 160, height: 14),
           const SizedBox(height: MileafSpace.s16),
@@ -1550,7 +1571,7 @@ class _ChargingPageState extends State<ChargingPage>
         key: const Key('charging-search'),
         controller: search,
         maxLength: 100,
-        decoration: const InputDecoration(labelText: '搜索充电地点'),
+        decoration: const InputDecoration(labelText: '搜索地点'),
         onSubmitted: (_) => applyFilters(),
       ),
       Wrap(
@@ -1558,55 +1579,50 @@ class _ChargingPageState extends State<ChargingPage>
         runSpacing: MileafSpace.s8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          DropdownButton<String>(
-            isExpanded: MileafLayout.largeText(context),
-            itemHeight: null,
+          // R27：筛选改小胶囊下拉，按钮文字即当前值；菜单按 R28。
+          MileafPullDown<String>(
+            label: '类型',
             value: chargeType,
             onChanged: (value) {
-              if (value == null) return;
               chargeType = value;
               applyFilters();
             },
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('全部类型')),
-              DropdownMenuItem(value: 'ac', child: Text('AC')),
-              DropdownMenuItem(value: 'dc', child: Text('DC')),
-              DropdownMenuItem(value: 'unknown', child: Text('类型未知')),
+            options: const [
+              MileafPullDownOption(value: 'all', label: '全部类型'),
+              MileafPullDownOption(value: 'ac', label: 'AC'),
+              MileafPullDownOption(value: 'dc', label: 'DC'),
+              MileafPullDownOption(value: 'unknown', label: '类型未知'),
             ],
           ),
-          DropdownButton<String>(
-            isExpanded: MileafLayout.largeText(context),
-            itemHeight: null,
+          MileafPullDown<String>(
+            label: '费用',
             value: costStatus,
             onChanged: (value) {
-              if (value == null) return;
               costStatus = value;
               applyFilters();
             },
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('全部费用')),
-              DropdownMenuItem(value: 'known', child: Text('费用已知')),
-              DropdownMenuItem(value: 'unknown', child: Text('费用未知')),
-              DropdownMenuItem(value: 'zero', child: Text('费用为零')),
+            options: const [
+              MileafPullDownOption(value: 'all', label: '全部费用'),
+              MileafPullDownOption(value: 'known', label: '费用已知'),
+              MileafPullDownOption(value: 'unknown', label: '费用未知'),
+              MileafPullDownOption(value: 'zero', label: '费用为零'),
             ],
           ),
-          DropdownButton<String>(
-            isExpanded: MileafLayout.largeText(context),
-            itemHeight: null,
+          MileafPullDown<String>(
+            label: '排序',
             value: sort,
             onChanged: (value) {
-              if (value == null) return;
               sort = value;
               applyFilters();
             },
-            items: const [
-              DropdownMenuItem(value: 'ended_desc', child: Text('最近结束')),
-              DropdownMenuItem(value: 'started_desc', child: Text('最近开始')),
-              DropdownMenuItem(
+            options: const [
+              MileafPullDownOption(value: 'ended_desc', label: '最近结束'),
+              MileafPullDownOption(value: 'started_desc', label: '最近开始'),
+              MileafPullDownOption(
                 value: 'unit_cost_added_asc',
-                child: Text('入电均价从低到高'),
+                label: '充入均价从低到高',
               ),
-              DropdownMenuItem(value: 'duration_desc', child: Text('记录时长从长到短')),
+              MileafPullDownOption(value: 'duration_desc', label: '充电时长从长到短'),
             ],
           ),
           TextButton(onPressed: applyFilters, child: const Text('查找')),
@@ -1624,28 +1640,14 @@ class _ChargingPageState extends State<ChargingPage>
     ],
   );
 
-  Widget _pageHeader() {
-    final actions = <Widget>[
-      if (expandedAvailable)
-        TextButton(
-          onPressed: () {
-            final returning = recordsOnly;
-            setState(() => recordsOnly = !recordsOnly);
-            scrollToTop();
-            if (returning && selectedDay != null) showDay(null);
-          },
-          child: Text(recordsOnly ? '返回账本' : '全部记录'),
-        ),
-      MileafIconButton(
-        icon: MileafIconName.refresh,
-        tooltip: '刷新充电',
-        onPressed: loading ? null : refreshAll,
-      ),
-    ];
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Wrap(alignment: WrapAlignment.end, children: actions),
-    );
+  /// 全部记录 ↔ 账本：入口在「最近充电」区块标题尾部的「查看全部」（CP06），
+  /// 进入后顶部是一条二级导航（返回 + 标题「全部充电记录」），返回时沿用
+  /// 原有的「退出日筛选」行为。
+  void _toggleRecords({required bool open}) {
+    final returning = recordsOnly;
+    setState(() => recordsOnly = open);
+    scrollToTop();
+    if (returning && !open && selectedDay != null) showDay(null);
   }
 
   Widget _periodRow() {
@@ -1663,18 +1665,27 @@ class _ChargingPageState extends State<ChargingPage>
     final zone = workspace.calendar!;
     final start = zone.local(from);
     final end = zone.local(to.subtract(const Duration(microseconds: 1)));
-    final range =
-        '${start.year}/${start.month}/${start.day}–${end.year}/${end.month}/${end.day}';
+    final range = copy.formatRange(start, end);
     final date = StatusChip(
-      label: '自定义日期',
+      // CP06「同一位置的同类操作用同一个词」：四个根页期间行的自定义入口
+      // 与行程页一致写「自定义」；完整区间与归期口径由语义标签补全。
+      label: '自定义',
       selected: widget.filter.first != null,
-      semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}时间归期',
+      semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}日期统计',
       onTap: filterDates,
     );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ChipRow(
+        // R25/R27：期间分段占剩余宽度，行尾是唯一的刷新圆钮——四个根页的
+        // 期间行位置一致，不再出现「一行动作 + 一行胶囊」的两行结构。
+        MileafPeriodRow(
+          trailing: MileafIconButton(
+            icon: MileafIconName.refresh,
+            tooltip: '刷新充电',
+            fill: MileafIconButtonFill.track,
+            onPressed: loading ? null : refreshAll,
+          ),
           children: [
             if (expandedAvailable) ...[chip('近30天', 30), chip('近7天', 7)],
             date,
@@ -1682,7 +1693,7 @@ class _ChargingPageState extends State<ChargingPage>
         ),
         if (widget.filter.first != null || !expandedAvailable) ...[
           const SizedBox(height: MileafSpace.s8),
-          Text(range, style: context.type.micro),
+          Text(range, style: context.type.footnote),
         ],
       ],
     );
@@ -1694,12 +1705,8 @@ class _ChargingPageState extends State<ChargingPage>
     return InkWell(
       key: ValueKey('charge-${value.id}'),
       onTap: () => widget.onRecord?.call('charge', value.id),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
+      child: Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colors.line)),
-        ),
         child: Row(
           children: [
             MileafIcon(
@@ -1718,12 +1725,13 @@ class _ChargingPageState extends State<ChargingPage>
                     overflow: MileafLayout.largeText(context)
                         ? null
                         : TextOverflow.ellipsis,
-                    style: type.bodyStrong,
+                    style: type.headline,
                   ),
                   const SizedBox(height: MileafSpace.inline2),
                   Text(
-                    '已补入 ${number(value.energyAddedKwh, 'kWh')}，不计入已完成统计',
-                    style: type.micro.copyWith(color: colors.textMuted),
+                    // CP02/CP08：已充入 X kWh，结束后计入统计。
+                    '已充入 ${number(value.energyAddedKwh, 'kWh')}，结束后计入统计',
+                    style: type.footnote.copyWith(color: colors.textSecondary),
                   ),
                 ],
               ),
@@ -1747,55 +1755,39 @@ class _ChargingPageState extends State<ChargingPage>
       children: [
         Text(
           // 0.1/0.2 合约没有费用覆盖计数，无法区分「未知」与「0 元」。
-          '已知充电费用 ${widget.currency.amountValue(stats.totals.cost)}',
-          style: type.title.copyWith(color: colors.text),
+          '${terms.recordedCost} ${widget.currency.amountValue(stats.totals.cost)}',
+          style: type.headline.copyWith(color: colors.text),
         ),
         if (widget.currency.amountNote case final note?)
-          Text(note, style: type.micro.copyWith(color: colors.textFaint)),
+          Text(note, style: type.footnote.copyWith(color: colors.textFaint)),
         const SizedBox(height: MileafSpace.s4),
         Text(
-          '补入电池 ${number(stats.totals.energyAddedKwh, 'kWh')} · '
+          '充入电量 ${number(stats.totals.energyAddedKwh, 'kWh')}，'
           '已完成 ${stats.totals.sessions} 次',
           style: type.body.copyWith(color: colors.textMuted),
         ),
         const SizedBox(height: MileafSpace.s4),
         Text(
-          '当前服务未提供费用覆盖和配对有效均价。',
-          style: type.micro.copyWith(color: colors.textFaint),
+          '当前服务未提供费用覆盖和充入均价。',
+          style: type.footnote.copyWith(color: colors.textFaint),
         ),
       ],
     );
   }
 
   Widget _locationRow(expanded.ChargingLocation place) {
-    final colors = context.colors;
-    final type = context.type;
     final energy = place.sessions > 0 && place.energyKnownSessions == 0
-        ? '入电量缺失'
+        ? '充入电量缺失'
         : '${decimal(place.energyAddedKwh)} kWh';
-    final unit = place.unitCostAdded.value == null
-        ? '—'
-        : decimal(place.unitCostAdded.value!);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        place.location.displayName ?? '未知地点',
-        style: type.body.copyWith(
-          color: colors.text,
-          fontWeight: MileafType.weightSemiBold,
-        ),
-      ),
-      subtitle: Text(
-        '${place.sessions} 次，$energy\n'
-        '费用有记录 ${place.costKnownSessions}/${place.sessions} 次\n'
-        '有效入电均价 $unit ${widget.currency.symbol}/kWh',
-        style: type.micro.copyWith(color: colors.textMuted),
-      ),
-      trailing: MileafIcon(
-        MileafIconName.chevron,
-        size: MileafIconMetrics.inline,
-        color: colors.textFaint,
-      ),
+    final unitCost = place.unitCostAdded.value;
+    return MileafDataRow(
+      title: place.location.displayName ?? '未知地点',
+      // CP09：元信息分行，不用「·」串；覆盖句式沿用 CP02。
+      meta:
+          '${place.sessions} 次，充入 $energy\n'
+          '${place.sessions} 次中 ${place.costKnownSessions} 次有费用\n'
+          '充入均价 ${unitCost == null ? '—' : decimal(unitCost)} ${widget.currency.symbol}/kWh',
+      showChevron: true,
       onTap: () {
         locationId = place.locationId;
         locationName = place.location.displayName;
@@ -1810,34 +1802,20 @@ class _ChargingPageState extends State<ChargingPage>
     final colors = context.colors;
     final type = context.type;
     final local = workspace.calendar!.local(value.startedAt);
-    final status = value.isActive ? '进行中' : '已结束';
-    final kind = value.isDc == null
-        ? '充电类型未知'
-        : '充电类型 ${value.isDc! ? 'DC' : 'AC'}';
+    // CP10：未知类型用独立人话小标签，不再写「充电类型未知」。
+    final kind = value.isDc == null ? '类型未知' : (value.isDc! ? 'DC' : 'AC');
     final amount = widget.currency.amountValue(value.cost);
     final note = widget.currency.amountNote;
-    final extra = [
-      if (value.location.geofence != null &&
-          value.location.geofence != value.location.displayName)
-        '围栏：${value.location.geofence}',
-      if (value.location.address != null &&
-          value.location.address != value.location.displayName)
-        '地址：${value.location.address}',
-    ];
     return InkWell(
       key: ValueKey('charge-${value.id}'),
       onTap: () => widget.onRecord?.call('charge', value.id),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: MileafSpace.rowMin),
+      child: Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colors.line)),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -1848,56 +1826,65 @@ class _ChargingPageState extends State<ChargingPage>
                     overflow: MileafLayout.largeText(context)
                         ? null
                         : TextOverflow.ellipsis,
-                    style: type.bodyStrong,
+                    // R22：记录类行标题用 headline（bodyStrong 别名同值）。
+                    style: type.headline,
                   ),
                 ),
+                // R31：进行中用小胶囊标签；AC/DC 是独立小标签（CP09）。
+                if (value.isActive) ...[
+                  const SizedBox(width: MileafSpace.s8),
+                  const MileafRunningPill(),
+                ],
                 const SizedBox(width: MileafSpace.s8),
-                Text(
-                  status,
-                  style: type.micro.copyWith(
-                    color: value.isActive ? colors.warning : colors.textFaint,
-                  ),
-                ),
+                StatusChip(label: kind),
               ],
             ),
+            const SizedBox(height: MileafSpace.inline2),
+            // CP04：3月29日 07:10，34 分钟（DF5 + CP03 时长）。
             Text(
-              '${local.toString().substring(0, 16)}，$kind，${number(value.durationMin, '分钟')}',
-              style: type.micro.copyWith(color: colors.textMuted),
+              '${copy.formatDayTime(local, _today)}，${value.durationMin == null ? '—' : copy.duration(Duration(minutes: value.durationMin!.round()))}',
+              style: type.footnote.copyWith(color: colors.textSecondary),
             ),
             SocIntervalBar(
               start: value.startSoc,
               end: value.endSoc,
               compact: true,
+              // D-AP10-03：充电记录行端点按对照表写「开始/结束」；行程侧
+              // 「出发/到达」由组件默认值保持。
+              beginLabel: '开始',
+              endLabel: '结束',
             ),
             const SizedBox(height: MileafSpace.s4),
             Wrap(
               spacing: MileafSpace.s8,
+              runSpacing: MileafSpace.s4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                // CP02：结果行写「充入」「电网用电」，单位跟随数值。
                 Text.rich(
                   TextSpan(
-                    text: '入电 ',
-                    style: type.label.copyWith(color: colors.textMuted),
+                    text: '充入 ',
+                    style: type.subheadline.copyWith(color: colors.textMuted),
                     children: [
                       TextSpan(
                         text: value.energyAddedKwh == null
                             ? '—'
                             : decimal(value.energyAddedKwh!),
-                        style: type.metricMd.copyWith(color: colors.text),
+                        // R22：记录尾值用 metricSm（详情三格同角色）。
+                        style: type.metricSm.copyWith(color: colors.text),
                       ),
                       if (value.energyAddedKwh != null)
-                        TextSpan(text: ' kWh', style: type.label),
+                        TextSpan(text: ' kWh', style: type.subheadline),
                     ],
                   ),
                 ),
                 Text(
-                  '电网侧 ${number(value.energyUsedKwh, 'kWh')}',
-                  style: type.micro.copyWith(color: colors.textMuted),
+                  '电网用电 ${number(value.energyUsedKwh, 'kWh')}',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
                 ),
-
                 Text(
                   '费用 $amount${note == null ? '' : '，$note'}',
-                  style: type.micro.copyWith(color: colors.textMuted),
+                  style: type.footnote.copyWith(color: colors.textSecondary),
                 ),
                 if (costSupported &&
                     canFillChargingCost(
@@ -1907,81 +1894,95 @@ class _ChargingPageState extends State<ChargingPage>
                       added: value.energyAddedKwh,
                       used: value.energyUsedKwh,
                     ))
-                  SizedBox(
-                    width: MileafLayout.largeText(context)
-                        ? double.infinity
-                        : null,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: 1,
-                      child: ChargingCostAction(
-                        identityLabel:
-                            '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
-                        onPressed: () async {
-                          if (costSheetOpen) return;
-                          // The sheet is this ledger's own fee context: the
-                          // refresh it triggers must run inline, so the flag
-                          // has to drop even if the sheet throws.
-                          costSheetOpen = true;
-                          try {
-                            // The sheet is this page's own editor: its submit
-                            // already refreshes the ledger inline, so closing
-                            // it must not read the same query a second time.
-                            await readingEditor(
-                              () => showChargingCostSheet(
-                                context,
-                                workspace,
-                                widget.currency,
-                                value.id,
-                              ),
-                            );
-                          } finally {
-                            costSheetOpen = false;
-                          }
-                        },
-                      ),
-                    ),
+                  // P03：补录是独立小胶囊，点按不触发行导航（S06/S07 沿旧）。
+                  ChargingCostAction(
+                    identityLabel:
+                        '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
+                    onPressed: () async {
+                      if (costSheetOpen) return;
+                      // The sheet is this ledger's own fee context: the
+                      // refresh it triggers must run inline, so the flag
+                      // has to drop even if the sheet throws.
+                      costSheetOpen = true;
+                      try {
+                        await readingEditor(
+                          () => showChargingCostSheet(
+                            context,
+                            workspace,
+                            widget.currency,
+                            value.id,
+                          ),
+                        );
+                      } finally {
+                        costSheetOpen = false;
+                      }
+                    },
                   ),
               ],
             ),
-            if (extra.isNotEmpty) ...[
-              const SizedBox(height: MileafSpace.inline2),
-              Text(
-                extra.join('，'),
-                style: type.micro.copyWith(color: colors.textFaint),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
+  /// R24：记录行走分组卡，行间一物理像素分隔线，末行无线（与行程页同一语法）。
+  Widget _recordCard(List<dto.ChargingSession> rows) => MileafGroupCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (index, value) in rows.indexed) ...[
+          if (index > 0) _hairline(),
+          _recordRow(value),
+        ],
+      ],
+    ),
+  );
+
+  /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
+
   Widget _recordsSection() {
     final colors = context.colors;
     final type = context.type;
-    final empty = expandedAvailable ? '此区间无已完成充电记录' : '此区间无充电记录';
+    final empty = expandedAvailable
+        ? messages.emptyMessage('已完成的充电')
+        : messages.emptyMessage('充电记录');
     if (items.isEmpty) {
       if (error != null || !loaded) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
-        child: Text(empty, style: type.body.copyWith(color: colors.textMuted)),
+        child: Text(
+          empty,
+          style: type.body.copyWith(color: colors.textSecondary),
+        ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [for (final value in items) _recordRow(value)],
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s4),
+      child: _recordCard(items),
     );
   }
 
+  /// P03：最近充电是固定的一段——区块标题（尾部「查看全部」）+ 记录行；
+  /// 没有记录时标题与入口仍在，空态由记录区自己说明，用户依然能进全部记录去
+  /// 搜索与筛选。
+  /// P03：最近充电是固定的一段——区块标题（尾部「查看全部」）+ 分组卡；
+  /// 没有记录时标题与入口仍在，空态由记录区自己说明，用户依然能进全部记录去
+  /// 搜索与筛选。
   Widget _recentSection() {
     if (!expandedAvailable || recordsOnly) return const SizedBox.shrink();
-    if (items.isEmpty) {
-      return Padding(
-        padding: MileafLayout.pageHorizontal(context),
-        child: _recordsSection(),
-      );
-    }
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1992,70 +1993,50 @@ class _ChargingPageState extends State<ChargingPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(title: '最近的充电'),
-          const SizedBox(height: MileafSpace.s12),
-          for (final value in items.take(3)) _recordRow(value),
-          if (items.length > 3 || next != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () {
-                  setState(() => recordsOnly = true);
-                  scrollToTop();
-                },
-                child: const Text('查看全部充电记录'),
-              ),
+          SectionHeader(
+            title: '最近充电',
+            // CP05/CP06：入口是区块标题尾部的「查看全部」，不再保留整行按钮。
+            action: TextButton(
+              onPressed: () => _toggleRecords(open: true),
+              child: const Text('查看全部'),
             ),
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          _recordsSection(),
         ],
       ),
     );
   }
 
+  /// R30.2：页尾「关于这些数据」，说明行按五类分组；精确时间（DF8）只在
+  /// 说明层出现，主界面不重复区间与单位。
   Widget _notes() {
-    final colors = context.colors;
-    final type = context.type;
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        shape: const Border(),
-        collapsedShape: const Border(),
-        title: Text('数据说明', style: type.body.copyWith(color: colors.textMuted)),
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '口径：按${expandedAvailable ? '结束' : '开始'}时间归期。\n'
-                  '时区：${workspace.calendar!.identifier}。\n'
-                  '覆盖：费用与均价仅包含有效记录，缺失不补零。',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                const SizedBox(height: MileafSpace.s4),
-                Text(
-                  '构成环只含 AC / DC 已知分类能量；类型未知的能量单列显示，不并入任何一类。',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                const SizedBox(height: MileafSpace.s4),
-                Text(
-                  '记录时长按分类累计，不等于等待时间。\n'
-                  '来源：当前站点的充电记录与服务端统计。',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                if (statsCheckedAt != null) ...[
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    '统计校验时间 ${workspace.calendar!.local(statsCheckedAt!).toString().split('.').first}',
-                    style: type.micro.copyWith(color: colors.textFaint),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+    final groups = <MileafDataNoteGroup>[
+      MileafDataNoteGroup(
+        category: DataNoteCategory.caliber,
+        note:
+            '按${expandedAvailable ? '结束' : '开始'}时间归期。'
+            '构成环只含 AC / DC 已知分类能量，类型未知的能量单列显示，不并入任何一类。'
+            '充电时长按分类累计，不等于等待时间。',
       ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.time,
+        note: '按站点时区 ${workspace.calendar!.identifier} 显示与归期。',
+      ),
+      MileafDataNoteGroup(
+        category: DataNoteCategory.source,
+        note: [
+          '来源：当前站点的充电记录与服务端统计。',
+          if (statsCheckedAt != null)
+            '统计生成于 ${copy.formatPrecise(workspace.calendar!.local(statsCheckedAt!))}',
+          if (locationsCheckedAt != null && locations.isNotEmpty)
+            '地点数据生成于 ${copy.formatPrecise(workspace.calendar!.local(locationsCheckedAt!))}',
+        ].join(' '),
+      ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s4),
+      child: MileafDataNotes(groups: groups),
     );
   }
 
@@ -2090,13 +2071,22 @@ class _ChargingPageState extends State<ChargingPage>
             children: [
               if (widget.topBar == null)
                 SizedBox(height: MileafLayout.rootTopClearance(context)),
+              // P03/CP06：全部记录模式顶部是二级导航（返回 + 标题
+              // 「全部充电记录」），取代原来的页头文字按钮。宿主已提供页头
+              // （统计专题以 initialEntry 推入本页，标题「补能记录」）时不重复。
+              if (recordsOnly && widget.initialEntry == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: MileafSpace.s4),
+                  child: MileafNavigationRow(
+                    title: const Text('全部充电记录'),
+                    onBack: () => _toggleRecords(open: false),
+                  ),
+                ),
               Padding(
                 padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _pageHeader(),
-                    const SizedBox(height: MileafSpace.s4),
                     _periodRow(),
                     if (widget.filter.first != null)
                       Align(
@@ -2112,7 +2102,7 @@ class _ChargingPageState extends State<ChargingPage>
                             loaded = false;
                             applyFilters();
                           },
-                          child: const Text('恢复近30日'),
+                          child: const Text('恢复近 30 天'),
                         ),
                       ),
                     if (expandedAvailable && hasFilters)
@@ -2123,28 +2113,43 @@ class _ChargingPageState extends State<ChargingPage>
                           runSpacing: MileafSpace.s4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text(
-                              [
-                                if (searchTerm.isNotEmpty) '地点搜索：$searchTerm',
-                                if (locationId != null)
-                                  '地点：${locationName ?? '未知地点'}',
-                                if (chargeType != 'all')
-                                  '类型：${switch (chargeType) {
-                                    'ac' => 'AC',
-                                    'dc' => 'DC',
-                                    _ => '未知',
-                                  }}',
-                                if (costStatus != 'all')
-                                  '费用：${switch (costStatus) {
-                                    'known' => '已知',
-                                    'unknown' => '未知',
-                                    _ => '为零',
-                                  }}',
-                              ].join(' · '),
-                              style: type.micro.copyWith(
-                                color: colors.textMuted,
+                            // CP09：多个条件分项显示，不用「·」串成一行。
+                            if (searchTerm.isNotEmpty)
+                              Text(
+                                '地点搜索：$searchTerm',
+                                style: type.footnote.copyWith(
+                                  color: colors.textMuted,
+                                ),
                               ),
-                            ),
+                            if (locationId != null)
+                              Text(
+                                '地点：${locationName ?? '未知地点'}',
+                                style: type.footnote.copyWith(
+                                  color: colors.textMuted,
+                                ),
+                              ),
+                            if (chargeType != 'all')
+                              Text(
+                                '类型：${switch (chargeType) {
+                                  'ac' => 'AC',
+                                  'dc' => 'DC',
+                                  _ => '未知',
+                                }}',
+                                style: type.footnote.copyWith(
+                                  color: colors.textMuted,
+                                ),
+                              ),
+                            if (costStatus != 'all')
+                              Text(
+                                '费用：${switch (costStatus) {
+                                  'known' => '已知',
+                                  'unknown' => '未知',
+                                  _ => '为零',
+                                }}',
+                                style: type.footnote.copyWith(
+                                  color: colors.textMuted,
+                                ),
+                              ),
                             TextButton(
                               onPressed: clearFilters,
                               child: const Text('清除筛选'),
@@ -2157,49 +2162,74 @@ class _ChargingPageState extends State<ChargingPage>
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
                           '— 表示数据缺失；进行中指标不代表最终结果',
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
                     if (workspace.calendar!.fallback)
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
-                          '无法读取设备 IANA 时区，暂按 UTC',
-                          style: type.micro.copyWith(color: colors.warning),
+                          messages.timezoneUnreadableMessage(),
+                          style: type.footnote.copyWith(color: colors.warning),
                         ),
                       ),
                     if (capabilityChecked && !expandedAvailable)
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
-                          '当前站点未提供充电扩展能力，显示已有记录。',
-                          style: type.micro.copyWith(color: colors.textMuted),
+                          '${messages.unsupportedMessage('扩展充电数据')}，显示已有记录。',
+                          style: type.footnote.copyWith(
+                            color: colors.textMuted,
+                          ),
                         ),
                       ),
                     if (capabilityError != null)
                       InlineBanner(
                         message: capabilityError!,
                         tone: BannerTone.error,
-                        actionLabel: '重试站点能力',
+                        actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryCapabilities,
                         onAction: () => loadCapability(force: true),
                       ),
                     if (activeError != null)
                       InlineBanner(
                         message: activeError!,
                         tone: BannerTone.error,
-                        actionLabel: '重试进行中充电',
+                        actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingActive,
                         onAction: () => loadActive(force: true),
                       ),
-                    for (final active in activeItems)
-                      if (activeConfirmed &&
-                          (!recordsOnly || selectedDay == null))
-                        _activeRow(active),
+                    if (activeConfirmed &&
+                        activeItems.isNotEmpty &&
+                        (!recordsOnly || selectedDay == null))
+                      Padding(
+                        padding: const EdgeInsets.only(top: MileafSpace.s12),
+                        child: MileafModuleCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final (index, active)
+                                  in activeItems.indexed) ...[
+                                if (index > 0) ...[
+                                  const SizedBox(height: MileafSpace.s8),
+                                  Container(height: 1, color: colors.line),
+                                  const SizedBox(height: MileafSpace.s8),
+                                ],
+                                _activeRow(active),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     if (loading || statsLoading) const MileafProgressLine(),
                     if (statsError != null)
                       InlineBanner(
                         message: statsError!,
                         tone: BannerTone.error,
-                        actionLabel: '重试充电统计',
+                        actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingStats,
                         onAction: () => loadStats(force: true),
                       ),
                   ],
@@ -2208,8 +2238,8 @@ class _ChargingPageState extends State<ChargingPage>
               if (stats == null && statsLoading && !recordsOnly)
                 _compositionSkeleton(),
               if (stats != null && !recordsOnly) ...[
-                _accountSummary(stats),
-                trend(stats),
+                _accountCard(stats),
+                _trendCard(stats),
                 if (stats.totals.unitCostAdded.excludedCostSessions > 0)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -2219,8 +2249,8 @@ class _ChargingPageState extends State<ChargingPage>
                       0,
                     ),
                     child: Text(
-                      '均价不含 ${stats.totals.unitCostAdded.excludedCostSessions} 次能量无效的已知费用。',
-                      style: type.micro.copyWith(color: colors.textMuted),
+                      '充入均价不含 ${stats.totals.unitCostAdded.excludedCostSessions} 次能量无效的已记录费用。',
+                      style: type.footnote.copyWith(color: colors.textMuted),
                     ),
                   ),
               ] else if (legacyStats != null && !recordsOnly)
@@ -2254,14 +2284,14 @@ class _ChargingPageState extends State<ChargingPage>
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
-                                '仅看 ${selectedDay!.year}年${selectedDay!.month}月${selectedDay!.day}日结束的充电',
-                                style: type.micro.copyWith(
+                                '只看 ${copy.formatDay(selectedDay!, _today)}结束的充电',
+                                style: type.footnote.copyWith(
                                   color: colors.textMuted,
                                 ),
                               ),
                               TextButton(
                                 onPressed: () => showDay(null),
-                                child: const Text('返回完整区间'),
+                                child: const Text('查看完整区间'),
                               ),
                             ],
                           ),
@@ -2270,8 +2300,10 @@ class _ChargingPageState extends State<ChargingPage>
                         Padding(
                           padding: const EdgeInsets.only(top: MileafSpace.s4),
                           child: Text(
-                            '按服务端有效入电均价排序；单次均价可在详情查看。',
-                            style: type.micro.copyWith(color: colors.textMuted),
+                            '按充入均价从低到高排序；单次均价可在详情查看。',
+                            style: type.footnote.copyWith(
+                              color: colors.textMuted,
+                            ),
                           ),
                         ),
                       if (matchedSessions != null)
@@ -2279,15 +2311,17 @@ class _ChargingPageState extends State<ChargingPage>
                           padding: const EdgeInsets.only(top: MileafSpace.s4),
                           child: Text(
                             '匹配 $matchedSessions 次充电',
-                            style: type.micro.copyWith(color: colors.textFaint),
+                            style: type.footnote.copyWith(
+                              color: colors.textFaint,
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ),
               if (!recordsOnly) _recentSection(),
-              if (stats != null && !recordsOnly) _readings(stats),
-              if (stats != null && !recordsOnly) _composition(stats),
+              if (stats != null && !recordsOnly) _accountCellsCard(stats),
+              if (stats != null && !recordsOnly) _methodCard(stats),
               if (expandedAvailable && !recordsOnly)
                 Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -2299,33 +2333,45 @@ class _ChargingPageState extends State<ChargingPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SectionHeader(title: '地点账目'),
-                      const SizedBox(height: MileafSpace.s4),
+                      const SectionHeader(title: '充电地点'),
+                      const SizedBox(height: MileafSpace.s8),
                       if (locationsLoading) const MileafProgressLine(),
                       if (locationError != null)
                         InlineBanner(
                           message: locationError!,
                           tone: BannerTone.error,
-                          actionLabel: '重试地点账目',
+                          actionLabel: '重试',
+                          actionSemanticLabel:
+                              copy_actions.retryChargingLocations,
                           onAction: () => loadLocations(
                             more: locationFailedMore,
                             force: true,
                           ),
                         ),
-                      if (locationsCheckedAt != null && locations.isNotEmpty)
-                        Text(
-                          '地点校验时间 ${workspace.calendar!.local(locationsCheckedAt!).toString().split('.').first}',
-                          style: type.micro.copyWith(color: colors.textFaint),
+                      if (locations.isNotEmpty)
+                        MileafGroupCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final (index, place)
+                                  in locations.indexed) ...[
+                                if (index > 0) _hairline(),
+                                _locationRow(place),
+                              ],
+                            ],
+                          ),
                         ),
-                      for (final place in locations) _locationRow(place),
                       if (locationCursor != null)
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            onPressed: locationsLoading
-                                ? null
-                                : () => loadLocations(more: true),
-                            child: const Text('加载更多地点'),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: MileafSpace.s4),
+                            child: TextButton(
+                              onPressed: locationsLoading
+                                  ? null
+                                  : () => loadLocations(more: true),
+                              child: const Text('加载更多地点'),
+                            ),
                           ),
                         ),
                     ],
@@ -2351,7 +2397,8 @@ class _ChargingPageState extends State<ChargingPage>
                       InlineBanner(
                         message: error!,
                         tone: BannerTone.error,
-                        actionLabel: '重试充电',
+                        actionLabel: '重试',
+                        actionSemanticLabel: copy_actions.retryChargingRecords,
                         onAction: retryLoad,
                       ),
                     if (loaded &&
@@ -2373,9 +2420,11 @@ class _ChargingPageState extends State<ChargingPage>
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
-                          '已到最后一条',
+                          '已显示全部充电',
                           textAlign: TextAlign.center,
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
                     _notes(),
@@ -2396,15 +2445,4 @@ class _ChargingPageState extends State<ChargingPage>
       ],
     );
   }
-}
-
-/// Compact C duration: 34 分钟, 2h05, 5h10.
-String _formatDuration(num minutes) {
-  final total = minutes.round();
-  if (total < 60) return '$total 分钟';
-  final hours = total ~/ 60;
-  final rest = total % 60;
-  return rest == 0
-      ? '${hours}h'
-      : '${hours}h${rest.toString().padLeft(2, '0')}';
 }

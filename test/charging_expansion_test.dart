@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mileaf/src/charging_page.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'charging_test.dart' show app, chargingFixture, initial, jsonResponse;
 import 'overview_test.dart' show background, foreground;
@@ -316,6 +318,36 @@ Map<String, dynamic> seriesV2() {
   return result;
 }
 
+/// AP07：概览等页面也出现「充电/统计」字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+/// P03/CP06：全部记录的入口从页头「全部记录」移到「最近充电」区块标题尾部的
+/// 「查看全部」，进入后顶部是二级导航（返回 + 标题「全部充电记录」）。
+Future<void> openAllRecords(WidgetTester tester) async {
+  final entry = find.text('查看全部').hitTestable();
+  var steps = 0;
+  while (entry.evaluate().isEmpty && steps++ < 12) {
+    await tester.drag(_pageScroll(), const Offset(0, -250));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+/// 充电页自身的纵向滚动视图（图表内部的横向滚动不算）。
+Finder _pageScroll() => find
+    .descendant(
+      of: find.byType(ChargingPage),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    )
+    .first;
+
 void main() {
   testWidgets('充电主页读取已完成统计并展示费用覆盖和配对均价', (tester) async {
     final requests = <Uri>[];
@@ -325,11 +357,13 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('有效入电均价 0.4')), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
+    // 三格卡在最近充电之后（§6 阶梯第 4 步），先滚到再断言语义。
+    await tester.scrollUntilVisible(find.text('充入均价'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入均价 0.4')), findsOneWidget);
     expect(
       requests.any(
         (url) =>
@@ -349,9 +383,9 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const Key('charging-search')),
@@ -403,14 +437,21 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('过程数据说明').hitTestable(), 200);
-    await tester.tap(find.text('过程数据说明').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('原始功率峰值'), 200);
-    expect(find.textContaining('原始功率峰值 175'), findsOneWidget);
-    expect(find.textContaining('记录平均功率 87.4'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('记录跨越 22% → 81%'), 200);
-    expect(find.textContaining('记录跨越 22% → 81%'), findsOneWidget);
+    // P05 电量卡：起止电量、结束状态、AC/DC 胶囊与三格读数。
+    expect(find.text('18% → 82%'), findsOneWidget);
+    expect(find.text('已结束'), findsOneWidget);
+    expect(find.text('DC'), findsOneWidget);
+    expect(find.text('充入电量'), findsOneWidget);
+    expect(find.text('46.8 kWh'), findsOneWidget);
+    expect(find.text('费用'), findsOneWidget);
+    // 站点未设币种：金额只写数字（不默认人民币）。
+    expect(find.text('71.28'), findsOneWidget);
+    expect(find.text('时长'), findsOneWidget);
+    expect(find.text('34 分钟'), findsOneWidget);
+    // P05 充电过程卡：单张时间轴图，读数头为 HH:mm + 「值 单位」。
+    expect(find.byKey(const Key('charging-time-chart')), findsOneWidget);
+    expect(find.text('功率'), findsWidgets);
+    expect(find.text('电量'), findsWidgets);
     expect(
       requests.any(
         (url) =>
@@ -419,18 +460,76 @@ void main() {
       ),
       isTrue,
     );
-    await tester.scrollUntilVisible(find.text('按电量').hitTestable(), -200);
-    await tester.tap(find.text('按电量').hitTestable());
+    // 图卡之后有地图卡（自带一个滚动容器），显式指定页面自己的滚动容器。
+    final page = find.byType(Scrollable).first;
+    // 旧「按电量」散点图并入同一张图：切到电量仍是时间轴，读数改百分比。
+    await tester.scrollUntilVisible(find.text('电量').hitTestable(), -200);
+    await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('charging-soc-chart')), findsOneWidget);
-    expect(find.textContaining('横轴为电量'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('电池加热状态变化').hitTestable(), 200);
-    await tester.tap(find.text('电池加热状态变化').hitTestable());
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('charging-heater-battery_heater_on')),
-      findsOneWidget,
+    expect(find.byKey(const Key('charging-time-chart')), findsOneWidget);
+    expect(find.text('18%'), findsWidgets);
+    // 电池加热：图例写开启、关闭、未知（P05 / CP09）。
+    await tester.scrollUntilVisible(
+      find.text('电池加热').hitTestable(),
+      200,
+      scrollable: page,
     );
+    expect(find.text('电池加热'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('开启').hitTestable(),
+      200,
+      scrollable: page,
+    );
+    expect(find.text('开启'), findsOneWidget);
+    expect(find.text('关闭'), findsOneWidget);
+    expect(find.text('未知'), findsOneWidget);
+    // 关于这些数据：技术详情里的原始峰值与平均功率、记录与缺失里的阈值窗口。
+    await tester.scrollUntilVisible(
+      find.text('关于这些数据').hitTestable(),
+      200,
+      scrollable: page,
+    );
+    await tester.scrollUntilVisible(
+      find.text('技术详情').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('技术详情').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('原始功率峰值'),
+      150,
+      scrollable: page,
+    );
+    expect(find.textContaining('原始功率峰值 175'), findsOneWidget);
+    expect(find.textContaining('记录平均功率 87.4'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('记录与缺失').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('记录与缺失').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('用时 28 分钟'),
+      150,
+      scrollable: page,
+    );
+    // P05：端点写实测值（记录达到 22% → 81%），不再写名义 20% → 80%。
+    expect(find.textContaining('22% → 81%，用时 28 分钟'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('口径与估算').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('口径与估算').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('服务器返回 24 个有效功率采样'),
+      150,
+      scrollable: page,
+    );
+    expect(find.textContaining('覆盖 1,800 秒'), findsOneWidget);
   });
 
   testWidgets('进行中充电独立于按结束日统计和列表', (tester) async {
@@ -441,7 +540,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('正在充电'), findsOneWidget);
     expect(
@@ -452,7 +551,7 @@ void main() {
       ),
       isTrue,
     );
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
   });
 
   testWidgets('车辆已离线时不把未结束会话当成正在充电', (tester) async {
@@ -468,7 +567,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(
       requests.any((url) => url.path.endsWith('/summary')),
@@ -477,7 +576,7 @@ void main() {
     );
     expect(find.textContaining('正在充电'), findsNothing);
     expect(find.textContaining('不计入已完成统计'), findsNothing);
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
   });
 
   testWidgets('无法确认车辆状态时不显示正在充电', (tester) async {
@@ -489,7 +588,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('正在充电'), findsNothing);
   });
@@ -514,7 +613,7 @@ void main() {
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
     expect(summaries, 1);
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(summaries, 1, reason: '同一 summary 缓存键应命中，不重复请求');
     expect(find.textContaining('正在充电'), findsOneWidget);
@@ -538,7 +637,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     final before = summaries;
     await tester.fling(find.byType(ListView).first, const Offset(0, 350), 1200);
@@ -550,7 +649,7 @@ void main() {
     final client = MockClient((request) async => expansionResponse(request));
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('统计'));
+    await tester.tap(navTab('统计'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('充电统计'));
     await tester.pumpAndSettle();
@@ -567,12 +666,12 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     // C04: the chart opens on the latest bucket with charging, which is the
     // cross-midnight 结束日 this test drills into.
-    await tester.scrollUntilVisible(find.text('看当天').hitTestable(), 200);
-    await tester.tap(find.text('看当天').hitTestable());
+    await tester.scrollUntilVisible(find.text('查看这一天的充电').hitTestable(), 200);
+    await tester.tap(find.text('查看这一天的充电').hitTestable());
     await tester.pumpAndSettle();
     final query = requests
         .lastWhere(
@@ -584,12 +683,12 @@ void main() {
     expect(query['from'], '2026-03-29T00:00:00.000Z');
     expect(query['to'], '2026-03-30T00:00:00.000Z');
     await tester.scrollUntilVisible(
-      find.textContaining('仅看 2026年3月29日'),
+      find.textContaining('只看 3月29日结束的充电'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('仅看 2026年3月29日'), findsOneWidget);
-    expect(find.textContaining('2026-03-28 23:10'), findsOneWidget);
+    expect(find.textContaining('只看 3月29日结束的充电'), findsOneWidget);
+    expect(find.textContaining('3月28日 23:10'), findsOneWidget);
   });
 
   testWidgets('地点账目点击后以稳定地点键查询整个匹配集', (tester) async {
@@ -600,14 +699,16 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(ListTile, '家 · 地库').hitTestable(),
+      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.widgetWithText(ListTile, '家 · 地库').hitTestable());
+    await tester.tap(
+      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
+    );
     await tester.pumpAndSettle();
     for (final suffix in [
       '/charging-sessions',
@@ -648,9 +749,9 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('未提供充电扩展能力'), findsOneWidget);
+    expect(find.textContaining('当前站点暂不支持扩展充电数据'), findsOneWidget);
     expect(find.byKey(const Key('charging-search')), findsNothing);
     expect(
       requests.any((url) => url.path.endsWith('/charging-locations')),
@@ -674,10 +775,10 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('充电统计暂时不可用'), findsOneWidget);
-    await tester.tap(find.text('全部记录'));
+    expect(find.textContaining('没能读取充电统计'), findsOneWidget);
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('charge-9')).hitTestable(),
@@ -704,26 +805,26 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pump();
     await tester.enterText(find.byKey(const Key('charging-search')), '家');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('返回账本').hitTestable(),
+      find.byType(BackButton).hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('返回账本').hitTestable());
+    await tester.tap(find.byType(BackButton).hitTestable());
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 1 / 1'), findsOneWidget);
+    expect(find.textContaining('1 次中 1 次有费用'), findsOneWidget);
     oldStats.complete(jsonResponse(chargingStatsV2()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 1 / 1'), findsOneWidget);
-    expect(find.textContaining('费用有记录 2 / 8'), findsNothing);
+    expect(find.textContaining('1 次中 1 次有费用'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsNothing);
   });
 
   testWidgets('全缺失不显示成零，明确免费保留真实零值', (tester) async {
@@ -755,12 +856,12 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 0 / 8'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('补入电池'), 160);
-    expect(find.bySemanticsLabel(RegExp('补入电池 —')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('记录时长 —.*非等待时间')), findsOneWidget);
+    expect(find.textContaining('8 次中 0 次有费用'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充入电量'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入电量未知')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('充电时长未知')), findsOneWidget);
     free = true;
     final refresh = find.byTooltip('刷新充电');
     await tester.scrollUntilVisible(refresh, -160);
@@ -768,9 +869,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(refresh);
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(RegExp(r'有效入电均价 0')), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('记录时长'), 160);
-    expect(find.bySemanticsLabel(RegExp('记录时长 0 分钟.*非等待时间')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充入均价'), 160);
+    expect(find.bySemanticsLabel(RegExp('充入均价 0')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充电时长'), 160);
+    expect(find.bySemanticsLabel(RegExp('充电时长 0 分钟')), findsOneWidget);
   });
 
   testWidgets('地点分页失败保留已有组并从原游标重试', (tester) async {
@@ -798,7 +900,7 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('加载更多地点').hitTestable(),
@@ -807,22 +909,29 @@ void main() {
     );
     await tester.tap(find.text('加载更多地点').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '家 · 地库'), findsOneWidget);
+    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('保留上次快照').hitTestable(),
+      find.textContaining('没能更新，显示的是').hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('保留上次快照'), findsOneWidget);
+    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
     failMore = false;
+    final locationRetry = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('没能更新，显示的是'),
+        matching: find.byType(InlineBanner),
+      ),
+      matching: find.text('重试'),
+    );
     await tester.scrollUntilVisible(
-      find.text('重试地点账目').hitTestable(),
+      locationRetry.hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('重试地点账目').hitTestable());
+    await tester.tap(locationRetry.hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '家 · 地库'), findsOneWidget);
+    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
     expect(find.text('园区'), findsOneWidget);
     expect(
       requests
@@ -844,13 +953,13 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('无法更新站点能力'), findsOneWidget);
     metadataAvailable = true;
-    await tester.tap(find.text('重试站点能力'));
+    await tester.tap(find.text('重试').first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(
       requests.any((url) => url.path.endsWith('/charging-locations')),
       isTrue,
@@ -876,13 +985,13 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     await tester.tap(find.byTooltip('刷新充电'));
     await tester.pumpAndSettle();
     expect(conditional, [null, 'W/"charging"']);
-    expect(find.textContaining('费用有记录 2 / 8'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(find.textContaining('充电统计暂时不可用'), findsNothing);
   });
 
@@ -913,9 +1022,9 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('全部记录'));
+    await openAllRecords(tester);
     await tester.pumpAndSettle();
     expect(find.text('匹配 2 次充电'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -965,13 +1074,14 @@ void main() {
     });
     await tester.pumpWidget(app(client));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     upgraded = true;
     background(tester);
     foreground(tester);
     await tester.pumpAndSettle();
-    expect(find.text('全部记录'), findsOneWidget);
+    // 扩展能力可用时期间行才有「近30天 / 近7天」胶囊（入口已移到区块标题尾部）。
+    expect(find.text('近30天'), findsOneWidget);
     upgraded = false;
     background(tester);
     foreground(tester);
@@ -983,11 +1093,11 @@ void main() {
     );
     expect(find.byKey(const ValueKey('charge-9')), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('未提供充电扩展能力').hitTestable(),
+      find.textContaining('当前站点暂不支持扩展充电数据').hitTestable(),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.textContaining('未提供充电扩展能力'), findsOneWidget);
+    expect(find.textContaining('当前站点暂不支持扩展充电数据'), findsOneWidget);
   });
 
   testWidgets('记录重试不改变区间或使地点分页游标失效', (tester) async {
@@ -1018,16 +1128,25 @@ void main() {
     });
     await tester.pumpWidget(app(client, now: () => now));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
+    final listRetry = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('服务暂不可用，请稍后重试'),
+        matching: find.byType(InlineBanner),
+      ),
+      matching: find.text('重试'),
+    );
     await tester.scrollUntilVisible(
-      find.text('重试充电').hitTestable(),
+      listRetry,
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(listRetry);
+    await tester.pumpAndSettle();
     failList = false;
     now = DateTime.utc(2026, 3, 31, 0, 1);
-    await tester.tap(find.text('重试充电').hitTestable());
+    await tester.tap(listRetry.hitTestable());
     await tester.pumpAndSettle();
     final retried = requests.lastWhere(
       (url) =>

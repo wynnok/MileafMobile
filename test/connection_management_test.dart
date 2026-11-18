@@ -13,7 +13,7 @@ import 'support/vehicle_preferences.dart';
 
 import 'package:mileaf/src/workspace.dart';
 
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 String vehicles(String name) => jsonEncode([
   {
@@ -37,7 +37,7 @@ MemorySessionStore saved() => MemorySessionStore()
 Future<void> refreshVehicles(WidgetTester tester, String current) async {
   await tester.tap(find.text(current).first);
   await tester.pumpAndSettle();
-  await tester.tap(find.byTooltip('刷新车辆'));
+  await tester.tap(find.byTooltip('刷新车辆列表'));
   await tester.pump();
 }
 

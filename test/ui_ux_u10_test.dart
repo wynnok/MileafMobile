@@ -7,12 +7,12 @@ import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/currency.dart';
+import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/design/theme.dart';
-import 'package:mileaf/src/design/components/chip.dart';
 import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/workspace.dart';
 
-import 'appearance_shell_test.dart'
+import 'support/shell_harness.dart'
     show MemoryAppearanceStore, shellClient, fixture;
 import 'charging_test.dart' show MemoryCurrency;
 import 'support/session_store.dart';
@@ -20,13 +20,13 @@ import 'support/vehicle_preferences.dart';
 import 'support/map_key_fixture.dart';
 import 'support/render_fonts.dart';
 import 'support/render_png.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'appearance_shell_test.dart' show pumpShell;
+import 'support/shell_harness.dart' show pumpShell;
 
 const _output = String.fromEnvironment('MILEAF_U10_RENDER_OUTPUT');
 const _font = String.fromEnvironment('MILEAF_RENDER_FONT');
@@ -216,17 +216,15 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         // Material starts its disabled text-colour transition on that frame.
         await tester.pump(const Duration(milliseconds: 300));
+        // AP13（R27）：主按钮处理中保留原文字，只在尾部加活动指示器。
         expect(
-          find.text(switch (scene) {
-            'connect' => '正在检查…',
-            'login' => '正在登录…',
-            'setup' => '正在初始化…',
-            _ => '正在验证…',
-          }),
-          findsOneWidget,
+          tester.widget<MileafButton>(find.byType(MileafButton)).loading,
+          isTrue,
+          reason: scene,
         );
+        expect(find.text(label), findsOneWidget, reason: '处理中保留文字');
         expect(
-          tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+          tester.widget<MileafButton>(find.byType(MileafButton)).onPressed,
           isNull,
         );
         final prefix = '$_output/u10-$scene';

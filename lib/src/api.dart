@@ -100,7 +100,7 @@ class MileafApi {
     if (body is! Map<String, dynamic> ||
         body['status'] != 'ok' ||
         body['version'] is! String) {
-      throw const ApiFailure('服务返回格式不兼容，请核对 Mileaf Server 版本');
+      throw const ApiFailure('服务器返回的数据格式不受支持，请确认 Mileaf Server 版本');
     }
     return body['version'] as String;
   }

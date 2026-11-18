@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'design/components/page_bar.dart';
-
 import 'design/brand_mark.dart';
+import 'design/components/components.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 import 'session.dart';
+
+/// P13：任务标题常量同时供导航栏与正文 title2 使用。
+const _setupTitle = '初始化站点';
 
 class SetupPage extends StatefulWidget {
   const SetupPage({super.key, required this.session});
@@ -45,7 +47,7 @@ class _SetupPageState extends State<SetupPage> {
       return PopScope(
         canPop: !session.loading,
         child: Scaffold(
-          appBar: mileafPageBar(context, title: const Text('初始化站点')),
+          appBar: mileafPageBar(context, title: const Text(_setupTitle)),
           body: SafeArea(
             child: MileafContent(
               child: SingleChildScrollView(
@@ -59,15 +61,32 @@ class _SetupPageState extends State<SetupPage> {
                         alignment: Alignment.centerLeft,
                         child: MileafWordmark(markSize: 32),
                       ),
-                      const SizedBox(height: MileafSpace.s24),
-                      Text(
-                        session.site!.uri.toString(),
-                        style: context.type.label.copyWith(
-                          color: context.colors.textMuted,
+                      const SizedBox(height: MileafSpace.s16),
+                      // P13：任务标题 title2。
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(_setupTitle, style: context.type.title2),
+                      ),
+                      const SizedBox(height: MileafSpace.s8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          session.site!.uri.toString(),
+                          style: context.type.subheadline.copyWith(
+                            color: context.colors.textSecondary,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: MileafSpace.s16),
-                      const Text('仅适用于尚未设置访问口令的站点。已有站点请返回登录。'),
+                      const SizedBox(height: MileafSpace.s4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '仅适用于尚未设置访问口令的站点。已有站点请返回登录。',
+                          style: context.type.body.copyWith(
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: MileafSpace.s24),
                       TextFormField(
                         controller: _password,
@@ -98,23 +117,37 @@ class _SetupPageState extends State<SetupPage> {
                             value != _password.text ? '两次输入的口令不一致' : null,
                       ),
                       const SizedBox(height: MileafSpace.s24),
-                      FilledButton(
+                      // R27：主按钮胶囊；处理中保留文字并在尾部加活动指示器。
+                      MileafButton(
+                        label: '设置口令并登录',
+                        expand: true,
+                        loading: session.loading,
                         onPressed: session.canLogin ? _initialize : null,
-                        child: Text(session.loading ? '正在初始化…' : '设置口令并登录'),
                       ),
-                      TextButton(
-                        onPressed: session.loading
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        child: const Text('返回登录'),
+                      const SizedBox(height: MileafSpace.s8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: MileafButton(
+                          label: '返回登录',
+                          kind: MileafButtonKind.ghost,
+                          onPressed: session.loading
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                        ),
                       ),
                       if (session.message != null)
-                        Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            session.message!,
-                            style: context.type.body.copyWith(
-                              color: context.colors.error,
+                        Padding(
+                          padding: const EdgeInsets.only(top: MileafSpace.s16),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                session.message!,
+                                style: context.type.body.copyWith(
+                                  color: context.colors.error,
+                                ),
+                              ),
                             ),
                           ),
                         ),

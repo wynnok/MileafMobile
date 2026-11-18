@@ -20,7 +20,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09c 专属回归：旧测试未覆盖的指标短词与完整口径、320/大字与 200%
 /// 均 2×2、费用缺失不画假 0、刷新 44 命中、宽屏限宽及期间记录返回。
@@ -118,19 +118,19 @@ void main() {
       expect(find.widgetWithText(StatusChip, short), findsOneWidget);
     }
     // 默认指标：图标题用完整口径，而不是短词。
-    expect(find.text('入电量走势'), findsOneWidget);
+    expect(find.text('每日充电量'), findsOneWidget);
     final labels = tester
         .widgetList<Semantics>(find.byType(Semantics))
         .map((s) => s.properties.label)
         .whereType<String>()
-        .where((label) => label.startsWith('补能走势图表'))
+        .where((label) => label.contains('图表，单位'))
         .toList();
     expect(labels, isNotEmpty);
-    expect(labels.first, contains('入电量'));
+    expect(labels.first, contains('每日充电量'));
     expect(labels.first, contains('kWh'));
     await tester.tap(find.widgetWithText(StatusChip, '均价'));
     await tester.pumpAndSettle();
-    expect(find.text('有效入电均价走势'), findsOneWidget);
+    expect(find.text('充入均价'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -141,7 +141,9 @@ void main() {
     await tester.scrollUntilVisible(fee.hitTestable(), 150);
     await tester.tap(fee);
     await tester.pumpAndSettle();
-    expect(find.textContaining(RegExp(r'^\d{1,2}/\d{1,2} —$')), findsOneWidget);
+    // R29：读数头把日期与数值分行（CP04 DF1），缺失值的数值行就是「—」。
+    expect(find.textContaining(RegExp(r'^\d{1,2}月\d{1,2}日$')), findsWidgets);
+    expect(find.text('—'), findsWidgets);
     expect(find.textContaining(RegExp(r'¥0$')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -159,7 +161,7 @@ void main() {
     expect(chart.readout!.call(2), endsWith('—'));
     // 已知费用 0 条：主值显示缺失符号，覆盖行明确 0 条已知。
     expect(find.text('—'), findsWidgets);
-    expect(find.textContaining('费用有记录 0 /'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'0 / ')), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -225,7 +227,7 @@ void main() {
     await openU09c(tester, chargingClient([]));
     final chart = find.byType(TimeSeriesChart).first;
     expect(tester.getSize(chart).width, lessThanOrEqualTo(560));
-    final header = find.text('补能账目');
+    final header = find.text('充电费用');
     expect(tester.getRect(chart).left, closeTo(tester.getRect(header).left, 1));
   });
 
@@ -389,7 +391,8 @@ void main() {
         await tester.pumpAndSettle();
       }
       if (scenario == 'normal' || scenario == 'missing') {
-        final notes = find.widgetWithText(ExpansionTile, '数据说明');
+        // D-AP12a-01：页尾「关于这些数据」的五类说明行改 MileafDisclosure。
+        final notes = find.widgetWithText(MileafDisclosure, '口径与估算');
         await tester.ensureVisible(notes.last);
         await tester.tap(notes.last);
         await tester.pumpAndSettle();

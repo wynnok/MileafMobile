@@ -25,7 +25,7 @@ import 'overview_test.dart' show background, foreground;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
 import 'charging_test.dart' show MemoryCurrency;
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Future<void> pumpReadingApp(
   WidgetTester tester,
@@ -272,15 +272,17 @@ class ReadingCostSite {
   }
 }
 
-/// Opens the charging topic from the overview's data sheet, the same path a
-/// reader takes when drilling into 充电统计.
+/// Opens the charging topic from the statistics home's 2×2 topic grid (P06).
+///
+/// 旧入口是概览「数据说明与更多 → 充电统计」，P01 之后概览不再有该下钻
+/// （onStatistics 已无调用方）；P06 的补能专题改为统计首页的专题卡。
 Future<void> openChargingTopic(WidgetTester tester) async {
-  await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 300);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('数据说明与更多').hitTestable());
-  await tester.pumpAndSettle();
+  // P01 页尾仍有「驾驶统计 / 充电统计」下钻（onStatistics 回调未变），
+  // 统计 Tab 内的补能专辑仍按概览期间打开，而不是 push 独立路由。
+  await selectTab(tester, '概览');
   await tester.scrollUntilVisible(find.text('充电统计').hitTestable(), 300);
-  await tester.tap(find.text('充电统计'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('充电统计').hitTestable());
   await tester.pumpAndSettle();
 }
 
@@ -307,11 +309,20 @@ Future<void> refreshChargingTopic(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// The charging topic's chart readout, e.g. `3/6 10.0 kWh`.
-String chargingReadout(WidgetTester tester) => tester
-    .widgetList<Text>(find.byType(Text))
-    .map((widget) => widget.data ?? '')
-    .firstWhere((text) => RegExp(r'^\d{1,2}/\d{1,2} .*kWh$').hasMatch(text));
+/// The charging topic's chart readout date (R29/DF1): 读数头日期行是「M月D日」，
+/// 这里归一成「M/D」便于跨刷新比较。
+String chargingReadout(WidgetTester tester) {
+  final day = RegExp(r'^(\d{1,2})月(\d{1,2})日$');
+  final slash = RegExp(r'^(\d{1,2})/(\d{1,2})$');
+  for (final text in tester.widgetList<Text>(find.byType(Text))) {
+    final value = text.data ?? '';
+    final match = day.firstMatch(value) ?? slash.firstMatch(value);
+    if (match != null) {
+      return '${int.parse(match.group(1)!)}/${int.parse(match.group(2)!)}';
+    }
+  }
+  return '';
+}
 
 int chargingStatsReads(List<Uri> seen) => seen
     .where(
@@ -322,12 +333,16 @@ int chargingStatsReads(List<Uri> seen) => seen
     .length;
 
 String chartDate(WidgetTester tester) {
-  final pattern = RegExp(r'^(\d{1,2}/\d{1,2})\b');
+  // R29/CP04：概览读数头日期行用 DF1「M月D日」；统计页的图表刻度仍以 M/D
+  // 覆盖。两种写法都归一成「M/D」便于跨刷新比较。
+  final day = RegExp(r'^(\d{1,2})月(\d{1,2})日$');
+  final slash = RegExp(r'^(\d{1,2})/(\d{1,2})$');
   for (final text in tester.widgetList<Text>(find.byType(Text))) {
-    final data = text.data ?? '';
-    if (!data.contains('km')) continue;
-    final match = pattern.firstMatch(data);
-    if (match != null) return match.group(1)!;
+    final value = text.data ?? '';
+    final match = day.firstMatch(value) ?? slash.firstMatch(value);
+    if (match != null) {
+      return '${int.parse(match.group(1)!)}/${int.parse(match.group(2)!)}';
+    }
   }
   fail('chart readout not found');
 }
@@ -485,21 +500,22 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(StatusChip, '费用'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('点按读值').hitTestable(), 220);
+    // R29：读值改由图表读数头承载（live region 节点），不再有「点按读值」提示。
+    final readout = find.byKey(MileafChartGrammar.readoutLiveKey);
+    await tester.scrollUntilVisible(readout, 220);
+    await tester.pumpAndSettle();
+    // R29：Y 轴刻度移到绘图区右侧后，绘图区比手势区窄，0.9 的手势比例
+    // 落在最后一个桶（3/15），仍是「末点」这一语义。
     await tapPlot(tester, 0.9);
     expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.text('3/14'),
-      ),
+      find.descendant(of: readout, matching: find.text('3月15日')),
       findsOneWidget,
+      reason: '读数头日期行用 DF1',
     );
     expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.textContaining('¥5'),
-      ),
+      find.descendant(of: readout, matching: find.text('6 CNY')),
       findsOneWidget,
+      reason: '费用读数按服务端币种代码带单位',
     );
     final offset = tabOffset(tester, OverviewPage);
     expect(offset, greaterThan(0));
@@ -516,17 +532,12 @@ void main() {
       isTrue,
     );
     expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.text('3/14'),
-      ),
+      find.descendant(of: readout, matching: find.text('3月15日')),
       findsOneWidget,
+      reason: '主入口往返后仍按日期保留已选点',
     );
     expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('overview-chart-reading')),
-        matching: find.textContaining('¥5'),
-      ),
+      find.descendant(of: readout, matching: find.text('6 CNY')),
       findsOneWidget,
     );
     expect(tabOffset(tester, OverviewPage), closeTo(offset, 1));
@@ -614,8 +625,9 @@ void main() {
       reason: '返回后即使本地快照 TTL 未过期也必须校验费用',
     );
     expect(site.reads.any((r) => r.url.path.endsWith('/summary')), isTrue);
+    // CP02：本期账目的费用格标签是「已记录费用」。
     await tester.scrollUntilVisible(
-      find.textContaining('已知费用').hitTestable(),
+      find.textContaining('已记录费用').hitTestable(),
       220,
     );
     expect(
@@ -642,17 +654,14 @@ void main() {
     await selectTab(tester, '统计');
     await tester.tap(find.widgetWithText(StatusChip, '近7天'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.textContaining('已知支出'),
-      160,
-      scrollable: find
-          .descendant(
-            of: find.byType(StatisticsInsightsPage),
-            matching: find.byType(Scrollable),
-          )
-          .last,
+    // P06：首页的补能专题卡显示已记录费用（CP02 把「已知支出」改称「已记录费用」）。
+    final chargingCard = find.byKey(const ValueKey('statistics-topic-补能'));
+    await tester.scrollUntilVisible(chargingCard, 160);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: chargingCard, matching: find.text('¥72')),
+      findsOneWidget,
     );
-    expect(find.textContaining('已知支出 ¥72'), findsOneWidget);
     final statisticsFrom = site.reads
         .lastWhere(
           (r) =>
@@ -694,17 +703,13 @@ void main() {
       isTrue,
       reason: '返回后即使本地快照 TTL 未过期也必须校验费用',
     );
-    await tester.scrollUntilVisible(
-      find.textContaining('已知支出'),
-      160,
-      scrollable: find
-          .descendant(
-            of: find.byType(StatisticsInsightsPage),
-            matching: find.byType(Scrollable),
-          )
-          .last,
+    await tester.scrollUntilVisible(chargingCard, 160);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: chargingCard, matching: find.text('¥99.5')),
+      findsOneWidget,
+      reason: '返回可见后补能卡的费用按失效更新',
     );
-    expect(find.textContaining('已知支出 ¥99.5'), findsOneWidget);
     expect(site.writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -781,13 +786,7 @@ void main() {
       now: () => DateTime.utc(2026, 3, 30, 12),
       currency: currency,
     );
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 300);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电统计').hitTestable(), 300);
-    await tester.tap(find.text('充电统计'));
-    await tester.pumpAndSettle();
+    await openChargingTopic(tester);
     await tapChipIn(tester, StatisticsInsightsPage, '近7天');
     await tapChargingPlot(tester, 0.8);
     final chosenBucket = chargingReadout(tester);
@@ -914,7 +913,8 @@ void main() {
       ),
       isTrue,
     );
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
+    // 期间行、卡片副标题与洞察身份块同源 DF3，均含该日期。
+    expect(find.textContaining('10月2日–4日'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -952,7 +952,8 @@ void main() {
     await custom(tester, '2026-10-02', '2026-10-04');
     await tester.tap(find.text('行笺测试车').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆行无名称时写「型号，尾号 0002」。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(
       tester.widget<StatusChip>(find.widgetWithText(StatusChip, '本月')).selected,
@@ -1060,13 +1061,13 @@ void main() {
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
     for (var i = 0; i < 6; i++) {
-      if (find.text('查看期间补能记录').evaluate().isNotEmpty) break;
+      if (find.text('查看这段时间的充电').evaluate().isNotEmpty) break;
       await tester.drag(find.byType(Scrollable).last, const Offset(0, -400));
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(find.text('查看期间补能记录'));
+    await tester.ensureVisible(find.text('查看这段时间的充电'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看期间补能记录'));
+    await tester.tap(find.text('查看这段时间的充电'));
     await tester.pumpAndSettle();
     final topicFrom = seen
         .lastWhere(
@@ -1099,7 +1100,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(reads(), during + 1, reason: '返回专题后才消费费用失效');
     expect(find.text('补能记录'), findsNothing);
-    expect(find.text('查看期间补能记录'), findsOneWidget);
+    expect(find.text('查看这段时间的充电'), findsOneWidget);
     expect(writes, hasLength(1));
     expect(tester.takeException(), isNull);
   });
@@ -1115,13 +1116,7 @@ void main() {
       now: () => now,
       currency: currency,
     );
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 300);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多').hitTestable());
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电统计').hitTestable(), 300);
-    await tester.tap(find.text('充电统计'));
-    await tester.pumpAndSettle();
+    await openChargingTopic(tester);
     await tapChipIn(tester, StatisticsInsightsPage, '近7天');
     final topicFrom = site.reads
         .lastWhere(
@@ -1144,7 +1139,7 @@ void main() {
     now = now.add(const Duration(seconds: 2));
     await selectTab(tester, '统计');
     expect(topicReads(), greaterThan(before), reason: '嵌入专题的充电快照过期后，返回可见必须校验');
-    expect(find.text('补能账目'), findsOneWidget);
+    expect(find.text('充电费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1184,7 +1179,8 @@ void main() {
     await pumpReadingApp(tester, client, now: () => now);
     await selectTab(tester, '统计');
     await custom(tester, '2026-10-02', '2026-10-04');
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
+    // 期间行、卡片副标题与洞察身份块同源 DF3，均含该日期。
+    expect(find.textContaining('10月2日–4日'), findsWidgets);
     unauthorized = true;
     now = DateTime.utc(2026, 10, 29, 11);
     background(tester);
@@ -1214,18 +1210,25 @@ void main() {
       now: () => DateTime.utc(2026, 3, 30, 12),
       currency: currency,
     );
-    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.scrollUntilVisible(find.text('最近充电'), 300);
+    await tester.pumpAndSettle();
+    // 悬浮底栏会盖住刚好滚到的行：先居中再点，命中区才可点。
+    await Scrollable.ensureVisible(
+      tester.element(find.text('最近充电')),
+      alignment: .4,
+    );
     await tester.pumpAndSettle();
     final offset = tabOffset(tester, OverviewPage);
-    await tester.tap(find.text('最近充电').hitTestable());
+    await tester.tap(find.text('最近充电'));
     await tester.pumpAndSettle();
     site.reads.clear();
+    // P05：费用格里的补录入口是小胶囊「补录」。
     await tester.scrollUntilVisible(
-      find.text('补录费用').hitTestable(),
+      find.text('补录').hitTestable(),
       150,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('补录费用').hitTestable());
+    await tester.tap(find.text('补录').hitTestable());
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '1.25');
     await tapCostAction(tester, '确认补录');
@@ -1244,7 +1247,7 @@ void main() {
     );
     expect(tabOffset(tester, OverviewPage), closeTo(offset, 1));
     await tester.scrollUntilVisible(
-      find.textContaining('已知费用').hitTestable(),
+      find.textContaining('已记录费用').hitTestable(),
       -120,
     );
     expect(
@@ -1282,29 +1285,18 @@ void main() {
     );
     await tapPlot(tester, 0.5);
     await tester.scrollUntilVisible(
-      find.textContaining('里程读数').hitTestable(),
+      find.byKey(const ValueKey('driving-statistics-chart')).hitTestable(),
       100,
     );
-    final chosen = tester
-        .widgetList<Text>(find.textContaining('里程读数').hitTestable())
-        .firstWhere((t) => t.data != null && !t.data!.contains('—'))
-        .data!;
-    expect(find.text('2026-03-09—2026-03-15'), findsWidgets);
+    // R29：可见读值改为读数头（日期行 + 数值行），朗读句只进语义；
+    // 「保留采样点」按读数头的日期行核对（chartDate）。
+    final chosen = chartDate(tester);
+    expect(find.text('3月9日–15日'), findsWidgets);
     await selectTab(tester, '行程');
     now = DateTime.utc(2026, 3, 16, 12);
     await selectTab(tester, '统计');
-    expect(
-      find.text('2026-03-10—2026-03-16'),
-      findsWidgets,
-      reason: '窗口整体后移一天',
-    );
-    expect(
-      tester
-          .widgetList<Text>(find.textContaining('里程读数').hitTestable())
-          .map((t) => t.data)
-          .where((d) => d != null && !d.contains('—')),
-      contains(chosen),
-    );
+    expect(find.text('3月10日–16日'), findsWidgets, reason: '窗口整体后移一天');
+    expect(chartDate(tester), chosen, reason: '按日期保留采样点');
     expect(tester.takeException(), isNull);
   });
 
@@ -1362,11 +1354,12 @@ void main() {
     await custom(tester, '2026-01-05', '2026-01-06');
     await selectTab(tester, '概览');
     await tapChipIn(tester, OverviewPage, '近7天');
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 300);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多').hitTestable());
-    await tester.pumpAndSettle();
-    final drivingEntry = find.text('驾驶统计');
+    // P01：概览的显式统计下钻改为「用车专题」三行（旧「数据说明与更多 →
+    // 驾驶统计」入口已移除）；这里走「节奏」，入口期间仍是概览当前期间。
+    final drivingEntry = find.descendant(
+      of: find.byType(OverviewPage),
+      matching: find.text('节奏'),
+    );
     await tester.scrollUntilVisible(drivingEntry, 300);
     await Scrollable.ensureVisible(tester.element(drivingEntry), alignment: .5);
     await tester.pumpAndSettle();
@@ -1374,21 +1367,24 @@ void main() {
     await tester.tap(drivingEntry);
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('2026-03-24 至 2026-03-30'),
-      findsOneWidget,
+      seen.any(
+        (u) =>
+            u.path.endsWith('/driving-analysis') &&
+            u.queryParameters['from'] == '2026-03-24T00:00:00.000Z',
+      ),
+      isTrue,
       reason: '入口的期间应优先于之前保留的自定义期间',
-    );
-    expect(
-      find.textContaining('期间 · 2026年3月'),
-      findsOneWidget,
-      reason: '统计按入口的日历区间读数',
     );
     expect(
       seen.any((u) => u.queryParameters['from']!.startsWith('2026-01')),
       isFalse,
       reason: '旧阅读状态不得吞掉入口期间',
     );
-    expect(find.text('行笺测试车'), findsOneWidget);
+    expect(
+      seen.where((u) => u.path.contains('/vehicles/2/')),
+      isEmpty,
+      reason: '入口沿用当前车辆（行笺测试车 = 1）',
+    );
     await selectTab(tester, '概览');
     expect(
       tester
@@ -1426,7 +1422,7 @@ void main() {
           .first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     // Then enter the same topic from the overview with a new period.
@@ -1447,7 +1443,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     final first = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(first.queryParameters['from'], '2026-03-24T00:00:00.000Z');
     // A second explicit entry with another period must not reuse the first.
@@ -1470,7 +1466,7 @@ void main() {
     await tester.pumpAndSettle();
     final second = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(second.queryParameters['from'], '2026-03-01T00:00:00.000Z');
-    expect(find.text('这段时间的用车节奏'), findsOneWidget);
+    expect(find.text('用车节奏'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -1540,7 +1536,7 @@ void main() {
     await tapChipIn(tester, StatisticsInsightsPage, '近7天');
     final explicit = chargingReadout(tester);
     expect(explicit, isNot(fallback), reason: '显式新期间使用自己的首日，不被旧选点阻挡');
-    expect(find.text('补能账目'), findsOneWidget);
+    expect(find.text('充电费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

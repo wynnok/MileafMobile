@@ -7,14 +7,14 @@ import 'package:mileaf/src/appearance.dart';
 import 'package:mileaf/src/map/map_key.dart';
 import 'package:mileaf/src/workspace.dart';
 
-import 'appearance_shell_test.dart' show MemoryAppearanceStore, shellClient;
+import 'support/shell_harness.dart' show MemoryAppearanceStore, shellClient;
 import 'charging_test.dart' show MemoryCurrency;
 import 'support/map_key_fixture.dart';
 import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 const _output = String.fromEnvironment('MILEAF_SETTINGS_RENDER_OUTPUT');
 const _font = String.fromEnvironment('MILEAF_RENDER_FONT');

@@ -11,7 +11,7 @@ import 'support/c_gallery_client.dart';
 import 'support/c_fixture.dart' show cNow, cSite;
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 class _Appearance implements AppearancePreferenceStore {
   String? value;
@@ -100,7 +100,8 @@ void main() {
 
   testWidgets('A 概览空态不画全零图，最近记录给空态', (tester) async {
     await openOverview(tester, scenario: 'empty');
-    expect(find.text('还没有采样点'), findsOneWidget);
+    // AP08/R29：空期间只留一句人话（组件默认的「还没有采样点」由页面覆盖）。
+    expect(find.text('这段时间没有行程'), findsOneWidget);
     expect(find.textContaining('这段时间还没有行程'), findsOneWidget);
     expect(find.textContaining('还没有充电记录'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -109,10 +110,8 @@ void main() {
   testWidgets('A 概览部分缺失显示破折号，不补零', (tester) async {
     await openOverview(tester, scenario: 'missing');
     final net = find.byKey(const ValueKey('overview-plate-net'));
-    expect(
-      find.descendant(of: net, matching: find.text('净电耗')),
-      findsOneWidget,
-    );
+    // CP02：净电耗的短标签改为「电耗」。
+    expect(find.descendant(of: net, matching: find.text('电耗')), findsOneWidget);
     expect(
       find.descendant(of: net, matching: find.text('—')),
       findsOneWidget,
@@ -125,10 +124,11 @@ void main() {
   testWidgets('A 概览 200% 浅色无横向溢出且主数单位可见', (tester) async {
     await openOverview(tester, brightness: Brightness.light, textScale: 2);
     expect(find.textContaining('320'), findsWidgets);
-    expect(find.textContaining('今日 km'), findsOneWidget);
-    // 200% 下主图眉标位于首屏之外，仅按需构建；沿页面滚动确认仍可达且文案不变。
-    await tester.scrollUntilVisible(find.textContaining('本月 · 驾驶里程'), 240);
-    expect(find.textContaining('本月 · 驾驶里程'), findsOneWidget);
+    // CP03：今日三项标签改为「今日里程 / 行程 / 估算耗电」，单位跟值。
+    expect(find.textContaining('今日里程'), findsOneWidget);
+    // 200% 下焦点卡标签位于首屏之外，仅按需构建；沿页面滚动确认仍可达且文案不变。
+    await tester.scrollUntilVisible(find.textContaining('本月驾驶'), 240);
+    expect(find.textContaining('本月驾驶'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

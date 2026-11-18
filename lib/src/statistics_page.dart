@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'number_format.dart';
 
+import 'copy/dates.dart' as copy_dates;
+import 'copy/messages.dart' as messages;
 import 'design/components/components.dart';
+import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -419,13 +422,14 @@ class _StatisticsViewState extends State<_StatisticsView>
                 Expanded(
                   child: Text(
                     widget.kind == 'driving' ? '驾驶结果' : '充电结果',
-                    style: context.type.title,
+                    style: context.type.headline,
                   ),
                 ),
-                IconButton(
-                  onPressed: loading ? null : () => load(force: true),
-                  icon: const Icon(Icons.refresh),
+                MileafIconButton(
+                  icon: MileafIconName.refresh,
                   tooltip: '刷新统计',
+                  fill: MileafIconButtonFill.track,
+                  onPressed: loading ? null : () => load(force: true),
                 ),
               ],
             ),
@@ -445,12 +449,13 @@ class _StatisticsViewState extends State<_StatisticsView>
               padding: const EdgeInsets.symmetric(vertical: MileafSpace.s8),
               child: Text(
                 '统计时区：${calendar.identifier}',
-                style: context.type.micro.copyWith(
+                style: context.type.footnote.copyWith(
                   color: context.colors.textMuted,
                 ),
               ),
             ),
-            if (calendar.fallback) const Text('无法读取设备 IANA 时区，暂按 UTC 展示与归期'),
+            // CP07：时区不可读走共享状态句。
+            if (calendar.fallback) Text(messages.timezoneUnreadableMessage()),
             if (loading)
               MediaQuery.disableAnimationsOf(context)
                   ? const Text('正在读取统计…')
@@ -472,10 +477,26 @@ class _StatisticsViewState extends State<_StatisticsView>
     );
   }
 
-  String _tick(CalendarContext calendar, DateTime time) {
-    final local = calendar.local(time);
-    return '${local.month}/${local.day}';
+  /// CP04 DF9：日级图轴走共享格式化器（首刻度与每月首刻度 M月D日，其余
+  /// D日）；刻度时间先按站点日历本地化，再按原始时间对位。
+  String _tickLabel(
+    CalendarContext calendar,
+    List<DateTime> times,
+    DateTime t,
+  ) {
+    final today = calendar.local(workspace.session.now());
+    final labels = copy_dates.formatAxisDayTicks([
+      for (final time in times) calendar.local(time),
+    ], today);
+    for (var i = 0; i < times.length; i++) {
+      if (times[i] == t) return labels[i];
+    }
+    return copy_dates.formatDay(calendar.local(t), today);
   }
+
+  /// CP04：读数头单点日期走 DF1，不随图轴 DF9 缩写。
+  String _readoutDate(CalendarContext calendar, DateTime t) => copy_dates
+      .formatDay(calendar.local(t), calendar.local(workspace.session.now()));
 
   String _range(CalendarContext calendar) {
     final query = resultQuery;
@@ -484,7 +505,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     final to = calendar.local(
       DateTime.parse(query['to']!).subtract(const Duration(microseconds: 1)),
     );
-    return '${statisticsDate(from)}—${statisticsDate(to)}';
+    return copy_dates.formatRange(from, to);
   }
 
   List<Widget> _driving(
@@ -547,7 +568,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           (index) => setState(() => drivingMetric = index),
         ),
         plotKey: const ValueKey('driving-statistics-chart'),
-        tickLabel: (t) => _tick(calendar, t),
+        tickLabel: (t) => _tickLabel(calendar, times, t),
+        readoutDate: (t) => _readoutDate(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => driving.select(times, index)),
         readout: (index) =>
@@ -572,8 +594,8 @@ class _StatisticsViewState extends State<_StatisticsView>
       line('最高速度', totals.speedMaxKmh, 'km/h'),
       const SizedBox(height: MileafSpace.s12),
       Text(
-        '按开始时间归期 · 仅统计已完成行程',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        '按开始日期统计，仅统计已完成的行程',
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.drives == 0)
         Padding(
@@ -583,19 +605,16 @@ class _StatisticsViewState extends State<_StatisticsView>
             style: context.type.body.copyWith(color: context.colors.textMuted),
           ),
         ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: const Text('统计口径'),
-        children: const [
-          Text(
-            '净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals，不平均各桶比率。',
-          ),
-        ],
+      // R30.3：说明类折叠改 MileafDisclosure。
+      MileafDisclosure(
+        label: '统计口径',
+        child: const Text(
+          '净电耗采用行程续航差与车辆效率估算能量／里程；毛电耗采用同区间已完成充电的充入电池能量（按结束时间归期）／驾驶里程。总计直接使用区间 totals，不平均各桶比率。',
+        ),
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: MileafSpace.section),
       const SectionHeader(title: '时间桶明细'),
@@ -627,7 +646,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
           semanticsLabel: '净电耗与毛电耗图表',
           plotKey: const ValueKey('driving-consumption-chart'),
-          tickLabel: (t) => _tick(calendar, t),
+          tickLabel: (t) => _tickLabel(calendar, times, t),
+          readoutDate: (t) => _readoutDate(calendar, t),
           selectedIndex: point,
           onSelected: (index) =>
               setState(() => consumption.select(times, index)),
@@ -735,7 +755,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           (index) => setState(() => chargingMetric = index),
         ),
         plotKey: const ValueKey('charging-statistics-chart'),
-        tickLabel: (t) => _tick(calendar, t),
+        tickLabel: (t) => _tickLabel(calendar, times, t),
+        readoutDate: (t) => _readoutDate(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => charging.select(times, index)),
         readout: (index) {
@@ -780,14 +801,16 @@ class _StatisticsViewState extends State<_StatisticsView>
       ),
       Text(
         '占比分母仅为 AC + DC 已知分类能量，不代表全部能量构成。',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (richer != null)
         Text(
           richer.totals.durationKnownSessions == 0
               ? '分类记录时长缺失'
-              : 'AC ${decimal(richer.totals.acDurationMin)} 分钟 · DC ${decimal(richer.totals.dcDurationMin)} 分钟 · 未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
-          style: context.type.micro.copyWith(color: context.colors.textMuted),
+              : 'AC ${decimal(richer.totals.acDurationMin)} 分钟、DC ${decimal(richer.totals.dcDurationMin)} 分钟、未知 ${decimal(richer.totals.unknownDurationMin)} 分钟',
+          style: context.type.footnote.copyWith(
+            color: context.colors.textMuted,
+          ),
         ),
       const SizedBox(height: MileafSpace.section),
       _classification(context, calendar, buckets, richer, times),
@@ -812,15 +835,15 @@ class _StatisticsViewState extends State<_StatisticsView>
         Text(
           richer.totals.durationKnownSessions == 0
               ? '记录时长 —'
-              : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟 · ${richer.totals.durationKnownSessions} 次有效',
+              : '记录时长 ${decimal(richer.totals.durationMinTotal)} 分钟，${richer.totals.durationKnownSessions} 次有效',
           style: context.type.body.copyWith(color: context.colors.text),
         ),
         _amountLine('有效网侧均价', richer.totals.unitCostGrid.value, perKwh: true),
       ],
       const SizedBox(height: MileafSpace.s12),
       Text(
-        '按结束时间归期 · 仅统计已结束充电',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        '按结束日期统计，仅含已完成的充电',
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.sessions == 0)
         Padding(
@@ -830,19 +853,16 @@ class _StatisticsViewState extends State<_StatisticsView>
             style: context.type.body.copyWith(color: context.colors.textMuted),
           ),
         ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: const Text('统计口径'),
-        children: const [
-          Text(
-            '充电统计按结束时间归期，进行中不计入。费用只合计已知记录；均价使用服务端对应口径。AC/DC 使用独立能量，不将已知分类强行归一成全部能量。',
-          ),
-        ],
+      // R30.3：说明类折叠改 MileafDisclosure。
+      MileafDisclosure(
+        label: '统计口径',
+        child: const Text(
+          '充电统计按结束时间归期，进行中不计入。费用只合计已知记录；均价使用服务端对应口径。AC/DC 使用独立能量，不将已知分类强行归一成全部能量。',
+        ),
       ),
       Text(
         '校验时间：${calendar.local(result!.checkedAt)}',
-        style: context.type.micro.copyWith(color: context.colors.textMuted),
+        style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: MileafSpace.section),
       const SectionHeader(title: '时间桶明细'),
@@ -867,7 +887,7 @@ class _StatisticsViewState extends State<_StatisticsView>
           if (note != null)
             Text(
               note,
-              style: context.type.micro.copyWith(
+              style: context.type.footnote.copyWith(
                 color: context.colors.textMuted,
               ),
             ),
@@ -909,7 +929,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
           semanticsLabel: 'AC 与 DC 时间分布图表',
           plotKey: const ValueKey('charging-classification-chart'),
-          tickLabel: (t) => _tick(calendar, t),
+          tickLabel: (t) => _tickLabel(calendar, times, t),
+          readoutDate: (t) => _readoutDate(calendar, t),
           selectedIndex: point,
           onSelected: (index) =>
               setState(() => classification.select(times, index)),
@@ -945,34 +966,38 @@ class _StatisticsViewState extends State<_StatisticsView>
     expanded.ChargingBucket? richer,
   ) {
     final note = widget.currency.amountNote;
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: EdgeInsets.zero,
-      title: Text(
-        '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
-      ),
-      children: [
-        line('会话数', bucket.sessions, '次'),
-        textLine('已知费用合计', widget.currency.amountValue(bucket.cost)),
-        if (note != null)
-          Text(
-            note,
-            style: context.type.micro.copyWith(color: context.colors.textMuted),
+    // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
+    return MileafDisclosure(
+      label:
+          '${copy_dates.formatDay(calendar.local(bucket.bucketStart), calendar.local(workspace.session.now()))} '
+          '${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          line('会话数', bucket.sessions, '次'),
+          textLine('已知费用合计', widget.currency.amountValue(bucket.cost)),
+          if (note != null)
+            Text(
+              note,
+              style: context.type.footnote.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+          _amountLine(
+            richer == null ? '已知费用均价' : '有效入电均价',
+            richer == null ? bucket.costPerKwh : richer.unitCostAdded.value,
+            perKwh: true,
           ),
-        _amountLine(
-          richer == null ? '已知费用均价' : '有效入电均价',
-          richer == null ? bucket.costPerKwh : richer.unitCostAdded.value,
-          perKwh: true,
-        ),
-        line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
-        line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
-        textLine(
-          'DC 能量占比（已知分类）',
-          richer != null && richer.energyKnownSessions == 0
-              ? '—'
-              : _share(bucket.dcEnergyShare),
-        ),
-      ],
+          line('AC 充入能量', bucket.acEnergyKwh, 'kWh', decimals: 2),
+          line('DC 充入能量', bucket.dcEnergyKwh, 'kWh', decimals: 2),
+          textLine(
+            'DC 能量占比（已知分类）',
+            richer != null && richer.energyKnownSessions == 0
+                ? '—'
+                : _share(bucket.dcEnergyShare),
+          ),
+        ],
+      ),
     );
   }
 
@@ -980,19 +1005,21 @@ class _StatisticsViewState extends State<_StatisticsView>
     BuildContext context,
     dto.DrivingBucket bucket,
     CalendarContext calendar,
-  ) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    childrenPadding: EdgeInsets.zero,
-    title: Text(
-      '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
+  ) => MileafDisclosure(
+    // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
+    label:
+        '${copy_dates.formatDay(calendar.local(bucket.bucketStart), calendar.local(workspace.session.now()))} '
+        '${number(bucket.distanceKm, 'km', decimals: 1)}',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        line('行程数', bucket.drives, '次'),
+        line('能量', bucket.energyKwh, 'kWh', decimals: 2),
+        line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
+        line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
+        line('最高速度', bucket.speedMaxKmh, 'km/h'),
+      ],
     ),
-    children: [
-      line('行程数', bucket.drives, '次'),
-      line('能量', bucket.energyKwh, 'kWh', decimals: 2),
-      line('净电耗', bucket.consumptionWhKmNet, 'Wh/km'),
-      line('毛电耗', bucket.consumptionWhKmGross, 'Wh/km'),
-      line('最高速度', bucket.speedMaxKmh, 'km/h'),
-    ],
   );
 }
 

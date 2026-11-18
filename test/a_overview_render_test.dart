@@ -15,7 +15,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
@@ -155,7 +155,7 @@ void main() {
             expect(find.textContaining('1,198.6'), findsWidgets);
             expect(find.text('每日里程'), findsOneWidget);
           } else if (scenario == 'empty') {
-            expect(find.text('还没有采样点'), findsOneWidget);
+            expect(find.text('这段时间没有行程'), findsOneWidget);
           } else {
             expect(find.textContaining('—'), findsWidgets);
           }

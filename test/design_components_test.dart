@@ -68,7 +68,7 @@ void main() {
         ),
         findsNothing,
       );
-      expect(material.borderRadius, MileafRadius.surfaceAll);
+      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(find.bySemanticsLabel(RegExp('车况')), findsOneWidget);
       expect(tester.takeException(), isNull);
       semantics.dispose();
@@ -92,7 +92,7 @@ void main() {
       expect(material.color, const MileafColors.light().surface);
     });
 
-    testWidgets('浅色 hero 是 12 外边距、24 圆角、无描边无阴影的卡片', (tester) async {
+    testWidgets('浅色 hero 是 12 外边距、20 圆角、无描边无阴影的卡片', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 180, child: Text('286 km'))),
@@ -109,7 +109,7 @@ void main() {
       final material = tester.widget<Material>(cardFinder);
       expect(card.left - hero.left, MileafSpace.cardInset);
       expect(hero.right - card.right, MileafSpace.cardInset);
-      expect(material.borderRadius, MileafRadius.surfaceAll);
+      expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(material.shape, isNull);
       expect(material.elevation, 0, reason: '卡片 hero 只有底色，不加阴影');
       expect(material.color, const MileafColors.light().hero);
@@ -131,7 +131,7 @@ void main() {
       );
     });
 
-    testWidgets('深色 hero 同样采用 12 外边距和 24 圆角', (tester) async {
+    testWidgets('深色 hero 同样采用 12 外边距和 20 圆角', (tester) async {
       await pumpComponent(
         tester,
         const MileafHero(child: SizedBox(height: 200, child: Text('320 km'))),
@@ -148,7 +148,7 @@ void main() {
       expect(hero.right - card.right, MileafSpace.cardInset);
       expect(
         tester.widget<Material>(cardFinder).borderRadius,
-        MileafRadius.surfaceAll,
+        BorderRadius.circular(MileafRadius.lg),
       );
     });
 
@@ -400,23 +400,25 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('按压态用 accentSoft 水波，常态图标是 textMuted', (tester) async {
+    testWidgets('按压态用 accentSoft 覆盖层，常态图标是 textMuted', (tester) async {
       await pumpComponent(
         tester,
         MileafCopyRow(label: '包名', value: 'app.mileaf.example', onCopy: (_) {}),
       );
       const colors = MileafColors.dark();
+      // AP03（R27/§4 M01）：按压不再用 InkWell 水波，改由 MileafPressOverlay
+      // 即时出现、松手 120ms 消退；颜色仍是 accentSoft。
       expect(
         tester
-            .widget<InkWell>(
+            .widget<MileafPressOverlay>(
               find
                   .descendant(
                     of: find.byType(MileafIconButton),
-                    matching: find.byType(InkWell),
+                    matching: find.byType(MileafPressOverlay),
                   )
                   .first,
             )
-            .highlightColor,
+            .color,
         colors.accentSoft,
       );
       expect(
@@ -665,7 +667,7 @@ void main() {
         ),
       );
       final text = tester.widget<Text>(find.text('数据读取失败'));
-      expect(text.style?.color, const MileafColors.dark().error);
+      expect(text.style?.color, const MileafColors.dark().text);
     });
 
     testWidgets('加载骨架在 reduce motion 下停住', (tester) async {
@@ -728,7 +730,9 @@ void main() {
       await tester.tapAt(Offset(plot.right - 2, plot.center.dy));
       await tester.pumpAndSettle();
       expect(selected.last, 4);
-      expect(find.text('10/5 · 50.0 km'), findsOneWidget);
+      // R29：读数头把日期与数值分行，readout 句子只作朗读。
+      expect(find.text('10月5日'), findsOneWidget);
+      expect(find.text('50 km'), findsOneWidget);
       expect(find.text('点按读值'), findsOneWidget);
       semantics.dispose();
     });
@@ -754,12 +758,14 @@ void main() {
               '${const ['—', '0', '2', '—', '4'][index]} kWh',
         ),
       );
-      expect(find.text('10/1 · — kWh'), findsOneWidget);
+      expect(find.text('10月1日'), findsOneWidget);
+      expect(find.text('—'), findsOneWidget);
       expect(find.text('0 kWh'), findsNothing);
       final plot = tester.getRect(find.byType(CustomPaint).last);
       await tester.tapAt(Offset(plot.left + plot.width / 4, plot.center.dy));
       await tester.pumpAndSettle();
-      expect(find.text('10/2 · 0 kWh'), findsOneWidget);
+      expect(find.text('10月2日'), findsOneWidget);
+      expect(find.text('0 kWh'), findsOneWidget);
     });
 
     testWidgets('单测量 + 参照：图例只标注位置指认不出的虚线', (tester) async {
@@ -841,7 +847,8 @@ void main() {
       );
       final plot = tester.getRect(find.byType(CustomPaint).last);
       expect(legend.top, greaterThanOrEqualTo(controls.bottom));
-      expect(legend.bottom, lessThanOrEqualTo(plot.top));
+      // R29：图例移到 X 轴之下（原「绘图区之上」的旧规则被取代）。
+      expect(legend.top, greaterThanOrEqualTo(plot.bottom));
       expect(find.text('里程'), findsOneWidget, reason: '实心系列不再重复命名');
       expect(tester.takeException(), isNull);
     });
@@ -994,7 +1001,8 @@ void main() {
         ),
         scale: 2,
       );
-      expect(find.text('10/5 · 60 km'), findsOneWidget);
+      expect(find.text('10月5日'), findsOneWidget);
+      expect(find.text('60 km'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -1046,7 +1054,19 @@ void main() {
           ],
         ),
       );
-      expect(tester.getSize(find.byType(BatteryArc).first), const Size(88, 88));
+      // R29：环内只放数值，「电量」标签移到环外，组件因此比 88 高一行；
+      // 88 是电量弧本身的尺寸。
+      expect(
+        tester.getSize(
+          find
+              .descendant(
+                of: find.byType(BatteryArc),
+                matching: find.byType(CustomPaint),
+              )
+              .first,
+        ),
+        const Size(88, 88),
+      );
       expect(find.bySemanticsLabel('电池电量 68%'), findsOneWidget);
       expect(find.bySemanticsLabel('电池电量 未知'), findsOneWidget);
       expect(find.text('—'), findsOneWidget);
@@ -1076,7 +1096,9 @@ void main() {
         ),
         const Size(72, 72),
       );
-      expect(find.text('68 %'), findsOneWidget);
+      // R29/CP03：数值与百分号紧贴，环内拆成两个 Text。
+      expect(find.text('68'), findsOneWidget);
+      expect(find.text('%'), findsOneWidget);
       expect(tester.takeException(), isNull);
       expect(find.textContaining('68'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -1207,24 +1229,36 @@ void main() {
         );
         expect(textColor('本月'), colors.text, reason: '选中 chip 标签是文字');
         expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');
-        expect(textColor('取消'), colors.text, reason: 'secondary 用正文色');
+        // AP03（R27）：次按钮改 accentSoft 填充 + accentStrong 文字。
+        expect(
+          textColor('取消'),
+          colors.accentStrong,
+          reason: 'secondary 用 accentStrong',
+        );
         expect(textColor('保存'), colors.textOnAccent, reason: '实心按钮文字');
 
-        // §7.2 按压：primary/ghost → accentSoft；secondary → pressOverlay。
-        Color? highlight(String label) => tester
-            .widget<InkWell>(
+        // AP03（§4 M01）：按压覆盖层由 MileafPressOverlay 承担，
+        // primary/ghost → accentSoft；secondary 已填充 accentSoft，用中性 pressOverlay。
+        Color? overlay(String label) => tester
+            .widget<MileafPressOverlay>(
               find
-                  .ancestor(
-                    of: find.text(label),
-                    matching: find.byType(InkWell),
+                  .descendant(
+                    of: find.ancestor(
+                      of: find.text(label),
+                      matching: find.byWidgetPredicate(
+                        (widget) =>
+                            widget is MileafButton || widget is StatusChip,
+                      ),
+                    ),
+                    matching: find.byType(MileafPressOverlay),
                   )
                   .first,
             )
-            .highlightColor;
-        expect(highlight('全部指标'), colors.accentSoft);
-        expect(highlight('保存'), colors.accentSoft);
-        expect(highlight('取消'), colors.pressOverlay);
-        expect(highlight('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
+            .color;
+        expect(overlay('全部指标'), colors.accentSoft);
+        expect(overlay('保存'), colors.accentSoft);
+        expect(overlay('取消'), colors.pressOverlay);
+        expect(overlay('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
       });
     }
 

@@ -6,7 +6,11 @@ import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 import 'glass_surface.dart';
+import 'large_content_viewer.dart';
 import 'navigation_material.dart';
+
+/// 选中镜片的垂直内边距（原 inline6；镜片几何随底栏冻结，本地化保留原值）。
+const double kNavLensVerticalPad = 6.0;
 
 class MileafNavItem {
   const MileafNavItem(this.label, this.icon);
@@ -19,7 +23,10 @@ class MileafNavItem {
 /// The bar is a single bounded blur region. Its glass sits above the page, the
 /// selection lens sits above the glass, and the four destinations sit above
 /// both, so a destination is never painted through glass.
-class MileafNavBar extends StatelessWidget {
+///
+/// R26/PD05：标签文字放大封顶 [labelMaxScale]，长按任一项显示大内容查看器
+/// （M10）；抬手落在哪一项上就切到哪一项，移出栏外抬手只收起浮层。
+class MileafNavBar extends StatefulWidget {
   const MileafNavBar({
     super.key,
     required this.index,
@@ -33,10 +40,80 @@ class MileafNavBar extends StatelessWidget {
     ],
   });
 
+  /// 底栏标签的放大封顶（ADR0014 PD05，修订 ADR0013 L09）。
+  static const labelMaxScale = MileafLayout.rootChromeLabelMaxScale;
+
   final int index;
   final ValueChanged<int> onSelected;
   final bool forceSolid;
   final List<MileafNavItem> items;
+
+  @override
+  State<MileafNavBar> createState() => _MileafNavBarState();
+}
+
+class _MileafNavBarState extends State<MileafNavBar> {
+  final _itemsKey = GlobalKey();
+  MileafLargeContentViewerHost? _viewer;
+  int? _hovered;
+
+  @override
+  void dispose() {
+    _viewer?.dispose();
+    super.dispose();
+  }
+
+  MileafLargeContentViewerHost? get _viewerHost {
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return null;
+    return _viewer ??= MileafLargeContentViewerHost(overlay);
+  }
+
+  /// 长按点落在第几项上；栏外返回 null（移出即消失，抬手不切换）。
+  int? _indexAt(Offset global) {
+    final box = _itemsKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    final local = box.globalToLocal(global);
+    final size = box.size;
+    if (local.dx < 0 || local.dy < 0) return null;
+    if (local.dx > size.width || local.dy > size.height) return null;
+    final count = widget.items.length;
+    if (count == 0) return null;
+    final index = (local.dx / (size.width / count)).floor();
+    return index.clamp(0, count - 1);
+  }
+
+  void _longPressStart(int index) {
+    _hovered = index;
+    _viewerHost?.show(
+      label: widget.items[index].label,
+      icon: widget.items[index].icon,
+    );
+  }
+
+  void _longPressMove(Offset global) {
+    final index = _indexAt(global);
+    if (index == null) {
+      if (_hovered != null) {
+        _hovered = null;
+        _viewer?.hide();
+      }
+      return;
+    }
+    if (index == _hovered) return;
+    _hovered = index;
+    _viewerHost?.show(
+      label: widget.items[index].label,
+      icon: widget.items[index].icon,
+    );
+  }
+
+  void _longPressEnd(Offset global) {
+    final index = _indexAt(global);
+    _hovered = null;
+    _viewer?.hide();
+    if (index != null) widget.onSelected(index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +122,9 @@ class MileafNavBar extends StatelessWidget {
     final bottom = MediaQuery.viewPaddingOf(context).bottom + MileafSpace.s8;
     final solid = NavigationMaterial.resolvesSolid(
       context,
-      forceSolid: forceSolid,
+      forceSolid: widget.forceSolid,
     );
+    final labelScaler = MileafLayout.rootChromeLabelScaler(context);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(MileafSpace.s16, 0, MileafSpace.s16, bottom),
@@ -56,17 +134,17 @@ class MileafNavBar extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 528),
           child: NavigationMaterial(
             borderRadius: MileafRadius.fullAll,
-            forceSolid: forceSolid,
+            forceSolid: widget.forceSolid,
             style: NavigationMaterialStyle.glass,
             child: SizedBox(
               height: target,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final count = items.length;
+                  final count = widget.items.length;
                   final itemWidth = constraints.maxWidth / count;
                   final alignment = count <= 1
                       ? Alignment.center
-                      : Alignment(-1 + 2 * index / (count - 1), 0);
+                      : Alignment(-1 + 2 * widget.index / (count - 1), 0);
                   return Stack(
                     children: [
                       AnimatedAlign(
@@ -80,10 +158,10 @@ class MileafNavBar extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: MileafSpace.s4,
-                            vertical: MileafSpace.inline6,
+                            vertical: kNavLensVerticalPad,
                           ),
                           child: _LensStretch(
-                            index: index,
+                            index: widget.index,
                             child: _SelectionLens(
                               solid: solid,
                               borderRadius: MileafRadius.fullAll,
@@ -94,14 +172,21 @@ class MileafNavBar extends StatelessWidget {
                         ),
                       ),
                       Row(
+                        key: _itemsKey,
                         children: [
                           for (var i = 0; i < count; i++)
                             Expanded(
                               child: _NavItem(
-                                item: items[i],
-                                active: i == index,
+                                item: widget.items[i],
+                                active: i == widget.index,
                                 labelStyle: type.navLabel,
-                                onTap: () => onSelected(i),
+                                labelScaler: labelScaler,
+                                onTap: () => widget.onSelected(i),
+                                onLongPressStart: (_) => _longPressStart(i),
+                                onLongPressMove: (details) =>
+                                    _longPressMove(details.globalPosition),
+                                onLongPressEnd: (details) =>
+                                    _longPressEnd(details.globalPosition),
                               ),
                             ),
                         ],
@@ -217,13 +302,21 @@ class _NavItem extends StatefulWidget {
     required this.item,
     required this.active,
     required this.labelStyle,
+    required this.labelScaler,
     required this.onTap,
+    required this.onLongPressStart,
+    required this.onLongPressMove,
+    required this.onLongPressEnd,
   });
 
   final MileafNavItem item;
   final bool active;
   final TextStyle labelStyle;
+  final TextScaler labelScaler;
   final VoidCallback onTap;
+  final GestureLongPressStartCallback onLongPressStart;
+  final GestureLongPressMoveUpdateCallback onLongPressMove;
+  final GestureLongPressEndCallback onLongPressEnd;
 
   @override
   State<_NavItem> createState() => _NavItemState();
@@ -243,38 +336,47 @@ class _NavItemState extends State<_NavItem> {
       button: true,
       selected: widget.active,
       label: widget.item.label,
-      child: FocusableActionDetector(
-        onShowFocusHighlight: (value) => setState(() => focused = value),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: MileafRadius.fullAll,
-            border: Border.all(
-              color: focused ? colors.focusRing : Colors.transparent,
-              width: 2,
+      child: GestureDetector(
+        onLongPressStart: widget.onLongPressStart,
+        onLongPressMoveUpdate: widget.onLongPressMove,
+        onLongPressEnd: widget.onLongPressEnd,
+        child: FocusableActionDetector(
+          onShowFocusHighlight: (value) => setState(() => focused = value),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: MileafRadius.fullAll,
+              border: Border.all(
+                color: focused ? colors.focusRing : Colors.transparent,
+                width: 2,
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: MileafRadius.fullAll,
-            highlightColor: colors.pressOverlay,
-            splashColor: colors.accentSoft,
-            child: ExcludeSemantics(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  MileafIcon(
-                    widget.item.icon,
-                    size: MileafIconMetrics.nav,
-                    color: iconColor,
-                  ),
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    widget.item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: widget.labelStyle.copyWith(color: labelColor),
-                  ),
-                ],
+            child: InkWell(
+              onTap: widget.onTap,
+              borderRadius: MileafRadius.fullAll,
+              highlightColor: colors.pressOverlay,
+              splashColor: colors.accentSoft,
+              child: ExcludeSemantics(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    MileafIcon(
+                      widget.item.icon,
+                      size: MileafIconMetrics.nav,
+                      color: iconColor,
+                    ),
+                    const SizedBox(height: MileafSpace.s4),
+                    MediaQuery(
+                      data: MediaQuery.of(context)
+                          .copyWith(textScaler: widget.labelScaler),
+                      child: Text(
+                        widget.item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: widget.labelStyle.copyWith(color: labelColor),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

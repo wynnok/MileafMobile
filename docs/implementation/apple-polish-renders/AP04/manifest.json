@@ -1,0 +1,35 @@
+{
+  "input_sha": "c18f2fc",
+  "ticket": "AP04",
+  "fixture": "content components (cards, rows, numbers, notes, states)",
+  "timezone": "Asia/Shanghai",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "logical_size": "390x844",
+  "pixel_ratio": 2,
+  "text_scales": [
+    "100",
+    "200"
+  ],
+  "material": "default",
+  "images": [
+    "AP04-components-normal-dark-390x844-100-top.png",
+    "AP04-states-normal-dark-390x844-100-top.png",
+    "AP04-components-normal-dark-390x844-200-top.png",
+    "AP04-states-normal-dark-390x844-200-top.png",
+    "AP04-components-normal-light-390x844-100-top.png",
+    "AP04-states-normal-light-390x844-100-top.png",
+    "AP04-components-normal-light-390x844-200-top.png",
+    "AP04-states-normal-light-390x844-200-top.png"
+  ],
+  "image_sha256": {
+    "AP04-components-normal-dark-390x844-100-top.png": "e8acb87d0b66c05956f9d9813ef7f9f8e28aa411e12cd5aa497cf06723e61b46",
+    "AP04-states-normal-dark-390x844-100-top.png": "614cfd9a3a38e98300e8366be2b370af0c60754749624f50d3f637afbb628664",
+    "AP04-components-normal-dark-390x844-200-top.png": "ff225b934973122aa437652b416d6ff0cd2e8f3b0ac0b353bb0049a3b35211f0",
+    "AP04-states-normal-dark-390x844-200-top.png": "1ba1f7ea40a548814b8450b7bcc226aafc5c39aca87fbc10882b3a17bdf2f240",
+    "AP04-components-normal-light-390x844-100-top.png": "6bcf291f411c63790dd8450f68419f4f2b6d70e859ac2feaafb011a0e3bd7ae9",
+    "AP04-states-normal-light-390x844-100-top.png": "211e35f826f3d1537364bb619f22a0ab21a0099f07810936a579f749fdf3d909",
+    "AP04-components-normal-light-390x844-200-top.png": "4ff621f8a2058d4ba0a29fe8e2ac0816d8c6b3514de891f5c4bb7f5a33c54a15",
+    "AP04-states-normal-light-390x844-200-top.png": "1f1cf7e9ada7c2fbd4847cb6bc72be27272d285f4457d339f63c69eee2c6cb41"
+  },
+  "font_sha256": "876af2cd4854644e7f3e7feb2f688997fdb3343c6df6693611209c9dfb47ccec"
+}

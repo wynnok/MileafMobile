@@ -5,6 +5,8 @@ import 'reading_scope.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'copy/dates.dart' as copy;
+import 'copy/messages.dart' as messages;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -17,7 +19,7 @@ import 'workspace.dart';
 
 /// A server cursor that never advances would page forever; the list keeps what
 /// it already read and says so instead of blaming the contract version.
-const _cursorStalled = '分页游标未前进，已保留现有行程，请刷新或手动重试';
+const _cursorStalled = '没能加载更多行程，已保留当前列表';
 
 class DrivesPage extends StatefulWidget {
   const DrivesPage({
@@ -47,6 +49,7 @@ class _DrivesPageState extends State<DrivesPage>
   String? statsError;
   bool statsLoading = false;
   Map<String, String> statsQuery = {}, statsSnapshot = {};
+  DateTime? statsCheckedAt;
   Map<String, String> query = const {};
 
   /// Reading range of the records on screen. The open end (`to`) follows the
@@ -234,7 +237,7 @@ class _DrivesPageState extends State<DrivesPage>
         setState(() {
           driving = null;
           statsLoading = false;
-          statsError = '统计区间须大于0且不超过730天，行程列表仍可使用';
+          statsError = '统计最长支持 730 天，行程列表不受影响';
         });
       }
       return;
@@ -251,6 +254,7 @@ class _DrivesPageState extends State<DrivesPage>
         setState(() {
           driving = decoded;
           statsSnapshot = requested;
+          statsCheckedAt = value.checkedAt;
           chartDay = chartDay.clamp(
             0,
             decoded.buckets.isEmpty ? 0 : decoded.buckets.length - 1,
@@ -259,9 +263,18 @@ class _DrivesPageState extends State<DrivesPage>
       }
     } catch (e) {
       if (current()) {
+        final clock = workspace.calendar!.local(workspace.session.now());
         setState(
-          () => statsError =
-              '${e is ApiFailure ? e.message : '行程统计读取失败'}${driving == null ? '' : '；保留上次统计快照'}',
+          () => statsError = driving == null
+              ? (e is FormatException
+                    ? messages.versionIncompatibleMessage()
+                    : e is ApiFailure
+                    ? e.message
+                    : messages.readFailedMessage('行程统计'))
+              : messages.staleMessage(
+                  workspace.calendar!.local(statsCheckedAt ?? clock),
+                  clock,
+                ),
         );
       }
     } finally {
@@ -400,19 +413,20 @@ class _DrivesPageState extends State<DrivesPage>
     } catch (e) {
       if (!current()) return;
       setState(() {
-        final message = e is FormatException
-            ? '服务返回格式不兼容，请核对版本'
+        // CP07：分页失败与「失败有旧数据」都来自共享构造函数，页面不拼句子。
+        final clock = workspace.calendar!.local(workspace.session.now());
+        final message = more
+            ? messages.paginationFailedMessage('行程')
+            : result != null
+            ? messages.staleMessage(
+                workspace.calendar!.local(result!.checkedAt),
+                clock,
+              )
+            : e is FormatException
+            ? messages.versionIncompatibleMessage()
             : e is ApiFailure
-            ? '${e.message}${more
-                  ? '；已保留现有行程'
-                  : loaded
-                  ? '；保留上次快照'
-                  : ''}'
-            : more
-            ? '加载失败，已保留现有行程'
-            : loaded
-            ? '刷新失败，保留上次快照'
-            : '行程读取失败，请检查网络后重试';
+            ? e.message
+            : messages.readFailedMessage('行程');
         if (more) {
           pageError = message;
         } else {
@@ -451,16 +465,29 @@ class _DrivesPageState extends State<DrivesPage>
   Future<void> chooseDates() async {
     final today = workspace.calendar!.local(workspace.session.now());
     final last = DateTime(today.year, today.month, today.day);
-    // The picker is this page's own editor: its completion reloads the range
+    // R27/PD10：三套日期输入合并为共享的 MileafDateRangeSheet。默认区间沿用
+    // 本页原来的近 30 天窗口；含首尾的语义、可选范围与校验仍由本页注入，
+    // 组件不内置业务规则。
+    final initial =
+        custom ??
+        DateTimeRange(
+          start: DateTime(last.year, last.month, last.day - recentDays + 1),
+          end: last,
+        );
+    // The sheet is this page's own editor: its completion reloads the range
     // it returns, so closing it must not revalidate the abandoned range too.
     final range = await readingEditor(
-      () => showDateRangePicker(
+      () => showMileafDateRangeSheet(
         context: context,
+        initialRange: initial,
         firstDate: DateTime(1900),
         lastDate: last,
-        initialDateRange: custom,
-        initialEntryMode: DatePickerEntryMode.input,
-        helpText: '选择行程日期（含首尾日期）',
+        today: last,
+        validator: (start, end) {
+          if (end.isAfter(last)) return '结束日期不能晚于今天';
+          if (start.isAfter(end)) return '开始日期不能晚于结束日期';
+          return null;
+        },
       ),
     );
     if (!mounted || range == null) return;
@@ -527,18 +554,10 @@ class _DrivesPageState extends State<DrivesPage>
     return '${hm(start)}–$endDate${hm(localEnd)}';
   }
 
-  String get _rangeLabel {
-    if (custom != null) {
-      return '${date(custom!.start)} 至 ${date(custom!.end)}（含首尾）';
-    }
-    if (statsSnapshot.isNotEmpty) return compactRange(statsSnapshot);
-    return '近 $recentDays 天';
-  }
-
   String _duration(dto.Drive d) =>
       d.durationMin == null ? '—' : '${d.durationMin} 分钟';
 
-  String _net(dto.Drive d) => '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}';
+  String _net(dto.Drive d) => '电耗 ${number(d.consumptionWhKm, 'Wh/km')}';
 
   String _route(dto.Drive d) =>
       '${place(d.start.displayName)} → ${place(d.end.displayName)}';
@@ -550,27 +569,6 @@ class _DrivesPageState extends State<DrivesPage>
     resetQuery();
     load(force: true);
     loadStats(force: true);
-  }
-
-  Widget _pageHeader() {
-    final type = context.type;
-    final colors = context.colors;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Text(
-            _rangeLabel,
-            style: type.label.copyWith(color: colors.textMuted),
-          ),
-        ),
-        MileafIconButton(
-          icon: MileafIconName.refresh,
-          tooltip: '刷新行程',
-          onPressed: loading ? null : _refresh,
-        ),
-      ],
-    );
   }
 
   Widget _periodRow() {
@@ -594,11 +592,37 @@ class _DrivesPageState extends State<DrivesPage>
       onTap: () => selectDays(7),
     );
     final dateAction = StatusChip(
-      label: '自定义日期',
+      label: '自定义',
       selected: custom != null,
       onTap: chooseDates,
     );
-    return ChipRow(children: [recent, week, dateAction]);
+    return MileafPeriodRow(
+      trailing: MileafIconButton(
+        icon: MileafIconName.refresh,
+        tooltip: '刷新行程',
+        fill: MileafIconButtonFill.track,
+        onPressed: loading ? null : _refresh,
+      ),
+      children: [recent, week, dateAction],
+    );
+  }
+
+  /// 期间名（分段已选定；区间只在卡片标签出现一次，R21.4）。
+  String get _periodName {
+    if (custom != null) return '自定义区间';
+    return recentDays == 7 ? '近 7 天' : '近 30 天';
+  }
+
+  /// DF3 区间（本地日历），只用共享格式化器。
+  String? get _periodRange {
+    if (statsSnapshot.isEmpty) return null;
+    final calendar = workspace.calendar!;
+    final from = calendar.local(DateTime.parse(statsSnapshot['from']!));
+    final to = calendar.local(
+      DateTime.parse(statsSnapshot['to']!)
+          .subtract(const Duration(microseconds: 1)),
+    );
+    return copy.formatRange(from, to);
   }
 
   Widget _summarySkeleton() => const Column(
@@ -610,89 +634,154 @@ class _DrivesPageState extends State<DrivesPage>
     ],
   );
 
+  /// P02 焦点模块卡：期间主值（里程）→ 三格。节奏图按用户裁定 B 移到记录之后。
   Widget _summary(stats.DrivingStats? s, {required bool loadingFirst}) {
-    final type = context.type;
-    final colors = context.colors;
     if (s == null && loadingFirst) return _summarySkeleton();
     final totals = s?.totals;
     final distance = totals == null
         ? null
         : grouped(totals.distanceKm, decimals: 1);
-    final drivesText = totals == null ? '— 趟' : '${totals.drives} 趟';
-    final energyText = totals == null
-        ? '估算 —'
-        : '估算 ${number(totals.energyKwh, 'kWh', decimals: 2)}';
-    final netText = totals == null
-        ? '净电耗 —'
-        : '净电耗 ${number(totals.consumptionWhKmNet, 'Wh/km')}';
-    final metaStyle = type.label.copyWith(color: colors.textMuted);
     final large = MileafLayout.largeText(context);
-    final facts = large
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(drivesText, style: metaStyle),
-              const SizedBox(height: MileafSpace.s4),
-              Text(energyText, style: metaStyle),
-              const SizedBox(height: MileafSpace.s4),
-              Text(netText, style: metaStyle),
-            ],
-          )
-        : Wrap(
-            spacing: MileafSpace.s8,
-            runSpacing: MileafSpace.s4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(drivesText, style: metaStyle),
-              Text(energyText, style: metaStyle),
-              Text(netText, style: metaStyle),
-            ],
-          );
-    return Semantics(
-      container: true,
-      label: '期间里程 ${distance ?? '—'} km，$drivesText，$energyText，$netText',
-      excludeSemantics: true,
+    final cells = [
+      MetricBlock(
+        label: '行程',
+        value: totals == null ? null : '${totals.drives}',
+        unit: totals == null ? null : '趟',
+        scale: MetricValueScale.metricSm,
+      ),
+      MetricBlock(
+        label: '估算耗电',
+        value: totals?.energyKwh == null
+            ? null
+            : grouped(totals!.energyKwh!, decimals: 2),
+        unit: totals == null ? null : 'kWh',
+        scale: MetricValueScale.metricSm,
+      ),
+      MetricBlock(
+        label: '电耗',
+        value: totals?.consumptionWhKmNet == null
+            ? null
+            : grouped(totals!.consumptionWhKmNet!, decimals: 0),
+        unit: totals == null ? null : 'Wh/km',
+        scale: MetricValueScale.metricSm,
+      ),
+    ];
+    return MileafModuleCard(
+      // §6 退让阶梯第 2 步：焦点卡内边 16 → 12。
+      padding: const EdgeInsets.all(MileafSpace.s12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MileafNumber(
-            value: distance,
-            unit: 'km',
-            scale: MetricValueScale.metricLg,
-          ),
+          // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行，与概览
+          // 焦点卡同一处理（R21.4 区间仍只出现一次）。
+          if (large)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _periodName,
+                  style: context.type.headline.copyWith(
+                    color: context.colors.text,
+                  ),
+                ),
+                if (_periodRange case final range?) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    range,
+                    style: context.type.subheadline.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    _periodName,
+                    style: context.type.headline.copyWith(
+                      color: context.colors.text,
+                    ),
+                  ),
+                ),
+                if (_periodRange case final range?) ...[
+                  const SizedBox(width: MileafSpace.s8),
+                  Flexible(
+                    child: Text(
+                      range,
+                      style: context.type.subheadline.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           const SizedBox(height: MileafSpace.s4),
-          facts,
+          Semantics(
+            container: true,
+            label:
+                '$_periodName ${distance ?? '—'} 公里，'
+                '${totals?.drives ?? '—'} 趟，'
+                '估算耗电 ${number(totals?.energyKwh, 'kWh', decimals: 2)}，'
+                '电耗 ${number(totals?.consumptionWhKmNet, 'Wh/km')}',
+            excludeSemantics: true,
+            child: MetricBlock(
+              value: distance,
+              unit: 'km',
+              scale: MetricValueScale.metricLg,
+            ),
+          ),
+          const SizedBox(height: MileafSpace.s12),
+          if (large)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final cell in cells)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: MileafSpace.s4),
+                    child: cell,
+                  ),
+              ],
+            )
+          else
+            // R21.5：三列只用 metricSm；网格按最小格宽收列，放不下时先两列。
+            MetricGrid(spacing: MileafSpace.s8, children: cells),
         ],
       ),
     );
   }
 
-  Widget _rhythm(stats.DrivingStats? s) {
+  /// P02 节奏图：用户裁定 B（交付手册 §6 第 5 步）——节奏图移到记录之后，
+  /// 不再挤占首屏的记录空间；它仍是独立模块卡，读数行保持 R29 紧凑形态。
+  Widget _rhythmSection(stats.DrivingStats? s) {
+    final chart = _rhythm(s);
+    if (chart == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s12),
+      child: MileafModuleCard(
+        padding: const EdgeInsets.all(MileafSpace.s12),
+        child: chart,
+      ),
+    );
+  }
+
+  Widget? _rhythm(stats.DrivingStats? s) {
     final colors = context.colors;
     final type = context.type;
     if (s == null) {
-      if (!statsLoading) return const SizedBox.shrink();
-      return const Padding(
-        padding: EdgeInsets.only(top: MileafSpace.section),
-        child: SkeletonBlock(width: double.infinity, height: 132),
-      );
+      if (!statsLoading) return null;
+      return const SkeletonBlock(width: double.infinity, height: 132);
     }
     final buckets = s.buckets;
     final active = buckets.any((b) => b.distanceKm > 0 || b.drives > 0);
     if (!active) {
-      return Padding(
-        padding: const EdgeInsets.only(top: MileafSpace.section),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(title: '出行节奏'),
-            const SizedBox(height: MileafSpace.s8),
-            Text(
-              '这段时间还没有行程',
-              style: type.body.copyWith(color: colors.textMuted),
-            ),
-          ],
-        ),
+      return Text(
+        '这段时间没有行程',
+        style: type.body.copyWith(color: colors.textSecondary),
       );
     }
     final lastActive = buckets.lastIndexWhere(
@@ -701,51 +790,51 @@ class _DrivesPageState extends State<DrivesPage>
     final selected = chartDayTouched
         ? chartDay.clamp(0, buckets.length - 1)
         : (lastActive < 0 ? buckets.length - 1 : lastActive);
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s20),
-      child: TimeSeriesChart(
-        title: '出行节奏',
-        unit: 'km',
-        subtitle: statsSnapshot.isEmpty ? null : compactRange(statsSnapshot),
-        times: [for (final b in buckets) b.bucketStart],
-        series: [
-          ChartSeries(
-            label: '每日里程',
-            values: [for (final b in buckets) b.distanceKm],
-            style: ChartSeriesStyle.bars,
-          ),
-        ],
-        semanticsLabel: '每日里程图表',
-        selectedIndex: selected,
-        onSelected: (index) => setState(() {
-          chartDay = index;
-          chartDayTouched = true;
-        }),
-        height: MileafSpace.rhythmHeight,
-        readout: (index) {
-          if (index < 0 || index >= buckets.length) return '—';
-          final local = workspace.calendar!.local(buckets[index].bucketStart);
-          return '${local.month}/${local.day} '
-              '${number(buckets[index].distanceKm, 'km', decimals: 1)}';
-        },
-        tickLabel: (t) {
-          final d = workspace.calendar!.local(t);
-          return '${d.month}/${d.day}';
-        },
-        onActivateSelected: () {
-          final local = workspace.calendar!.local(
-            buckets[selected].bucketStart,
-          );
-          filterDay(DateTime(local.year, local.month, local.day));
-        },
-        activationLabel: '看当天',
-      ),
+    // AP05 的图表以本地墙钟格式化日期；bucket_start 是 UTC 瞬时，先换墙钟，
+    // 否则读数头与 X 轴会比站点日历早一天。
+    final wall = [
+      for (final b in buckets) workspace.calendar!.local(b.bucketStart),
+    ];
+    return TimeSeriesChart(
+      title: '每日里程',
+      unit: 'km',
+      times: wall,
+      series: [
+        ChartSeries(
+          label: '每日里程',
+          values: [for (final b in buckets) b.distanceKm],
+          style: ChartSeriesStyle.bars,
+        ),
+      ],
+      semanticsLabel: '每日里程图表',
+      selectedIndex: selected,
+      onSelected: (index) => setState(() {
+        chartDay = index;
+        chartDayTouched = true;
+      }),
+      height: MileafSpace.rhythmHeight,
+      // R29 紧凑读数行：一行内日期、数值（body 600）与行尾下钻。
+      compactReadout: true,
+      readout: (index) {
+        if (index < 0 || index >= buckets.length) return '—';
+        final day = copy.formatDay(
+          wall[index],
+          workspace.calendar!.local(workspace.session.now()),
+        );
+        return '$day，${number(buckets[index].distanceKm, 'km', decimals: 1)}';
+      },
+      onActivateSelected: () {
+        final local = workspace.calendar!.local(buckets[selected].bucketStart);
+        filterDay(DateTime(local.year, local.month, local.day));
+      },
+      activationLabel: '查看当天',
     );
   }
 
   Widget _routeRow(dto.Drive d) {
     final distance = _distance(d);
-    final meta = '${_recordTime(d)}  ${_duration(d)}\n${_net(d)}';
+    // CP09：时间与时长用逗号分行写，电耗另起一行。
+    final meta = '${_recordTime(d)}，${_duration(d)}\n${_net(d)}';
     return ConstrainedBox(
       key: ValueKey('drive-${d.id}'),
       constraints: const BoxConstraints(
@@ -760,106 +849,122 @@ class _DrivesPageState extends State<DrivesPage>
         badge: d.endedAt == null
             ? Text(
                 '进行中',
-                style: context.type.micro.copyWith(
+                style: context.type.footnote.copyWith(
                   color: context.colors.warning,
                 ),
               )
             : null,
         value: distance ?? '—',
         unit: 'km',
-        bottomLine: true,
         onTap: () => widget.onRecord?.call(d.id),
         semanticLabel:
             '${_recordDate(d)}，${_route(d)}，$meta${d.endedAt == null ? '，进行中' : ''}'
-            '，${distance ?? '距离缺失'}${distance == null ? '' : ' km'}',
+            '，${distance ?? '里程未记录'}${distance == null ? '' : ' km'}',
       ),
     );
   }
 
   String get _emptyListLabel =>
-      selectedDay != null || custom != null ? '所选日期没有行程' : '这段时间还没有行程';
+      selectedDay != null ? '所选日期没有行程' : messages.emptyMessage('行程');
 
+  /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
+
+  /// P02 记录按天分组：分组标题「今天 / 昨天 / 10月24日 周六」，每天一张分组卡。
   Widget _recentSection() {
     if (!loaded && items.isEmpty) return const SizedBox.shrink();
     final colors = context.colors;
     final type = context.type;
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.s20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionHeader(
-            title: '最近的路',
-            range: items.isEmpty ? null : _recordDate(items.first),
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
+        child: Text(
+          _emptyListLabel,
+          style: type.body.copyWith(color: colors.textSecondary),
+        ),
+      );
+    }
+    final today = workspace.calendar!.local(workspace.session.now());
+    final groups = <String, List<dto.Drive>>{};
+    for (final drive in items) {
+      groups
+          .putIfAbsent(
+            copy.formatDayGroup(
+              workspace.calendar!.local(drive.startedAt),
+              today,
+            ),
+            () => [],
+          )
+          .add(drive);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final entry in groups.entries) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.s20),
+            child: MileafGroupHeader(title: entry.key),
           ),
-          const SizedBox(height: MileafSpace.s4),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
-              child: Text(
-                _emptyListLabel,
-                style: type.body.copyWith(color: colors.textMuted),
-              ),
-            )
-          else ...[
-            _routeRow(items.first),
-            for (var i = 1; i < items.length; i++) ...[
-              if (_recordDate(items[i]) != _recordDate(items[i - 1]))
-                Padding(
-                  padding: const EdgeInsets.only(top: MileafSpace.s12),
-                  child: Text(
-                    _recordDate(items[i]),
-                    style: type.label.copyWith(color: colors.textMuted),
-                  ),
-                ),
-              _routeRow(items[i]),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _notes() {
-    final type = context.type;
-    final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: MileafSpace.s12),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        title: Text('数据说明', style: type.body.copyWith(color: colors.textMuted)),
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
+          const SizedBox(height: MileafSpace.s8),
+          // R24：记录行走组卡，卡内横向内边 16；发丝线只画在行与行之间
+          // （从卡内 16 到卡片右缘），每天最后一行不画线，卡片裁到圆角。
+          MileafGroupCard(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  '归期时区：${workspace.calendar!.identifier}',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                const SizedBox(height: MileafSpace.s4),
-                Text(
-                  '已完成行程\n${timeRange(statsSnapshot)}',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                if (result != null) ...[
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    '校验时间：${workspace.calendar!.local(result!.checkedAt).toString().split('.').first}',
-                    style: type.micro.copyWith(color: colors.textMuted),
+                for (var index = 0; index < entry.value.length; index++) ...[
+                  if (index > 0) _hairline(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MileafSpace.cardPad,
+                    ),
+                    child: _routeRow(entry.value[index]),
                   ),
                 ],
               ],
             ),
           ),
         ],
-      ),
+      ],
     );
   }
+
+  /// R30.2 页尾「关于这些数据」：时间与时区、记录与缺失、来源与生成时间。
+  Widget _notes() => Padding(
+    padding: const EdgeInsets.only(top: MileafSpace.section),
+    child: MileafDataNotes(
+      groups: [
+        MileafDataNoteGroup(
+          category: DataNoteCategory.time,
+          note: '统计时区 ${workspace.calendar!.identifier}。',
+        ),
+        if (statsSnapshot.isNotEmpty)
+          MileafDataNoteGroup(
+            category: DataNoteCategory.records,
+            note: '统计范围 ${timeRange(statsSnapshot)}。',
+          ),
+        if (result != null)
+          MileafDataNoteGroup(
+            category: DataNoteCategory.source,
+            copyable: true,
+            note:
+                '数据生成时间 '
+                '${copy.formatPrecise(workspace.calendar!.local(result!.checkedAt))}',
+          ),
+      ],
+    ),
+  );
 
   String place(String? value) =>
       value == null || value.trim().isEmpty ? '未知地点' : value;
@@ -904,20 +1009,23 @@ class _DrivesPageState extends State<DrivesPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _pageHeader(),
-                    const SizedBox(height: MileafSpace.s4),
                     _periodRow(),
                     if (workspace.calendar!.fallback)
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s8),
                         child: Text(
-                          '无法读取设备 IANA 时区，暂按 UTC 展示与归期',
-                          style: type.micro.copyWith(color: colors.warning),
+                          messages.timezoneUnreadableMessage(),
+                          style: type.footnote.copyWith(color: colors.warning),
                         ),
                       ),
                     if (loading || statsLoading) ...[
                       const MileafProgressLine(),
-                      Text(loaded ? '更新中' : '正在加载行程', style: type.micro),
+                      Text(
+                        loaded ? '正在更新' : messages.loadingMessage('行程'),
+                        style: type.footnote.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
                     ],
                     if (error != null)
                       InlineBanner(
@@ -935,7 +1043,6 @@ class _DrivesPageState extends State<DrivesPage>
                       ),
                     const SizedBox(height: MileafSpace.s12),
                     _summary(driving, loadingFirst: statsLoading),
-                    _rhythm(driving),
                     if (selectedDay != null)
                       Align(
                         alignment: Alignment.centerLeft,
@@ -972,11 +1079,14 @@ class _DrivesPageState extends State<DrivesPage>
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s12),
                         child: Text(
-                          '已显示全部行程',
+                          '已显示全部 ${items.length} 趟',
                           textAlign: TextAlign.center,
-                          style: type.micro.copyWith(color: colors.textFaint),
+                          style: type.footnote.copyWith(
+                            color: colors.textFaint,
+                          ),
                         ),
                       ),
+                    _rhythmSection(driving),
                     _notes(),
                   ],
                 ),

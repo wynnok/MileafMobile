@@ -3,10 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'design/components/page_bar.dart';
-
 import 'api.dart';
 import 'design/brand_mark.dart';
+import 'design/components/components.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -25,6 +24,9 @@ class ConnectionPage extends StatefulWidget {
   @override
   State<ConnectionPage> createState() => _ConnectionPageState();
 }
+
+/// P13：每页一个任务，标题常量同时供导航栏与正文 title2 使用（文案一字不差）。
+const _pageTitle = '连接你的站点';
 
 class _ConnectionPageState extends State<ConnectionPage> {
   late final _address = TextEditingController(text: widget.initialAddress);
@@ -116,7 +118,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
     String result;
     try {
       final version = await widget.api.health(SiteAddress.parse(_address.text));
-      result = '服务正常 · 版本 $version';
+      result = '服务正常，版本 $version';
       _healthySite = SiteAddress.parse(_address.text);
     } on ApiFailure catch (error) {
       result = error.message;
@@ -138,7 +140,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: mileafPageBar(context, title: const Text('连接你的站点')),
+    appBar: mileafPageBar(context, title: const Text(_pageTitle)),
     body: SafeArea(
       child: MileafContent(
         child: SingleChildScrollView(
@@ -148,15 +150,24 @@ class _ConnectionPageState extends State<ConnectionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: MileafWordmark(markSize: 32),
                 ),
-                const SizedBox(height: MileafSpace.s24),
-                Text(
-                  '输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。',
-                  style: context.type.body.copyWith(
-                    color: context.colors.textMuted,
+                const SizedBox(height: MileafSpace.s16),
+                // P13：任务标题 title2（R22）。
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(_pageTitle, style: context.type.title2),
+                ),
+                const SizedBox(height: MileafSpace.s8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '输入自托管 Mileaf Server 的服务根地址，阅读 TeslaMate 记录。',
+                    style: context.type.body.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: MileafSpace.s24),
@@ -184,15 +195,20 @@ class _ConnectionPageState extends State<ConnectionPage> {
                   },
                 ),
                 const SizedBox(height: MileafSpace.s12),
-                Text(
-                  '推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。',
-                  style: context.type.micro.copyWith(
-                    color: context.colors.textMuted,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    // 对照表标注需用户确认，本轮保留原文（CP12 邻接范围外）。
+                    '推荐 HTTPS 安全连接。请保留端口和反向代理路径前缀。',
+                    style: context.type.footnote.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                 ),
                 if (_site?.uri.scheme == 'http') ...[
                   const SizedBox(height: MileafSpace.s12),
                   const Text(
+                    // CP12 冻结文案：HTTP 信任确认逐字保留。
                     'HTTP 会明文传输口令、token 和车辆数据。仅在你信任的私网或 VPN 使用；App 无法验证 VPN 或网络是否安全。',
                   ),
                   CheckboxListTile(
@@ -206,31 +222,36 @@ class _ConnectionPageState extends State<ConnectionPage> {
                   ),
                 ],
                 const SizedBox(height: MileafSpace.s24),
-                FilledButton(
+                // R27：主按钮胶囊；处理中保留文字并在尾部加活动指示器。
+                MileafButton(
+                  label: '检查连接',
+                  expand: true,
+                  loading: _loading,
                   onPressed: _loading || _loadingTrust ? null : _check,
-                  child: Text(_loading ? '正在检查…' : '检查连接'),
                 ),
                 if (_healthySite != null && widget.onConnected != null)
-                  TextButton(
-                    onPressed: () => widget.onConnected!(_healthySite!),
-                    child: const Text('登录此站点'),
-                  ),
-                if (_loading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: MileafSpace.s8),
-                    child: MileafProgressLine(),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: MileafButton(
+                      label: '登录此站点',
+                      kind: MileafButtonKind.ghost,
+                      onPressed: () => widget.onConnected!(_healthySite!),
+                    ),
                   ),
                 if (_message != null)
                   Padding(
                     padding: const EdgeInsets.only(top: MileafSpace.s16),
                     child: Semantics(
                       liveRegion: true,
-                      child: Text(
-                        _message!,
-                        style: context.type.body.copyWith(
-                          color: _healthySite != null
-                              ? context.colors.accentStrong
-                              : context.colors.error,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _message!,
+                          style: context.type.body.copyWith(
+                            color: _healthySite != null
+                                ? context.colors.accentStrong
+                                : context.colors.error,
+                          ),
                         ),
                       ),
                     ),

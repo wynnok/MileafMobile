@@ -49,7 +49,8 @@ void main() {
     final count = requests.length;
     await tester.tap(find.widgetWithText(StatusChip, '均价'));
     await tester.pumpAndSettle();
-    expect(find.text('均价读数 0/kWh'), findsOneWidget);
+    // R29：读数头数值行取代「均价读数」句。
+    expect(find.text('0 币种未记录/kWh'), findsOneWidget);
     await tester.drag(find.text('已知费用均价趋势'), const Offset(0, -200));
     await tester.pumpAndSettle();
     // 新字号下步进控件落到 800×600 视口下沿之外；先滚到整钮可命中再点击，
@@ -59,17 +60,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(next);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('均价读数 —/kWh'),
-      -160,
-      maxScrolls: 40,
-    );
-    expect(find.text('均价读数 —/kWh'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('已知费用均价趋势'), -160);
+    await tester.pumpAndSettle();
+    // R29：缺失均值的读数头数值行为「—」，单位随轴标签。
+    expect(find.text('—'), findsOneWidget);
     expect(requests.length, count);
     await tester.scrollUntilVisible(find.text('AC / DC 时间分布'), 200);
     expect(find.text('AC / DC 时间分布'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('DC读数 0.00 kWh'), 150);
-    expect(find.text('AC读数 20.00 kWh'), findsOneWidget);
+    // R29：分类读数的可见读值并入读数头数值行，逐类句子只进语义。
+    expect(find.text('20 kWh'), findsOneWidget);
     expect(find.text('DC读数 0.00 kWh'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -128,9 +128,9 @@ void main() {
       await tester.scrollUntilVisible(find.text('已知费用均价  —/kWh'), 60);
       await tester.pumpAndSettle();
       expect(find.text('已知费用均价  —/kWh'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('2025-12-31 · 20.00 kWh'), 250);
+      await tester.scrollUntilVisible(find.text('2025年12月31日 20.00 kWh'), 250);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('2025-12-31 · 20.00 kWh'));
+      await tester.tap(find.text('2025年12月31日 20.00 kWh'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('会话数  1 次'), 200);
       await tester.pumpAndSettle();
@@ -190,15 +190,18 @@ void main() {
       ['charging'],
     );
     await tapDateAction(tester);
-    // The shared date entry opens the same editor.
+    // The shared date entry opens the same editor; typing goes through its
+    // keyboard path (R27).
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('改为输入'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, '开始日期'),
+      find.byKey(const ValueKey('date-range-start-input')),
       '2020-01-01',
     );
-    await tester.tap(find.text('应用区间'));
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('不超过 730×24 小时'), findsOneWidget);
+    expect(find.textContaining('最长可选 730 天'), findsOneWidget);
     expect(requests.length, count + 1);
   });
 
@@ -235,9 +238,10 @@ void main() {
         () => 'UTC',
       );
       await tapDateAction(tester);
+      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(MileafSheetFrame),
           matching: find.widgetWithText(StatusChip, '本年'),
         ),
       );
@@ -265,18 +269,15 @@ void main() {
       expect(find.bySemanticsLabel('行程数 49 次'), findsOneWidget);
       expect(find.textContaining('保留上次快照'), findsNothing);
       expect(
-        find.widgetWithText(StatusChip, '自定义日期'),
+        find.widgetWithText(StatusChip, '自定义'),
         findsOneWidget,
         reason: '驾驶统计沿用同一年区间，日期入口保持统一名称',
       );
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.textContaining('2026-03-01 至 2026-03-02'),
-        -250,
-      );
+      await tester.scrollUntilVisible(find.textContaining('3月1日–2日'), -250);
       await tester.pumpAndSettle();
-      expect(find.textContaining('2026-03-01 至 2026-03-02'), findsOneWidget);
+      expect(find.textContaining('3月1日–2日'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('会话数  8 次'), 250);
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
@@ -333,7 +334,8 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('行笺测试车'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Y · 尾号 0002'));
+      // P16：车辆弹层行改「Y，尾号 0002」（CP09.1 逗号）。
+      await tester.tap(find.text('Y，尾号 0002'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('充电统计'));
       await tester.pumpAndSettle();
@@ -419,7 +421,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('会话数  8 次'), findsOneWidget);
       expect(find.text('已知费用均价  0.51/kWh'), findsOneWidget);
-      expect(find.text('按结束时间归期 · 仅统计已结束充电'), findsOneWidget);
+      expect(find.text('按结束日期统计，仅含已完成的充电'), findsOneWidget);
     } finally {
       semantics.dispose();
     }

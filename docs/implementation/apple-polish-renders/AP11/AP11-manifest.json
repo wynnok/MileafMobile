@@ -1,0 +1,30 @@
+{
+  "input": "1894100（FP5 96e0cd4 + AP15 收口文案修正重采）",
+  "fixture": "aGalleryClient 场景 normal/empty/missing/legacy/long",
+  "timezone": "Asia/Shanghai",
+  "now": "2026-10-26T10:40:00.000Z",
+  "font": "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+  "pixel_ratio": 2,
+  "safe_area": "上下各 24（safeArea=0 机位除外）",
+  "material": "glass",
+  "files": [
+    "statistics-normal-glass-light-390x844-100-top",
+    "statistics-normal-glass-light-390x844-100-scrolled",
+    "statistics-normal-glass-dark-390x844-100-top",
+    "statistics-normal-glass-dark-390x844-100-scrolled",
+    "statistics-normal-glass-light-360x800-100-top",
+    "statistics-normal-glass-light-360x800-100-scrolled",
+    "statistics-normal-glass-light-430x900-100-top",
+    "statistics-normal-glass-light-390x844-200-top",
+    "statistics-normal-glass-light-360x800-130-top",
+    "statistics-normal-glass-light-360x800-150-top",
+    "statistics-normal-glass-light-360x800-100-top",
+    "statistics-empty-glass-light-360x800-100-top",
+    "statistics-missing-glass-light-360x800-100-top",
+    "statistics-legacy-glass-light-360x800-100-top",
+    "statistics-long-glass-light-360x800-100-top",
+    "long-index-glass-light-360x800-100-top",
+    "all-metrics-glass-light-360x800-100-top",
+    "date-sheet-glass-light-360x800-100-sheet"
+  ]
+}

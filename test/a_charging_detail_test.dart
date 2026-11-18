@@ -22,13 +22,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('电量区间'), findsOneWidget);
+    // P05：电量环与「起始 → 结束」并排，三格是 充入电量 / 费用 / 时长。
     expect(find.byType(BatteryArc), findsOneWidget);
     expect(find.text('40% → 70%'), findsOneWidget);
-    expect(find.text('20 kWh'), findsOneWidget);
+    expect(find.text('充入电量'), findsOneWidget);
+    expect(find.textContaining('kWh', findRichText: true), findsWidgets);
     expect(find.text('费用'), findsOneWidget);
-    expect(find.text('60 分钟'), findsOneWidget);
-    expect(find.text('40% → 70%'), findsOneWidget);
+    expect(find.text('1 小时'), findsOneWidget);
   });
 
   testWidgets('U01 充电详情同底横向SOC与页边对齐', (tester) async {
@@ -52,18 +52,39 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    // R04/P05 取代旧浅色深底卡片。横向SOC摘要与页边对齐。
+    // R04/P05：电量摘要进模块卡（页边 20 + 卡内 16 = 36），不再同底。
     expect(find.byType(MileafHero), findsNothing);
     final arc = tester.getRect(find.byType(BatteryArc));
-    expect(arc.left, 20);
-    expect(arc.height, 88);
-    final title = tester.getRect(find.text('电量区间'));
-    expect(title.left, arc.right + 16);
-    final results = tester.getRect(find.text('20 kWh'));
-    expect(results.left, greaterThanOrEqualTo(20));
+    expect(arc.left, 36);
+    // R29：环内只放数值，「电量」标签移到环外，组件因此比 88 高一行；
+    // 88 仍是电量弧本身的尺寸。
     expect(
-      tester.getTopLeft(find.text('20 kWh')).dy,
-      tester.getTopLeft(find.text('60 分钟')).dy,
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(BatteryArc),
+                  matching: find.byType(CustomPaint),
+                )
+                .first,
+          )
+          .height,
+      88,
+    );
+    final title = tester.getRect(find.text('40% → 70%'));
+    expect(title.left, arc.right + 16);
+    final results = tester.getRect(
+      find.textContaining('kWh', findRichText: true).first,
+    );
+    expect(results.left, greaterThanOrEqualTo(36));
+    // 三格同排：充入电量、费用、时长的数值基线对齐。
+    expect(
+      tester.getTopLeft(find.text('充入电量')).dy,
+      tester.getTopLeft(find.text('费用')).dy,
+    );
+    expect(
+      tester.getTopLeft(find.text('费用')).dy,
+      tester.getTopLeft(find.text('时长')).dy,
     );
     expect(tester.takeException(), isNull);
   });
@@ -91,7 +112,20 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(BatteryArc)), const Size(88, 88));
+    // 大字下电量弧收到 largeTextSize（72），数值移到环外，不溢出。
+    expect(
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(BatteryArc),
+                  matching: find.byType(CustomPaint),
+                )
+                .first,
+          )
+          .height,
+      72,
+    );
     expect(tester.takeException(), isNull);
   });
 

@@ -19,7 +19,7 @@ import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 import 'dart:convert';
 
@@ -38,15 +38,19 @@ class _Appearance implements AppearancePreferenceStore {
   Future<void> write(String? next) async => value = next;
 }
 
+/// AP07：概览等页面也出现「充电」字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
 void main() {
   setUpAll(() async {
     if (fontPath.isNotEmpty) await loadRenderFonts(cjkFontPath: fontPath);
   });
 
-  testWidgets('U06 同底账目与88高每日补能', (tester) async {
+  testWidgets('U06 同底账目与88高每日充电', (tester) async {
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.byType(MileafHero), findsNothing);
     await tester.scrollUntilVisible(find.byType(StemChart), 100);
@@ -57,33 +61,27 @@ void main() {
           matching: find.byType(Scrollable),
         )
         .first;
-    await tester.scrollUntilVisible(
-      find.text('最近的充电'),
-      160,
-      scrollable: scroll,
-    );
+    await tester.scrollUntilVisible(find.text('最近充电'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final recentTop =
-        tester.getTopLeft(find.text('最近的充电')).dy +
+        tester.getTopLeft(find.text('最近充电')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
-    await tester.scrollUntilVisible(
-      find.text('我的补能方式'),
-      160,
-      scrollable: scroll,
-    );
+    await tester.scrollUntilVisible(find.text('充电方式'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final methodTop =
-        tester.getTopLeft(find.text('我的补能方式')).dy +
+        tester.getTopLeft(find.text('充电方式')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
     expect(recentTop, lessThan(methodTop));
+    // P03（§6 阶梯第 4 步）：次级三格移到最近充电之后、充电方式之前。
+    // 三格在当前位置上方，先回顶部再向前滚动。
     tester.state<ScrollableState>(scroll).position.jumpTo(0);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('补入电池'), 160, scrollable: scroll);
+    await tester.scrollUntilVisible(find.text('充入电量'), 160, scrollable: scroll);
     await tester.pumpAndSettle();
     final readingsTop =
-        tester.getTopLeft(find.text('补入电池')).dy +
+        tester.getTopLeft(find.text('充入电量')).dy +
         tester.state<ScrollableState>(scroll).position.pixels;
-    expect(readingsTop, greaterThan(recentTop));
+    expect(recentTop, lessThan(readingsTop));
     expect(readingsTop, lessThan(methodTop));
   });
   testWidgets('U06 列表隐藏ID，详情说明保留ID与精确时间', (tester) async {
@@ -91,7 +89,7 @@ void main() {
     addTearDown(client.close);
     await tester.pumpWidget(app(client, now: () => cNow));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电').last);
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     final row = find.byKey(const ValueKey('charge-9'));
     await tester.scrollUntilVisible(row.hitTestable(), 120);
@@ -101,16 +99,23 @@ void main() {
     await tester.tap(row.hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('充电详情'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('更多充电信息').hitTestable(), 200);
+    // P05：说明入口改页尾「关于这些数据」，记录编号与精确时间进「技术详情」。
+    await tester.scrollUntilVisible(find.text('关于这些数据').hitTestable(), 200);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('更多充电信息'));
+    await tester.tap(find.text('技术详情').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电记录 #9'), 100);
-    expect(find.text('充电记录 #9'), findsOneWidget);
+    // 技术详情是可复制的 SelectableText：编号与 DF8 精确时间在同一段里。
+    final technical = tester
+        .widgetList<SelectableText>(find.byType(SelectableText))
+        .map((widget) => widget.data ?? '')
+        .join('\n');
+    expect(technical, contains('记录编号 9'));
     expect(
-      find.textContaining(RegExp(r'^开始 .*\d{2}:\d{2}:\d{2}')),
-      findsOneWidget,
+      technical,
+      matches(RegExp(r'开始 \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')),
     );
+    // 列表行仍不出现记录编号。
+    expect(find.textContaining('充电 #9'), findsNothing);
   });
   testWidgets('U06 正式字体矩阵与首屏预算实测', (tester) async {
     tester.view.devicePixelRatio = 1;
@@ -213,12 +218,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('充电').last);
+      await tester.tap(navTab('充电'));
       await tester.pumpAndSettle();
       if (scenario == 'normal' && scale == 1.3) {
         expect(
           tester.getSize(find.text('均价')).height,
-          lessThanOrEqualTo(MileafType.labelHeight * scale + .5),
+          lessThanOrEqualTo(MileafType.subheadlineHeight * scale + .5),
         );
         expect(
           tester.getTopLeft(find.text('均价')).dy,
@@ -264,7 +269,7 @@ void main() {
             ? first.top + 44
             : first.bottom;
         expect(requiredBottom + offset, lessThanOrEqualTo(viewport.bottom));
-        final recent = tester.getRect(find.text('最近的充电'));
+        final recent = tester.getRect(find.text('最近充电'));
         expect(recent.bottom + offset, lessThanOrEqualTo(viewport.bottom));
         debugPrint(
           'U06 ${mode.name} body=$viewport first=$first offset=$offset',
@@ -319,7 +324,14 @@ void main() {
       position.jumpTo(0);
       await tester.pumpAndSettle();
       if (scenario != 'legacy') {
-        await tester.tap(find.text('全部记录').hitTestable());
+        // P03/CP06：入口改到「最近充电」区块标题尾部的「查看全部」。
+        final entry = find.text('查看全部').hitTestable();
+        var steps = 0;
+        while (entry.evaluate().isEmpty && steps++ < 12) {
+          await tester.drag(scroll, const Offset(0, -200));
+          await tester.pumpAndSettle();
+        }
+        await tester.tap(entry);
       }
       await tester.pumpAndSettle();
       await saveRenderPng(tester, find.byKey(boundary), '$prefix-records.png');

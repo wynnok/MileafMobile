@@ -39,8 +39,15 @@ class MileafColors extends ThemeExtension<MileafColors> {
     required this.sheetShadow,
   });
 
-  /// Input and actionable boundaries use an opaque neutral with measured contrast.
-  Color get controlBorder => textMuted;
+  /// R23.1：功能文字两级的次级名，值即现有 textMuted（浅 #5A6672、深
+  /// #9AA5B1）。textFaint 只用于占位符、禁用态和非文字装饰。
+  Color get textSecondary => textMuted;
+
+  /// R23.5：输入与可操作边界用更轻的独立中性色（候选 #808A95/#626C78 经
+  /// 合成实测被否决，见 AP01 交接偏差账本；现值对全部相邻底色 ≥3:1）。
+  Color get controlBorder => isDark
+      ? MileafPalette.controlBorderDark
+      : MileafPalette.controlBorderLight;
 
   /// Neutral inset track and its single selected surface.
   Color get segmentTrack =>

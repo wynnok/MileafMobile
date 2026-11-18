@@ -11,12 +11,50 @@ import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/tokens.dart';
 
-import 'support/color_math.dart';
 import 'support/pixel_probe.dart';
 import 'support/render_fonts.dart';
 import 'support/render_png.dart';
 
 const output = String.fromEnvironment('MILEAF_RENDER_OUTPUT');
+
+/// 像素探针倍率：与 capturePixels 的 pixelRatio 一致。
+const probeScale = 2.0;
+
+/// 选中竖线：逐列取最长连续竖段，只保留贯通绘图区且有 1 逻辑像素宽的列。
+List<({int from, int to, int height})> _columnRuns(
+  PixelProbe probe,
+  Color color, {
+  int tolerance = 2,
+}) {
+  final columns = <int, List<int>>{};
+  for (final pixel in probe.find(color, tolerance: tolerance)) {
+    (columns[pixel.dx.toInt()] ??= <int>[]).add(pixel.dy.toInt());
+  }
+  int longestRun(List<int> values) {
+    values.sort();
+    var best = 1;
+    var current = 1;
+    for (var i = 1; i < values.length; i++) {
+      current = values[i] == values[i - 1] + 1 ? current + 1 : 1;
+      if (current > best) best = current;
+    }
+    return best;
+  }
+
+  final xs = columns.keys.toList()..sort();
+  final runs = <({int from, int to, int height})>[];
+  for (final x in xs) {
+    final height = longestRun(columns[x]!);
+    if (runs.isNotEmpty && x == runs.last.to + 1) {
+      final last = runs.removeLast();
+      runs.add((from: last.from, to: x, height: math.max(last.height, height)));
+    } else {
+      runs.add((from: x, to: x, height: height));
+    }
+  }
+  return runs;
+}
+
 const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 
 /// U03 图表、状态和动效基础回归：每条用例捕获一个具体回退（#31 必做项）。
@@ -95,7 +133,9 @@ void main() {
         const Offset(240, 0),
       );
       await tester.pump();
-      expect(find.text('读值 i4'), findsOneWidget, reason: '拖到最右读末点');
+      // R29：可见读数由数据行组成，readout 只作朗读句。
+      expect(find.text('10月5日'), findsOneWidget, reason: '拖到最右读末点');
+      expect(find.text('50 km'), findsOneWidget);
       expect(selected, 4);
     });
 
@@ -114,7 +154,7 @@ void main() {
             body: SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 600),
+                  const SizedBox(height: 900),
                   chart(
                     const [10, 20, 30],
                     readout: (i) => '读值 i$i',
@@ -129,7 +169,7 @@ void main() {
       );
       await tester.pump();
       // 先把图表滚入视口，再在图表上纵向拖动。
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -350));
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -700));
       await tester.pumpAndSettle();
       final before = tester.getRect(find.byType(TimeSeriesChart));
       expect(before.top, lessThan(400), reason: '前置条件：图表已进入视口');
@@ -141,7 +181,7 @@ void main() {
       final after = tester.getRect(find.byType(TimeSeriesChart));
       expect(after.top, lessThan(before.top), reason: '纵向拖动应滚动页面');
       expect(selected, 0, reason: '纵向拖动不改变选点');
-      expect(find.text('读值 i0'), findsOneWidget);
+      expect(find.text('10 km'), findsOneWidget);
     });
 
     testWidgets('键盘左右移动选点，语义保留增减动作', (tester) async {
@@ -169,17 +209,17 @@ void main() {
         // 点按绘图区中心会把选点定到中点（i1），随后用键盘前后移动。
         await tester.tap(find.byKey(const ValueKey('u03-plot')));
         await tester.pump();
-        expect(find.text('读值 i1'), findsOneWidget);
+        expect(find.text('20 km'), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await tester.pump();
-        expect(find.text('读值 i2'), findsOneWidget);
+        expect(find.text('30 km'), findsOneWidget);
         // 末点再按右停在末点；左移回退。
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await tester.pump();
-        expect(find.text('读值 i2'), findsOneWidget);
+        expect(find.text('30 km'), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
         await tester.pump();
-        expect(find.text('读值 i1'), findsOneWidget);
+        expect(find.text('20 km'), findsOneWidget);
         expect(tester.takeException(), isNull);
       } finally {
         semantics.dispose();
@@ -214,15 +254,15 @@ void main() {
       );
       await tester.pumpWidget(build(const [10, 20, 30, 40], selectedIndex: 2));
       await tester.pump();
-      expect(find.text('读值 i2=30'), findsOneWidget);
+      expect(find.text('30 km'), findsOneWidget);
       // 同身份刷新：数据更新、显式 selectedIndex 未变——选点保留（R06.7）。
       await tester.pumpWidget(build(const [12, 22, 32, 42], selectedIndex: 2));
       await tester.pump();
-      expect(find.text('读值 i2=32'), findsOneWidget);
+      expect(find.text('32 km'), findsOneWidget);
       // 父级显式改选点时才跟随。
       await tester.pumpWidget(build(const [12, 22, 32, 42], selectedIndex: 0));
       await tester.pump();
-      expect(find.text('读值 i0=12'), findsOneWidget);
+      expect(find.text('12 km'), findsOneWidget);
     });
   });
 
@@ -553,12 +593,12 @@ void main() {
   });
 
   group('R06.6 读值与比较区间', () {
-    testWidgets('有可比参照时默认读值带参照值与差值；缺失即省略，不伪造比较', (tester) async {
+    testWidgets('有可比参照时读数头第三行给参照与差值；缺失即省略，不伪造比较', (tester) async {
       Future<void> check(
         int selected, {
         required List<num?> values,
         required List<num?> reference,
-        required String text,
+        required List<String> rows,
         required String reason,
       }) async {
         await pumpBare(
@@ -575,33 +615,43 @@ void main() {
             ],
           ),
         );
-        expect(find.text(text), findsOneWidget, reason: reason);
+        for (final row in rows) {
+          expect(find.text(row), findsOneWidget, reason: reason);
+        }
       }
 
       await check(
         0,
         values: const [10, null, 30],
         reference: const [8, 5, null],
-        text: '10/1 · 10 km · 上期同区间 8 km（差 +2 km）',
-        reason: '双侧已知：参照区间名+参照值+差值（R06.6）',
+        rows: const ['10月1日', '10 km', '上期同区间 8 km，多 2 km'],
+        reason: '双侧已知：日期 / 数值 / 参照与差值（R29）',
       );
       await check(
         1,
         values: const [10, null, 30],
         reference: const [8, 5, null],
-        text: '10/2 · —',
+        rows: const ['10月2日', '—'],
         reason: '当前值缺失不拼参照（缺失主值不带单位，沿 U01 口径）',
       );
       await check(
         2,
         values: const [10, null, 30],
         reference: const [8, 5, null],
-        text: '10/3 · 30 km',
+        rows: const ['10月3日', '30 km'],
         reason: '参照缺失省略参照段',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(MileafChartReadout),
+          matching: find.textContaining('上期同区间'),
+        ),
+        findsNothing,
+        reason: '参照缺失时读数头不拼参照段',
       );
     });
 
-    testWidgets('参照高于当前时差值带负号', (tester) async {
+    testWidgets('参照高于当前时写「少」，不用负号箭头', (tester) async {
       await pumpBare(
         tester,
         chart(
@@ -616,10 +666,10 @@ void main() {
           ],
         ),
       );
-      expect(find.text('10/1 · 10 km · 上期同区间 12 km（差 -2 km）'), findsOneWidget);
+      expect(find.text('上期同区间 12 km，少 2 km'), findsOneWidget);
     });
 
-    testWidgets('末点选中的光晕不被绘图区右缘裁切', (tester) async {
+    testWidgets('末点选中的竖线与点不被绘图区右缘裁切', (tester) async {
       final key = GlobalKey();
       tester.view.physicalSize = const Size(360, 900);
       tester.view.devicePixelRatio = 1;
@@ -654,20 +704,22 @@ void main() {
       );
       await tester.pumpAndSettle();
       final probe = await capturePixels(tester, find.byKey(key), pixelRatio: 2);
-      final halo = compositeOver(colors.accent, .2, colors.canvas);
-      final mark = probe.bounds(colors.accent)!;
-      final haloBounds = probe.bounds(halo, tolerance: 2);
-      expect(haloBounds, isNotNull, reason: '末点光晕被绘制');
-      expect(
-        haloBounds!.width,
-        greaterThanOrEqualTo(14),
-        reason: '8px halo 直径 16 物理像素，截断会小于 14',
-      );
-      expect(
-        haloBounds.right,
-        greaterThan(mark.right),
-        reason: '光晕右缘必须越过标记（末点不被裁）',
-      );
+      // R29：选中是 1px 竖线 + 半径 4 的点；末点仍要完整落在盒子里。
+      final rule = [
+        for (final run in _columnRuns(probe, colors.textSecondary))
+          if (run.height / probeScale > 40 &&
+              (run.to - run.from + 1) / probeScale <= 4)
+            probe.columnBounds(colors.textSecondary, run.from, run.to)!,
+      ];
+      expect(rule, hasLength(1), reason: '末点仍画出一条选中竖线');
+      expect(rule.single.right, lessThan(probe.width - 1), reason: '竖线不被右缘裁切');
+      final dot = probe.bounds(
+        colors.accent,
+        tolerance: 2,
+        where: (x, _) => (x - rule.single.center.dx).abs() <= 10 * probeScale,
+      )!;
+      expect(dot.right, lessThan(probe.width - 1), reason: '末点的选中标记不被右缘裁切');
+      expect(dot.top, greaterThan(0));
     });
   });
 

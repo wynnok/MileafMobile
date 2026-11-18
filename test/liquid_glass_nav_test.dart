@@ -365,7 +365,11 @@ void main() {
     expect(decoration.borderRadius, MileafRadius.fullAll);
   });
 
-  testWidgets('L09 320 宽 + 200% 字号仍是完整胶囊，四个标签可见', (tester) async {
+  // ADR0014 PD05 修订 L09：标签放大封顶 1.35×，封顶的补偿是长按大内容查看器
+  // （M10，见 test/apple_polish_ap02_test.dart）；胶囊几何本身不变。
+  testWidgets('L09（ADR0014 修订）320 宽 + 200% 字号仍是完整胶囊，标签封顶 1.35×', (
+    tester,
+  ) async {
     _setView(tester, size: const Size(320, 720));
     final preferences = _transparent();
     addTearDown(preferences.dispose);
@@ -381,7 +385,20 @@ void main() {
     final surface = tester.getRect(find.byType(MileafGlassSurface));
     expect(surface.left, 16);
     expect(surface.right, 320 - 16);
-    expect(surface.height, greaterThan(MileafSpace.navHeight));
+    final cappedLabel = MileafType.navLabelHeight * MileafNavBar.labelMaxScale;
+    expect(
+      surface.height,
+      closeTo(
+        MileafSpace.navHeight + (cappedLabel - MileafType.navLabelHeight),
+        .01,
+      ),
+      reason: '栏高只按封顶后的标签增高（ADR0014 PD05）',
+    );
+    expect(
+      MediaQuery.textScalerOf(tester.element(find.text('概览')))
+          .scale(MileafType.navLabelSize),
+      closeTo(MileafType.navLabelSize * MileafNavBar.labelMaxScale, .01),
+    );
 
     final lens = tester.getRect(
       find.byKey(const ValueKey('nav-selection-surface')),

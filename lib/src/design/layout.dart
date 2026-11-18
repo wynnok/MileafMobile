@@ -48,10 +48,19 @@ abstract final class MileafLayout {
   static Duration motion(BuildContext context, Duration duration) =>
       reduceMotion(context) ? Duration.zero : duration;
 
+  /// R26/PD05：底栏标签、收起后的顶栏标题与顶栏胶囊文字放大封顶 1.35×，
+  /// 其余文字完整随系统字号。封顶的补偿是大内容查看器（M10）。
+  static const double rootChromeLabelMaxScale = 1.35;
+
+  /// 封顶后的文字缩放器：只用于 R26 列出的三处文字。
+  static TextScaler rootChromeLabelScaler(BuildContext context) =>
+      MediaQuery.textScalerOf(context)
+          .clamp(maxScaleFactor: rootChromeLabelMaxScale);
+
   /// Base geometry keeps the accepted 64px surface at 100%, then grows by the
-  /// label's scaled leading lead so large text remains fully visible.
+  /// capped label's scaled leading lead so large text remains fully visible.
   static double rootNavigationHeight(BuildContext context) {
-    final scaler = MediaQuery.textScalerOf(context);
+    final scaler = rootChromeLabelScaler(context);
     final lead = math.max(
       0.0,
       scaler.scale(MileafType.navLabelHeight) - MileafType.navLabelHeight,
@@ -65,21 +74,37 @@ abstract final class MileafLayout {
       MileafSpace.s8 +
       MileafSpace.s16;
 
-  static double rootTopBarHeight(BuildContext context) {
+  /// R26/PD01 展开态外壳：安全区上沿 + 8 + 一行 44 + 8。
+  ///
+  /// 大字（[largeText]，约 150% 起）把大标题独占一行，控件在其上方一行靠右，
+  /// 因此多出一行控件的高度与 4 的行距。
+  static double rootTopBarHeight(BuildContext context, {double? topInset}) {
     final scaler = MediaQuery.textScalerOf(context);
-    final titleHeight = scaler.scale(MileafType.pageTitleHeight);
-    final vehicleHeight = math.max(
-      touchTarget(context),
-      scaler.scale(MileafType.bodyHeight),
-    );
+    final titleHeight = scaler.scale(MileafType.largeTitleHeight);
     final contentHeight = largeText(context)
-        ? math.max(touchTarget(context), titleHeight) + vehicleHeight
-        : math.max(touchTarget(context), math.max(titleHeight, vehicleHeight));
-    return MediaQuery.viewPaddingOf(context).top +
-        MileafSpace.s24 +
-        contentHeight;
+        ? touchTarget(context) + MileafSpace.s4 + titleHeight
+        : math.max(touchTarget(context), titleHeight);
+    return (topInset ?? MediaQuery.viewPaddingOf(context).top) +
+        MileafSpace.s8 +
+        contentHeight +
+        MileafSpace.s8;
   }
 
+  /// R26/PD01 收起态外壳：安全区上沿 + 44。
+  ///
+  /// 标题在这个高度里封顶 1.35×（[rootChromeLabelScaler]），所以收起高度不随
+  /// 系统字号继续增长。
+  static double rootTopBarCollapsedHeight(
+    BuildContext context, {
+    double? topInset,
+  }) =>
+      (topInset ?? MediaQuery.viewPaddingOf(context).top) +
+      math.max(
+        touchTarget(context),
+        rootChromeLabelScaler(context).scale(MileafType.headlineHeight),
+      );
+
+  /// 页面顶部留白：展开态外壳高度 + 8。外壳收起时页面不跟着动（R26）。
   static double rootTopClearance(BuildContext context) =>
       rootTopBarHeight(context) + MileafSpace.s8;
 

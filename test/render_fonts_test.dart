@@ -19,7 +19,11 @@ const fontPath = String.fromEnvironment('MILEAF_RENDER_FONT');
 TextStyle paintedStyle(WidgetTester tester, String text) =>
     tester.renderObject<RenderParagraph>(find.text(text)).text.style!;
 
-Future<Uint8List> _ink(WidgetTester tester, String text, TextStyle style) async {
+Future<Uint8List> _ink(
+  WidgetTester tester,
+  String text,
+  TextStyle style,
+) async {
   final key = GlobalKey();
   await tester.pumpWidget(
     Directionality(
@@ -52,7 +56,9 @@ void main() {
     });
 
     test('产品代码不写死字体族名字（设计层 token 除外）', () {
-      final literal = RegExp(r'''fontFamily(?:Fallback)?:\s*(?:const\s*)?['"]''');
+      final literal = RegExp(
+        r'''fontFamily(?:Fallback)?:\s*(?:const\s*)?['"]''',
+      );
       final offenders = <String>[];
       for (final file in Directory('lib').listSync(recursive: true)) {
         if (file is! File || !file.path.endsWith('.dart')) continue;
@@ -64,11 +70,7 @@ void main() {
           offenders.add(file.path);
         }
       }
-      expect(
-        offenders,
-        isEmpty,
-        reason: '字体族只能引用 design 层 token，不得写死族名或别名',
-      );
+      expect(offenders, isEmpty, reason: '字体族只能引用 design 层 token，不得写死族名或别名');
     });
   });
 
@@ -87,7 +89,10 @@ void main() {
       );
       final theme = Theme.of(tester.element(find.byType(ListTile)));
       expect(theme.textTheme.bodyMedium?.fontFamily, 'Inter');
-      expect(theme.textTheme.bodyMedium?.fontFamilyFallback, MileafType.fallback);
+      expect(
+        theme.textTheme.bodyMedium?.fontFamilyFallback,
+        MileafType.fallback,
+      );
 
       for (final text in ['行笺', '320 km']) {
         final style = paintedStyle(tester, text);
@@ -132,43 +137,32 @@ void main() {
       expect(title.fontFamilyFallback, MileafType.fallback);
     });
 
-    testWidgets(
-      '中文经声明的回退族渲染，而不是被当成 Inter 或测试字体',
-      (tester) async {
-        await loadRenderFonts(cjkFontPath: fontPath);
-        const colors = MileafColors.light();
-        final body = MileafTextStyles.resolve(colors).body;
+    testWidgets('中文经声明的回退族渲染，而不是被当成 Inter 或测试字体', (tester) async {
+      await loadRenderFonts(cjkFontPath: fontPath);
+      const colors = MileafColors.light();
+      final body = MileafTextStyles.resolve(colors).body;
 
-        // What the theme asks for: Inter first, then the declared CJK family.
-        final throughTheme = await _ink(tester, '行笺', body);
-        // The same text asked for the fallback family alone.
-        final throughFallback = await _ink(
-          tester,
-          '行笺',
-          body.copyWith(
-            fontFamily: 'PingFang SC',
-            fontFamilyFallback: const [],
-          ),
-        );
-        // Inter alone has no CJK glyphs: this must not match.
-        final throughInterOnly = await _ink(
-          tester,
-          '行笺',
-          body.copyWith(fontFamilyFallback: const []),
-        );
+      // What the theme asks for: Inter first, then the declared CJK family.
+      final throughTheme = await _ink(tester, '行笺', body);
+      // The same text asked for the fallback family alone.
+      final throughFallback = await _ink(
+        tester,
+        '行笺',
+        body.copyWith(fontFamily: 'PingFang SC', fontFamilyFallback: const []),
+      );
+      // Inter alone has no CJK glyphs: this must not match.
+      final throughInterOnly = await _ink(
+        tester,
+        '行笺',
+        body.copyWith(fontFamilyFallback: const []),
+      );
 
-        expect(
-          throughTheme,
-          equals(throughFallback),
-          reason: '主题的中文应落在声明的回退族上',
-        );
-        expect(
-          throughTheme,
-          isNot(equals(throughInterOnly)),
-          reason: '中文不能被当作 Inter 字形渲染',
-        );
-      },
-      skip: fontPath.isEmpty,
-    );
+      expect(throughTheme, equals(throughFallback), reason: '主题的中文应落在声明的回退族上');
+      expect(
+        throughTheme,
+        isNot(equals(throughInterOnly)),
+        reason: '中文不能被当作 Inter 字形渲染',
+      );
+    }, skip: fontPath.isEmpty);
   });
 }

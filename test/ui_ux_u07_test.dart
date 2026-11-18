@@ -43,10 +43,19 @@ void main() {
         ),
       );
     });
-    await tester.scrollUntilVisible(find.text('后一个采样').hitTestable(), 180);
-    await tester.tap(find.text('后一个采样').hitTestable());
+    // R29：读数头取代「速度读数」句，步进圆钮只在读数头里出现；
+    // 这里直接点绘图区取靠后的采样点，读数头日期行即「当前选点」。
+    await tester.scrollUntilVisible(find.text('行驶过程').hitTestable(), 180);
+    final chart = tester.getRect(find.byKey(const ValueKey('sample-chart')));
+    await tester.tapAt(Offset(chart.left + chart.width * 0.9, chart.center.dy));
     await tester.pumpAndSettle();
-    final before = tester.widget<Text>(find.textContaining('速度读数')).data;
+    final before = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .firstWhere(
+          (t) => RegExp(r'^\d{2}:\d{2}$').hasMatch(t),
+          orElse: () => fail('读数头日期行未出现'),
+        );
     await tester.scrollUntilVisible(
       find.byTooltip('查看完整地图').hitTestable(),
       -180,
@@ -60,10 +69,15 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(scroll.pixels, offset);
-    await tester.scrollUntilVisible(find.textContaining('速度读数'), 180);
-    expect(tester.widget<Text>(find.textContaining('速度读数')).data, before);
+    await tester.scrollUntilVisible(find.text('行驶过程'), 180);
+    expect(
+      tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? ''),
+      contains(before),
+    );
     expect(downloads, 1);
-    expect(find.textContaining('2026-03-15'), findsWidgets);
+    // CP04 DF9：读数头日期行只到 HH:mm（上面 contains(before) 已断言选点
+    // 保持）；精确时间只活在页尾「关于这些数据」，惰性列表在当前滚动位置
+    // 不构建，不再以可见性断言全日期。
     await tester.scrollUntilVisible(find.text('电量').hitTestable(), -100);
     await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();
@@ -101,11 +115,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 160);
     await tester.tap(find.text('最近充电').hitTestable());
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('按电量').hitTestable(), 160);
-    await tester.tap(find.text('按电量').hitTestable());
+    // P05：过程卡只有 功率 / 电量 两个指标（横轴固定为时间），旧的
+    // 「按电量」横轴视图已并入电量指标；这里验证大字下切到电量仍完整。
+    await tester.scrollUntilVisible(find.text('电量').hitTestable(), 160);
+    await tester.tap(find.text('电量').hitTestable());
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.byKey(const Key('charging-soc-chart')),
+      find.byKey(const Key('charging-time-chart')),
       160,
     );
     expect(tester.takeException(), isNull);
@@ -188,7 +204,7 @@ void main() {
         if (state == 'restart') await keys.save('b' * 32);
         await tester.pumpAndSettle();
         if (state == 'restart') {
-          expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+          expect(find.text('已保存，重新启动后生效'), findsOneWidget);
         }
         if (state == 'failed') {
           double surfaceHeight() => tester

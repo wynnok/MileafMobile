@@ -2,29 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/charts.dart';
+import 'package:mileaf/src/design/components/nav_bar.dart';
 
 import 'charging_test.dart' show app, jsonResponse;
 import 'charging_expansion_test.dart' show chargingStatsV2, expansionResponse;
 
+/// AP07：概览等页面也出现「充电」字样，底栏点击按导航栏定位。
+Finder navTab(String label) =>
+    find.descendant(of: find.byType(MileafNavBar), matching: find.text(label));
+
 void main() {
-  testWidgets('U06 账本同底摘要、三读数与每日补能', (tester) async {
+  testWidgets('U06 账本同底摘要、三读数与每日充电', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('已知充电费用'), findsOneWidget);
-    expect(find.textContaining('费用有记录'), findsOneWidget);
-    expect(find.textContaining('费用有记录 2 / 8 次'), findsOneWidget);
-    final dailyTop = tester.getTopLeft(find.text('每日补能')).dy;
-    expect(tester.getTopLeft(find.text('已知充电费用')).dy, lessThan(dailyTop));
-    await tester.scrollUntilVisible(find.text('补入电池'), 160);
-    expect(find.text('补入电池'), findsOneWidget);
-    expect(find.text('充电次数'), findsOneWidget);
-    expect(find.text('记录时长'), findsOneWidget);
+    expect(find.text('已记录费用'), findsOneWidget);
+    expect(find.textContaining('次有费用'), findsOneWidget);
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
+    final dailyTop = tester.getTopLeft(find.text('每日充电')).dy;
+    expect(tester.getTopLeft(find.text('已记录费用')).dy, lessThan(dailyTop));
+    await tester.scrollUntilVisible(find.text('充入电量'), 160);
+    expect(find.text('充入电量'), findsOneWidget);
+    // P03 三格：充入电量 / 充入均价 / 充电时长（充电次数并入覆盖句）。
+    expect(find.text('充入均价'), findsOneWidget);
+    expect(find.text('充电时长'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -61,19 +67,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('每日补能'), 160);
-    expect(find.text('每日补能'), findsOneWidget);
-    expect(find.text('这段时间还没有充电记录'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('每日充电'), 160);
+    expect(find.text('每日充电'), findsOneWidget);
+    // CP07 首次空：还没有充电记录（共享构造函数）。
+    // 每日充电卡空态句（充电方式卡的首次空结论在下方，惰性构建）。
+    expect(find.text('这段时间没有充电'), findsOneWidget);
     expect(find.byType(StemChart), findsNothing);
-    expect(find.textContaining('费用有记录 0 / 0'), findsOneWidget);
+    expect(find.textContaining('0 次中 0 次有费用'), findsOneWidget);
   });
 
   testWidgets('A 费用缺少币种时不默认人民币', (tester) async {
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     expect(find.textContaining('¥'), findsNothing);
     expect(find.textContaining('币种未记录'), findsWidgets);
@@ -90,12 +98,12 @@ void main() {
     });
     await tester.pumpWidget(app(MockClient((r) async => expansionResponse(r))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('充电'));
+    await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('补入电池'), 300);
-    expect(find.text('补入电池'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('记录时长'), 300);
-    expect(find.text('记录时长'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充入电量'), 300);
+    expect(find.text('充入电量'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充电时长'), 300);
+    expect(find.text('充电时长'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,0 +1,8 @@
+# AP01 页面裸值守卫基线 — 输入冻结点 FP0（7cf8dd4），AP01 生成。
+# 扫描集：lib/**/*.dart 排除 lib/src/design/** 与 *.g.dart；只许下降（R32）。
+# lib/src/setup_page.dart
+fontSize=0
+color0x=0
+durationMilliseconds=0
+radiusCircular=0
+total=0

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'copy/dates.dart' as copy_dates;
 import 'design/components/components.dart';
 import 'design/tokens.dart';
 import 'workspace.dart';
@@ -37,8 +38,13 @@ class StatisticsSelection {
         ? now.toUtc()
         : calendar.midnight(last, nextDays: 1);
     final duration = to.difference(from);
-    if (duration <= Duration.zero || duration > const Duration(days: 730)) {
-      throw const FormatException('统计区间须大于 0 且不超过 730×24 小时，请缩小区间');
+    if (duration <= Duration.zero) {
+      throw const FormatException('请选择开始日期早于结束日期的区间');
+    }
+    if (duration > const Duration(days: 730)) {
+      // CP07：上界文案按文案规范改写（原「统计区间须大于 0 且不超过 730×24
+      // 小时，请缩小区间」）。
+      throw const FormatException('最长可选 730 天，请缩短时间段');
     }
     final days = last.difference(first).inDays + 1;
     final bucket = switch (period) {
@@ -104,115 +110,78 @@ class StatisticsPeriodControls extends StatelessWidget {
   /// a reading-route return: the editor's own completion already loads the
   /// period the owner picked.
   final Future<R> Function<R>(Future<R> Function())? editor;
+
+  /// R27/PD10：自定义期间走共享日期区间弹层；本周/本年等预设在弹层内，
+  /// 校验（不晚于今天、最长 730×24 小时）与回调由本页注入。
   Future<void> custom(BuildContext context) async {
     final today = calendar.local(now);
-    final start = TextEditingController(
-      text: statisticsDate(
-        selection.start ?? DateTime(today.year, today.month),
-      ),
-    );
-    final end = TextEditingController(
-      text: statisticsDate(selection.end ?? today),
-    );
-    String? error;
-    final route = DialogRoute<StatisticsSelection>(
+    Future<Object?> open() => showMileafSheet<Object>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('自定义统计日期'),
-          content: SizedBox(
-            width: MileafBreakpoints.sheetMax - MileafSpace.s24 * 2,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ChipRow(
-                    alignment: WrapCrossAlignment.start,
-                    children: [
-                      for (final preset in const {
-                        StatisticsPeriod.week: '本周',
-                        StatisticsPeriod.recent: '近7天',
-                        StatisticsPeriod.month: '本月',
-                        StatisticsPeriod.year: '本年',
-                      }.entries)
-                        StatusChip(
-                          label: preset.value,
-                          onTap: () => Navigator.pop(
-                            context,
-                            StatisticsSelection(period: preset.key),
-                          ),
-                        ),
-                    ],
+      title: '选择日期',
+      style: MileafSheetStyle.edge,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ChipRow(
+            alignment: WrapCrossAlignment.start,
+            children: [
+              for (final preset in const {
+                StatisticsPeriod.week: '本周',
+                StatisticsPeriod.recent: '近7天',
+                StatisticsPeriod.month: '本月',
+                StatisticsPeriod.year: '本年',
+              }.entries)
+                StatusChip(
+                  label: preset.value,
+                  onTap: () => Navigator.pop(
+                    sheetContext,
+                    StatisticsSelection(period: preset.key),
                   ),
-                  const SizedBox(height: 12),
-                  const Text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。'),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: start,
-                    decoration: const InputDecoration(labelText: '开始日期'),
-                    keyboardType: TextInputType.datetime,
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: end,
-                    decoration: const InputDecoration(labelText: '结束日期（含）'),
-                    keyboardType: TextInputType.datetime,
-                  ),
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(error!),
-                  ],
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+          const SizedBox(height: MileafSpace.s12),
+          MileafDateRangeSheet(
+            initialRange: DateTimeRange(
+              start: selection.start ?? DateTime(today.year, today.month),
+              end: selection.end ?? today,
             ),
-            FilledButton(
-              onPressed: () {
-                DateTime? parse(String value) {
-                  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)) {
-                    return null;
-                  }
-                  final d = DateTime.tryParse('${value}T00:00:00Z');
-                  return d != null && statisticsDate(d) == value ? d : null;
-                }
-
-                final from = parse(start.text.trim()),
-                    to = parse(end.text.trim());
-                if (from == null || to == null) {
-                  setState(() => error = '请输入有效日历日期 YYYY-MM-DD');
-                  return;
-                }
-                final next = StatisticsSelection(
+            firstDate: DateTime(today.year, today.month, today.day - 730),
+            lastDate: today,
+            today: today,
+            validator: (start, end) {
+              try {
+                StatisticsSelection(
                   period: StatisticsPeriod.custom,
-                  start: from,
-                  end: to,
-                );
-                try {
-                  next.resolve(calendar, now);
-                } on FormatException catch (e) {
-                  setState(() => error = e.message);
-                  return;
-                }
-                Navigator.pop(context, next);
-              },
-              child: const Text('应用区间'),
-            ),
-          ],
-        ),
+                  start: DateTime.utc(start.year, start.month, start.day),
+                  end: DateTime.utc(end.year, end.month, end.day),
+                ).resolve(calendar, now);
+                return null;
+              } on FormatException catch (e) {
+                return e.message;
+              }
+            },
+          ),
+        ],
       ),
     );
-    Future<StatisticsSelection?> open() => Navigator.of(context).push(route);
     final value = await (editor?.call(open) ?? open());
-    await route.completed;
-    if (value != null && context.mounted) onChanged(value);
-    start.dispose();
-    end.dispose();
+    if (value is StatisticsSelection && context.mounted) {
+      onChanged(value);
+    } else if (value is DateTimeRange && context.mounted) {
+      onChanged(
+        StatisticsSelection(
+          period: StatisticsPeriod.custom,
+          start: DateTime.utc(
+            value.start.year,
+            value.start.month,
+            value.start.day,
+          ),
+          end: DateTime.utc(value.end.year, value.end.month, value.end.day),
+        ),
+      );
+    }
   }
 
   /// Quick periods and the shared custom-date entry, with a visible custom range.
@@ -237,7 +206,8 @@ class StatisticsPeriodControls extends StatelessWidget {
             ),
           ),
           StatusChip(
-            label: '自定义日期',
+            // R27/CP06：与充电页统一为「自定义」（D-AP07-20）。
+            label: '自定义',
             selected: switch (selection.period) {
               StatisticsPeriod.week ||
               StatisticsPeriod.year ||
@@ -250,9 +220,7 @@ class StatisticsPeriodControls extends StatelessWidget {
       ),
       if (selection.period == StatisticsPeriod.custom) ...[
         const SizedBox(height: MileafSpace.s8),
-        Text(
-          '${statisticsDate(selection.start!)} 至 ${statisticsDate(selection.end!)}',
-        ),
+        Text(copy_dates.formatRange(selection.start!, selection.end!)),
       ],
     ],
   );

@@ -21,7 +21,7 @@ import 'support/render_png.dart';
 import 'support/session_store.dart';
 import 'support/statistics_insights_fixture.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 /// U09e 专属回归：旧测试未覆盖的正/负/0分桶、中间缺失不补零、离线/未知
 /// 状态编码、窄片段真实比例、200%读值实际触控、键盘左右与语义增减、宽屏
@@ -121,7 +121,15 @@ http.Client parkingClient(List<Uri> seen, {String scenario = 'normal'}) {
 Finder trendPlot() => find.byWidgetPredicate(
   (widget) =>
       widget is Semantics &&
-      (widget.properties.label?.startsWith('停放SOC变化正负柱图') ?? false),
+      (widget.properties.label?.startsWith('每段停车电量变化正负柱图') ?? false),
+);
+
+/// R27/CP06：读数头步进圆钮（语义「上一个数据点」「下一个数据点」）。
+Finder stepButton(String label) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      widget.properties.button == true &&
+      widget.properties.label == label,
 );
 
 /// WCAG 对比度；睡眠/离线的中性实色按最终画布合成验证。
@@ -150,13 +158,12 @@ void main() {
 
   testWidgets('正负与零分桶同图呈现，pp单位就近定义', (tester) async {
     await openParking(tester, <Uri>[]);
-    expect(find.text('pp = SOC 百分点'), findsOneWidget);
-    expect(find.textContaining('正值回升、负值下降'), findsOneWidget);
-    expect(find.textContaining('不预测未来24小时'), findsOneWidget);
+    expect(find.textContaining('只反映已记录的变化'), findsOneWidget);
+    expect(find.textContaining('不预测未来'), findsOneWidget);
     expect(find.byKey(const Key('parking-trend-chart')), findsOneWidget);
-    // 首桶为 -2：读值带负号与单位；0 分桶不画零柱但可选。
-    expect(find.textContaining('变化 -2.0 pp'), findsOneWidget);
-    expect(find.textContaining('标准化率 -4.0 pp/24h'), findsWidgets);
+    // 首桶为 -2：读值带真负号与「个百分点」；0 分桶不画零柱但可选。
+    expect(find.textContaining('−2.0 个百分点'), findsWidgets);
+    expect(find.textContaining('折合每天 −4.0 个百分点'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -165,11 +172,11 @@ void main() {
     for (final name in ['在线', '睡眠', '离线', '未知']) {
       expect(find.text(name), findsWidgets, reason: name);
     }
-    expect(find.textContaining('分母为有效窗口观测小时'), findsOneWidget);
-    expect(find.text('在线 2.0 h · 16.7%'), findsOneWidget);
-    expect(find.text('睡眠 6.0 h · 50.0%'), findsOneWidget);
-    expect(find.text('离线 1.0 h · 8.3%'), findsOneWidget);
-    expect(find.text('未知 3.0 h · 25.0%'), findsOneWidget);
+    expect(find.textContaining('按有效停车时长计算占比'), findsOneWidget);
+    expect(find.text('16.7%'), findsOneWidget);
+    expect(find.text('50.0%'), findsOneWidget);
+    expect(find.text('8.3%'), findsOneWidget);
+    expect(find.text('25.0%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -179,10 +186,12 @@ void main() {
       <Uri>[],
       response: (uri) => parkingScenario('fragments', uri),
     );
-    expect(find.textContaining('分母为有效窗口观测小时'), findsOneWidget);
-    expect(find.textContaining('离线 0.1 h · 0.1%'), findsOneWidget);
-    // 未知 share 缺失：类别行显示 — 小时与 — 百分比，不补0%。
-    expect(find.textContaining('未知 19.9 h · —%'), findsOneWidget);
+    expect(find.textContaining('按有效停车时长计算占比'), findsOneWidget);
+    // 窄片段真实比例：0.1 小时读作 6 分钟；share 缺失显示 —，不补 0%。
+    expect(find.text('6 分钟'), findsOneWidget);
+    expect(find.text('0.1%'), findsOneWidget);
+    expect(find.text('19 小时 54 分钟'), findsOneWidget);
+    expect(find.text('—'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -192,7 +201,7 @@ void main() {
       <Uri>[],
       response: (uri) => parkingScenario('missing', uri),
     );
-    final next = find.widgetWithText(TextButton, '后一点');
+    final next = stepButton(MileafChartGrammar.nextStep);
     await tester.scrollUntilVisible(
       next.hitTestable(),
       100,
@@ -200,9 +209,10 @@ void main() {
     );
     await tester.tap(next);
     await tester.pumpAndSettle();
-    expect(find.textContaining('变化 — pp（缺失，不补零）'), findsOneWidget);
+    // 缺失分桶读值给缺失口径：值为 —，脚注「缺失，不补零」。
+    expect(find.text('缺失，不补零'), findsOneWidget);
     // 全部分桶未缺失时不显示整行说明。
-    expect(find.text('分桶SOC变化缺失，不补零'), findsNothing);
+    expect(find.text('分桶电量变化缺失，不补零'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -212,7 +222,7 @@ void main() {
       <Uri>[],
       response: (uri) => parkingScenario('allnull', uri),
     );
-    expect(find.text('分桶SOC变化缺失，不补零'), findsOneWidget);
+    expect(find.text('分桶电量变化缺失，不补零'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -223,16 +233,16 @@ void main() {
       <Uri>[],
       response: (uri) => parkingScenario('zeros', uri),
     );
-    expect(find.textContaining('变化 0.0 pp'), findsOneWidget);
-    expect(find.textContaining('标准化率 0.0 pp/24h'), findsWidgets);
+    expect(find.textContaining('0.0 个百分点'), findsWidgets);
+    expect(find.textContaining('折合每天 0.0 个百分点'), findsWidgets);
     expect(find.byKey(const Key('parking-trend-chart')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('无有效窗口时主值为缺失且不展示零变化', (tester) async {
     await openParking(tester, <Uri>[], empty: true);
-    expect(find.textContaining('— pp'), findsWidgets);
-    expect(find.text('暂无有效窗口，不能判断SOC变化'), findsOneWidget);
+    expect(find.textContaining('— 个百分点'), findsWidgets);
+    expect(find.text('暂无有效停车窗口，无法判断电量变化'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -244,16 +254,19 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openParking(tester, <Uri>[]);
-    for (final label in ['前一点', '后一点']) {
-      final rect = tester.getRect(find.widgetWithText(TextButton, label));
+    for (final label in [
+      MileafChartGrammar.previousStep,
+      MileafChartGrammar.nextStep,
+    ]) {
+      final rect = tester.getRect(stepButton(label));
       expect(rect.width, greaterThanOrEqualTo(44), reason: label);
       expect(rect.height, greaterThanOrEqualTo(44), reason: label);
     }
-    final prev = find.widgetWithText(TextButton, '前一点');
+    final prev = stepButton(MileafChartGrammar.previousStep);
     await tester.scrollUntilVisible(prev.hitTestable(), 100);
     await tester.tap(prev);
     await tester.pumpAndSettle();
-    expect(find.textContaining('变化 -2.0 pp'), findsOneWidget);
+    expect(find.textContaining('−2.0 个百分点'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -279,7 +292,7 @@ void main() {
     expect(focusNode.hasFocus, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(find.textContaining('变化 0.0 pp'), findsOneWidget);
+    expect(find.textContaining('0.0 个百分点'), findsOneWidget);
     expect(
       tester
           .widgetList<Semantics>(trendPlot())
@@ -291,7 +304,7 @@ void main() {
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
-    expect(find.textContaining('变化 -2.0 pp'), findsOneWidget);
+    expect(find.textContaining('−2.0 个百分点'), findsWidgets);
     semanticsHandle.dispose();
   });
 
@@ -303,8 +316,12 @@ void main() {
     await openParking(tester, <Uri>[]);
     final chart = find.byKey(const Key('parking-trend-chart'));
     expect(tester.getSize(chart).width, lessThanOrEqualTo(560));
-    final header = find.text('有效窗口SOC变化');
-    expect(tester.getRect(chart).left, closeTo(tester.getRect(header).left, 1));
+    final header = find.text('停车电量变化');
+    final card = find
+        .ancestor(of: chart, matching: find.byType(MileafModuleCard))
+        .first;
+    // R24：卡片外缘与身份块标题共享左线；卡内内容由卡内边对齐。
+    expect(tester.getRect(card).left, closeTo(tester.getRect(header).left, 1));
     expect(tester.takeException(), isNull);
   });
 
@@ -412,11 +429,11 @@ void main() {
           await save('scroll$step');
         }
         await save('bottom');
-        final prev = find.widgetWithText(TextButton, '前一点');
+        final prev = stepButton(MileafChartGrammar.previousStep);
         await tester.scrollUntilVisible(prev.hitTestable(), -150);
         await tester.tap(prev);
         await tester.pumpAndSettle();
-        expect(find.textContaining('变化 -2.0 pp'), findsOneWidget);
+        expect(find.textContaining('−2.0 个百分点'), findsOneWidget);
       }
       if (scenario == 'normal' && size.width == 360 && scale == 1) {
         final plot = tester.getRect(
@@ -447,16 +464,16 @@ void main() {
         }
         await save('bottom');
         // 前一点动作可达：滚到读值区点击后读值回到首桶。
-        final prev = find.widgetWithText(TextButton, '前一点');
+        final prev = stepButton(MileafChartGrammar.previousStep);
         await tester.scrollUntilVisible(prev.hitTestable(), -150);
         await tester.tap(prev);
         await tester.pumpAndSettle();
-        expect(find.textContaining('变化 -2.0 pp'), findsOneWidget);
+        expect(find.textContaining('−2.0 个百分点'), findsOneWidget);
       }
       if (scenario == 'normal' ||
           scenario == 'missing' ||
           scenario == 'fragments') {
-        final notes = find.widgetWithText(ExpansionTile, '数据说明');
+        final notes = find.widgetWithText(MileafDisclosure, '技术详情');
         await tester.ensureVisible(notes.last);
         await tester.tap(notes.last);
         await tester.pumpAndSettle();

@@ -14,7 +14,7 @@ import 'package:mileaf/src/workspace.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
-import 'widget_test.dart' show MemoryTrustStore;
+import 'support/test_trust_store.dart' show MemoryTrustStore;
 
 Future<void> openStats(
   WidgetTester tester,
@@ -79,7 +79,7 @@ Future<void> tapRefresh(WidgetTester tester) async {
 }
 
 /// All periods share the same stable custom-date entry label.
-Finder dateAction() => find.widgetWithText(StatusChip, '自定义日期');
+Finder dateAction() => find.widgetWithText(StatusChip, '自定义');
 
 Future<void> tapDateAction(WidgetTester tester) async {
   final action = dateAction();
@@ -94,12 +94,13 @@ Future<void> tapDateAction(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Opens the C 日期 sheet and picks a preset period (本周/本月/近7天/本年).
+/// Opens the shared date sheet and picks a preset period (本周/本月/近7天/本年).
 Future<void> pickPeriod(WidgetTester tester, String label) async {
   await tapDateAction(tester);
+  await tester.pumpAndSettle();
   await tester.tap(
     find.descendant(
-      of: find.byType(AlertDialog),
+      of: find.byType(MileafSheetFrame),
       matching: find.widgetWithText(StatusChip, label),
     ),
   );
@@ -110,12 +111,48 @@ Future<void> openDateSheet(WidgetTester tester) async {
   await tapDateAction(tester);
 }
 
+/// Opens the shared sheet's keyboard path and applies a typed range.
 Future<void> custom(WidgetTester tester, String start, String end) async {
   await openDateSheet(tester);
   await tester.pumpAndSettle();
-  await tester.enterText(find.widgetWithText(TextField, '开始日期'), start);
-  await tester.enterText(find.widgetWithText(TextField, '结束日期（含）'), end);
-  await tester.tap(find.text('应用区间'));
+  await tester.tap(find.text('改为输入'));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('date-range-start-input')),
+    start,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('date-range-end-input')),
+    end,
+  );
+  await tester.tap(find.text('应用'));
+  await tester.pumpAndSettle();
+}
+
+/// Reopens the sheet in keyboard mode and retypes the given fields; the rest
+/// keeps the previously applied range as its initial value.
+Future<void> retypeCustom(
+  WidgetTester tester, {
+  String? start,
+  String? end,
+}) async {
+  await tapDateAction(tester);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('改为输入'));
+  await tester.pumpAndSettle();
+  if (start != null) {
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-start-input')),
+      start,
+    );
+  }
+  if (end != null) {
+    await tester.enterText(
+      find.byKey(const ValueKey('date-range-end-input')),
+      end,
+    );
+  }
+  await tester.tap(find.text('应用'));
   await tester.pumpAndSettle();
 }
 
@@ -142,7 +179,7 @@ http.Client statsClient(List<Map<String, String>> queries) =>
 void main() {
   for (final brightness in Brightness.values) {
     for (final scale in [1.0, 2.0]) {
-      testWidgets('自定义统计日期在360宽${brightness.name} 字体缩放 $scale 下内容保持间距', (
+      testWidgets('自定义日期弹层在360宽${brightness.name} 字体缩放 $scale 下内容保持间距', (
         tester,
       ) async {
         tester.view.physicalSize = const Size(360, 800);
@@ -163,21 +200,20 @@ void main() {
           () => 'Asia/Shanghai',
         );
         await openDateSheet(tester);
-        final description = find.text('日期格式 YYYY-MM-DD；结束日期包含当天，今天截至当前时刻。');
-        final start = find.widgetWithText(TextField, '开始日期');
-        final end = find.widgetWithText(TextField, '结束日期（含）');
-        expect(
-          tester.getTopLeft(start).dy - tester.getBottomLeft(description).dy,
-          greaterThanOrEqualTo(16),
-        );
+        // R27：默认是选择路径，两行「开始」「结束」+ 脚注「包含结束当天」。
+        expect(find.text('包含结束当天'), findsOneWidget);
+        await tester.tap(find.text('改为输入'));
+        await tester.pumpAndSettle();
+        final start = find.byKey(const ValueKey('date-range-start-input'));
+        final end = find.byKey(const ValueKey('date-range-end-input'));
         expect(
           tester.getTopLeft(end).dy - tester.getBottomLeft(start).dy,
-          greaterThanOrEqualTo(16),
+          greaterThanOrEqualTo(12),
         );
         await tester.enterText(start, 'invalid');
-        await tester.tap(find.text('应用区间'));
+        await tester.tap(find.text('应用'));
         await tester.pumpAndSettle();
-        final error = find.text('请输入有效日历日期 YYYY-MM-DD');
+        final error = find.text('请输入有效日期');
         expect(error, findsOneWidget);
         expect(
           tester.getTopLeft(error).dy - tester.getBottomLeft(end).dy,
@@ -186,9 +222,17 @@ void main() {
         await tester.ensureVisible(end);
         await tester.pumpAndSettle();
         expect(end.hitTestable(), findsOneWidget);
-        await tester.tap(find.text('取消'));
+        // 键盘路径与选择路径可来回切换。
+        await tester.tap(find.text('改为选择'));
         await tester.pumpAndSettle();
-        expect(find.byType(AlertDialog), findsNothing);
+        expect(
+          find.byKey(const ValueKey('date-range-start-input')),
+          findsNothing,
+        );
+        expect(find.text('开始'), findsOneWidget);
+        await tester.tap(find.byTooltip('关闭'));
+        await tester.pumpAndSettle();
+        expect(find.byType(MileafSheetFrame), findsNothing);
         expect(tester.takeException(), isNull);
       });
     }
@@ -221,7 +265,8 @@ void main() {
     await tester.tap(find.widgetWithText(StatusChip, '能量'));
     await tester.pumpAndSettle();
     expect(find.text('能量趋势'), findsOneWidget);
-    expect(find.textContaining('-3.00 kWh'), findsWidgets);
+    // R29：读数头数值行按共享格式化器输出「−3 kWh」。
+    expect(find.text('−3 kWh'), findsWidgets);
     expect(requests.length, requestCount);
     await tester.scrollUntilVisible(find.text('净 / 毛电耗'), 250);
     expect(find.text('净 / 毛电耗'), findsOneWidget);
@@ -333,7 +378,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('行笺测试车'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Y · 尾号 0002'));
+    // P16：车辆弹层行改「Y，尾号 0002」（CP09.1 逗号）。
+    await tester.tap(find.text('Y，尾号 0002'));
     await tester.pumpAndSettle();
     expect(find.text('8 次'), findsOneWidget);
     pending.complete(fixture('driving-stats'));
@@ -379,13 +425,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('净电耗  —'), 300);
     expect(find.text('净电耗  —'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.textContaining('2025-12-31 · 620.0 km'),
+      find.textContaining('2025年12月31日 620.0 km'),
       300,
     );
     // 200% 下该行停在视口边缘，滚动到“已构建”不等于可命中；先整行可见再展开。
-    await tester.ensureVisible(find.textContaining('2025-12-31 · 620.0 km'));
+    await tester.ensureVisible(find.textContaining('2025年12月31日 620.0 km'));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('2025-12-31 · 620.0 km'));
+    await tester.tap(find.textContaining('2025年12月31日 620.0 km'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('行程数  31 次'), 200);
     expect(find.text('行程数  31 次'), findsOneWidget);
@@ -411,32 +457,11 @@ void main() {
     expect(queries.last['bucket'], 'month');
     await custom(tester, '2026-01-01', '2026-01-31');
     expect(queries.last['bucket'], 'day');
-    await tester.tap(dateAction());
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '结束日期（含）'),
-      '2026-02-01',
-    );
-    await tester.tap(find.text('应用区间'));
-    await tester.pumpAndSettle();
+    await retypeCustom(tester, end: '2026-02-01');
     expect(queries.last['bucket'], 'week');
-    await tester.tap(dateAction());
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '结束日期（含）'),
-      '2026-06-29',
-    );
-    await tester.tap(find.text('应用区间'));
-    await tester.pumpAndSettle();
+    await retypeCustom(tester, end: '2026-06-29');
     expect(queries.last['bucket'], 'week');
-    await tester.tap(dateAction());
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '结束日期（含）'),
-      '2026-06-30',
-    );
-    await tester.tap(find.text('应用区间'));
-    await tester.pumpAndSettle();
+    await retypeCustom(tester, end: '2026-06-30');
     expect(queries.last['bucket'], 'month');
   });
   testWidgets('DST历史完整日期转为23小时和25小时UTC区间', (tester) async {
@@ -450,18 +475,7 @@ void main() {
     await custom(tester, '2026-03-08', '2026-03-08');
     expect(queries.last['from'], '2026-03-08T05:00:00.000Z');
     expect(queries.last['to'], '2026-03-09T04:00:00.000Z');
-    await tester.tap(dateAction());
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '开始日期'),
-      '2026-11-01',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '结束日期（含）'),
-      '2026-11-01',
-    );
-    await tester.tap(find.text('应用区间'));
-    await tester.pumpAndSettle();
+    await retypeCustom(tester, start: '2026-11-01', end: '2026-11-01');
     expect(queries.last['from'], '2026-11-01T04:00:00.000Z');
     expect(queries.last['to'], '2026-11-02T05:00:00.000Z');
   });
@@ -477,28 +491,23 @@ void main() {
     expect(queries.last['from'], '2024-03-16T00:00:00.000Z');
     expect(queries.last['to'], '2026-03-16T00:00:00.000Z');
     final before = queries.length;
-    await tester.tap(dateAction());
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '开始日期'),
-      '2024-03-15',
-    );
-    await tester.tap(find.text('应用区间'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('不超过 730×24 小时'), findsOneWidget);
+    await retypeCustom(tester, start: '2024-03-15');
+    expect(find.textContaining('最长可选 730 天'), findsOneWidget);
     expect(queries.length, before);
+    // 校验失败时弹层保持打开：就地改写起止日期再试。
     await tester.enterText(
-      find.widgetWithText(TextField, '开始日期'),
+      find.byKey(const ValueKey('date-range-start-input')),
       '2026-03-16',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, '结束日期（含）'),
+      find.byKey(const ValueKey('date-range-end-input')),
       '2026-03-16',
     );
-    await tester.tap(find.text('应用区间'));
+    await tester.tap(find.text('应用'));
     await tester.pumpAndSettle();
     expect(queries.length, before);
-    expect(find.textContaining('须大于 0'), findsOneWidget);
+    expect(find.textContaining('早于结束日期'), findsOneWidget);
+    expect(find.byType(MileafSheetFrame), findsOneWidget);
   });
 
   testWidgets('前台换时区保留自定义日历日期，旧时区快照立即清除', (tester) async {
@@ -530,7 +539,8 @@ void main() {
     expect(queries.last['to'], '2026-03-03T00:00:00.000Z');
     pending.complete(fixture('driving-stats'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('2026-03-01 至 2026-03-02'), findsOneWidget);
+    // 期间行与卡片副标题同源，出现两处属预期。
+    expect(find.textContaining('3月1日–2日'), findsWidgets);
   });
 
   testWidgets('驾驶统计默认本月，真实响应totals不平均桶比率，手动304与失败保留快照', (tester) async {

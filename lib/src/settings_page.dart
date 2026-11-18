@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import 'appearance.dart';
 import 'appearance_sheet.dart';
 import 'connection_management.dart';
@@ -8,6 +7,7 @@ import 'currency.dart';
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
+import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 import 'map/map_consent.dart';
@@ -83,78 +83,126 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: MileafLayout.pagePadding(context, top: MileafSpace.s12),
           children: [
-            Semantics(
-              header: true,
-              child: Text('使用偏好', style: context.type.label),
-            ),
+            const MileafGroupHeader(title: '使用偏好'),
             const SizedBox(height: MileafSpace.s8),
-            if (widget.mapConsent case final consent?)
-              MileafDataRow(
-                title: '地图',
-                meta: MapKeyScope.maybeOf(context)?.status ?? '配置高德地图 Key',
-                icon: MileafIconName.mapPin,
-                showChevron: true,
-                bottomLine: true,
-                onTap: () => Navigator.of(context).push<void>(
-                  MaterialPageRoute(
-                    builder: (_) => MapPrivacyPage(
-                      consent: consent,
-                      providerName: (widget.mapPlatform ?? defaultMapPlatform())
-                          .providerName,
+            MileafGroupCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.mapConsent case final consent?)
+                    MileafGroupRow(
+                      title: '地图',
+                      value: _stacked
+                          ? null
+                          : MapKeyScope.maybeOf(context)?.status ?? '未配置',
+                      meta: _stacked
+                          ? MapKeyScope.maybeOf(context)?.status ?? '未配置'
+                          : null,
+                      leading: MileafIconName.mapPin,
+                      trailing: _chevron(context),
+                      bottomLine: widget.appearance != null,
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => MapPrivacyPage(
+                            consent: consent,
+                            providerName:
+                                (widget.mapPlatform ?? defaultMapPlatform())
+                                    .providerName,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  if (widget.appearance case final appearance?)
+                    ListenableBuilder(
+                      listenable: appearance,
+                      builder: (context, _) => MileafGroupRow(
+                        title: '外观',
+                        value: _stacked ? null : appearance.mode.label,
+                        meta: _stacked ? appearance.mode.label : null,
+                        leading: MileafIconName.settings,
+                        trailing: _chevron(context),
+                        onTap: () => showAppearanceSheet(context, appearance),
+                      ),
+                    ),
+                ],
               ),
-            if (widget.appearance case final appearance?)
-              ListenableBuilder(
-                listenable: appearance,
-                builder: (context, _) => MileafDataRow(
-                  title: '外观',
-                  meta: appearance.mode.label,
-                  icon: MileafIconName.settings,
-                  showChevron: true,
-                  onTap: () => showAppearanceSheet(context, appearance),
+            ),
+            if (widget.mapConsent != null)
+              Padding(
+                // R24 两条起始线：分组脚注对齐卡片内边距。
+                padding: const EdgeInsets.only(
+                  left: MileafSpace.cardInset,
+                  top: MileafSpace.s8,
+                ),
+                child: Text(
+                  '未配置地图时显示路线示意。',
+                  style: context.type.footnote.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
               ),
             const SizedBox(height: MileafSpace.section),
-            Semantics(
-              header: true,
-              child: Text('当前站点', style: context.type.label),
-            ),
+            const MileafGroupHeader(title: '当前站点'),
             const SizedBox(height: MileafSpace.s8),
-            MileafDataRow(
-              title: '站点连接',
-              meta: widget.currency.site,
-              icon: MileafIconName.route,
-              showChevron: true,
-              bottomLine: true,
-              onTap: _openConnection,
-            ),
-            ListenableBuilder(
-              listenable: widget.currency,
-              builder: (context, _) => MileafDataRow(
-                title: '币种',
-                meta: widget.currency.code ?? '未配置',
-                icon: MileafIconName.wallet,
-                showChevron: true,
-                bottomLine: true,
-                onTap: () => Navigator.of(context).push<void>(
-                  MaterialPageRoute(
-                    builder: (_) => CurrencyPage(settings: widget.currency),
+            MileafGroupCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  MileafGroupRow(
+                    title: '站点连接',
+                    // P12：行尾显示主机名，完整地址在站点连接页。
+                    value: _stacked ? null : _host,
+                    meta: _stacked ? _host : null,
+                    leading: MileafIconName.route,
+                    trailing: _chevron(context),
+                    bottomLine: true,
+                    onTap: _openConnection,
                   ),
-                ),
+                  ListenableBuilder(
+                    listenable: widget.currency,
+                    builder: (context, _) => MileafGroupRow(
+                      title: '币种',
+                      value: _stacked ? null : widget.currency.code ?? '未设置',
+                      meta: _stacked ? widget.currency.code ?? '未设置' : null,
+                      leading: MileafIconName.wallet,
+                      trailing: _chevron(context),
+                      bottomLine: true,
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CurrencyPage(settings: widget.currency),
+                        ),
+                      ),
+                    ),
+                  ),
+                  MileafGroupRow(
+                    title: '服务信息',
+                    leading: MileafIconName.info,
+                    trailing: _chevron(context),
+                    onTap: widget.onServiceInformation,
+                  ),
+                ],
               ),
-            ),
-            MileafDataRow(
-              title: '服务信息',
-              meta: '版本与兼容性',
-              icon: MileafIconName.info,
-              showChevron: true,
-              onTap: widget.onServiceInformation,
             ),
           ],
         ),
       ),
     ),
+  );
+
+  /// P12 的设置行在 100% 字号下是单行 52（尾部当前值）；R11 要求大字重排，
+  /// 200% 时当前值改到标题下的第二行，避免尾部值与标题抢同一行宽。
+  bool get _stacked => MileafLayout.largeText(context);
+
+  String get _host {
+    final uri = Uri.tryParse(widget.currency.site);
+    final host = uri?.host ?? '';
+    return host.isEmpty ? widget.currency.site : host;
+  }
+
+  Widget _chevron(BuildContext context) => MileafIcon(
+    MileafIconName.chevron,
+    size: MileafIconMetrics.nav,
+    color: context.colors.textFaint,
   );
 }

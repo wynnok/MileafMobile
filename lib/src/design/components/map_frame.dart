@@ -66,7 +66,7 @@ class MapFrame extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       MileafLayout.pageInset(context),
-                      MileafSpace.s40,
+                      MileafSpace.s32,
                       MileafLayout.pageInset(context),
                       MileafSpace.s16,
                     ),

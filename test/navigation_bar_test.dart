@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/page_bar.dart';
+import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/layout.dart';
 import 'package:mileaf/src/overview_page.dart';
@@ -10,6 +11,11 @@ import 'support/a_gallery_fixture.dart';
 import 'statistics_test.dart' show openStats;
 import 'support/render_fonts.dart';
 import 'support/render_png.dart';
+
+/// R26/R32：二级导航的返回图标改用自绘图标集（24 网格、1.5 描边）。
+final backIcon = find.byWidgetPredicate(
+  (widget) => widget is MileafIcon && widget.name == MileafIconName.back,
+);
 
 void main() {
   const output = String.fromEnvironment('MILEAF_NAV_RENDER_OUTPUT');
@@ -49,8 +55,13 @@ void main() {
       await tester.tap(topic);
       await tester.pumpAndSettle();
       final period = tester.getRect(find.text('期间 · 2026年10月'));
-      final icon = tester.getRect(find.byIcon(Icons.chevron_left_rounded));
-      final title = tester.getRect(find.text('用车节奏'));
+      final icon = tester.getRect(backIcon);
+      final title = tester.getRect(
+        find.descendant(
+          of: find.byType(MileafNavigationRow),
+          matching: find.text('用车节奏'),
+        ),
+      );
       expect(icon.left, closeTo(period.left, .01));
       expect(title.left - icon.right, closeTo(12, .01));
       final action = tester.getRect(find.text('全部指标'));
@@ -117,12 +128,12 @@ void main() {
         await tester.tap(find.text('打开'));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+        expect(backIcon, findsOneWidget);
         final back = tester.getRect(find.byType(BackButton));
         expect(back.width, greaterThanOrEqualTo(44));
         expect(back.height, greaterThanOrEqualTo(44));
         expect(
-          tester.getTopLeft(find.byIcon(Icons.chevron_left_rounded)).dx,
+          tester.getTopLeft(backIcon).dx,
           closeTo(tester.getTopLeft(find.text('内容')).dx, .01),
         );
         if (scale == 2) {

@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 import 'number_format.dart';
 
 import 'api.dart';
+import 'copy/dates.dart' as copy;
+import 'copy/messages.dart' as messages;
+import 'copy/units.dart' as units;
 
 import 'design/components/components.dart';
+import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -19,7 +23,6 @@ import 'map/map_platform.dart';
 import 'map/map_scene.dart';
 import 'drive_detail_contract.g.dart' as dto;
 import 'driving_statistics_contract.g.dart' as stats;
-import 'sample_chart.dart';
 import 'session.dart';
 import 'workspace.dart';
 
@@ -43,12 +46,9 @@ class DriveDetailPage extends StatefulWidget {
   State<DriveDetailPage> createState() => _DriveDetailPageState();
 }
 
-/// 过程图可选指标：标签、图卡标题与单位在一处定义，避免并行数组各改一处。
-const _sampleMetrics = [
-  (label: '速度', title: '速度过程', unit: 'km/h'),
-  (label: '电量', title: '电量过程', unit: '%'),
-  (label: '海拔', title: '海拔过程', unit: 'm'),
-];
+/// 过程图可选指标：卡片标题是「行驶过程」，分段只切换指标（P04/R21.4）。
+const _sampleLabels = ['速度', '电量', '海拔'];
+const _sampleUnits = ['km/h', '%', 'm'];
 
 class _DriveDetailPageState extends State<DriveDetailPage>
     with WidgetsBindingObserver {
@@ -60,6 +60,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   dto.DriveSeries? series;
   String? detailError, seriesError;
   bool detailLoading = false, seriesLoading = false;
+  DateTime? detailCheckedAt, seriesCheckedAt;
   stats.DrivingStats? reference;
   String? referenceError;
   bool referenceLoading = false, batteryPaired = false;
@@ -152,12 +153,25 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     }
   }
 
-  String error(Object e, bool snapshot) =>
-      '${e is ApiFailure
-          ? e.message
-          : e is FormatException
-          ? '服务返回格式不兼容，请核对版本'
-          : '数据读取失败，请重试'}${snapshot ? '；保留上次快照' : ''}';
+  /// R27/PD10：详情页两个刷新合一。一次点按依次调用原明细与曲线两个刷新，
+  /// 请求与原先分别点按两次相同；某个资源失败时只在该资源处就地重试。
+  Future<void> refreshAll() async {
+    await loadDetail();
+    if (!mounted) return;
+    await loadSeries();
+  }
+
+  String error(Object e, String object) {
+    if (e is FormatException) return messages.versionIncompatibleMessage();
+    if (e is ApiFailure) return e.message;
+    return messages.readFailedMessage(object);
+  }
+
+  String _staleText(DateTime? snapshot) => messages.staleMessage(
+    local(snapshot ?? workspace.session.now()),
+    local(workspace.session.now()),
+  );
+
   Future<void> loadDetail({bool force = true}) async {
     final attempt = ++detailSequence;
     setState(() {
@@ -175,7 +189,10 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         throw const FormatException();
       }
       if (current && attempt == detailSequence) {
-        setState(() => detail = d);
+        setState(() {
+          detail = d;
+          detailCheckedAt = r.checkedAt;
+        });
         unawaited(loadReference(d, force: force));
         PerformanceTrace.mark(
           PerformancePoint.driveMetricsAvailable,
@@ -184,7 +201,11 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       }
     } catch (e) {
       if (current && attempt == detailSequence) {
-        setState(() => detailError = error(e, detail != null));
+        setState(
+          () => detailError = detail == null
+              ? error(e, '行程明细')
+              : _staleText(detailCheckedAt),
+        );
         PerformanceTrace.mark(
           PerformancePoint.driveFailed,
           trial: widget.performanceTrial,
@@ -218,6 +239,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       if (current && attempt == seriesSequence) {
         setState(() {
           series = d;
+          seriesCheckedAt = r.checkedAt;
           selectedSample = selectedSample.clamp(
             0,
             d.series.isEmpty ? 0 : d.series.length - 1,
@@ -230,7 +252,11 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       }
     } catch (e) {
       if (current && attempt == seriesSequence) {
-        setState(() => seriesError = error(e, series != null));
+        setState(
+          () => seriesError = series == null
+              ? error(e, '行程数据')
+              : _staleText(seriesCheckedAt),
+        );
         PerformanceTrace.mark(
           PerformancePoint.driveFailed,
           trial: widget.performanceTrial,
@@ -302,7 +328,13 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         });
       }
     } catch (e) {
-      if (valid()) setState(() => referenceError = error(e, reference != null));
+      if (valid()) {
+        setState(
+          () => referenceError = reference == null
+              ? error(e, '近 30 天电耗')
+              : _staleText(referenceFrom),
+        );
+      }
     } finally {
       if (valid()) setState(() => referenceLoading = false);
     }
@@ -337,9 +369,12 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   }
 
   String number(num? value, String unit, {int decimals = 0}) =>
-      value == null ? '—' : '${grouped(value, decimals: decimals)} $unit';
-  String time(DateTime t) =>
-      workspace.calendar!.local(t).toString().split('.').first;
+      value == null ? '—' : units.valueUnit(value, unit, decimals: decimals);
+  String place(String? p) => p == null || p.trim().isEmpty ? '未知地点' : p;
+
+  /// 站点日历可能在退出登录的那一帧被清掉；这一帧仍要能安全绘制。
+  DateTime local(DateTime value) => workspace.calendar?.local(value) ?? value;
+  String clock(DateTime value) => copy.formatTime(local(value));
 
   bool _referenceUsable(dto.DriveDetail d) {
     final r = reference;
@@ -352,98 +387,12 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         r.totals.consumptionWhKmNet != null;
   }
 
-  /// 单行口径提示：本次电耗与个人 30 日整体参照并排说明，替代旧的对比卡。
-  Widget _consumptionFootnote(BuildContext context, dto.DriveDetail d) {
-    final style = Theme.of(context).textTheme.bodySmall;
-    final ref = _referenceUsable(d)
-        ? reference!.totals.consumptionWhKmNet
-        : null;
-    final buffer = StringBuffer('本次 ${number(d.consumptionWhKm, 'Wh/km')}');
-    if (ref != null) {
-      buffer.write(
-        '，参考净电耗 ${number(ref, 'Wh/km')}'
-        '（此前30个完整本地日 · 全部路线；服务端估算，样本覆盖未知）',
-      );
-    } else {
-      buffer.write('，个人历史参照不可用');
-    }
-    buffer.write('；缺失不补点。');
-    final text = Text(buffer.toString(), style: style);
-    final line = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: ref == null
-              ? text
-              : Semantics(
-                  container: true,
-                  label: '参考净电耗 ${number(ref, 'Wh/km')}',
-                  child: ExcludeSemantics(child: text),
-                ),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: '电耗参照说明',
-          icon: const Icon(Icons.info_outline, size: 18),
-          onPressed: () => showDialog<void>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('电耗参照说明'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '本次净电耗与历史参考均为服务端估算。历史参考为行程开始日前30个完整本地日、同车全部路线的整体净电耗，不含本次。',
-                    ),
-                    if (referenceFrom != null && referenceTo != null)
-                      Text(
-                        '参考区间：${time(referenceFrom!)} 至 ${time(referenceTo!)}（不含结束时刻）；归期时区：$referenceZone',
-                      ),
-                    const Text('样本覆盖情况未知；路线、温度和交通可能不同，不能据此判断驾驶好坏或耗电原因。'),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('知道了'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        line,
-        if (referenceLoading)
-          MediaQuery.disableAnimationsOf(context)
-              ? const Text('正在读取历史参照…')
-              : const LinearProgressIndicator(),
-        if (referenceError != null)
-          Row(
-            children: [
-              Expanded(child: Text('个人历史参照：$referenceError', style: style)),
-              TextButton(
-                onPressed: () => loadReference(d, force: true),
-                child: const Text('重试历史参照'),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
+  num? _sampleValue(dto.DrivePoint point) => switch (metric) {
+    0 => point.speedKmh,
+    1 => point.batteryLevel,
+    _ => point.elevationM,
+  };
 
-  String shortDay(DateTime t) {
-    final d = workspace.calendar!.local(t);
-    return '${d.year}/${d.month}/${d.day}';
-  }
-
-  String place(String? p) => p == null || p.trim().isEmpty ? '未知地点' : p;
   MapScene _mapScene({required bool interactive}) {
     final points = series?.series ?? const <dto.DrivePoint>[];
     final selected = points.isEmpty
@@ -472,7 +421,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       selected: selected,
       selectedLabel: points.isEmpty
           ? null
-          : '选中采样位置 ${time(points[selectedSample].t)}',
+          : '选中采样位置 ${clock(points[selectedSample].t)}',
       brightness: Theme.of(context).brightness,
       interactive: interactive,
     );
@@ -491,18 +440,21 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     );
   }
 
-  String clock(DateTime value) {
-    final local = widget.workspace.calendar!.local(value);
-    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-  }
-
-  Widget _coverageBand(dto.DriveDetail d) {
+  /// R25 二级页身份块（画布层）：路线 title2 + 一行 subheadline 元信息（CP04）。
+  Widget _identity(dto.DriveDetail d) {
     final colors = context.colors;
     final type = context.type;
+    final today = local(workspace.session.now());
+    final start = local(d.startedAt);
+    final end = d.endedAt == null ? null : local(d.endedAt!);
+    final meta = end == null
+        ? '${copy.formatDay(start, today)} ${copy.formatTime(start)}，进行中'
+        : '${copy.formatDay(start, today)} '
+              '${copy.formatTimeRange(start, end, today: today)}';
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
-        MileafSpace.s12,
+        MileafSpace.s8,
         MileafLayout.pageInset(context),
         0,
       ),
@@ -511,120 +463,281 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         children: [
           Text(
             '${place(d.start.displayName)} → ${place(d.end.displayName)}',
-            style: type.title,
+            style: type.title2.copyWith(color: colors.text),
           ),
           const SizedBox(height: MileafSpace.s4),
           Text(
-            '${shortDay(d.startedAt)} · ${clock(d.startedAt)} → '
-            '${d.endedAt == null
-                ? '进行中'
-                : shortDay(d.startedAt) == shortDay(d.endedAt!)
-                ? clock(d.endedAt!)
-                : '${shortDay(d.endedAt!)} ${clock(d.endedAt!)}'}',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            '路线示意 · 非导航',
-            style: type.micro.copyWith(color: colors.textFaint),
+            meta,
+            style: type.subheadline.copyWith(color: colors.textSecondary),
           ),
         ],
       ),
     );
   }
 
-  Widget _results(dto.DriveDetail d) {
+  /// P04 地图卡：220 高、半径 20，卡下脚注说明路线示意（CP09 用逗号）。
+  /// 首次加载还没有明细与轨迹时给同形骨架（R31），不说「没有有效轨迹坐标」。
+  Widget _mapCard(BuildContext context) {
+    final inset = MileafLayout.pageInset(context);
+    final firstLoad = detail == null && series == null && seriesLoading;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(inset, MileafSpace.s12, inset, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (firstLoad)
+            const SkeletonBlock(
+              width: double.infinity,
+              height: MapPanel.detailHeight,
+            )
+          else
+            MapPanel(
+              key: ValueKey('map:${owner.generation}:$vehicle:${widget.id}'),
+              scene: _mapScene(interactive: false),
+              consent: _mapConsent,
+              platform: _mapPlatform,
+              height: MapPanel.detailHeight,
+              borderRadius: BorderRadius.circular(MileafRadius.lg),
+              onExpand: () => _openFullMap(context),
+            ),
+          const SizedBox(height: MileafSpace.s8),
+          Text(
+            '路线示意，非导航路线',
+            style: context.type.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// R21.5：详情页三列关键值只用 metricSm，放不下时网格自己收列。
+  Widget _keyValues(dto.DriveDetail d) {
     final cells = [
       MetricBlock(
         label: '距离',
-        value: number(d.distanceKm, 'km', decimals: 1).replaceAll(' km', ''),
+        // R22：数值与单位各占一个角色，值里不再重复单位。
+        value: d.distanceKm == null
+            ? null
+            : grouped(d.distanceKm!, decimals: 1),
         unit: d.distanceKm == null ? null : 'km',
-        scale: MetricValueScale.metricMd,
+        scale: MetricValueScale.metricSm,
         semanticLabel: '距离 ${number(d.distanceKm, 'km', decimals: 1)}',
       ),
       MetricBlock(
         label: '时长',
         value: d.durationMin == null ? '—' : '${d.durationMin}',
         unit: d.durationMin == null ? null : '分钟',
-        scale: MetricValueScale.metricMd,
+        scale: MetricValueScale.metricSm,
         semanticLabel: '时长 ${number(d.durationMin, '分钟')}',
       ),
       MetricBlock(
-        label: '净电耗',
+        label: '电耗',
         value: d.consumptionWhKm == null ? '—' : grouped(d.consumptionWhKm!),
         unit: d.consumptionWhKm == null ? null : 'Wh/km',
-        scale: MetricValueScale.metricMd,
-        semanticLabel: '净电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+        scale: MetricValueScale.metricSm,
+        semanticLabel: '电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
       ),
     ];
-    if (MileafLayout.largeText(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: cells[0]),
-              const SizedBox(width: MileafSpace.s16),
-              Expanded(child: cells[1]),
-            ],
-          ),
-          const SizedBox(height: MileafSpace.s20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: cells[2]),
-              const Expanded(child: SizedBox()),
-            ],
+    return MetricGrid(spacing: MileafSpace.s12, children: cells);
+  }
+
+  Widget _segments() => ChipRow(
+    children: [
+      for (var i = 0; i < _sampleLabels.length; i++)
+        StatusChip(
+          label: _sampleLabels[i],
+          selected: metric == i,
+          onTap: () => setState(() => metric = i),
+        ),
+    ],
+  );
+
+  /// 过程曲线：完整读数头（R29，detail 尺度）+ 步进 + 绘图区 200。
+  /// 读数头日期行用 CP04 DF9 时间级 HH:mm；精确时间进「关于这些数据」。
+  Widget _processChart(dto.DriveSeries s) {
+    // 图表按站点墙钟画轴与读数：数据点的时间是 UTC 瞬时，先换成站点日历，
+    // 否则 X 轴会比读数头早 8 小时（与概览/行程节奏图同一处理）。
+    final wall = [for (final point in s.series) local(point.t)];
+    return KeyedSubtree(
+      key: defaultCurveKey,
+      child: TimeSeriesChart(
+        // R21.4：卡片标题只写一次「行驶过程」，分段紧接标题，读数头在分段之下。
+        title: '行驶过程',
+        controls: _segments(),
+        unit: _sampleUnits[metric],
+        times: wall,
+        series: [
+          ChartSeries(
+            label: _sampleLabels[metric],
+            values: [for (final point in s.series) _sampleValue(point)],
           ),
         ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: cells[0]),
-        const SizedBox(width: MileafSpace.s16),
-        Expanded(child: cells[1]),
-        const SizedBox(width: MileafSpace.s16),
-        Expanded(child: cells[2]),
-      ],
+        semanticsLabel: '${_sampleLabels[metric]}过程图表',
+        height: MileafSpace.detailChartHeight,
+        showYAxis: true,
+        yRange: metric == 1 ? (0, 100) : null,
+        selectedIndex: selectedSample,
+        onSelected: (index) => setState(() => selectedSample = index),
+        readoutScale: ChartReadoutScale.detail,
+        readoutDate: copy.formatTime,
+        plotKey: const ValueKey('sample-chart'),
+        emptyMessage: '没有采样点',
+      ),
     );
   }
 
-  Widget _batterySection(dto.DriveDetail d) {
+  /// P04 行驶过程卡：卡片标题 + 分段 + 读数头与绘图区。
+  Widget _processCard() {
     final colors = context.colors;
     final type = context.type;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: '行程电量区间'),
-        const SizedBox(height: MileafSpace.s8),
-        SocIntervalBar(start: d.start.batteryLevel, end: d.end.batteryLevel),
-        if (d.endedAt != null &&
-            d.start.batteryLevel != null &&
-            d.end.batteryLevel != null)
-          Text(
-            '电量${d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加'} '
-            '${(d.start.batteryLevel! - d.end.batteryLevel!).abs()} 个百分点',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-      ],
+    final s = series;
+    return MileafModuleCard(
+      // 交付手册 §6 退让阶梯第 1、2 步：卡片标题与图表标题只留一处，
+      // 焦点卡内边 16 → 8（AP07 统计卡的同一取舍）。
+      padding: const EdgeInsets.all(MileafSpace.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (s == null && seriesLoading)
+            const SkeletonBlock(width: double.infinity, height: 160),
+          if (s == null && !seriesLoading && seriesError != null)
+            InlineBanner(
+              message: seriesError!,
+              tone: BannerTone.error,
+              actionLabel: '重试',
+              onAction: loadSeries,
+            ),
+          if (s != null) _processChart(s),
+          if (s != null && s.resolution != 'server_sampled')
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: Text(
+                '无采样数据',
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+            ),
+          if (seriesLoading && s != null)
+            const Padding(
+              padding: EdgeInsets.only(top: MileafSpace.s8),
+              child: MileafProgressLine(),
+            ),
+          if (seriesError != null && s != null)
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: InlineBanner(
+                message: seriesError!,
+                tone: BannerTone.error,
+                actionLabel: '重试',
+                onAction: loadSeries,
+              ),
+            ),
+          // CP07：单点与当前指标全空各有一个人话句，不画假的趋势。
+          if (s != null && s.series.length == 1)
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: Text(
+                '只有 1 个数据点，无法画出变化',
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+            ),
+          if (s != null &&
+              s.series.isNotEmpty &&
+              s.series.every((point) => _sampleValue(point) == null))
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s8),
+              child: Text(
+                '这一项没有记录',
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+            ),
+          // 电量对照是这张图的追加动作：上方 1px 分隔线把它与图表分开，
+          // 展开后就地长出第二张图（P04 只改名称，结构不变）；切到电量指标时
+          // 这一行卸载，切回时由页面状态恢复展开。
+          if (s != null && metric != 1) ...[
+            const SizedBox(height: MileafSpace.s12),
+            MileafDisclosure(
+              key: const ValueKey('battery-pair'),
+              label: '同时查看电量',
+              meta: '与行驶过程同屏',
+              emphasis: true,
+              topLine: true,
+              expanded: batteryPaired,
+              onExpandedChanged: (value) =>
+                  setState(() => batteryPaired = value),
+              child: TimeSeriesChart(
+                title: '电量过程',
+                unit: '%',
+                times: [for (final point in s.series) local(point.t)],
+                series: [
+                  ChartSeries(
+                    label: '电量',
+                    values: [for (final point in s.series) point.batteryLevel],
+                  ),
+                ],
+                semanticsLabel: '电量过程图表',
+                height: MileafSpace.detailChartHeight,
+                showYAxis: true,
+                yRange: (0, 100),
+                selectedIndex: selectedSample,
+                onSelected: (index) => setState(() => selectedSample = index),
+                readoutScale: ChartReadoutScale.detail,
+                readoutDate: copy.formatTime,
+                plotKey: const ValueKey('paired-sample-chart'),
+                emptyMessage: '没有采样点',
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  /// 字段名 → 值 → 单位各占一个角色：值靠右排成一列，单位小一档，
-  /// 缺失值只出「—」不配单位（与概览读数表同一口径）。
-  Widget _techSection(dto.DriveDetail d) {
+  /// P04 电量变化卡：区间端点 + 百分点差；未知端点不伪造补能或零。
+  Widget _batteryCard(dto.DriveDetail d) {
     final colors = context.colors;
     final type = context.type;
+    final known =
+        d.endedAt != null &&
+        d.start.batteryLevel != null &&
+        d.end.batteryLevel != null;
+    final delta = known
+        ? (d.start.batteryLevel! - d.end.batteryLevel!).abs()
+        : null;
+    // CP03：增减只在句子里写「下降 / 增加」，不用箭头符号。
+    final verb = !known
+        ? null
+        : (d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加');
+    return MileafModuleCard(
+      padding: const EdgeInsets.all(MileafSpace.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('电量变化', style: type.headline.copyWith(color: colors.text)),
+          const SizedBox(height: MileafSpace.s12),
+          SocIntervalBar(start: d.start.batteryLevel, end: d.end.batteryLevel),
+          if (delta != null && verb != null) ...[
+            const SizedBox(height: MileafSpace.s8),
+            Text(
+              '电量$verb $delta 个百分点',
+              style: type.footnote.copyWith(color: colors.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 驾驶与环境：字段名 / 值两列，数字右边缘落同一条竖线（事实表组件）。
+  Widget _factsCard(dto.DriveDetail d) {
     String? value(num? raw, {int decimals = 0}) =>
         raw == null ? null : grouped(raw, decimals: decimals);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SectionHeader(title: '驾驶与环境'),
-        const SizedBox(height: MileafSpace.s4),
+        const SizedBox(height: MileafSpace.s8),
         MileafFactList(
           key: const ValueKey('drive-facts'),
           facts: [
@@ -651,89 +764,169 @@ class _DriveDetailPageState extends State<DriveDetailPage>
             MileafFact(label: '最大功率', value: value(d.powerMaxKw), unit: 'kW'),
           ],
         ),
+      ],
+    );
+  }
+
+  /// P04 参考电耗卡「与近 30 天相比」：本次与近 30 天两个值 + 一句共享限定。
+  Widget _referenceCard(dto.DriveDetail d) {
+    final colors = context.colors;
+    final type = context.type;
+    final ref = _referenceUsable(d)
+        ? reference!.totals.consumptionWhKmNet
+        : null;
+    final cells = <Widget>[
+      MetricBlock(
+        label: '本次',
+        value: d.consumptionWhKm == null ? '—' : grouped(d.consumptionWhKm!),
+        unit: d.consumptionWhKm == null ? null : 'Wh/km',
+        scale: MetricValueScale.metricSm,
+        semanticLabel: '本次 ${number(d.consumptionWhKm, 'Wh/km')}',
+      ),
+      if (ref != null)
+        MetricBlock(
+          label: '近 30 天',
+          value: grouped(ref),
+          unit: 'Wh/km',
+          scale: MetricValueScale.metricSm,
+          semanticLabel: '近 30 天 ${number(ref, 'Wh/km')}',
+        ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(title: '与近 30 天相比'),
         const SizedBox(height: MileafSpace.s8),
-        MileafDisclosure(
-          // 与「对照电量」同一档：动作行比脚注行实一档，不读成表里的第六行。
-          label: '更多行程指标',
-          meta: '记录、端点电量与口径',
-          emphasis: true,
-          topLine: true,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('行程记录 #${d.id}', style: type.micro),
-                Text(
-                  '${time(d.startedAt)} → ${d.endedAt == null ? '进行中' : time(d.endedAt!)}',
-                  style: type.micro.copyWith(color: colors.textMuted),
+        MileafModuleCard(
+          padding: const EdgeInsets.all(MileafSpace.s12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              MetricGrid(spacing: MileafSpace.s12, children: cells),
+              const SizedBox(height: MileafSpace.s8),
+              Text(
+                '均为服务器估算；路线、天气和交通不同，不代表驾驶好坏。',
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+              if (referenceLoading)
+                Padding(
+                  padding: const EdgeInsets.only(top: MileafSpace.s8),
+                  child: MediaQuery.disableAnimationsOf(context)
+                      ? Text(
+                          '正在读取近 30 天电耗',
+                          style: type.footnote.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        )
+                      : const LinearProgressIndicator(),
                 ),
-                for (final endpoint in [('起点', d.start), ('终点', d.end)]) ...[
-                  if (endpoint.$2.geofence?.trim().isNotEmpty == true &&
-                      endpoint.$2.geofence != endpoint.$2.displayName)
-                    Text(
-                      '${endpoint.$1}围栏：${endpoint.$2.geofence}',
-                      style: type.micro.copyWith(color: colors.textMuted),
-                    ),
-                  if (endpoint.$2.address?.trim().isNotEmpty == true &&
-                      endpoint.$2.address != endpoint.$2.displayName &&
-                      endpoint.$2.address != endpoint.$2.geofence)
-                    Text(
-                      '${endpoint.$1}地址：${endpoint.$2.address}',
-                      style: type.micro.copyWith(color: colors.textMuted),
-                    ),
-                ],
-                Text(
-                  '净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}',
-                  style: type.micro.copyWith(color: colors.textMuted),
+              if (referenceError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: MileafSpace.s8),
+                  child: InlineBanner(
+                    message: referenceError!,
+                    tone: BannerTone.error,
+                    actionLabel: '重试',
+                    onAction: () => loadReference(d, force: true),
+                  ),
                 ),
-                Text(
-                  '起点电量 ${number(d.start.batteryLevel, '%')}',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                Text(
-                  '终点电量 ${number(d.end.batteryLevel, '%')}',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-                Text(
-                  '续航口径：${d.rangeKind == 'rated'
-                      ? '额定'
-                      : d.rangeKind == 'ideal'
-                      ? '理想（ideal）'
-                      : '未知'}；以上为服务端公制结果，未二次换算',
-                  style: type.micro.copyWith(color: colors.textMuted),
-                ),
-              ],
-            ),
+            ],
           ),
         ),
       ],
     );
   }
 
+  /// R30.2 页尾「关于这些数据」五类，缺哪类就不出现；技术详情可复制。
+  Widget _notes(dto.DriveDetail d) {
+    final s = series;
+    final valid = s == null
+        ? 0
+        : s.series.where((point) => _sampleValue(point) != null).length;
+    final reference = _referenceUsable(d);
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.section),
+      child: MileafDataNotes(
+        groups: [
+          MileafDataNoteGroup(
+            category: DataNoteCategory.caliber,
+            note:
+                '速度数据、电量与海拔来自服务器数据点，连线只表示采样顺序，缺失点断线，不补点也不补零。${reference ? '近 30 天为行程开始日前 30 个完整本地日、同车全部路线的整体电耗，均为服务器估算；路线、天气和交通不同，不代表驾驶好坏。' : ''}',
+          ),
+          if (s != null)
+            MileafDataNoteGroup(
+              category: DataNoteCategory.records,
+              note: s.resolution == 'server_sampled'
+                  ? '服务器返回 ${s.points} 个数据点，其中当前指标有效 $valid 个。'
+                  : '这段行程没有服务端采样数据点。',
+            ),
+          MileafDataNoteGroup(
+            category: DataNoteCategory.time,
+            note:
+                '所有时间按站点日历显示，统计时区 ${workspace.calendar?.identifier ?? '—'}；行程开始于 ${copy.formatPrecise(local(d.startedAt))}。',
+          ),
+          if (detailCheckedAt != null)
+            MileafDataNoteGroup(
+              category: DataNoteCategory.source,
+              copyable: true,
+              note: '数据生成时间 ${copy.formatPrecise(local(detailCheckedAt!))}。',
+            ),
+          MileafDataNoteGroup(
+            category: DataNoteCategory.technical,
+            copyable: true,
+            note: _recordInfo(d),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _recordInfo(dto.DriveDetail d) {
+    final buffer = StringBuffer('行程记录 ${d.id}');
+    for (final endpoint in [('起点', d.start), ('终点', d.end)]) {
+      final place = endpoint.$2;
+      if (place.geofence?.trim().isNotEmpty == true &&
+          place.geofence != place.displayName) {
+        buffer.write('；${endpoint.$1}围栏 ${place.geofence}');
+      }
+      if (place.address?.trim().isNotEmpty == true &&
+          place.address != place.displayName &&
+          place.address != place.geofence) {
+        buffer.write('；${endpoint.$1}地址 ${place.address}');
+      }
+    }
+    buffer.write('；净能量 ${number(d.energyKwh, 'kWh', decimals: 2)}');
+    buffer.write('；起点电量 ${number(d.start.batteryLevel, '%')}');
+    buffer.write('；终点电量 ${number(d.end.batteryLevel, '%')}');
+    buffer.write('；续航口径 ${rangeKindFor(d.rangeKind)}');
+    return buffer.toString();
+  }
+
+  String rangeKindFor(String? kind) => kind == 'rated'
+      ? '额定'
+      : kind == 'ideal'
+      ? '理想'
+      : '未知';
+
   @override
   Widget build(BuildContext context) {
     final inset = MileafLayout.pageInset(context);
+    final d = detail;
     return Scaffold(
       appBar: mileafPageBar(
         context,
         title: const Text('行程详情'),
         actions: [
-          IconButton(
-            tooltip: '刷新行程明细',
-            onPressed: detailLoading ? null : loadDetail,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: '刷新行程采样',
-            onPressed: seriesLoading ? null : loadSeries,
-            icon: const Icon(Icons.show_chart),
+          MileafIconButton(
+            icon: MileafIconName.refresh,
+            tooltip: '刷新行程详情',
+            onPressed: detailLoading || seriesLoading ? null : refreshAll,
           ),
         ],
       ),
       body: MileafContent(
         child: RefreshIndicator(
-          onRefresh: () => Future.wait([loadDetail(), loadSeries()]),
+          onRefresh: refreshAll,
           child: NotificationListener<ScrollNotification>(
             onNotification: (_) {
               traceReady();
@@ -744,265 +937,116 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               padding: EdgeInsets.zero,
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                if (detail case final d?) _coverageBand(d),
-                const SizedBox(height: MileafSpace.s12),
-                MapPanel(
-                  key: ValueKey(
-                    'map:${owner.generation}:$vehicle:${widget.id}',
-                  ),
-                  scene: _mapScene(interactive: false),
-                  consent: _mapConsent,
-                  platform: _mapPlatform,
-                  height: MapPanel.detailHeight,
-                  borderRadius: BorderRadius.zero,
-                  onExpand: () => _openFullMap(context),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(inset, MileafSpace.s8, inset, 0),
-                  child: Text(
-                    '行程地图',
-                    style: context.type.micro.copyWith(
-                      color: context.colors.textFaint,
+                if (d != null) _identity(d),
+                _mapCard(context),
+                if (detailLoading && d == null)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: inset,
+                      vertical: MileafSpace.s12,
                     ),
-                  ),
-                ),
-                if (detailLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: MileafSpace.s20),
-                    child: MileafProgressLine(),
+                    child: const MileafProgressLine(),
                   ),
                 if (detailError != null)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       inset,
-                      MileafSpace.s8,
+                      MileafSpace.s12,
                       inset,
                       0,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        InlineBanner(
-                          message: detailError!,
-                          tone: BannerTone.error,
-                          actionLabel: '重试行程明细',
-                          onAction: loadDetail,
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            onPressed: () {
-                              widget.onReturnToList?.call();
-                              Navigator.pop(context);
-                            },
-                            child: const Text('返回行程列表'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (seriesLoading && series == null)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s8,
-                      inset,
-                      0,
-                    ),
-                    child: Text(
-                      '正在读取轨迹采样',
-                      style: context.type.micro.copyWith(
-                        color: context.colors.textMuted,
-                      ),
-                    ),
-                  ),
-                if (seriesError != null && series == null)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s8,
-                      inset,
-                      0,
-                    ),
-                    child: Text(
-                      '轨迹采样暂不可用，可在行程采样区域重试',
-                      style: context.type.micro.copyWith(
-                        color: context.colors.textMuted,
-                      ),
-                    ),
-                  ),
-                if (detail case final d?)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s20,
-                      inset,
-                      0,
-                    ),
-                    child: _results(d),
-                  ),
-                if (seriesLoading)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s8,
-                      inset,
-                      0,
-                    ),
-                    child: const MileafProgressLine(),
-                  ),
-                if (seriesError != null)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s8,
-                      inset,
-                      0,
-                    ),
-                    child: InlineBanner(
-                      message: seriesError!,
-                      tone: BannerTone.error,
-                      actionLabel: '重试行程采样',
-                      onAction: loadSeries,
-                    ),
-                  ),
-                if (series case final s?)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.section,
-                      inset,
-                      0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (s.resolution != 'server_sampled')
-                          Text(
-                            '无采样数据',
-                            style: context.type.body.copyWith(
-                              color: context.colors.textMuted,
-                            ),
-                          ),
-                        ChipRow(
-                          children: [
-                            for (var i = 0; i < _sampleMetrics.length; i++)
-                              StatusChip(
-                                label: _sampleMetrics[i].label,
-                                selected: metric == i,
-                                onTap: () => setState(() => metric = i),
+                    child: d == null
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              InlineBanner(
+                                message: detailError!,
+                                tone: BannerTone.error,
+                                actionLabel: '重试',
+                                onAction: loadDetail,
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: MileafSpace.s12),
-                        SampleChart(
-                          plotObserverKey: defaultCurveKey,
-                          points: [
-                            for (final p in s.series)
-                              (
-                                p.t,
-                                switch (metric) {
-                                  0 => p.speedKmh,
-                                  1 => p.batteryLevel,
-                                  _ => p.elevationM,
-                                },
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: MileafButton(
+                                  label: '返回行程列表',
+                                  kind: MileafButtonKind.ghost,
+                                  onPressed: () {
+                                    widget.onReturnToList?.call();
+                                    Navigator.pop(context);
+                                  },
+                                ),
                               ),
-                          ],
-                          label: _sampleMetrics[metric].label,
-                          title: _sampleMetrics[metric].title,
-                          unit: _sampleMetrics[metric].unit,
-                          timestamp: clock,
-                          readoutTimestamp: time,
-                          height: MileafSpace.detailChartHeight,
-                          showYAxis: true,
-                          yRange: metric == 1 ? (0, 100) : null,
-                          selectedIndex: selectedSample,
-                          onSelected: (i) => setState(() => selectedSample = i),
-                        ),
-                        MileafDisclosure(
-                          label: '采样数据说明',
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              s.resolution == 'server_sampled'
-                                  ? '服务端采样 ${s.points} 点'
-                                  : '无采样数据',
-                              style: context.type.micro.copyWith(
-                                color: context.colors.textMuted,
-                              ),
-                            ),
+                            ],
+                          )
+                        : InlineBanner(
+                            message: detailError!,
+                            tone: BannerTone.error,
+                            actionLabel: '重试',
+                            onAction: loadDetail,
                           ),
-                        ),
-                        // 电量对照是这张图的追加动作，不是又一条脚注：上方 1px
-                        // 分隔线把它与「图表 + 数据说明」分开，标签用正文色，
-                        // 展开后就地长出第二张图，不跳到别的页面。
-                        if (metric != 1)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: MileafSpace.s12,
-                            ),
-                            child: MileafDisclosure(
-                              key: const ValueKey('battery-pair'),
-                              // 动作行：动词 + 对象（R12），说明行才用名词短语。
-                              label: '对照电量',
-                              meta: '与速度过程同屏',
-                              emphasis: true,
-                              topLine: true,
-                              expanded: batteryPaired,
-                              onExpandedChanged: (value) =>
-                                  setState(() => batteryPaired = value),
-                              child: SampleChart(
-                                points: [
-                                  for (final p in s.series)
-                                    (p.t, p.batteryLevel),
-                                ],
-                                label: '电量',
-                                title: '电量过程',
-                                unit: '%',
-                                timestamp: clock,
-                                readoutTimestamp: time,
-                                height: MileafSpace.detailChartHeight,
-                                showYAxis: true,
-                                selectedIndex: selectedSample,
-                                onSelected: (i) =>
-                                    setState(() => selectedSample = i),
-                                yRange: (0, 100),
-                                plotKey: const ValueKey('paired-sample-chart'),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
                   ),
-                if (detail case final d?)
+                if (d != null)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.section,
-                      inset,
-                      0,
-                    ),
-                    child: _batterySection(d),
-                  ),
-                if (detail case final d?)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.section,
-                      inset,
-                      0,
-                    ),
-                    child: _techSection(d),
-                  ),
-                if (detail case final d?)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      inset,
-                      MileafSpace.s20,
                       inset,
                       MileafSpace.s24,
+                      inset,
+                      0,
                     ),
-                    child: _consumptionFootnote(context, d),
+                    child: _keyValues(d),
+                  ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    inset,
+                    MileafSpace.s24,
+                    inset,
+                    0,
+                  ),
+                  child: _processCard(),
+                ),
+                if (d != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s24,
+                      inset,
+                      0,
+                    ),
+                    child: _batteryCard(d),
+                  ),
+                if (d != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s32,
+                      inset,
+                      0,
+                    ),
+                    child: _factsCard(d),
+                  ),
+                if (d != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s32,
+                      inset,
+                      0,
+                    ),
+                    child: _referenceCard(d),
+                  ),
+                if (d != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      inset,
+                      MileafSpace.s32,
+                      inset,
+                      MileafSpace.s32,
+                    ),
+                    child: _notes(d),
+                  ),
+                if (d == null)
+                  SizedBox(
+                    height: MileafLayout.rootNavigationClearance(context),
                   ),
               ],
             ),

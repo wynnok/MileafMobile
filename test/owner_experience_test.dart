@@ -66,7 +66,8 @@ void main() {
       briefing: true,
       ownerCapabilities: true,
     );
-    expect(find.text('持平'), findsOneWidget);
+    // P01：读值第三行把参照与差值写成一句（CP03 用「持平」写进句子）。
+    expect(find.textContaining('，持平'), findsWidgets);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-reading-plate')),
@@ -77,24 +78,51 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('overview-reading-plate')),
-        matching: find.text('已知费用'),
+        matching: find.text('已记录费用'),
       ),
       findsOneWidget,
     );
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    // 电耗对比：配对净电耗与上月同期的实际差值（旧「配对净电耗较参照差」迁到这里）。
+    await tester.scrollUntilVisible(find.text('电耗对比').hitTestable(), 150);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('2 / 8 次'), 120);
-    await tester.pumpAndSettle();
-    expect(find.text('费用有记录'), findsOneWidget);
-    expect(find.textContaining('0.4/kWh'), findsWidgets);
+    // 对照句按「电耗」口径写成句子（不再有箭头与「差 +x」）。
+    expect(find.text('电耗与上月同期相同'), findsOneWidget);
+    final page = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.textContaining('配对净电耗较参照差 -12.5'),
+      find.text('关于这些数据').hitTestable(),
       150,
+      scrollable: page,
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('配对净电耗较参照差 -12.5'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('记录与缺失').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('记录与缺失').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('费用记录：8 次中 2 次有费用'),
+      150,
+      scrollable: page,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('费用记录：8 次中 2 次有费用'), findsOneWidget);
+    // 概览的数值按 0 位小数写（187.5 → 188）。
+    expect(find.textContaining('有效行程电耗 188 Wh/km'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('口径与估算').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('口径与估算').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('充入均价按充入电池的电量计'),
+      150,
+      scrollable: page,
+    );
+    expect(find.textContaining('充入均价按充入电池的电量计'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -126,14 +154,32 @@ void main() {
       findsOneWidget,
       reason: '缺失的净电耗落在自己的格子里',
     );
-    await tester.scrollUntilVisible(find.text('数据说明与更多').hitTestable(), 150);
+    // 缺配对字段：不给「有效行程电耗」，也不编造区间比较结论。
+    final page = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('电耗对比').hitTestable(),
+      150,
+      scrollable: page,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('数据说明与更多'));
+    // 配对口径缺失时对照句只说「口径未确认」，不给旧值差值。
+    expect(find.text('数据口径未确认，暂不比较'), findsOneWidget);
+    expect(find.textContaining('电耗比上月同期'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('关于这些数据').hitTestable(),
+      150,
+      scrollable: page,
+    );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.textContaining('未用旧净电耗替代配对值'), 150);
+    await tester.scrollUntilVisible(
+      find.text('记录与缺失').hitTestable(),
+      150,
+      scrollable: page,
+    );
+    await tester.tap(find.text('记录与缺失').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.textContaining('未用旧净电耗替代配对值'), findsOneWidget);
-    expect(find.textContaining('配对净电耗较参照差'), findsNothing);
+    expect(find.textContaining('有效行程电耗'), findsNothing);
+    expect(find.textContaining('缺失显示 —，未知不等于 0'), findsOneWidget);
   });
   testWidgets('车主从概览直达用车节奏，沿用本月与车辆且不提前加载专题', (tester) async {
     final seen = <Uri>[];
@@ -161,7 +207,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 160);
     await tester.tap(find.text('节奏').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('活跃 12 天'), findsOneWidget);
+    expect(find.text('用车 12 天'), findsOneWidget);
     final query = seen.lastWhere((u) => u.path.endsWith('/driving-analysis'));
     expect(query.path, contains('/vehicles/1/'));
     expect(query.queryParameters['tz'], 'Asia/Shanghai');
@@ -175,7 +221,7 @@ void main() {
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('统计')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('活跃 12 天'), findsOneWidget);
+    expect(find.text('用车 12 天'), findsOneWidget);
   });
 
   testWidgets('统计主结果包含驾驶时长和有效趟数，节奏有显式入口', (tester) async {
@@ -186,15 +232,27 @@ void main() {
       () => 'Asia/Shanghai',
       statisticsInsights: true,
     );
+    final page = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.text('数据说明与更多').hitTestable(),
+      find.text('关于这些数据').hitTestable(),
       120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: page,
     );
-    await tester.tap(find.text('数据说明与更多').hitTestable());
+    await tester.scrollUntilVisible(
+      find.text('记录与缺失').hitTestable(),
+      120,
+      scrollable: page,
+    );
+    await tester.tap(find.text('记录与缺失').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.text('记录驾驶时长'), findsOneWidget);
-    expect(find.text('60 分钟'), findsOneWidget);
+    // CP03：驾驶时长写「1 小时」，趟数紧随其后。
+    await tester.scrollUntilVisible(
+      find.textContaining('有记录的驾驶时长 1 小时'),
+      120,
+      scrollable: page,
+    );
+    expect(find.textContaining('有记录的驾驶时长 1 小时'), findsOneWidget);
+    expect(find.textContaining('5 趟有记录'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('节奏').hitTestable(),
       -240,

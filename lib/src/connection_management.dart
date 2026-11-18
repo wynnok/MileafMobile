@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-
 import 'api.dart';
 import 'design/components/components.dart';
+import 'design/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -123,111 +123,85 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('当前连接', style: context.type.label),
+              const MileafGroupHeader(title: '当前连接'),
               const SizedBox(height: MileafSpace.s8),
-              Text(
-                widget.session.site!.uri.toString(),
-                style: context.type.body,
-              ),
-              const SizedBox(height: MileafSpace.s12),
-              Text(
-                '车辆与用车记录来自此站点。',
-                style: context.type.body.copyWith(
-                  color: context.colors.textMuted,
-                ),
-              ),
-              const SizedBox(height: MileafSpace.section),
-              if (!_editing) ...[
-                MileafDataRow(
-                  title: '更换连接',
-                  meta: '连接另一个 Mileaf 站点',
-                  showChevron: true,
-                  topLine: true,
-                  bottomLine: true,
-                  enabled: !_busy,
-                  onTap: _edit,
-                ),
-                MileafDataRow(
-                  title: '重新登录当前站点',
-                  meta: '使用站点口令更新本机访问',
-                  showChevron: true,
-                  bottomLine: true,
-                  enabled: !_busy,
-                  onTap: _edit,
-                ),
-              ] else ...[
-                const SectionHeader(title: '编辑连接'),
-                const SizedBox(height: MileafSpace.s8),
-                Text(
-                  '验证新连接和车辆成功后才替换；失败时保留当前连接。',
-                  style: context.type.body.copyWith(
-                    color: context.colors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: MileafSpace.s16),
-                TextFormField(
-                  controller: _address,
-                  enabled: !_busy,
-                  style: context.type.body,
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  decoration: const InputDecoration(labelText: '服务根地址'),
-                  onChanged: (_) => setState(() => _trust = false),
-                ),
-                const SizedBox(height: MileafSpace.s16),
-                TextFormField(
-                  controller: _password,
-                  enabled: !_busy,
-                  style: context.type.body,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  decoration: const InputDecoration(labelText: '站点访问口令'),
-                ),
-                if (_address.text.trim().startsWith('http:')) ...[
-                  const SizedBox(height: MileafSpace.s12),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    value: _trust,
-                    onChanged: _busy
-                        ? null
-                        : (value) => setState(() => _trust = value ?? false),
-                    title: Text(
-                      '此确切站点使用可信私网或 VPN；HTTP 会明文传输凭据',
-                      style: context.type.body,
+              MileafGroupCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(MileafSpace.s16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.session.site!.uri.toString(),
+                            style: context.type.body,
+                          ),
+                          const SizedBox(height: MileafSpace.s4),
+                          Text(
+                            '车辆与用车记录来自此站点。',
+                            style: context.type.footnote.copyWith(
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: MileafSpace.s16),
-                FilledButton(
-                  onPressed: _busy ? null : _replace,
-                  child: Text(_busy ? '正在验证…' : '验证并替换连接'),
-                ),
-                if (_message != null) ...[
-                  const SizedBox(height: MileafSpace.s8),
-                  _feedback(context),
-                ],
-                const SizedBox(height: MileafSpace.s4),
-                TextButton(
-                  onPressed: _busy ? null : _cancelEdit,
-                  child: const Text('取消编辑'),
-                ),
-              ],
-              const SizedBox(height: MileafSpace.s32),
-              Text('本机访问', style: context.type.label),
-              const SizedBox(height: MileafSpace.s8),
-              Text(
-                '退出后清除本机访问授权，保留站点地址以便重新连接。其他设备的登录状态不受影响。',
-                style: context.type.body.copyWith(
-                  color: context.colors.textMuted,
+                    if (!_editing) ...[
+                      MileafGroupRow(
+                        title: '更换连接',
+                        meta: '连接另一个 Mileaf 站点',
+                        trailing: _chevron(context),
+                        bottomLine: true,
+                        enabled: !_busy,
+                        onTap: _edit,
+                      ),
+                      MileafGroupRow(
+                        title: '重新登录当前站点',
+                        meta: '使用站点口令更新本机访问',
+                        trailing: _chevron(context),
+                        enabled: !_busy,
+                        onTap: _edit,
+                      ),
+                    ] else
+                      ..._editForm(context),
+                  ],
                 ),
               ),
-              const SizedBox(height: MileafSpace.s16),
-              OutlinedButton(
-                onPressed: _busy ? null : _logout,
-                child: const Text('退出此设备'),
+              if (_editing && _message != null) ...[
+                const SizedBox(height: MileafSpace.s8),
+                _feedback(context),
+              ],
+              const SizedBox(height: MileafSpace.section),
+              const MileafGroupHeader(title: '本机访问'),
+              const SizedBox(height: MileafSpace.s8),
+              MileafGroupCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(MileafSpace.s16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // CP12 冻结文案：退出此设备说明逐字保留。
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '退出后清除本机访问授权，保留站点地址以便重新连接。其他设备的登录状态不受影响。',
+                          style: context.type.body.copyWith(
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: MileafSpace.s16),
+                      MileafButton(
+                        label: '退出此设备',
+                        kind: MileafButtonKind.secondary,
+                        expand: true,
+                        onPressed: _busy ? null : _logout,
+                      ),
+                    ],
+                  ),
+                ),
               ),
               if (!_editing && _message != null) ...[
                 const SizedBox(height: MileafSpace.s8),
@@ -240,11 +214,96 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
     ),
   );
 
+  /// 编辑态替换「更换连接 / 重新登录当前站点」两个动作行；替换说明为
+  /// CP12 冻结文案，只调整排版。
+  List<Widget> _editForm(BuildContext context) => [
+    Padding(
+      padding: const EdgeInsets.all(MileafSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '验证新连接和车辆成功后才替换；失败时保留当前连接。',
+              style: context.type.body.copyWith(
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          TextFormField(
+            controller: _address,
+            enabled: !_busy,
+            style: context.type.body,
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.next,
+            autocorrect: false,
+            decoration: const InputDecoration(labelText: '服务根地址'),
+            onChanged: (_) => setState(() => _trust = false),
+          ),
+          const SizedBox(height: MileafSpace.s16),
+          TextFormField(
+            controller: _password,
+            enabled: !_busy,
+            style: context.type.body,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: const InputDecoration(labelText: '站点访问口令'),
+          ),
+          if (_address.text.trim().startsWith('http:')) ...[
+            const SizedBox(height: MileafSpace.s12),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _trust,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _trust = value ?? false),
+              title: Text(
+                // CP12 冻结文案：HTTP 信任确认逐字保留。
+                '此确切站点使用可信私网或 VPN；HTTP 会明文传输凭据',
+                style: context.type.body,
+              ),
+            ),
+          ],
+          const SizedBox(height: MileafSpace.s16),
+          // R27：主按钮胶囊；处理中保留文字并在尾部加活动指示器。
+          MileafButton(
+            label: '验证并替换连接',
+            expand: true,
+            loading: _busy,
+            onPressed: _busy ? null : _replace,
+          ),
+          const SizedBox(height: MileafSpace.s4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MileafButton(
+              label: '取消编辑',
+              kind: MileafButtonKind.ghost,
+              onPressed: _busy ? null : _cancelEdit,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ];
+
+  Widget _chevron(BuildContext context) => MileafIcon(
+    MileafIconName.chevron,
+    size: MileafIconMetrics.nav,
+    color: context.colors.textFaint,
+  );
+
   Widget _feedback(BuildContext context) => Semantics(
     liveRegion: true,
-    child: Text(
-      _message!,
-      style: context.type.body.copyWith(color: context.colors.error),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        _message!,
+        style: context.type.body.copyWith(color: context.colors.error),
+      ),
     ),
   );
 }

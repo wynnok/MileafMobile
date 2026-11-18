@@ -1,0 +1,7 @@
+# AP14 新增 copy 文件（D-AP08-03 读屏对象名）：无裸值。
+# lib/src/copy/page_actions.dart
+fontSize=0
+color0x=0
+durationMilliseconds=0
+radiusCircular=0
+total=0

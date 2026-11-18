@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'copy/dates.dart' as copy_dates;
+import 'copy/messages.dart' as copy_msg;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -10,6 +12,9 @@ import 'design/typography.dart';
 import 'statistics_conditions_contract.g.dart' as dto;
 import 'statistics_insights_page.dart';
 import 'statistics_usage_page.dart';
+
+const String _unsupportedTitle = '当前站点不支持能耗条件分析';
+const String _unsupportedMessage = '站点未声明能耗条件分析能力。';
 
 String conditionsValue(Object? value) =>
     value is num ? value.toString().replaceFirst(RegExp(r'\.0$'), '') : '—';
@@ -21,6 +26,13 @@ String conditionsShortLabel(Map<String, dynamic> b) {
   final upper = b['upper_c'];
   if (upper == null) return '≥${_signed(b['lower_c'])}°C';
   return '${_signed(b['lower_c'])}至${_signed(upper)}°C';
+}
+
+/// P08 结论卡的组标签：短名加空格分隔（对照表「−10 至 −5°C」）。
+String conditionsSpacedLabel(Map<String, dynamic> b) {
+  final upper = b['upper_c'];
+  if (upper == null) return '≥${_signed(b['lower_c'])} °C';
+  return '${_signed(b['lower_c'])} 至 ${_signed(upper)}°C';
 }
 
 /// 精确区间读屏文本，明确左闭右开。
@@ -115,10 +127,7 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
       }
     } catch (_) {
       if (mounted && attempt == sequence && requestedScope == scope) {
-        setState(
-          () => error =
-              '能耗条件读取失败${data == null ? '' : '，保留上次结果（${data!['as_of'] ?? '校验时间未知'}）'}',
-        );
+        setState(() => error = _failureNotice());
       }
     }
     if (mounted && attempt == sequence && requestedScope == scope) {
@@ -126,64 +135,76 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
     }
   }
 
-  Widget coverage(Object? value) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final e in usageMap(value).entries)
-        if (e.value is Map)
-          Padding(
-            padding: const EdgeInsets.only(bottom: MileafSpace.s4),
-            child: Text(
-              '${e.key}：有效 ${conditionsValue(usageMap(e.value)['valid_count'])} 趟 / ${conditionsValue(usageMap(e.value)['valid_distance_km'])} km；排除 ${conditionsValue(usageMap(e.value)['excluded_count'])} 趟',
-              style: context.type.micro.copyWith(
-                color: context.colors.textMuted,
-              ),
-            ),
-          ),
-    ],
-  );
+  /// CP07/R31：无旧数据「没能读取…」；有旧数据写明快照时刻，原值进技术详情。
+  String _failureNotice() {
+    final failed = copy_msg.readFailedMessage('能耗条件');
+    if (data == null) return failed;
+    final asOf = data!['as_of'];
+    final at = asOf is String ? DateTime.tryParse(asOf) : null;
+    final zone = source.workspace.calendar;
+    if (at == null || zone == null) {
+      return failed;
+    }
+    return copy_msg.staleMessage(
+      zone.local(at),
+      zone.local(source.workspace.session.now()),
+    );
+  }
+
+  /// R30 样本覆盖说明（记录与缺失类）：服务端 coverage 键改人话名。
+  String _coverageNote(Object? value) {
+    final names = <String, String>{
+      'paired': '配对',
+      'distance': '距离',
+      'duration': '时长',
+      'speed': '速度',
+    };
+    final out = StringBuffer();
+    for (final e in usageMap(value).entries) {
+      if (e.value is! Map) continue;
+      out.write(
+        '${names[e.key] ?? '部分指标'}：有效 ${conditionsValue(usageMap(e.value)['valid_count'])} 趟 / '
+        '${conditionsValue(usageMap(e.value)['valid_distance_km'])} km，排除 ${conditionsValue(usageMap(e.value)['excluded_count'])} 趟。',
+      );
+    }
+    return out.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     if (source.features['driving_analysis'] != true) {
       return const StateView(
         kind: StateViewKind.empty,
-        title: '当前站点不支持能耗条件分析',
-        message: '站点未声明能耗条件分析能力。',
+        title: _unsupportedTitle,
+        message: _unsupportedMessage,
       );
     }
     final d = data;
     final bins = usageItems(d?['temperature_bins']);
     final b = bins.isEmpty ? null : bins[selected.clamp(0, bins.length - 1)];
-    final colors = context.colors;
-    final type = context.type;
     final children = <Widget>[
-      SectionHeader(
-        title: '温度下的用车能耗',
-        range: 'Wh/km',
-        action: MileafIconButton(
-          icon: MileafIconName.refresh,
-          tooltip: '刷新能耗条件',
-          onPressed: loading ? null : () => load(force: true),
-        ),
-      ),
+      _identity(bins),
       if (error != null)
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s8),
           child: InlineBanner(
             message: error!,
             tone: BannerTone.error,
-            actionLabel: '重试能耗条件',
+            // CP06：可见动作统一「重试」，对象由横幅文案给出。
+            actionLabel: '重试',
             onAction: () => load(force: true),
           ),
         ),
       if (d == null && error == null)
-        const StateView(kind: StateViewKind.loading, title: '正在读取能耗条件')
+        StateView(
+          kind: StateViewKind.loading,
+          title: copy_msg.loadingMessage('能耗条件'),
+        )
       else if (d != null && d['status'] == 'unsupported')
         const StateView(
           kind: StateViewKind.empty,
-          title: '当前站点不支持能耗条件分析',
-          message: '站点未声明能耗条件分析能力。',
+          title: _unsupportedTitle,
+          message: _unsupportedMessage,
         )
       else if (d != null && d['status'] == 'no_records')
         const StateView(
@@ -194,84 +215,24 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
       else if (d != null && d['status'] == 'available') ...[
         if (loading && data != null) ...[
           const MileafProgressLine(),
-          const Text('能耗条件更新中'),
+          const Text('正在更新'),
         ],
-        const SizedBox(height: MileafSpace.s16),
         if (b == null)
           Text(
-            '等待可用的温度与配对样本',
-            style: type.body.copyWith(color: colors.textMuted),
+            copy_msg.emptyMessage('可配对样本'),
+            style: context.type.body.copyWith(
+              color: context.colors.textSecondary,
+            ),
           )
         else ...[
           _selectedGroup(b),
-          const SizedBox(height: MileafSpace.s16),
           _plotSection(bins),
-          const SizedBox(height: MileafSpace.s12),
-          _groupControls(bins),
-          const SizedBox(height: MileafSpace.s16),
-          Text(
-            '未知温度 ${conditionsValue(d['unknown_temperature_drives'])} 趟',
-            style: type.body.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.section),
-          StatisticsTopicFacts(
-            facts: [
-              StatisticsTopicFact(
-                label: '候选',
-                value: conditionsValue(b['drives']),
-                unit: '趟',
-              ),
-              StatisticsTopicFact(
-                label: '已知里程',
-                value: conditionsValue(b['distance_km']),
-                unit: 'km',
-              ),
-              StatisticsTopicFact(
-                label: '有效配对',
-                value: conditionsValue(
-                  usageMap(usageMap(b['coverage'])['paired'])['valid_count'],
-                ),
-                unit: '趟',
-                note:
-                    '${conditionsValue(b['paired_distance_km'])} km · '
-                    '${conditionsValue(b['paired_energy_kwh'])} kWh',
-              ),
-              StatisticsTopicFact(
-                label: '单程中位数',
-                value: conditionsValue(b['median_drive_distance_km']),
-                unit: 'km',
-              ),
-              StatisticsTopicFact(
-                label: '平均记录速度',
-                value: conditionsValue(b['mean_trip_speed_kmh']),
-                unit: 'km/h',
-              ),
-            ],
-          ),
-          const SizedBox(height: MileafSpace.s16),
-          StatisticsTopicNotes(
-            title: '该组数据覆盖',
-            children: [coverage(b['coverage'])],
-          ),
-          if (b['evidence_filter'] is Map)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => openDrivingEvidence(
-                  context,
-                  source,
-                  usageMap(b['evidence_filter']),
-                  title: '温度组行程证据',
-                  onRecord: widget.onRecord,
-                ),
-                child: const Text('查看该温度组行程'),
-              ),
-            ),
+          _unknownNote(d),
+          _factsSection(b),
+          _evidenceRow(b),
         ],
-        const SizedBox(height: MileafSpace.section),
         _distanceSection(d),
-        const SizedBox(height: MileafSpace.section),
-        _notesSection(d),
+        _dataNotes(d, b),
       ],
     ];
     final column = Column(
@@ -289,7 +250,44 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
           );
   }
 
-  /// P08：所选组净电耗 36（metricLg）与样本限定、相关非因果就近。
+  /// R25 专题骨架身份块：问题式标题 + 区间与统计口径一句；专题刷新圆钮在行尾
+  /// （宿主导航没有本专题的刷新入口）。
+  Widget _identity(List<Map<String, dynamic>> bins) {
+    final colors = context.colors;
+    final type = context.type;
+    final zone = source.workspace.calendar!;
+    final first = zone.local(source.window.from);
+    final last = zone.local(
+      source.window.to.subtract(const Duration(microseconds: 1)),
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('不同温度下的电耗', style: type.title2.copyWith(color: colors.text)),
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                '${copy_dates.formatRange(first, last)}，按开始日期统计',
+                style: type.subheadline.copyWith(color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: MileafSpace.s8),
+        MileafIconButton(
+          icon: MileafIconName.refresh,
+          tooltip: '刷新能耗条件',
+          onPressed: loading ? null : () => load(force: true),
+        ),
+      ],
+    );
+  }
+
+  /// P08 结论卡：所选组电耗 metricLg + 样本限定 + 相关非因果限定。
+  /// 读屏保留精确半开区间与净电耗口径；可见短标签用空格分隔的组名。
   Widget _selectedGroup(Map<String, dynamic> b) {
     final colors = context.colors;
     final type = context.type;
@@ -298,55 +296,59 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
       label:
           '所选温度组 ${conditionsPreciseLabel(b)}，左闭右开，净电耗 ${conditionsValue(b['consumption_wh_km'])} Wh/km',
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '所选温度组 · ${conditionsShortLabel(b)}',
-            style: type.label.copyWith(color: colors.textMuted),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          MileafNumber(
-            value: b['consumption_wh_km'] == null
-                ? null
-                : conditionsValue(b['consumption_wh_km']),
-            unit: 'Wh/km',
-            scale: MetricValueScale.metricLg,
-          ),
-          // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
-          if (b['consumption_wh_km'] == null)
-            Text('暂无净电耗', style: type.micro.copyWith(color: colors.textMuted))
-          else
-            const SizedBox(height: MileafSpace.s4),
-          Text(
-            switch (b['sample_status']) {
-              'adequate' => '样本达到暂定门槛',
-              'sparse' => '小样本，仅供点读',
-              _ => '配对样本不足',
-            },
-            style: type.body.copyWith(
-              color: colors.text,
-              fontWeight: MileafType.weightSemiBold,
+      child: MileafModuleCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              conditionsSpacedLabel(b),
+              style: type.subheadline.copyWith(color: colors.textSecondary),
             ),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            '关联观察，不代表因果或排名',
-            style: type.micro.copyWith(color: colors.textMuted),
-          ),
-        ],
+            const SizedBox(height: MileafSpace.s4),
+            MileafNumber(
+              value: b['consumption_wh_km'] == null
+                  ? null
+                  : conditionsValue(b['consumption_wh_km']),
+              unit: 'Wh/km',
+              scale: MetricValueScale.metricLg,
+            ),
+            // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
+            if (b['consumption_wh_km'] == null)
+              Text(
+                '暂无净电耗',
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              )
+            else
+              const SizedBox(height: MileafSpace.s4),
+            Text(
+              switch (b['sample_status']) {
+                'adequate' => '样本充足',
+                'sparse' || 'insufficient_data' => '样本较少，仅供参考',
+                _ => '配对样本不足',
+              },
+              style: type.body.copyWith(
+                color: colors.text,
+                fontWeight: MileafType.weightSemiBold,
+              ),
+            ),
+            const SizedBox(height: MileafSpace.s4),
+            Text(
+              '只反映相关性，不代表因果或优劣',
+              style: type.footnote.copyWith(color: colors.textSecondary),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// R06：条件分组点图；轴留白按实际文字度量并应用完整 TextScaler，
-  /// 大字减少刻度而不是隐藏轴；无样本不画点也不伪造刻度。
+  /// P08 主图卡：点图 + 胶囊分段（保留）+ 步进圆钮（R27：位于图题行尾，两端禁用）。
   Widget _plotSection(List<Map<String, dynamic>> bins) {
     final colors = context.colors;
     final type = context.type;
     final large = MileafLayout.largeText(context);
-    final axisStyle = type.micro.copyWith(color: colors.textFaint);
-    final valueStyle = type.label.copyWith(color: colors.accentStrong);
+    final axisStyle = type.caption.copyWith(color: colors.textFaint);
+    final valueStyle = type.subheadline.copyWith(color: colors.accentStrong);
     final scale = _BinScale(bins, large);
     final leftPad = scale.leftPadFor(
       axisStyle,
@@ -362,72 +364,105 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
       return '温度分组点图，横向拖动或点按选择温度组。${parts.join('；')}。';
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '加权净电耗 · Wh/km',
-          style: type.label.copyWith(color: colors.textMuted),
-        ),
-        Text(
-          '行程室外均温 · 5°C半开分组',
-          style: type.micro.copyWith(color: colors.textMuted),
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        Semantics(
-          container: true,
-          label: plotSemantics(),
-          onIncrease: selected < bins.length - 1
-              ? () => setState(() => selected++)
-              : null,
-          onDecrease: selected > 0 ? () => setState(() => selected--) : null,
-          child: Focus(
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+    return MileafModuleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('电耗（按里程加权）', style: type.headline),
+                    Text(
+                      '按行程平均气温分组，每组 5°C',
+                      style: type.footnote.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // R27 步进：圆形图标按钮，两端禁用；语义「上一组 / 下一组」。
+              Row(
+                children: [
+                  MileafIconButton(
+                    icon: MileafIconName.back,
+                    tooltip: '上一组',
+                    onPressed: selected > 0
+                        ? () => setState(() => selected--)
+                        : null,
+                  ),
+                  const SizedBox(width: MileafSpace.s4),
+                  MileafIconButton(
+                    icon: MileafIconName.chevron,
+                    tooltip: '下一组',
+                    onPressed: selected < bins.length - 1
+                        ? () => setState(() => selected++)
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Semantics(
+            container: true,
+            label: plotSemantics(),
+            onIncrease: selected < bins.length - 1
+                ? () => setState(() => selected++)
+                : null,
+            onDecrease: selected > 0 ? () => setState(() => selected--) : null,
+            child: Focus(
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                  return KeyEventResult.ignored;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                    selected > 0) {
+                  setState(() => selected--);
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+                    selected < bins.length - 1) {
+                  setState(() => selected++);
+                  return KeyEventResult.handled;
+                }
                 return KeyEventResult.ignored;
-              }
-              if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-                  selected > 0) {
-                setState(() => selected--);
-                return KeyEventResult.handled;
-              }
-              if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-                  selected < bins.length - 1) {
-                setState(() => selected++);
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: MileafFocusRing(
-              child: LayoutBuilder(
-                builder: (context, constraints) => GestureDetector(
-                  onTapDown: (p) => _pickBin(
-                    p.localPosition.dx,
-                    constraints.maxWidth,
-                    leftPad,
-                    bins.length,
-                  ),
-                  onHorizontalDragUpdate: (p) => _pickBin(
-                    p.localPosition.dx,
-                    constraints.maxWidth,
-                    leftPad,
-                    bins.length,
-                  ),
-                  child: SizedBox(
-                    key: const ValueKey('conditions-plot'),
-                    height: large ? 240 : 200,
-                    width: double.infinity,
-                    child: CustomPaint(
-                      painter: _TemperaturePlot(
-                        bins,
-                        selected,
-                        colors,
-                        axisStyle,
-                        valueStyle,
-                        MediaQuery.textScalerOf(context),
-                        large,
-                        scale,
-                        leftPad,
+              },
+              child: MileafFocusRing(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => GestureDetector(
+                    onTapDown: (p) => _pickBin(
+                      p.localPosition.dx,
+                      constraints.maxWidth,
+                      leftPad,
+                      bins.length,
+                    ),
+                    onHorizontalDragUpdate: (p) => _pickBin(
+                      p.localPosition.dx,
+                      constraints.maxWidth,
+                      leftPad,
+                      bins.length,
+                    ),
+                    child: SizedBox(
+                      key: const ValueKey('conditions-plot'),
+                      height: large ? 240 : 200,
+                      width: double.infinity,
+                      child: CustomPaint(
+                        painter: _TemperaturePlot(
+                          bins,
+                          selected,
+                          colors,
+                          axisStyle,
+                          valueStyle,
+                          MediaQuery.textScalerOf(context),
+                          large,
+                          scale,
+                          leftPad,
+                        ),
                       ),
                     ),
                   ),
@@ -435,13 +470,25 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
               ),
             ),
           ),
-        ),
-        const SizedBox(height: MileafSpace.s8),
-        Text(
-          '分组为左闭右开区间，例如 −5至0°C 表示 [−5, 0) °C；无样本的温度组不显示点。',
-          style: type.micro.copyWith(color: colors.textMuted),
-        ),
-      ],
+          const SizedBox(height: MileafSpace.s12),
+          // P08/R05：温度组选择保留并胶囊化；大字换行重排。
+          ChipRow(
+            children: [
+              for (var i = 0; i < bins.length; i++)
+                StatusChip(
+                  label: conditionsShortLabel(bins[i]),
+                  selected: selected == i,
+                  onTap: () => setState(() => selected = i),
+                ),
+            ],
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Text(
+            '分组为左闭右开区间，例如 −5至0°C 表示 [−5, 0) °C；无样本的温度组不显示点。',
+            style: type.footnote.copyWith(color: colors.textMuted),
+          ),
+        ],
+      ),
     );
   }
 
@@ -456,108 +503,184 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
     });
   }
 
-  Widget _groupControls(List<Map<String, dynamic>> bins) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      // R05：互斥选择共用 ChipRow/StatusChip，44 高、12 圆角、160ms 选中反馈；
-      // 大字换行重排，不产生三行胶囊残片。
-      ChipRow(
-        children: [
-          for (var i = 0; i < bins.length; i++)
-            StatusChip(
-              label: conditionsShortLabel(bins[i]),
-              selected: selected == i,
-              onTap: () => setState(() => selected = i),
-            ),
-        ],
+  Widget _unknownNote(Map<String, dynamic> d) {
+    final colors = context.colors;
+    final type = context.type;
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.s12),
+      child: Text(
+        '未知温度 ${conditionsValue(d['unknown_temperature_drives'])} 趟',
+        style: type.body.copyWith(color: colors.textSecondary),
       ),
-      const SizedBox(height: MileafSpace.s8),
-      Wrap(
-        spacing: MileafSpace.s16,
-        children: [
-          TextButton(
-            onPressed: selected > 0 ? () => setState(() => selected--) : null,
-            child: const Text('上一温度组'),
-          ),
-          TextButton(
-            onPressed: selected < bins.length - 1
-                ? () => setState(() => selected++)
-                : null,
-            child: const Text('下一温度组'),
-          ),
-        ],
-      ),
-    ],
-  );
-
-  Widget _distanceSection(Map<String, dynamic> d) {
-    final items = usageItems(d['distance_bins']);
-    final total = usageMap(d['summary'])['driving_distance_km'] as num? ?? 1;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: '短途、中途与长途', range: 'Wh/km'),
-        const SizedBox(height: MileafSpace.s4),
-        for (final item in items)
-          Builder(
-            builder: (context) {
-              final upper = item['upper_km'];
-              final short = upper == null
-                  ? '≥${_signed(item['lower_km'])} km'
-                  : '${_signed(item['lower_km'])}–${_signed(upper)} km';
-              final precise = upper == null
-                  ? '≥${_signed(item['lower_km'])} km'
-                  : '[${_signed(item['lower_km'])}, ${_signed(upper)}) km';
-              final meta =
-                  '${conditionsValue(item['drives'])} 趟 · 占比 '
-                  '${((item['distance_km'] as num? ?? 0) / total * 100).clamp(0, 100).toStringAsFixed(1)}% · '
-                  '配对 ${conditionsValue(item['paired_energy_kwh'])} kWh / ${conditionsValue(item['paired_distance_km'])} km';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MileafDataRow(
-                    title: short,
-                    meta: meta,
-                    value: conditionsValue(item['consumption_wh_km']),
-                    unit: 'Wh/km',
-                    semanticLabel: '$short（$precise，左闭右开），$meta',
-                    topLine: true,
-                  ),
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: Text(
-                      '距离组数据覆盖',
-                      style: context.type.micro.copyWith(
-                        color: context.colors.textFaint,
-                      ),
-                    ),
-                    childrenPadding: const EdgeInsets.only(
-                      bottom: MileafSpace.s8,
-                    ),
-                    expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [coverage(item['coverage'])],
-                  ),
-                ],
-              );
-            },
-          ),
-      ],
     );
   }
 
-  Widget _notesSection(Map<String, dynamic> d) => StatisticsTopicNotes(
-    title: '数据说明',
-    children: [
-      const Text('温度组与距离组均为左闭右开区间；组标签如 −5至0°C 表示 [−5, 0) °C，只显示真实分组值，不在组间插值。'),
-      Text(
-        '快照 ${d['as_of']} · ${d['method']} v${d['version']} · ${d['validation']}',
-      ),
-      for (final e in usageMap(d['thresholds']).entries)
-        Text('${e.key}：${conditionsValue(e.value)}'),
-      coverage(usageMap(d['summary'])['coverage']),
-      const Text('各指标有效集独立；配对总能量 / 配对总里程直接读取服务端，不平均逐趟比率。'),
-    ],
+  /// P08 样本明细卡（对照表：参与 / 有效 / 平均速度）。
+  Widget _factsSection(Map<String, dynamic> b) => Padding(
+    padding: const EdgeInsets.only(top: MileafSpace.section),
+    child: StatisticsTopicFacts(
+      facts: [
+        StatisticsTopicFact(
+          label: '参与',
+          unit: '趟',
+          value: conditionsValue(b['drives']),
+        ),
+        StatisticsTopicFact(
+          label: '已知里程',
+          value: conditionsValue(b['distance_km']),
+          unit: 'km',
+        ),
+        StatisticsTopicFact(
+          label: '有效',
+          value: conditionsValue(
+            usageMap(usageMap(b['coverage'])['paired'])['valid_count'],
+          ),
+          unit: '趟',
+          note:
+              '${conditionsValue(b['paired_distance_km'])} km，'
+              '${conditionsValue(b['paired_energy_kwh'])} kWh',
+        ),
+        StatisticsTopicFact(
+          label: '单程中位数',
+          value: conditionsValue(b['median_drive_distance_km']),
+          unit: 'km',
+        ),
+        StatisticsTopicFact(
+          label: '平均速度',
+          value: conditionsValue(b['mean_trip_speed_kmh']),
+          unit: 'km/h',
+        ),
+      ],
+    ),
   );
+
+  /// CP06 下钻行：以「查看」开头、行尾箭头，与「关于这些数据」同一容器语法。
+  Widget _evidenceRow(Map<String, dynamic> b) {
+    if (b['evidence_filter'] is! Map) return const SizedBox.shrink();
+    final inset = MileafLayout.pageInset(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(inset, MileafSpace.section, inset, 0),
+      child: MileafGroupCard(
+        child: MileafGroupRow(
+          title: '查看这些行程',
+          onTap: () => openDrivingEvidence(
+            context,
+            source,
+            usageMap(b['evidence_filter']),
+            title: '温度组行程证据',
+            onRecord: widget.onRecord,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 距离分组：分组卡 + 行；每组的样本覆盖并入页尾说明（R30，说明类折叠迁出）。
+  Widget _distanceSection(Map<String, dynamic> d) {
+    final items = usageItems(d['distance_bins']);
+    if (items.isEmpty) return const SizedBox.shrink();
+    final total = usageMap(d['summary'])['driving_distance_km'] as num? ?? 1;
+    return Padding(
+      padding: const EdgeInsets.only(top: MileafSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(title: '短途、中途与长途'),
+          const SizedBox(height: MileafSpace.s8),
+          MileafGroupCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (index, item) in items.indexed) ...[
+                  if (index > 0) _hairline(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MileafSpace.cardPad,
+                    ),
+                    child: Builder(
+                      builder: (context) {
+                        final upper = item['upper_km'];
+                        final short = upper == null
+                            ? '≥${_signed(item['lower_km'])} km'
+                            : '${_signed(item['lower_km'])}–${_signed(upper)} km';
+                        final precise = upper == null
+                            ? '≥${_signed(item['lower_km'])} km'
+                            : '[${_signed(item['lower_km'])}, ${_signed(upper)}) km';
+                        final share =
+                            ((item['distance_km'] as num? ?? 0) / total * 100)
+                                .clamp(0, 100)
+                                .toStringAsFixed(1);
+                        final meta =
+                            '${conditionsValue(item['drives'])} 趟，占比 $share%，配对 '
+                            '${conditionsValue(item['paired_energy_kwh'])} kWh / '
+                            '${conditionsValue(item['paired_distance_km'])} km';
+                        return MileafDataRow(
+                          title: short,
+                          meta: meta,
+                          value: conditionsValue(item['consumption_wh_km']),
+                          unit: 'Wh/km',
+                          semanticLabel: '$short（$precise，左闭右开），$meta',
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// R24：发丝线只画在行与行之间，从卡内文字起始处到卡片右缘。
+  Widget _hairline() => Container(
+    height: 0,
+    margin: const EdgeInsets.only(left: MileafSpace.cardPad),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: context.colors.line,
+          width: MileafStroke.hairline,
+        ),
+      ),
+    ),
+  );
+
+  /// R30.2 页尾「关于这些数据」：口径、记录与缺失（含样本覆盖）、技术详情。
+  Widget _dataNotes(Map<String, dynamic> d, Map<String, dynamic>? b) {
+    final records = StringBuffer();
+    if (b != null) {
+      records.write(_coverageNote(b['coverage']));
+    }
+    records.write(_coverageNote(usageMap(d['summary'])['coverage']));
+    final thresholds = [
+      for (final e in usageMap(d['thresholds']).entries)
+        '${e.key} ${conditionsValue(e.value)}',
+    ].join('，');
+    return MileafDataNotes(
+      groups: [
+        const MileafDataNoteGroup(
+          category: DataNoteCategory.caliber,
+          note:
+              '温度组与距离组均为左闭右开区间；组标签如 −5至0°C 表示 [−5, 0) °C，'
+              '只显示真实分组值，不在组间插值。各指标有效集独立；配对总能量与配对总里程直接读取服务端，不平均逐趟比率。',
+        ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.records,
+          note: records.isEmpty ? '样本覆盖暂缺。' : records.toString(),
+        ),
+        MileafDataNoteGroup(
+          category: DataNoteCategory.technical,
+          copyable: true,
+          note:
+              'method ${d['method'] ?? '—'}，version ${d['version'] ?? '—'}，'
+              'validation ${d['validation'] ?? '—'}，as_of ${d['as_of'] ?? '—'}，'
+              'thresholds ${thresholds.isEmpty ? '—' : thresholds}。',
+        ),
+      ],
+    );
+  }
 }
 
 class _TemperaturePlot extends CustomPainter {

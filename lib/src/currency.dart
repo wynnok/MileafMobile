@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-
 import 'number_format.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
-import 'design/icons.dart';
-import 'design/semantic.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
 
@@ -122,45 +119,48 @@ class _CurrencyPageState extends State<CurrencyPage> {
             children: [
               const Text('后端没有币种信息。此设置仅添加币种代码标签，不换汇、不改变费用数字。请确保站点所有记录使用同一币种。'),
               const SizedBox(height: MileafSpace.s8),
-              Text('仅保存当前连接的普通偏好，不修改数据库。', style: context.type.micro),
+              Text('仅保存当前连接的普通偏好，不修改数据库。', style: context.type.footnote),
               const SizedBox(height: MileafSpace.s12),
               if (error != null)
                 Semantics(liveRegion: true, child: Text(error!)),
               if (saving) ...[
                 Semantics(
                   liveRegion: true,
-                  child: Text('正在保存币种偏好…', style: context.type.micro),
+                  child: Text('正在保存币种偏好…', style: context.type.footnote),
                 ),
                 const SizedBox(height: MileafSpace.s8),
                 const MileafProgressLine(),
               ],
-              for (final code in <String?>[
-                null,
-                'CNY',
-                'USD',
-                'EUR',
-                'GBP',
-                'JPY',
-                'HKD',
-                'TWD',
-                'AUD',
-                'CAD',
-                'CHF',
-                'SGD',
-                'KRW',
-              ])
-                MileafDataRow(
-                  title: code ?? '未配置（币种未知）',
-                  enabled: !saving,
-                  selected: widget.settings.code == code,
-                  badge: widget.settings.code == code
-                      ? MileafIcon(
-                          MileafIconName.check,
-                          color: context.colors.accentStrong,
-                        )
-                      : null,
-                  onTap: saving ? null : () => select(code),
+              MileafGroupCard(
+                child: MileafSelectionList<String?>(
+                  options: [
+                    for (final code in <String?>[
+                      null,
+                      'CNY',
+                      'USD',
+                      'EUR',
+                      'GBP',
+                      'JPY',
+                      'HKD',
+                      'TWD',
+                      'AUD',
+                      'CAD',
+                      'CHF',
+                      'SGD',
+                      'KRW',
+                    ])
+                      MileafSelectionOption(
+                        value: code,
+                        label: code ?? '未配置（币种未知）',
+                        enabled: !saving,
+                      ),
+                  ],
+                  value: widget.settings.code,
+                  // 保存期间禁用重复选择；错误与进行中提示原位保留。
+                  onChanged: saving ? (_) {} : select,
+                  semanticLabel: '站点币种',
                 ),
+              ),
             ],
           ),
         ),
