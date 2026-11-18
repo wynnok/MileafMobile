@@ -12,6 +12,7 @@
 | FP3 | AP07 代表页经用户裁定通过后冻结：token 表、组件 API、动效参数、首屏预算、共享符号签名 | eeefe83（AP07 合入）；清单见 [fp3-freeze.md](fp3-freeze.md) |
 | FP4 | W4（AP08、AP09、AP10、AP11、AP12a、AP12b、AP13）全部合入 + 集成窗口收口 | 773886a（W4 末次集成提交） |
 | FP5 | AP14（W5 集成收口）合入：守卫归零、跨页与性能证据、AP13 归拢、统一图册索引 | 96e0cd4（AP14 合入提交） |
+| FP6 | AP15（W5 收口票）合入：CP02/CP04/CP09 最小修正、双轴复核、双端隔离构建证据、图册重采；Apple 质感精修全部票合入完毕 | 0177055（AP15 合入提交） |
 
 ## 文件与测试租约（交付手册 §3.3）
 
@@ -55,7 +56,7 @@
 | AP12b | （已删）…/MileafMobile-ap12b | codex/apple-polish-ap12b | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP13 | （已删）…/MileafMobile-ap13 | codex/apple-polish-ap13 | FP3 | 已合入 FP4，工作树已删，分支保留 |
 | AP14 | （已删）…/MileafMobile-ap14 | codex/apple-polish-ap14 | FP4 | 已合入 FP5，工作树已删，分支保留 |
-| AP15 | /Users/milkyway/Public/DevHub/Codes/Personal/Mileaf/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已更新至 FP5（0dce651，含登记提交 692263a），依赖已备 |
+| AP15 | （已删）…/MileafMobile-ap15 | codex/apple-polish-ap15 | FP5 | 已合入 FP6，工作树已删，分支保留；合入 main 待总控复核 gate |
 
 W3 工作树：AP07 于 2026-11-17 从 `a2707f7`（FP2 登记提交）创建，分支 `codex/apple-polish-ap07`；`.cache/pub` 已按 §3.1 用 `cp -cR` 克隆，`pub get --offline` 与 `analyze` 均通过，工作树内 `git status` 为空。W2 四票工作树已全部删除（AP04 的 `.dsh-tmp/` 只有临时日志与已归档的补丁草稿，删除前已核对）。AP07 工作树在合入 FP3 后同样已删除，分支保留。
 
@@ -193,6 +194,25 @@ AP14 为总控票，单票合入无顺序问题；合入 `codex/apple-polish-ap1
 - 能力迁移：`capability-map.md` 新增 A36–A39。
 - 待用户裁定（交 AP15/用户）：守卫口径 B 确认（D-AP08-01）、D-AP08-11 首屏预算退让候选（留档 AP08.md）、D-AP07-14/17/21、D-AP08-08、D-AP10-02、D-AP11-02、D-AP12b-06、D-AP13-01。
 - AP15 工作树已更新至 FP5（FP5 登记提交 `692263a`；ap15 工作树提交 `0dce651`），依赖沿用原克隆并复验 `pub get --offline`。
+
+## W5 收口合入记录（FP6 = 0177055）
+
+AP15 为总控收口票（两个提交：代码 `1894100`、交付记录与图册 `74bafd0`），合入为 `0177055`（--no-ff），无文本冲突。Apple 质感精修 AP00–AP15 全部合入完毕。
+
+| 项 | 结果 |
+| --- | --- |
+| 本票测试 | 10 通过（apple_polish_ap15 5 + raw_value_guard 3 + copy_guard 2） |
+| 跨页测试 | 七件 88 通过 |
+| 全量 | `tool/flutterw test --no-pub` **1061 通过 / 49 跳过 / 0 失败**（FP5 基线 1056/49；+5 = ap15 新增） |
+| analyze | 仓库内无诊断（未跟踪 `creator/` 有 2 条既有诊断，不在版本库） |
+| 格式与 diff | `dart format` 0 changed（252 files）；`git diff --check` 无输出 |
+
+补丁核对：AP15.md §7 的既有测试等价修正已随票提交（总控票）；§8 观察项与偏差账本为记录与待裁定，本窗口未改。
+
+- 证据：`AP15.md` §6 双端隔离构建（Android exit 0，arm64 66.8MB；iOS exit 0，Runner.app 79.6MB --no-codesign，CocoaPods 项目内安装）、`capability-map.md` A40、AP11/AP12a/AP13 图册重采（输入 `1894100`）、`MANIFEST.md` 注记。
+- AP15 §8.2 更正存档：基线上升核实（workspace_page 实际 AP07 后恒为 10，AP14.md §2 与 Spec 轴 b5 的表述与提交史不符，已按提交史更正）。
+- 合入 `main`（P-3）为总控复核后的单独 gate，本窗口未执行；推送/发布仍需用户逐次确认。
+- 无下一波次：AP15 之后 Apple 质感精修（ADR0014）无待开票；待裁定清单见 AP15.md §8.4。
 
 ## AP00 交付物
 
