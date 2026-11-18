@@ -60,7 +60,12 @@ class StatisticsInsightsPage extends StatefulWidget {
     this.topics = const {},
     this.initialTopic = 'overview',
     this.topBar,
+    this.onEmbeddedTopicChanged,
   });
+
+  /// A15「根页共用上下文与统计嵌入顶栏互斥」：嵌入专题（topic != 'overview'）
+  /// 自带导航行作为顶栏，宿主外壳需要隐藏共用根顶栏；回到总览时恢复。
+  final ValueChanged<bool>? onEmbeddedTopicChanged;
   final Widget? topBar;
   final VehicleWorkspace workspace;
   final CurrencySettings currency;
@@ -101,7 +106,22 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     workspace.addCostReader(refreshCost);
     topic = widget.initialTopic;
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _reportEmbeddedMode();
+    });
     load();
+  }
+
+  /// A15 顶栏互斥：嵌入专题呈现时通知宿主隐藏共用根顶栏。
+  void _reportEmbeddedMode() {
+    widget.onEmbeddedTopicChanged?.call(topic != 'overview');
+  }
+
+  /// R15：顶部始终只有一组有效导航。topic 的就地变更统一走这里，
+  /// 保证宿主收到的互斥状态与 [topic] 一致（回退分支不得绕过）。
+  void _setTopicLocally(String key) {
+    setState(() => topic = key);
+    _reportEmbeddedMode();
   }
 
   @override
@@ -150,6 +170,11 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         selection = widget.initialSelection;
         point = 0;
         pointAt = null;
+        // A15：宿主经 initialTopic 换专题时同样要保持顶栏互斥一致；
+        // didUpdateWidget 处于构建期，上报延后一帧。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _reportEmbeddedMode();
+        });
       }
       loadedWindow = null;
       current = null;
@@ -233,7 +258,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   void selectTopic(String key) {
     if (key == 'overview') {
-      setState(() => topic = key);
+      _setTopicLocally('overview');
       if (current == null && !busy) load();
       return;
     }
@@ -677,7 +702,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
               spacing: 8,
               children: [
                 TextButton(
-                  onPressed: () => setState(() => topic = 'overview'),
+                  onPressed: () => _setTopicLocally('overview'),
                   child: const Text('总览'),
                 ),
                 if (features!['driving_analysis'] == true)
@@ -693,7 +718,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 if (features!['range_observations'] == true ||
                     features!['parking_observations'] == true)
                   TextButton(
-                    onPressed: () => setState(() => topic = 'long'),
+                    onPressed: () => _setTopicLocally('long'),
                     child: const Text('长期'),
                   ),
               ],

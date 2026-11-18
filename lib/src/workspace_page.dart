@@ -65,6 +65,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
   int tab = 0;
   int statisticsKind = 0;
   int statisticsEntry = 0;
+
+  /// A15「根页共用上下文与统计嵌入顶栏互斥」：统计 Tab 以嵌入专题呈现时，
+  /// 页面自带导航行顶栏，共用根顶栏在此隐藏；回到统计总览时恢复。
+  bool statisticsEmbeddedTopic = false;
   String? statisticsTopic;
   StatisticsSelection statisticsSelection = const StatisticsSelection();
   bool started = false;
@@ -155,6 +159,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
       statisticsKind = kind;
       statisticsTopic = topic;
       statisticsSelection = selection;
+      // kind=1 与显式 topic 都以嵌入专题打开统计 Tab；与根顶栏互斥（A15）。
+      // 初始嵌入判定与页面 initialTopic 解析共用同一谓词，避免两份真值。
+      statisticsEmbeddedTopic =
+          statisticsInitialTopic(topic, kind) != 'overview';
       chromeScroll(3).value = 0;
       tab = 3;
     });
@@ -237,6 +245,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
         statisticsKind = 0;
         statisticsTopic = null;
         statisticsSelection = const StatisticsSelection();
+        statisticsEmbeddedTopic = false;
         for (final notifier in chromeScrollByTab.values) {
           notifier.dispose();
         }
@@ -275,6 +284,11 @@ class _WorkspacePageState extends State<WorkspacePage> {
           currency: currency,
           key: ValueKey('statistics:$selected:$statisticsEntry'),
           workspace: workspace,
+          onEmbeddedTopicChanged: (embedded) {
+            if (statisticsEmbeddedTopic != embedded) {
+              setState(() => statisticsEmbeddedTopic = embedded);
+            }
+          },
         ),
         _ => Center(child: Text('${['概览', '行程', '充电', '统计'][tab]}功能尚未交付')),
       };
@@ -317,7 +331,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    topBar(title),
+                    // A15：统计嵌入专题自带顶栏，共用根顶栏互斥隐藏。
+                    if (tab != 3 || !statisticsEmbeddedTopic) topBar(title),
                     MileafNoticeBanner(text: workspace.notice),
                   ],
                 ),

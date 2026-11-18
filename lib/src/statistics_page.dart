@@ -25,6 +25,12 @@ import 'currency.dart';
 import 'charging_statistics_contract.g.dart' as charge;
 import 'charging_experience_contract.g.dart' as expanded;
 
+/// A15「根页共用上下文与统计嵌入顶栏互斥」：统计 Tab 打开时的初始专题。
+/// 概览下钻 `kind == 1` 与显式 topic 都以嵌入专题打开（页面自带导航行顶栏，
+/// 宿主隐藏共用根顶栏）；其余入口是统计总览（展示共用根顶栏）。
+String statisticsInitialTopic(String? initialTopic, int initialKind) =>
+    initialTopic ?? (initialKind == 1 ? 'charging' : 'overview');
+
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({
     super.key,
@@ -35,6 +41,7 @@ class StatisticsPage extends StatefulWidget {
     this.initialTopic,
     this.initialSelection = const StatisticsSelection(),
     this.topBar,
+    this.onEmbeddedTopicChanged,
   });
   final ValueChanged<int>? onDrive;
   final VehicleWorkspace workspace;
@@ -43,6 +50,9 @@ class StatisticsPage extends StatefulWidget {
   final String? initialTopic;
   final StatisticsSelection initialSelection;
   final Widget? topBar;
+
+  /// A15 顶栏互斥：见 [StatisticsInsightsPage.onEmbeddedTopicChanged]。
+  final ValueChanged<bool>? onEmbeddedTopicChanged;
   @override
   State<StatisticsPage> createState() => _StatisticsEntryState();
 }
@@ -52,12 +62,14 @@ class _StatisticsEntryState extends State<StatisticsPage> {
   Widget build(BuildContext context) {
     final page = StatisticsInsightsPage(
       topBar: widget.topBar,
+      onEmbeddedTopicChanged: widget.onEmbeddedTopicChanged,
       workspace: widget.workspace,
       currency: widget.currency,
       initialSelection: widget.initialSelection,
-      initialTopic:
-          widget.initialTopic ??
-          (widget.initialKind == 1 ? 'charging' : 'overview'),
+      initialTopic: statisticsInitialTopic(
+        widget.initialTopic,
+        widget.initialKind,
+      ),
       topics: {
         'energy': (c) =>
             StatisticsConditionsPage(source: c, onRecord: widget.onDrive),
