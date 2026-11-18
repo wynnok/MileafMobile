@@ -31,6 +31,10 @@ import 'currency.dart';
 /// what it already read and reports it with the shared CP07 pagination message
 /// instead of blaming the contract version.
 
+/// 充电地点行的稳定 key：页面与测试共用同一拼装，避免字符串四处漂移。
+Key chargingLocationKey(Object locationId) =>
+    ValueKey('charging-location-$locationId');
+
 class ChargingFilter {
   DateTime? first, last;
 }
@@ -1775,26 +1779,104 @@ class _ChargingPageState extends State<ChargingPage>
     );
   }
 
+  /// R05/R24：地点行是结论式行——标题行（行尾箭头）、覆盖句一行，再接
+  /// 「充入 / 充入均价」两格同基线读值；缺失用「—」与旁注说明，不造句。
   Widget _locationRow(expanded.ChargingLocation place) {
-    final energy = place.sessions > 0 && place.energyKnownSessions == 0
-        ? '充入电量缺失'
-        : '${decimal(place.energyAddedKwh)} kWh';
+    final colors = context.colors;
+    final type = context.type;
+    final large = MileafLayout.largeText(context);
+    final energyMissing = place.sessions > 0 && place.energyKnownSessions == 0;
     final unitCost = place.unitCostAdded.value;
-    return MileafDataRow(
-      title: place.location.displayName ?? '未知地点',
-      // CP09：元信息分行，不用「·」串；覆盖句式沿用 CP02。
-      meta:
-          '${place.sessions} 次，充入 $energy\n'
-          '${place.sessions} 次中 ${place.costKnownSessions} 次有费用\n'
-          '充入均价 ${unitCost == null ? '—' : decimal(unitCost)} ${widget.currency.symbol}/kWh',
-      showChevron: true,
-      onTap: () {
-        locationId = place.locationId;
-        locationName = place.location.displayName;
-        recordsOnly = true;
-        applyFilters();
-        scrollToTop();
-      },
+    // 币种未设置时不把「币种未记录」拼进单位；口径由均价格旁注说明。
+    final unit = unitCost == null || widget.currency.code == null
+        ? null
+        : '${widget.currency.symbol}/kWh';
+    final name = place.location.displayName ?? '未知地点';
+    // CP02 覆盖句式：总数已含在「N 次中」，不再重复一个「N 次」。
+    final coverage = '${place.sessions} 次中 ${place.costKnownSessions} 次有费用';
+    final spokenEnergy = energyMissing
+        ? '充入电量缺失'
+        : '充入 ${decimal(place.energyAddedKwh)} kWh';
+    final spokenPrice =
+        '充入均价 ${unitCost == null ? '—' : decimal(unitCost)}'
+        '${unit == null ? '' : ' $unit'}';
+    void onTap() {
+      locationId = place.locationId;
+      locationName = place.location.displayName;
+      recordsOnly = true;
+      applyFilters();
+      scrollToTop();
+    }
+
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: true,
+      excludeSemantics: true,
+      label: [name, coverage, spokenEnergy, spokenPrice].join('，'),
+      onTap: onTap,
+      child: InkWell(
+        key: chargingLocationKey(place.locationId),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: large ? null : 2,
+                      overflow: large ? null : TextOverflow.ellipsis,
+                      // R22：记录类行标题用 headline。
+                      style: type.headline,
+                    ),
+                  ),
+                  const SizedBox(width: MileafSpace.s8),
+                  MileafIcon(
+                    MileafIconName.chevron,
+                    size: MileafIconMetrics.inline,
+                    color: colors.textFaint,
+                  ),
+                ],
+              ),
+              const SizedBox(height: MileafSpace.s8),
+              Text(
+                coverage,
+                style: type.footnote.copyWith(color: colors.textSecondary),
+              ),
+              const SizedBox(height: MileafSpace.s12),
+              // R21.5（apple-polish §R21 第 5 条）：两列网格可用 metricMd——
+              // 地点行的两格是这一行的主值，与账目卡同档。
+              MetricGrid(
+                spacing: MileafSpace.s8,
+                children: [
+                  MetricBlock(
+                    label: '充入',
+                    value: energyMissing ? null : decimal(place.energyAddedKwh),
+                    unit: energyMissing ? null : 'kWh',
+                    note: energyMissing ? '充入电量缺失' : null,
+                    scale: MetricValueScale.metricMd,
+                    semanticLabel: energyMissing ? '充入，充入电量缺失' : null,
+                  ),
+                  MetricBlock(
+                    label: '充入均价',
+                    value: unitCost == null ? null : decimal(unitCost),
+                    unit: unit,
+                    note: unitCost != null && widget.currency.code == null
+                        ? '币种未记录'
+                        : null,
+                    scale: MetricValueScale.metricMd,
+                    semanticLabel: spokenPrice,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1804,8 +1886,8 @@ class _ChargingPageState extends State<ChargingPage>
     final local = workspace.calendar!.local(value.startedAt);
     // CP10：未知类型用独立人话小标签，不再写「充电类型未知」。
     final kind = value.isDc == null ? '类型未知' : (value.isDc! ? 'DC' : 'AC');
-    final amount = widget.currency.amountValue(value.cost);
     final note = widget.currency.amountNote;
+    final cost = widget.currency.amountValue(value.cost);
     return InkWell(
       key: ValueKey('charge-${value.id}'),
       onTap: () => widget.onRecord?.call('charge', value.id),
@@ -1854,89 +1936,100 @@ class _ChargingPageState extends State<ChargingPage>
               beginLabel: '开始',
               endLabel: '结束',
             ),
-            const SizedBox(height: MileafSpace.s4),
-            Wrap(
+            const SizedBox(height: MileafSpace.s12),
+            // R01/R21.5：结果读值改为固定三格网格——标签在上、数值（metricSm，
+            // 与详情三格同角色）同基线成列，阅读顺序固定（充入 → 电网用电 →
+            // 费用），不再靠 Wrap 流式换行打乱层级；费用格带币种口径旁注。
+            MetricGrid(
               spacing: MileafSpace.s8,
-              runSpacing: MileafSpace.s4,
-              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // CP02：结果行写「充入」「电网用电」，单位跟随数值。
-                Text.rich(
-                  TextSpan(
-                    text: '充入 ',
-                    style: type.subheadline.copyWith(color: colors.textMuted),
-                    children: [
-                      TextSpan(
-                        text: value.energyAddedKwh == null
-                            ? '—'
-                            : decimal(value.energyAddedKwh!),
-                        // R22：记录尾值用 metricSm（详情三格同角色）。
-                        style: type.metricSm.copyWith(color: colors.text),
-                      ),
-                      if (value.energyAddedKwh != null)
-                        TextSpan(text: ' kWh', style: type.subheadline),
-                    ],
-                  ),
+                MetricBlock(
+                  label: '充入',
+                  value: value.energyAddedKwh == null
+                      ? null
+                      : decimal(value.energyAddedKwh!),
+                  unit: value.energyAddedKwh == null ? null : 'kWh',
+                  scale: MetricValueScale.metricSm,
                 ),
-                Text(
-                  '电网用电 ${number(value.energyUsedKwh, 'kWh')}',
-                  style: type.footnote.copyWith(color: colors.textSecondary),
+                MetricBlock(
+                  label: '电网用电',
+                  value: value.energyUsedKwh == null
+                      ? null
+                      : decimal(value.energyUsedKwh!),
+                  unit: value.energyUsedKwh == null ? null : 'kWh',
+                  scale: MetricValueScale.metricSm,
                 ),
-                Text(
-                  '费用 $amount${note == null ? '' : '，$note'}',
-                  style: type.footnote.copyWith(color: colors.textSecondary),
+                MetricBlock(
+                  label: '费用',
+                  value: cost,
+                  note: note,
+                  scale: MetricValueScale.metricSm,
+                  semanticLabel: '费用 $cost${note == null ? '' : '，$note'}',
                 ),
-                if (costSupported &&
-                    canFillChargingCost(
-                      cost: value.cost,
-                      active: value.isActive,
-                      endedAt: value.endedAt,
-                      added: value.energyAddedKwh,
-                      used: value.energyUsedKwh,
-                    ))
-                  // P03：补录是独立小胶囊，点按不触发行导航（S06/S07 沿旧）。
-                  ChargingCostAction(
-                    identityLabel:
-                        '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
-                    onPressed: () async {
-                      if (costSheetOpen) return;
-                      // The sheet is this ledger's own fee context: the
-                      // refresh it triggers must run inline, so the flag
-                      // has to drop even if the sheet throws.
-                      costSheetOpen = true;
-                      try {
-                        await readingEditor(
-                          () => showChargingCostSheet(
-                            context,
-                            workspace,
-                            widget.currency,
-                            value.id,
-                          ),
-                        );
-                      } finally {
-                        costSheetOpen = false;
-                      }
-                    },
-                  ),
               ],
             ),
+            if (costSupported &&
+                canFillChargingCost(
+                  cost: value.cost,
+                  active: value.isActive,
+                  endedAt: value.endedAt,
+                  added: value.energyAddedKwh,
+                  used: value.energyUsedKwh,
+                )) ...[
+              const SizedBox(height: MileafSpace.s8),
+              // P03：补录是独立小胶囊，点按不触发行导航（S06/S07 沿旧）。
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ChargingCostAction(
+                  identityLabel:
+                      '${value.location.displayName ?? '未知地点'} $local 充电 #${value.id}',
+                  onPressed: () async {
+                    if (costSheetOpen) return;
+                    // The sheet is this ledger's own fee context: the
+                    // refresh it triggers must run inline, so the flag
+                    // has to drop even if the sheet throws.
+                    costSheetOpen = true;
+                    try {
+                      await readingEditor(
+                        () => showChargingCostSheet(
+                          context,
+                          workspace,
+                          widget.currency,
+                          value.id,
+                        ),
+                      );
+                    } finally {
+                      costSheetOpen = false;
+                    }
+                  },
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  /// R24：记录行走分组卡，行间一物理像素分隔线，末行无线（与行程页同一语法）。
+  /// R24：记录行走分组卡，行间一物理像素分隔线，末行无线（与行程页同一
+  /// 语法）；行内横向内边统一 16（apple-polish R24「两条起始线」），分隔线
+  /// 从文字起始处到卡片右缘。
   Widget _recordCard(List<dto.ChargingSession> rows) => MileafGroupCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (index, value) in rows.indexed) ...[
           if (index > 0) _hairline(),
-          _recordRow(value),
+          _cardRow(_recordRow(value)),
         ],
       ],
     ),
+  );
+
+  /// 卡内行共享的横向内边（页面边距 + 16，R24「两条起始线」）。
+  Widget _cardRow(Widget child) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: MileafSpace.cardPad),
+    child: child,
   );
 
   /// R24 分隔线：一物理像素，从行内文字起始处（卡内 16）到卡片右缘。
@@ -2356,7 +2449,7 @@ class _ChargingPageState extends State<ChargingPage>
                               for (final (index, place)
                                   in locations.indexed) ...[
                                 if (index > 0) _hairline(),
-                                _locationRow(place),
+                                _cardRow(_locationRow(place)),
                               ],
                             ],
                           ),

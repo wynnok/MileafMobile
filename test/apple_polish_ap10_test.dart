@@ -336,12 +336,17 @@ void main() {
       expect(find.text('全部充电记录'), findsOneWidget);
       expect(find.byType(DropdownButton<dynamic>), findsNothing);
       expect(find.byType(MileafPullDown<String>), findsNWidgets(3));
-      expect(find.bySemanticsLabel(RegExp('^类型 ')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('^费用 ')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('^排序 ')), findsOneWidget);
+      // 记录行的费用读值格语义也以「费用」开头，下拉断言收进胶囊控件内。
+      Finder pullDownLabel(String prefix) => find.descendant(
+        of: find.byType(MileafPullDown<String>),
+        matching: find.bySemanticsLabel(RegExp('^' + prefix + ' ')),
+      );
+      expect(pullDownLabel('类型'), findsOneWidget);
+      expect(pullDownLabel('费用'), findsOneWidget);
+      expect(pullDownLabel('排序'), findsOneWidget);
       expect(find.textContaining('匹配'), findsOneWidget);
       // 选 AC：请求带 charging_type=ac，条件行以分项文字呈现（不用「·」串）。
-      await tester.tap(find.bySemanticsLabel(RegExp('^类型 ')));
+      await tester.tap(pullDownLabel('类型').hitTestable());
       await tester.pumpAndSettle();
       await tester.tap(find.text('AC').last);
       await tester.pumpAndSettle();

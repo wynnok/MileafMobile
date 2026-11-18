@@ -359,7 +359,7 @@ void main() {
     await tapCostAction(tester, '确认补录');
     expect(find.textContaining('费用已补录'), findsOneWidget);
     expect(find.text('补录费用'), findsNothing);
-    expect(find.textContaining('费用 ¥27.5'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('费用 ¥27.5')), findsOneWidget);
   });
   testWidgets('响应丢失后先查询，看到已有费用不再提交也不推断本次成功', (tester) async {
     final site = CostSite();

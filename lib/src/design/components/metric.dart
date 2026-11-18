@@ -142,7 +142,9 @@ class MetricBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
-    final labelColor = onHero ? colors.heroFaint : colors.textFaint;
+    // R23.1（apple-polish）：功能文字只有 text/textSecondary 两级；标签是
+    // 字段名，不再用 textFaint（只留占位/禁用/装饰）。hero 卡维持 heroFaint。
+    final labelColor = onHero ? colors.heroFaint : colors.textSecondary;
     final noteColor = onHero ? colors.heroMuted : colors.textMuted;
     final cross = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final number = MileafNumber(

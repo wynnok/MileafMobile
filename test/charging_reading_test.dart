@@ -625,7 +625,7 @@ void main() {
     await openLedger(tester, site);
     await openAllRecords(tester);
     await tester.pumpAndSettle();
-    expect(find.text('费用 —，币种未记录'), findsWidgets);
+    expect(find.bySemanticsLabel(RegExp('费用 —，币种未记录')), findsWidgets);
     // A real entry from another main entry: the ledger tab stays hidden.
     await tester.tap(find.text('概览').last);
     await tester.pumpAndSettle();
@@ -658,7 +658,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     expect(ledgerReads(site), greaterThan(0));
-    expect(find.text('费用 —，币种未记录'), findsWidgets);
+    expect(find.bySemanticsLabel(RegExp('费用 —，币种未记录')), findsWidgets);
     // A failed deferred refresh stays pending instead of silently keeping the
     // old cost until the next TTL.
     await tester.tap(find.text('概览').last);
@@ -667,7 +667,7 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     expect(ledgerReads(site), greaterThan(0));
-    expect(find.text('费用 27.5，币种未记录'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('费用 27.5，币种未记录')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -934,7 +934,7 @@ void main() {
       ),
       isNotEmpty,
     );
-    expect(find.text('费用 27.5，币种未记录'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('费用 27.5，币种未记录')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('已显示全部充电'),
       300,
@@ -1082,7 +1082,7 @@ void main() {
   testWidgets('地点与记录消失时给出一致空结果，不留下无效选中', (tester) async {
     final site = LedgerSite();
     await openLedger(tester, site);
-    final locationRow = find.widgetWithText(MileafDataRow, '家 · 地库');
+    final locationRow = find.byKey(chargingLocationKey('geofence:1'));
     await tester.scrollUntilVisible(
       locationRow,
       200,

@@ -142,7 +142,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('费用 12 USD'), findsWidgets);
+    // 记录行结果改为读值网格：标签与数值分立（R01/R21.5）。
+    expect(find.text('费用'), findsWidgets);
+    expect(find.text('12 USD'), findsWidgets);
     expect(find.textContaining('CNY'), findsNothing);
   });
 
@@ -266,9 +268,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('充入 20 kWh'), findsWidgets);
-    expect(find.textContaining('电网用电 22 kWh'), findsWidgets);
-    expect(find.textContaining('费用 12'), findsWidgets);
+    // 结果读值网格：标签在上、数值成列（R01/R21.5）。
+    expect(find.text('充入'), findsWidgets);
+    expect(find.textContaining('20 kWh'), findsWidgets);
+    expect(find.text('电网用电'), findsWidgets);
+    expect(find.textContaining('22 kWh'), findsWidgets);
+    expect(find.text('费用'), findsWidgets);
     expect(find.textContaining('币种未记录'), findsWidgets);
     await tester.scrollUntilVisible(find.text('进行中'), 200);
     expect(find.text('进行中'), findsOneWidget);
@@ -383,12 +388,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('费用 0'), findsOneWidget);
+    // 费用格走语义标签：标签、数值与币种口径合成一句（R01/R21.5）。
+    expect(find.bySemanticsLabel('费用 0，币种未记录'), findsOneWidget);
     expect(find.textContaining('币种未记录'), findsWidgets);
     expect(find.text('类型未知'), findsOneWidget);
     expect(find.text('未知地点'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('费用 —'), 200);
-    expect(find.textContaining('费用 —'), findsOneWidget);
+    final missingCost = find.bySemanticsLabel(RegExp('费用 —'));
+    await tester.scrollUntilVisible(missingCost, 200);
+    expect(missingCost, findsOneWidget);
     await tester.tap(navTab('概览'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('设置'));
@@ -404,14 +411,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('费用 0 USD'), findsOneWidget);
+    expect(find.bySemanticsLabel('费用 0 USD'), findsOneWidget);
     await tester.pumpWidget(
       app(client, currency: currency, key: const ValueKey('restart')),
     );
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    expect(find.text('费用 0 USD'), findsOneWidget);
+    expect(find.bySemanticsLabel('费用 0 USD'), findsOneWidget);
     expect(currency.values, {'https://example.com/prefix': 'USD'});
   });
   testWidgets('快速切车旧页最后完成不能串车，前台换日和时区按当前车重新取数', (tester) async {
@@ -558,10 +565,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('充电方式'), 300);
-    // 充电方式空态结论 + 每日充电卡空态句（共享构造函数）。
-    expect(find.text('还没有充电记录'), findsOneWidget);
+    // 记录行改高后惰性视口不再同时构建两卡：先看每日充电卡空态，再看方式卡。
+    await tester.scrollUntilVisible(find.text('每日充电'), 300);
     expect(find.text('这段时间没有充电'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('充电方式'), 300);
+    expect(find.text('还没有充电记录'), findsOneWidget);
     expect(find.byType(MileafShareRing), findsOneWidget);
     expect(find.text('AC 0.00 kWh'), findsNothing);
     // 空态不显示图例与三列（记录行上的 AC 小标签与本卡无关）。

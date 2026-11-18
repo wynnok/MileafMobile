@@ -1085,12 +1085,19 @@ void main() {
         )
         .length;
     seen.clear();
+    // 记录行改高后首行补录胶囊在初始视口外：滚动查找不带 hitTestable 预判
+    // （与 charging_test 同一手势，R10 布局断言调整）。
+    final fillPill = find.text('补录费用');
     await tester.scrollUntilVisible(
-      find.text('补录费用').hitTestable(),
+      fillPill,
       150,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('补录费用').hitTestable());
+    // 行增高后胶囊可能停在悬浮底栏之下：居中后再点（R10 布局断言调整）。
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(tester.element(fillPill), alignment: 0.5);
+    await tester.pumpAndSettle();
+    await tester.tap(fillPill);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '1.25');
     await tapCostAction(tester, '确认补录');

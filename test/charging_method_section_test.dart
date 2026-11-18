@@ -64,7 +64,16 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('20 kWh'), findsNWidgets(2), reason: 'DC 与未知各一');
+    // 记录行读值网格可能出现同值文本：三列断言收进方式卡内（R01/R21.5）。
+    final methodCard = find.ancestor(
+      of: find.byKey(const ValueKey('charging-method-column-AC')),
+      matching: find.byType(MileafModuleCard),
+    );
+    expect(
+      find.descendant(of: methodCard, matching: find.text('20 kWh')),
+      findsNWidgets(2),
+      reason: 'DC 与未知各一',
+    );
     expect(find.textContaining('只计已知类型的充电，8 次中 7 次类型已知'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

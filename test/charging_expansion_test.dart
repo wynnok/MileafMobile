@@ -702,12 +702,12 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
+      find.byKey(chargingLocationKey('geofence:1')).hitTestable(),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(
-      find.widgetWithText(MileafDataRow, '家 · 地库').hitTestable(),
+      find.byKey(chargingLocationKey('geofence:1')).hitTestable(),
     );
     await tester.pumpAndSettle();
     for (final suffix in [
@@ -909,7 +909,7 @@ void main() {
     );
     await tester.tap(find.text('加载更多地点').hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
+    expect(find.byKey(chargingLocationKey('geofence:1')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('没能更新，显示的是').hitTestable(),
       -200,
@@ -931,7 +931,7 @@ void main() {
     );
     await tester.tap(locationRetry.hitTestable());
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(MileafDataRow, '家 · 地库'), findsOneWidget);
+    expect(find.byKey(chargingLocationKey('geofence:1')), findsOneWidget);
     expect(find.text('园区'), findsOneWidget);
     expect(
       requests

@@ -19,6 +19,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('次有费用'), findsOneWidget);
+    // 记录行增高后账目卡与趋势卡不再同时留在惰性视口里：覆盖句在页顶断言，
+    // 往返滚动后只查每日证据（R10：布局变化的断言调整）。
+    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     final dailyTop = tester.getTopLeft(find.text('每日充电')).dy;
     expect(tester.getTopLeft(find.text('已记录费用')).dy, lessThan(dailyTop));
     await tester.scrollUntilVisible(find.text('充入电量'), 160);
@@ -33,7 +36,6 @@ void main() {
     expect(daily.bottom, lessThanOrEqualTo(viewport.bottom));
     final chart = find.byKey(const Key('charging-briefing-chart'));
     expect(tester.getRect(chart).top, greaterThan(daily.bottom));
-    expect(find.textContaining('8 次中 2 次有费用'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
