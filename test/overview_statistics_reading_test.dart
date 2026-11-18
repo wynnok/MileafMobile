@@ -913,7 +913,8 @@ void main() {
       ),
       isTrue,
     );
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
+    // 期间行、卡片副标题与洞察身份块同源 DF3，均含该日期。
+    expect(find.textContaining('10月2日–4日'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -1178,7 +1179,8 @@ void main() {
     await pumpReadingApp(tester, client, now: () => now);
     await selectTab(tester, '统计');
     await custom(tester, '2026-10-02', '2026-10-04');
-    expect(find.textContaining('2026-10-02 至 2026-10-04'), findsOneWidget);
+    // 期间行、卡片副标题与洞察身份块同源 DF3，均含该日期。
+    expect(find.textContaining('10月2日–4日'), findsWidgets);
     unauthorized = true;
     now = DateTime.utc(2026, 10, 29, 11);
     background(tester);
@@ -1289,15 +1291,11 @@ void main() {
     // R29：可见读值改为读数头（日期行 + 数值行），朗读句只进语义；
     // 「保留采样点」按读数头的日期行核对（chartDate）。
     final chosen = chartDate(tester);
-    expect(find.text('2026-03-09—2026-03-15'), findsWidgets);
+    expect(find.text('3月9日–15日'), findsWidgets);
     await selectTab(tester, '行程');
     now = DateTime.utc(2026, 3, 16, 12);
     await selectTab(tester, '统计');
-    expect(
-      find.text('2026-03-10—2026-03-16'),
-      findsWidgets,
-      reason: '窗口整体后移一天',
-    );
+    expect(find.text('3月10日–16日'), findsWidgets, reason: '窗口整体后移一天');
     expect(chartDate(tester), chosen, reason: '按日期保留采样点');
     expect(tester.takeException(), isNull);
   });

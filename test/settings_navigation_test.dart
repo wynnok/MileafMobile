@@ -89,7 +89,7 @@ void main() {
     keys.keyForMap();
     await keys.save('b' * 32);
     await tester.pumpAndSettle();
-    expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+    expect(find.text('已保存，重新启动后生效'), findsOneWidget);
     await tester.tap(find.text('服务信息'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Mileaf Server'), findsOneWidget);

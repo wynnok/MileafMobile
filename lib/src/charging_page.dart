@@ -1035,10 +1035,9 @@ class _ChargingPageState extends State<ChargingPage>
 
   String number(num? v, String unit) => v == null ? '—' : '${decimal(v)} $unit';
   DateTime get _today => workspace.calendar!.local(workspace.session.now());
-  String recordDay(DateTime value) {
-    final local = workspace.calendar!.local(value);
-    return '${local.year}年${local.month}月${local.day}日';
-  }
+  String recordDay(DateTime value) =>
+      // CP04 DF1：记录日走共享格式化器，页面不自拼。
+      copy.formatDay(workspace.calendar!.local(value), _today);
 
   DateTime recordTime(dto.ChargingSession value) =>
       expandedAvailable ? value.endedAt ?? value.startedAt : value.startedAt;
@@ -1672,7 +1671,7 @@ class _ChargingPageState extends State<ChargingPage>
       // 与行程页一致写「自定义」；完整区间与归期口径由语义标签补全。
       label: '自定义',
       selected: widget.filter.first != null,
-      semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}时间归期',
+      semanticLabel: '自定义日期，$range，按${expandedAvailable ? '结束' : '开始'}日期统计',
       onTap: filterDates,
     );
     return Column(

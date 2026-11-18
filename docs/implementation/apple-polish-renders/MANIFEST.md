@@ -21,6 +21,7 @@
 | `AP12b/` | 专题（长期续航、停放观察） | `AP12b/manifest.json` | FP3 / 8ea7e29 |
 | `AP13/` | 设置、接入、费用补录 | `AP13/manifest.json` | FP3 / 8ea7e29 |
 | `AP14/` | 集成收口机位（概览全机位，含 D-AP08-05 电量弧修复后的 130%） | `AP14/manifest.json` | FP4 / a5f0ee7 |
+| `AP11/` `AP12a/` `AP13/`（2026-11-18 重采） | AP15 收口文案修正（CP02/CP04/CP09）后重采统计首页、专题与设置机位 | 各自 manifest | 1894100 / FP5 96e0cd4 + AP15 |
 
 - AP14 机位按 `apple_polish_ap08_render_test.dart` 入口重采，输入为 FP4 登记提交
   `a5f0ee7` 上的集成收口代码；与 AP08 目录的差异即 AP14 组件修复（电量弧

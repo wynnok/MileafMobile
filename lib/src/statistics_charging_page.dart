@@ -595,9 +595,19 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
         },
     ];
     final selected = selectedBucket.clamp(0, buckets.length - 1);
+    // CP04 DF9：图轴刻度走共享格式化器；读数头单点日期走 DF1。
+    final today = scope.workspace.calendar!.local(
+      scope.workspace.session.now(),
+    );
+    final axisLabels = copy_dates.formatAxisDayTicks([
+      for (final bucket in buckets)
+        scope.workspace.calendar!.local(bucket.bucketStart),
+    ], today);
     String tick(DateTime t) {
-      final d = scope.workspace.calendar!.local(t);
-      return '${d.month}/${d.day}';
+      for (var i = 0; i < buckets.length; i++) {
+        if (buckets[i].bucketStart == t) return axisLabels[i];
+      }
+      return copy_dates.formatDay(scope.workspace.calendar!.local(t), today);
     }
 
     return Padding(
@@ -605,7 +615,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
       child: TimeSeriesChart(
         title: titles[metric],
         unit: units[metric],
-        subtitle: '按结束日',
+        subtitle: '按结束日期统计',
         times: [for (final bucket in buckets) bucket.bucketStart],
         series: [
           ChartSeries(
@@ -628,10 +638,16 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             ? 240
             : MileafSpace.detailChartHeight,
         tickLabel: tick,
+        // CP04：读数头单点日期走 DF1，不随图轴 DF9 缩写。
+        readoutDate: (time) =>
+            copy_dates.formatDay(scope.workspace.calendar!.local(time), today),
         readout: (index) {
           if (index < 0 || index >= buckets.length) return '—';
           final value = values[index];
-          final date = tick(buckets[index].bucketStart);
+          final date = copy_dates.formatDay(
+            scope.workspace.calendar!.local(buckets[index].bucketStart),
+            today,
+          );
           return switch (metric) {
             0 =>
               '$date ${value == null ? '—' : '${value.toStringAsFixed(1)} kWh'}',

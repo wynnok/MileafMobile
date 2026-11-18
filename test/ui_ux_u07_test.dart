@@ -204,7 +204,7 @@ void main() {
         if (state == 'restart') await keys.save('b' * 32);
         await tester.pumpAndSettle();
         if (state == 'restart') {
-          expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+          expect(find.text('已保存，重新启动后生效'), findsOneWidget);
         }
         if (state == 'failed') {
           double surfaceHeight() => tester

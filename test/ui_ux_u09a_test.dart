@@ -355,13 +355,17 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final seen = <Uri>[];
     await openUsage(tester, dailyClient(seen));
-    final cells = [for (var day = 1; day <= 5; day++) find.text('10/$day')];
+    // CP04 DF9：首格写 M月D日，其余写 D日。
+    final cells = [
+      find.text('10月1日'),
+      for (var day = 2; day <= 5; day++) find.text('$day日'),
+    ];
     final first = tester.getRect(cells[0]);
     expect(tester.getRect(cells[3]).top, first.top);
     expect(tester.getRect(cells[4]).top, greaterThan(first.bottom));
     expect(find.text('0'), findsWidgets);
     expect(find.text('—'), findsWidgets);
-    expect(find.text('10/29'), findsNothing);
+    expect(find.text('29日'), findsNothing);
     final button = find.ancestor(
       of: cells.first,
       matching: find.byType(TextButton),
@@ -414,7 +418,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('10/1'));
+    await tester.tap(find.text('10月1日'));
     await tester.pumpAndSettle();
     expect(find.text('没有匹配行程'), findsOneWidget);
     expect(find.text('— 趟'), findsOneWidget);
@@ -466,26 +470,26 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openUsage(tester, dailyClient([]));
-    final first = tester.getRect(find.text('10/1'));
-    expect(tester.getRect(find.text('10/7')).top, first.top);
-    expect(tester.getRect(find.text('10/8')).top, greaterThan(first.bottom));
+    final first = tester.getRect(find.text('10月1日'));
+    expect(tester.getRect(find.text('7日')).top, first.top);
+    expect(tester.getRect(find.text('8日')).top, greaterThan(first.bottom));
     final cell = find.ancestor(
-      of: find.text('10/7'),
+      of: find.text('7日'),
       matching: find.byType(TextButton),
     );
     expect(tester.getSize(cell).width, greaterThanOrEqualTo(44));
     tester.platformDispatcher.textScaleFactorTestValue = 1.5;
     await tester.pumpAndSettle();
     expect(
-      tester.getRect(find.text('2026年10月2日')).top,
-      greaterThan(tester.getRect(find.text('2026年10月1日')).bottom),
+      tester.getRect(find.text('2日')).top,
+      greaterThan(tester.getRect(find.text('10月1日')).bottom),
     );
     await tester.scrollUntilVisible(
-      find.text('2026年10月2日').hitTestable(),
+      find.text('2日').hitTestable(),
       120,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('2026年10月2日'));
+    await tester.tap(find.text('2日'));
     await tester.pumpAndSettle();
     expect(find.text('10月2日的行程'), findsOneWidget);
     expect(
@@ -580,7 +584,7 @@ void main() {
 
   testWidgets('日期可用键盘聚焦，焦点边界一帧内可见且按键可下钻', (tester) async {
     await openUsage(tester, dailyClient([]));
-    final date = find.text('10/1');
+    final date = find.text('10月1日');
     final focus = Focus.of(tester.element(date));
     for (var i = 0; !focus.hasFocus && i < 10; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -601,7 +605,7 @@ void main() {
 
   testWidgets('全部真实0仍显示每日日期和0，缺日保持未知', (tester) async {
     await openUsage(tester, dailyClient([], scenario: 'zero'));
-    expect(find.text('10/1'), findsOneWidget);
+    expect(find.text('10月1日'), findsOneWidget);
     expect(find.text('0'), findsWidgets);
     expect(find.text('—'), findsWidgets);
     expect(find.text('还没有每日里程'), findsNothing);
@@ -615,7 +619,7 @@ void main() {
       now: DateTime.utc(2026, 11, 3, 19),
       zone: 'America/New_York',
     );
-    await tester.tap(find.text('11/1'));
+    await tester.tap(find.text('11月1日'));
     await tester.pumpAndSettle();
     var request = seen.lastWhere((uri) => uri.path.endsWith('/drives'));
     expect(request.queryParameters['from'], '2026-11-01T04:00:00.000Z');
@@ -623,7 +627,7 @@ void main() {
     expect(request.queryParameters['tz'], 'America/New_York');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('11/3'));
+    await tester.tap(find.text('3日'));
     await tester.pumpAndSettle();
     request = seen.lastWhere((uri) => uri.path.endsWith('/drives'));
     expect(request.queryParameters['to'], '2026-11-03T19:00:00.000Z');
@@ -883,7 +887,8 @@ void main() {
         await save('notes');
         state.position.jumpTo(0);
         await tester.pumpAndSettle();
-        final date = find.text(scale >= 1.5 && !before ? '2026年10月2日' : '10/2');
+        // CP04 DF9：格内日期由共享格式化器输出（大字不再带年，首格带月）。
+        final date = find.text(scale >= 1.5 && !before ? '10月2日' : '2日');
         await tester.scrollUntilVisible(
           date.hitTestable(),
           100,
@@ -917,7 +922,7 @@ void main() {
             (scale == 1 || scale == 2)) {
           state.position.jumpTo(0);
           await tester.pumpAndSettle();
-          final zero = find.text(scale >= 1.5 ? '2026年10月1日' : '10/1');
+          final zero = find.text('10月1日');
           await tester.scrollUntilVisible(
             zero.hitTestable(),
             100,

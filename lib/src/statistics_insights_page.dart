@@ -1048,9 +1048,16 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         : insights.DrivingStats.fromJson(other).buckets
               .map<num?>((b) => b.distanceKm.toDouble())
               .toList();
+    // CP04 DF9：日级图轴刻度走共享格式化器，时间按站点日历本地化。
+    final today = cal.local(workspace.session.now());
+    final axisLabels = copy.formatAxisDayTicks([
+      for (final time in times) cal.local(time),
+    ], today);
     String tick(DateTime time) {
-      final local = cal.local(time);
-      return '${local.month}/${local.day}';
+      for (var i = 0; i < times.length; i++) {
+        if (times[i] == time) return axisLabels[i];
+      }
+      return copy.formatDay(cal.local(time), today);
     }
 
     var selected = times.isEmpty ? 0 : times.length - 1;
@@ -1232,10 +1239,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         chargingError ??
             (energy == null
                 ? '充电统计读取失败'
-                : '${known ?? '—'} / ${sessions ?? '—'} 次有记录 · '
+                : '${sessions ?? '—'} 次中 ${known ?? '—'} 次有费用，对应充入 '
                       // R22：单位不单独成行，数字与单位之间用不换行空格。
                       '${grouped(energy, decimals: 1)}\u00A0kWh'
-                      '${currencyNote == null ? '' : ' · $currencyNote'}'),
+                      '${currencyNote == null ? '' : '，$currencyNote'}'),
         () => selectTopic('charging'),
       ),
       _chapter(

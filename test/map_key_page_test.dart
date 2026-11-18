@@ -233,10 +233,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     const colors = MileafColors.light();
-    expect(find.text('已保存 · 重新启动后生效'), findsOneWidget);
+    expect(find.text('已保存，重新启动后生效'), findsOneWidget);
     expect(find.text('本次运行仍用原 Key'), findsOneWidget);
     expect(
-      tester.widget<Text>(find.text('已保存 · 重新启动后生效')).style?.color,
+      tester.widget<Text>(find.text('已保存，重新启动后生效')).style?.color,
       colors.warning,
     );
     final subtitle = tester.widget<Text>(find.text('本次运行仍用原 Key')).style;

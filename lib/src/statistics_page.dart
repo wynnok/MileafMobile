@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'number_format.dart';
 
+import 'copy/dates.dart' as copy_dates;
 import 'copy/messages.dart' as messages;
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -476,10 +477,26 @@ class _StatisticsViewState extends State<_StatisticsView>
     );
   }
 
-  String _tick(CalendarContext calendar, DateTime time) {
-    final local = calendar.local(time);
-    return '${local.month}/${local.day}';
+  /// CP04 DF9：日级图轴走共享格式化器（首刻度与每月首刻度 M月D日，其余
+  /// D日）；刻度时间先按站点日历本地化，再按原始时间对位。
+  String _tickLabel(
+    CalendarContext calendar,
+    List<DateTime> times,
+    DateTime t,
+  ) {
+    final today = calendar.local(workspace.session.now());
+    final labels = copy_dates.formatAxisDayTicks([
+      for (final time in times) calendar.local(time),
+    ], today);
+    for (var i = 0; i < times.length; i++) {
+      if (times[i] == t) return labels[i];
+    }
+    return copy_dates.formatDay(calendar.local(t), today);
   }
+
+  /// CP04：读数头单点日期走 DF1，不随图轴 DF9 缩写。
+  String _readoutDate(CalendarContext calendar, DateTime t) => copy_dates
+      .formatDay(calendar.local(t), calendar.local(workspace.session.now()));
 
   String _range(CalendarContext calendar) {
     final query = resultQuery;
@@ -488,7 +505,7 @@ class _StatisticsViewState extends State<_StatisticsView>
     final to = calendar.local(
       DateTime.parse(query['to']!).subtract(const Duration(microseconds: 1)),
     );
-    return '${statisticsDate(from)}—${statisticsDate(to)}';
+    return copy_dates.formatRange(from, to);
   }
 
   List<Widget> _driving(
@@ -551,7 +568,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           (index) => setState(() => drivingMetric = index),
         ),
         plotKey: const ValueKey('driving-statistics-chart'),
-        tickLabel: (t) => _tick(calendar, t),
+        tickLabel: (t) => _tickLabel(calendar, times, t),
+        readoutDate: (t) => _readoutDate(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => driving.select(times, index)),
         readout: (index) =>
@@ -576,7 +594,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       line('最高速度', totals.speedMaxKmh, 'km/h'),
       const SizedBox(height: MileafSpace.s12),
       Text(
-        '按开始时间归期 · 仅统计已完成行程',
+        '按开始日期统计，仅统计已完成的行程',
         style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.drives == 0)
@@ -628,7 +646,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
           semanticsLabel: '净电耗与毛电耗图表',
           plotKey: const ValueKey('driving-consumption-chart'),
-          tickLabel: (t) => _tick(calendar, t),
+          tickLabel: (t) => _tickLabel(calendar, times, t),
+          readoutDate: (t) => _readoutDate(calendar, t),
           selectedIndex: point,
           onSelected: (index) =>
               setState(() => consumption.select(times, index)),
@@ -736,7 +755,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           (index) => setState(() => chargingMetric = index),
         ),
         plotKey: const ValueKey('charging-statistics-chart'),
-        tickLabel: (t) => _tick(calendar, t),
+        tickLabel: (t) => _tickLabel(calendar, times, t),
+        readoutDate: (t) => _readoutDate(calendar, t),
         selectedIndex: point,
         onSelected: (index) => setState(() => charging.select(times, index)),
         readout: (index) {
@@ -822,7 +842,7 @@ class _StatisticsViewState extends State<_StatisticsView>
       ],
       const SizedBox(height: MileafSpace.s12),
       Text(
-        '按结束时间归期 · 仅统计已结束充电',
+        '按结束日期统计，仅含已完成的充电',
         style: context.type.footnote.copyWith(color: context.colors.textMuted),
       ),
       if (totals.sessions == 0)
@@ -909,7 +929,8 @@ class _StatisticsViewState extends State<_StatisticsView>
           ],
           semanticsLabel: 'AC 与 DC 时间分布图表',
           plotKey: const ValueKey('charging-classification-chart'),
-          tickLabel: (t) => _tick(calendar, t),
+          tickLabel: (t) => _tickLabel(calendar, times, t),
+          readoutDate: (t) => _readoutDate(calendar, t),
           selectedIndex: point,
           onSelected: (index) =>
               setState(() => classification.select(times, index)),
@@ -948,7 +969,8 @@ class _StatisticsViewState extends State<_StatisticsView>
     // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
     return MileafDisclosure(
       label:
-          '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
+          '${copy_dates.formatDay(calendar.local(bucket.bucketStart), calendar.local(workspace.session.now()))} '
+          '${number(richer != null && richer.sessions > 0 && richer.energyKnownSessions == 0 ? null : bucket.energyAddedKwh, 'kWh', decimals: 2)}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -986,7 +1008,8 @@ class _StatisticsViewState extends State<_StatisticsView>
   ) => MileafDisclosure(
     // R30.3：记录行明细保留原位折叠，折叠行改 MileafDisclosure。
     label:
-        '${statisticsDate(calendar.local(bucket.bucketStart))} · ${number(bucket.distanceKm, 'km', decimals: 1)}',
+        '${copy_dates.formatDay(calendar.local(bucket.bucketStart), calendar.local(workspace.session.now()))} '
+        '${number(bucket.distanceKm, 'km', decimals: 1)}',
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
