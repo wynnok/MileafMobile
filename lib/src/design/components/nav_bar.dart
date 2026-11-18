@@ -228,6 +228,7 @@ class _SelectionLens extends StatelessWidget {
       return MileafGlassLens(
         key: const ValueKey('nav-selection-surface'),
         borderRadius: borderRadius,
+        sheen: true,
         child: box,
       );
     }
@@ -328,10 +329,14 @@ class _NavItemState extends State<_NavItem> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    // 玻璃底会把饱和内容带进来（浅色实测最低 4.25:1），未选目的地因此比
-    // 实色页面上的次级文字再深一档：textMuted 在两种模式下都 ≥4.9:1。
-    final iconColor = widget.active ? colors.accent : colors.textMuted;
-    final labelColor = widget.active ? colors.accentStrong : colors.textMuted;
+    // 玻璃越薄，背后内容的明度范围越大：未选目的地不能再用页面次级灰
+    // （textMuted 在透出的蓝色图表上不足 4.5:1），改用底栏专用的
+    // navigationLabel——浅色压深一档、深色提亮一档（L03 修订）。
+    // 镜片比底栏更亮，图形若用 accent（对白底 3:1）只剩 3.0:1，因此选中图形
+    // 与选中文字同用 accentStrong（浅色首屏实测 5.16:1）。
+    final itemColor = widget.active
+        ? colors.accentStrong
+        : colors.navigationLabel;
     return Semantics(
       button: true,
       selected: widget.active,
@@ -362,7 +367,7 @@ class _NavItemState extends State<_NavItem> {
                     MileafIcon(
                       widget.item.icon,
                       size: MileafIconMetrics.nav,
-                      color: iconColor,
+                      color: itemColor,
                     ),
                     const SizedBox(height: MileafSpace.s4),
                     MediaQuery(
@@ -372,7 +377,7 @@ class _NavItemState extends State<_NavItem> {
                         widget.item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: widget.labelStyle.copyWith(color: labelColor),
+                        style: widget.labelStyle.copyWith(color: itemColor),
                       ),
                     ),
                   ],

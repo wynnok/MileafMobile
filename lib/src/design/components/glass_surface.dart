@@ -52,7 +52,12 @@ class MileafGlassSurface extends StatelessWidget {
               fillBottom: colors.glassFillBottom,
               sheen: colors.glassSheen,
               meniscus: colors.glassMeniscus,
+              lip: colors.glassLip,
               edge: colors.glassEdge,
+              sheenReach: MileafMaterialMetrics.glassSheenReach,
+              sheenCore: MileafMaterialMetrics.glassSheenCore,
+              meniscusStart: MileafMaterialMetrics.glassMeniscusStart,
+              lipReach: MileafMaterialMetrics.glassLipReach,
               rimStroke: hairline * MileafMaterialMetrics.glassRimStroke,
               innerStroke: hairline * MileafMaterialMetrics.glassInnerStroke,
             ),
@@ -68,17 +73,22 @@ class MileafGlassSurface extends StatelessWidget {
 ///
 /// [elevated] 为 false 时不投外影：顶栏的车辆胶囊与设置圆钮也用这层镜片，
 /// 但 R24 规定静态容器没有阴影，阴影只给浮层。
+///
+/// [sheen] 只在底栏的选中镜片上打开。顶栏镜片贴在磨砂顶栏上、不叠在内容上，
+/// 加受光带会改变顶栏观感（规格 §3：顶栏仍按 R14），因此默认关闭。
 class MileafGlassLens extends StatelessWidget {
   const MileafGlassLens({
     super.key,
     required this.child,
     this.borderRadius = MileafRadius.fullAll,
     this.elevated = true,
+    this.sheen = false,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
   final bool elevated;
+  final bool sheen;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +104,9 @@ class MileafGlassLens extends StatelessWidget {
           borderRadius: borderRadius,
           fillTop: colors.glassLensTop,
           fillBottom: colors.glassLensBottom,
+          sheen: sheen ? colors.glassLensSheen : null,
+          sheenReach: MileafMaterialMetrics.glassLensSheenReach,
+          sheenCore: MileafMaterialMetrics.glassLensSheenCore,
           edge: colors.glassLensEdge,
           rimStroke: hairline * MileafMaterialMetrics.glassLensRimStroke,
           innerStroke: hairline * MileafMaterialMetrics.glassInnerStroke,
@@ -158,9 +171,21 @@ class LiquidGlassPainter extends CustomPainter {
     required this.innerStroke,
     this.sheen,
     this.meniscus,
+    this.lip,
     this.sheenReach = 0,
+    this.sheenCore = 0,
     this.meniscusStart = 1,
-  });
+    this.lipReach = 0,
+    this.innerReach = MileafMaterialMetrics.glassInnerReach,
+  }) : assert(
+         sheen == null || sheenReach > sheenCore,
+         '受光带必须真的画出来：reach 要大于 core，否则等于两条看不见的带（L11）',
+       ),
+       assert(lip == null || lipReach > 0, '端头增厚给了颜色却没有范围，等于画了看不见的带（L11）'),
+       assert(
+         meniscus == null || meniscusStart < 1,
+         '弯月给了颜色却从 100% 才开始，等于画了看不见的带（L11）',
+       );
 
   final BorderRadius borderRadius;
   final Color fillTop;
@@ -168,8 +193,12 @@ class LiquidGlassPainter extends CustomPainter {
   final GlassEdge edge;
   final Color? sheen;
   final Color? meniscus;
+  final Color? lip;
   final double sheenReach;
+  final double sheenCore;
   final double meniscusStart;
+  final double lipReach;
+  final double innerReach;
   final double rimStroke;
   final double innerStroke;
 
@@ -193,8 +222,14 @@ class LiquidGlassPainter extends CustomPainter {
         Paint()
           ..shader = _vertical(
             rect,
-            stops: [0, sheenReach],
-            colors: [sheenColor, sheenColor.withValues(alpha: 0)],
+            stops: [0, sheenCore, sheenReach],
+            colors: [
+              sheenColor,
+              sheenColor.withValues(
+                alpha: sheenColor.a * MileafMaterialMetrics.glassSheenCoreAlpha,
+              ),
+              sheenColor.withValues(alpha: 0),
+            ],
           ),
       );
     }
@@ -210,18 +245,37 @@ class LiquidGlassPainter extends CustomPainter {
           ),
       );
     }
+    // 端头增厚：只在胶囊两端、贴着圆角的一竖条，横向渐变到中间透明。
+    final lipColor = lip;
+    if (lipColor != null && lipReach > 0) {
+      final clear = lipColor.withValues(alpha: 0);
+      canvas.save();
+      canvas.clipRRect(rrect);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            stops: [0, lipReach, 1 - lipReach, 1],
+            colors: [lipColor, clear, clear, lipColor],
+          ).createShader(rect),
+      );
+      canvas.restore();
+    }
+    // 受光边缘：竖着读光——顶边最亮、两侧衰减、底沿最暗。斜向渐变会让
+    // 左侧比右侧亮一档，光就从「上方」漂成了「左上角」。
     canvas.drawRRect(
       rrect.deflate(rimStroke / 2),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = rimStroke
         ..isAntiAlias = true
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        ..shader = _vertical(
+          rect,
           stops: const [0, .5, 1],
           colors: [edge.top, edge.side, edge.bottom],
-        ).createShader(rect),
+        ),
     );
     canvas.drawRRect(
       rrect.deflate(rimStroke + innerStroke / 2),
@@ -231,7 +285,7 @@ class LiquidGlassPainter extends CustomPainter {
         ..isAntiAlias = true
         ..shader = _vertical(
           rect,
-          stops: [MileafMaterialMetrics.glassInnerReach, 1],
+          stops: [innerReach, 1],
           colors: [edge.inner.withValues(alpha: 0), edge.inner],
         ),
     );
@@ -256,8 +310,12 @@ class LiquidGlassPainter extends CustomPainter {
       edge != old.edge ||
       sheen != old.sheen ||
       meniscus != old.meniscus ||
+      lip != old.lip ||
       sheenReach != old.sheenReach ||
+      sheenCore != old.sheenCore ||
       meniscusStart != old.meniscusStart ||
+      lipReach != old.lipReach ||
+      innerReach != old.innerReach ||
       rimStroke != old.rimStroke ||
       innerStroke != old.innerStroke;
 }

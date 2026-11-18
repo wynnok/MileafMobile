@@ -1,170 +1,170 @@
 {
   "overview-dark": {
     "label:概览": {
-      "contrast": 5.4968271711596275,
+      "contrast": 4.9181670002842734,
       "ink_luminance": 0.3793458869472207,
-      "backdrop_luminance": 0.028107947290008137
+      "backdrop_luminance": 0.03729794797988848
     },
     "label:行程": {
-      "contrast": 6.927504799788535,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.010562378041893349
+      "contrast": 8.682762903143255,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.02972864991901121
     },
     "label:充电": {
-      "contrast": 6.92440662167038,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.010589475386790106
+      "contrast": 8.546557311123815,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.030999277092948876
     },
     "label:统计": {
-      "contrast": 7.053562628475616,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.009480036780008623
+      "contrast": 10.95014367391867,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.013219715142490788
     },
     "icon:概览": {
-      "contrast": 4.785403952128819,
+      "contrast": 3.865459854562541,
       "ink_luminance": 0.3793458869472207,
-      "backdrop_luminance": 0.039719883889054605
+      "backdrop_luminance": 0.06107239580834045
     },
     "icon:行程": {
-      "contrast": 6.189847194700125,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.01777972886488184
+      "contrast": 6.9411519463893745,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.04973344038298802
     },
     "icon:充电": {
-      "contrast": 6.1796871742921535,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.017891165481184808
+      "contrast": 6.820877740222985,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.051492064540634146
     },
     "icon:统计": {
-      "contrast": 6.487769033486454,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.014667247308951222
+      "contrast": 9.56203132193905,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.022397270049320857
     }
   },
   "drives-scrolled-dark": {
     "label:概览": {
-      "contrast": 7.6016343453120925,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.005191574010733222
+      "contrast": 12.458430188595768,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.005565986513146204
     },
     "label:行程": {
-      "contrast": 6.107100049623528,
+      "contrast": 7.050630431150976,
       "ink_luminance": 0.3793458869472207,
-      "backdrop_luminance": 0.020302743275621902
+      "backdrop_luminance": 0.010894680431737275
     },
     "label:充电": {
-      "contrast": 7.867081799755878,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.003329325314100941
+      "contrast": 12.903632942938772,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.0036488419110923855
     },
     "label:统计": {
-      "contrast": 7.814843130080695,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.0036858075828697747
+      "contrast": 12.903632942938772,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.0036488419110923855
     },
     "icon:概览": {
-      "contrast": 7.435014202810497,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.006428428127713864
+      "contrast": 11.175894446135622,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.011942689882316839
     },
     "icon:行程": {
-      "contrast": 5.636323825196194,
+      "contrast": 6.04018734132531,
       "ink_luminance": 0.3793458869472207,
-      "backdrop_luminance": 0.026174808308192906
+      "backdrop_luminance": 0.021081551396552475
     },
     "icon:充电": {
-      "contrast": 7.867081799755878,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.003329325314100941
+      "contrast": 12.167050433407805,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.006896695515758876
     },
     "icon:统计": {
-      "contrast": 7.716427339118934,
-      "ink_luminance": 0.369546164571824,
-      "backdrop_luminance": 0.004370519689196988
+      "contrast": 11.822974199850126,
+      "ink_luminance": 0.642264963834486,
+      "backdrop_luminance": 0.00855252258296068
     }
   },
   "overview-light": {
     "label:概览": {
-      "contrast": 5.469534630901704,
+      "contrast": 4.8047087967343955,
       "ink_luminance": 0.12792034659118262,
-      "backdrop_luminance": 0.923141497222507
+      "backdrop_luminance": 0.8048554543846875
     },
     "label:行程": {
-      "contrast": 4.932771407325477,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.8325372599306782
+      "contrast": 6.309669125068177,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.617805499972055
     },
     "label:充电": {
-      "contrast": 4.89692291523992,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.8261234962742374
+      "contrast": 6.233711807696171,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.6097662964419333
     },
     "label:统计": {
-      "contrast": 4.9848174586489575,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.8418489785838116
+      "contrast": 8.133504167204304,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.8108373449132287
     },
     "icon:概览": {
-      "contrast": 3.244249002133933,
-      "ink_luminance": 0.24612960146037333,
-      "backdrop_luminance": 0.9107181640401354
+      "contrast": 5.164840004019473,
+      "ink_luminance": 0.12792034659118262,
+      "backdrop_luminance": 0.8689301236031495
     },
     "icon:行程": {
-      "contrast": 4.548602058940526,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.7638043436699514
+      "contrast": 6.689235730783094,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.6579782351627307
     },
     "icon:充电": {
-      "contrast": 4.540627477526242,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.7623775868532856
+      "contrast": 6.581405422870986,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.6465656442233274
     },
     "icon:统计": {
-      "contrast": 4.679248307256709,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.7871786646121219
+      "contrast": 8.202108788656883,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.8180983506207249
     }
   },
   "drives-scrolled-light": {
     "label:概览": {
-      "contrast": 5.322832782700838,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.9023243368094769
+      "contrast": 8.761692450522627,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.8773238091481415
     },
     "label:行程": {
-      "contrast": 5.692625412989692,
+      "contrast": 5.65760152522406,
       "ink_luminance": 0.12792034659118262,
-      "backdrop_luminance": 0.9628338864929
+      "backdrop_luminance": 0.9566024242426681
     },
     "label:充电": {
-      "contrast": 5.5812656401567935,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.9485613518790431
+      "contrast": 9.58712452988017,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.964686247894465
     },
     "label:统计": {
-      "contrast": 5.519357258359692,
-      "ink_luminance": 0.12891306672351663,
+      "contrast": 9.330118512298322,
+      "ink_luminance": 0.05583843411358584,
       "backdrop_luminance": 0.9374851334358335
     },
     "icon:概览": {
-      "contrast": 5.183097166296868,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.8773238091481415
+      "contrast": 8.700214095705332,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.8708170363423997
     },
     "icon:行程": {
-      "contrast": 3.399195552483013,
-      "ink_luminance": 0.24612960146037333,
-      "backdrop_luminance": 0.9566024242426681
+      "contrast": 5.752266730628843,
+      "ink_luminance": 0.12792034659118262,
+      "backdrop_luminance": 0.9734452903984125
     },
     "icon:充电": {
-      "contrast": 5.571021649190143,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.9467285680397118
+      "contrast": 9.75307844431358,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.9822505503331171
     },
     "icon:统计": {
-      "contrast": 5.4272907192184965,
-      "ink_luminance": 0.12891306672351663,
-      "backdrop_luminance": 0.9210132265754615
+      "contrast": 9.260443680823627,
+      "ink_luminance": 0.05583843411358584,
+      "backdrop_luminance": 0.9301108583754237
     }
   }
 }

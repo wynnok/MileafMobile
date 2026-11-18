@@ -82,31 +82,47 @@ abstract final class MileafPalette {
   static const pressOverlayLight = Color(0x0F0E1319); // 6%
   static const accentFocus = Color(0x9964A8FF); // 60%
 
-  /// 液态玻璃底栏（ADR 0013）。四组值分别是「玻璃体上下沿」、顶部高光、
-  /// 下沿弯月增厚、选中镜片，以及内外两圈受光边缘。
+  /// 液态玻璃底栏（ADR 0013，2026-11-18 按「液态玻璃再透一层」重定）。
   ///
-  /// 浅色以白、深色以近黑叠色，因此玻璃只会把浅色内容提亮、把深色内容压暗，
-  /// 正文对比不会被自身透明度吃掉；合成实测见 liquid_glass_nav_test 的 L04。
-  static const glassLightTop = Color(0x66FFFFFF); // 白 · 40%
-  static const glassLightBottom = Color(0x8FFFFFFF); // 白 · 56%
-  static const glassLightSheen = Color(0x8CFFFFFF); // 白 · 55%
-  static const glassLightMeniscus = Color(0x2EFFFFFF); // 白 · 18%
+  /// 五组值分别是「玻璃体上下沿」、顶部受光带、下沿弯月增厚、两侧端头折射
+  /// 增厚，以及选中镜片；再往后是内外两圈受光边缘。
+  ///
+  /// 浅色以白、深色以近黑叠色，因此玻璃只会把浅色内容提亮、把深色内容压暗；
+  /// 标签带的叠色总量压在 ≤32%（浅）/ ≤52%（深）以内，背后的色块还能透出来
+  /// （L10），正文对比靠未选目的地的深一档文字补足（L03/L04）。深色现值为
+  /// 50.7%，只剩 1.3pp 余量——再加浓深色就要同时重跑渲染对比断言。
+  static const glassLightTop = Color(0x1FFFFFFF); // 白 · 12%
+  static const glassLightBottom = Color(0x33FFFFFF); // 白 · 20%
+  static const glassLightSheen = Color(0x40FFFFFF); // 白 · 25%
+  static const glassLightMeniscus = Color(0x14FFFFFF); // 白 · 8%
+  static const glassLightLip = Color(0x100E1319); // 14,19,25 · 6%
   static const glassLightLensTop = Color(0x8CFFFFFF); // 白 · 55%
   static const glassLightLensBottom = Color(0x66FFFFFF); // 白 · 40%
+  static const glassLightLensSheen = Color(0x66FFFFFF); // 白 · 40%
 
-  static const glassDarkTop = Color(0x7A0A0B0D); // 10,11,13 · 48%
-  static const glassDarkBottom = Color(0xA00A0B0D); // 63%
-  static const glassDarkSheen = Color(0x24FFFFFF); // 白 · 14%
-  static const glassDarkMeniscus = Color(0x59000000); // 黑 · 35%
-  static const glassDarkLensTop = Color(0x26FFFFFF); // 白 · 15%
-  static const glassDarkLensBottom = Color(0x1AFFFFFF); // 白 · 10%
+  static const glassDarkTop = Color(0x4A0A0B0D); // 10,11,13 · 29%
+  static const glassDarkBottom = Color(0x730A0B0D); // 45%
+  static const glassDarkSheen = Color(0x1FFFFFFF); // 白 · 12%
+  static const glassDarkMeniscus = Color(0x4D000000); // 黑 · 30%
+  static const glassDarkLip = Color(0x1AFFFFFF); // 白 · 10%
+  static const glassDarkLensTop = Color(0x14FFFFFF); // 白 · 8%
+  static const glassDarkLensBottom = Color(0x0DFFFFFF); // 白 · 5%
+  static const glassDarkLensSheen = Color(0x1AFFFFFF); // 白 · 10%
 
-  static const glassRimLightTop = Color(0xE6FFFFFF); // 90%
-  static const glassRimLightSide = Color(0x52FFFFFF); // 32%
-  static const glassRimLightBottom = Color(0x42FFFFFF); // 26%
+  /// 底栏未选目的地的文字与图标：玻璃变薄以后，背景透上来的明度范围变大，
+  /// 次级灰（textMuted）在透出的蓝色图表上不足 4.5:1，故单设一档更实的
+  /// 中性色（浅色压深、深色提亮），只服务根底栏。
+  static const navigationLabelLight = Color(0xFF3A444E);
+  static const navigationLabelDark = Color(0xFFC9D3DD);
+
+  /// 浅色玻璃压在亮内容上：白色边线在浅底上等于没有边界，所以下半圈改用
+  /// 石墨（折射收暗），只有顶边还是受光的高光。
+  static const glassRimLightTop = Color(0xF2FFFFFF); // 95%
+  static const glassRimLightSide = Color(0x240E1319); // 14,19,25 · 14%
+  static const glassRimLightBottom = Color(0x330E1319); // 20%
 
   /// 浅色玻璃的内缘必须更暗：玻璃压在亮内容上时，折射让边缘收暗。
-  static const glassInnerLight = Color(0x1F0E1319); // 14,19,25 · 12%
+  static const glassInnerLight = Color(0x2B0E1319); // 14,19,25 · 17%
 
   static const glassRimDarkTop = Color(0x59FFFFFF); // 35%
   static const glassRimDarkSide = Color(0x29FFFFFF); // 16%
@@ -328,18 +344,39 @@ abstract final class MileafMaterialMetrics {
 
   static const navigationBlur = 18.0;
 
-  /// 液态玻璃：更重的模糊与轻微过饱和，让背后的色块融成光而不是可读内容。
-  static const glassBlur = 36.0;
-  static const glassSaturation = 1.35;
+  /// 液态玻璃：模糊把背后的字融掉、把色块留成光斑；过饱和放大色相，让玻璃
+  /// 读起来是「有颜色的透明」而不是灰纱。
+  ///
+  /// 36σ 时 64 高的胶囊里只剩一片平涂（「毛玻璃不像」的直接原因）；22σ 仍读
+  /// 不出字，但块面的走向还在，透出来的是「隐约的内容」而不是一层灰纱。过饱和
+  /// 取 1.5：品牌蓝仍是栏上唯一的信号色（1.8 会把整条栏染蓝，见实施记录 §7.3 第 6 条）。
+  static const glassBlur = 22.0;
+  static const glassSaturation = 1.5;
 
   /// 受光边缘以物理像素为单位的倍数，缩放后仍是一条线。
   static const glassRimStroke = 1.2;
   static const glassInnerStroke = 0.9;
   static const glassLensRimStroke = 1.0;
 
-  /// 顶部高光覆盖范围与下沿弯月起点的相对高度。
-  static const glassSheenReach = .52;
+  /// 顶部受光带覆盖范围与下沿弯月起点的相对高度。
+  static const glassSheenReach = .55;
   static const glassMeniscusStart = .58;
+
+  /// 受光带里最亮的一条「镜面线」的厚度（相对高度）：顶边是一条硬光，往下
+  /// 才散开成柔光。
+  static const glassSheenCore = .16;
+
+  /// 镜面线末端保留的 alpha 比例：硬光之后是这一档的半光，再往 [glassSheenReach]
+  /// 散尽。painter 与「透光率上限」的模型共用，避免两处各写一个数。
+  static const glassSheenCoreAlpha = .45;
+
+  /// 选中镜片自己的受光带：镜片更矮、光落得更短，镜面线也更薄。
+  static const glassLensSheenReach = .5;
+  static const glassLensSheenCore = .12;
+
+  /// 两侧端头增厚的横向范围（相对宽度）：胶囊两端沿视线方向更厚，折射把
+  /// 背后内容压暗/提亮一档，边界由此读出「弯曲」。
+  static const glassLipReach = .085;
 
   /// 内缘细线从多高开始出现（只压在下半圈）。
   static const glassInnerReach = .42;

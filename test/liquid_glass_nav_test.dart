@@ -4,6 +4,7 @@ import 'package:mileaf/src/design/components/glass_surface.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/navigation_material.dart';
 import 'package:mileaf/src/design/display_preferences.dart';
+import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/tokens.dart';
@@ -184,7 +185,11 @@ void main() {
     final inactive = tester.widget<Text>(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('行程')),
     );
-    expect(inactive.style?.color, colors.textMuted);
+    // 2026-11-18 修订：玻璃变薄后未选目的地改用底栏专属的 navigationLabel
+    // （浅 #3A444E / 深 #C9D3DD），页面次级灰 textMuted 在透出的内容上不足
+    // 4.5:1；选中图标也随文字改用 accentStrong（accent 在亮镜片上只剩 3.0）。
+    expect(inactive.style?.color, colors.navigationLabel);
+    expect(colors.navigationLabel, isNot(colors.textMuted));
     final active = tester.widget<Text>(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('概览')),
     );
@@ -192,35 +197,37 @@ void main() {
   });
 
   testWidgets('L04 高透仍可读：标签 ≥4.5、图标 ≥3（token 合成）', (tester) async {
+    // token 口径只叠「填充 + 弯月」在标签带（0.72）上的合成；受光带在该高度
+    // 已经散尽，端头增厚只压两端。渲染像素口径由 opt-in 的
+    // liquid_glass_nav_render_test 断言，两者都不通过即红。
     for (final brightness in Brightness.values) {
       final colors = brightness == Brightness.dark
           ? const MileafColors.dark()
           : const MileafColors.light();
       for (final backdrop in [colors.canvas, colors.surface]) {
-        for (final fill in [colors.glassFillTop, colors.glassFillBottom]) {
-          final glass = compositeOver(fill, fill.a, backdrop);
-          final lens = compositeOver(
-            colors.glassLensTop,
-            colors.glassLensTop.a,
-            glass,
-          );
-          final where = '$brightness / $backdrop / $fill';
-          expect(
-            contrastRatio(colors.textMuted, glass),
-            greaterThanOrEqualTo(4.5),
-            reason: '未选标签 $where',
-          );
-          expect(
-            contrastRatio(colors.accentStrong, lens),
-            greaterThanOrEqualTo(4.5),
-            reason: '选中标签 $where',
-          );
-          expect(
-            contrastRatio(colors.accent, lens),
-            greaterThanOrEqualTo(3),
-            reason: '选中图标 $where',
-          );
-        }
+        final glass = _glassAt(colors, backdrop, _kLabelBand);
+        final lens = compositeOver(
+          colors.glassLensTop,
+          colors.glassLensTop.a,
+          glass,
+        );
+        final where = '$brightness / $backdrop';
+        expect(
+          contrastRatio(colors.navigationLabel, glass),
+          greaterThanOrEqualTo(4.5),
+          reason: '未选标签 $where',
+        );
+        expect(
+          contrastRatio(colors.accentStrong, lens),
+          greaterThanOrEqualTo(4.5),
+          reason: '选中标签 $where',
+        );
+        // 选中图形与选中文字同色（L03/L12），文字下限更严，图形下限随之满足。
+        expect(
+          contrastRatio(colors.accentStrong, lens),
+          greaterThanOrEqualTo(3),
+          reason: '选中图标 $where',
+        );
       }
     }
   });
@@ -414,4 +421,165 @@ void main() {
       );
     }
   });
+
+  // 2026-11-18「液态玻璃再透一层」：L10–L12 固定新的材质口径。
+  testWidgets('L10 透光率有上限：标签带叠色不超过阈值，顶边仍有受光带', (tester) async {
+    for (final brightness in Brightness.values) {
+      final colors = brightness == Brightness.dark
+          ? const MileafColors.dark()
+          : const MileafColors.light();
+      final ceiling = brightness == Brightness.dark ? .52 : .32;
+      final labelBand = _veilAlpha(colors, _kLabelBand);
+      expect(
+        labelBand,
+        lessThanOrEqualTo(ceiling),
+        reason: '$brightness 标签带总叠色 $labelBand 超过 $ceiling：背后内容会被洗掉',
+      );
+      expect(
+        _veilAlpha(colors, 0),
+        greaterThanOrEqualTo(.2),
+        reason: '$brightness 顶边必须仍有受光带（不是一层空气）',
+      );
+    }
+  });
+
+  testWidgets('L11 受光带、弯月、端头增厚真的接到画布参数上', (tester) async {
+    _setView(tester);
+    final preferences = _transparent();
+    addTearDown(preferences.dispose);
+    await tester.pumpWidget(_shell(preferences: preferences));
+
+    final painter = _surfacePainter(tester);
+    expect(painter.sheen, isNotNull);
+    expect(painter.meniscus, isNotNull);
+    expect(painter.lip, isNotNull);
+    // 三项曾经被留成默认值（reach 0 / start 1 / reach 0），等于画了看不见的带。
+    expect(painter.sheenReach, MileafMaterialMetrics.glassSheenReach);
+    expect(painter.sheenCore, MileafMaterialMetrics.glassSheenCore);
+    expect(painter.meniscusStart, MileafMaterialMetrics.glassMeniscusStart);
+    expect(painter.lipReach, MileafMaterialMetrics.glassLipReach);
+    expect(painter.sheenReach, greaterThan(painter.sheenCore));
+    expect(painter.sheenCore, greaterThan(0));
+    expect(painter.meniscusStart, lessThan(1));
+    expect(painter.lipReach, greaterThan(0));
+    expect(painter.lipReach, lessThan(.5));
+  });
+
+  testWidgets('L12 镜片是第二层玻璃：自带受光带与更亮的边，选中图形不弱于文字', (tester) async {
+    _setView(tester);
+    final preferences = _transparent();
+    addTearDown(preferences.dispose);
+    await tester.pumpWidget(_shell(preferences: preferences, index: 1));
+
+    final lens = _lensPainter(tester);
+    final surface = _surfacePainter(tester);
+    expect(lens.sheen, isNotNull, reason: '镜片自己也要有一条受光带');
+    expect(lens.sheenReach, MileafMaterialMetrics.glassLensSheenReach);
+    expect(lens.fillTop, isNot(surface.fillTop), reason: '两层玻璃不能同色');
+    expect(lens.edge.top.a, greaterThan(lens.edge.bottom.a));
+
+    final colors = MileafColors.of(
+      tester.element(find.byKey(const ValueKey('nav-selection-surface'))),
+    );
+    // 顺序以底栏自己声明的 items/index 为准（图标按 items 顺序绘制），
+    // 不写死「第 2 个」——加项或换序时失败原因才指向颜色本身。
+    final bar = tester.widget<MileafNavBar>(find.byType(MileafNavBar));
+    final iconColors = tester
+        .widgetList<MileafIcon>(
+          find.descendant(
+            of: find.byType(MileafNavBar),
+            matching: find.byType(MileafIcon),
+          ),
+        )
+        .toList();
+    expect(iconColors, hasLength(bar.items.length));
+    expect(
+      iconColors[bar.index].color,
+      colors.accentStrong,
+      reason: '亮镜片上的选中图形要与文字同强度（accent 只剩 3.0:1）',
+    );
+    for (var i = 0; i < iconColors.length; i++) {
+      if (i == bar.index) continue;
+      expect(
+        iconColors[i].color,
+        colors.navigationLabel,
+        reason: bar.items[i].label,
+      );
+    }
+  });
 }
+
+/// 标签所在的相对高度：图标在 0.25–0.45，文字落在 0.6–0.85。
+const _kLabelBand = .72;
+
+/// 玻璃体在相对高度 [h] 处的叠色上限：底栏填充 + 顶部受光带 + 下沿弯月。
+///
+/// 只用来卡「有多透」这条口径（各层 alpha 相加是上界，真实合成只会更薄）。
+double _veilAlpha(MileafColors colors, double h) {
+  final fill =
+      colors.glassFillTop.a +
+      (colors.glassFillBottom.a - colors.glassFillTop.a) * h;
+  final sheen = colors.glassSheen.a;
+  final core = MileafMaterialMetrics.glassSheenCore;
+  final reach = MileafMaterialMetrics.glassSheenReach;
+  final double sheenAlpha;
+  if (h <= core) {
+    sheenAlpha = sheen;
+  } else if (h <= reach) {
+    final t = (h - core) / (reach - core);
+    sheenAlpha = sheen * (MileafMaterialMetrics.glassSheenCoreAlpha * (1 - t));
+  } else {
+    sheenAlpha = 0;
+  }
+  final start = MileafMaterialMetrics.glassMeniscusStart;
+  final meniscusAlpha = h <= start
+      ? 0.0
+      : colors.glassMeniscus.a * ((h - start) / (1 - start));
+  return fill + sheenAlpha + meniscusAlpha;
+}
+
+/// 玻璃体在相对高度 [h] 处的合成色：填充 + 下沿弯月。
+///
+/// 受光带在标签带（0.72）已经散尽，端头增厚只压两端，故两者不计入；[h] 越低
+/// 受光带越强，这一处只服务「标签带有多不透明」这条口径。
+Color _glassAt(MileafColors colors, Color backdrop, double h) {
+  final fill = Color.lerp(colors.glassFillTop, colors.glassFillBottom, h)!;
+  var out = compositeOver(fill, fill.a, backdrop);
+  final start = MileafMaterialMetrics.glassMeniscusStart;
+  if (h > start) {
+    final alpha = colors.glassMeniscus.a * ((h - start) / (1 - start));
+    out = compositeOver(colors.glassMeniscus, alpha, out);
+  }
+  return out;
+}
+
+/// 某个玻璃容器里最外层的玻璃体：镜片是底栏的子树，所以取先序第一个。
+Finder _glassBodyOf(Finder scope) => find
+    .descendant(
+      of: scope,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is CustomPaint && widget.painter is LiquidGlassPainter,
+      ),
+    )
+    .first;
+
+LiquidGlassPainter _surfacePainter(WidgetTester tester) =>
+    tester
+            .widget<CustomPaint>(_glassBodyOf(find.byType(MileafGlassSurface)))
+            .painter!
+        as LiquidGlassPainter;
+
+/// 只认底栏里的镜片：顶栏的车辆胶囊与设置圆钮用的是同一层玻璃。
+LiquidGlassPainter _lensPainter(WidgetTester tester) =>
+    tester
+            .widget<CustomPaint>(
+              _glassBodyOf(
+                find.descendant(
+                  of: find.byType(MileafNavBar),
+                  matching: find.byType(MileafGlassLens),
+                ),
+              ),
+            )
+            .painter!
+        as LiquidGlassPainter;

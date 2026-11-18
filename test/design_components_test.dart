@@ -1224,8 +1224,8 @@ void main() {
         expect(textColor('概览'), colors.accentStrong, reason: '选中导航标签是文字');
         expect(
           textColor('行程'),
-          colors.textMuted,
-          reason: '未选导航标签：玻璃底需要比 textFaint 深一档（ADR 0013 L04）',
+          colors.navigationLabel,
+          reason: '未选导航标签：玻璃变薄后用底栏专属色（ADR 0013 L03/L10）',
         );
         expect(textColor('本月'), colors.text, reason: '选中 chip 标签是文字');
         expect(textColor('全部指标'), colors.accentStrong, reason: 'ghost 是文字按钮');

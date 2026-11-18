@@ -63,12 +63,17 @@ class MileafColors extends ThemeExtension<MileafColors> {
       ? MileafPalette.segmentSelectedDark
       : MileafPalette.segmentTrackLight;
   Color get navigationBorder => isDark ? lineStrong : line;
+
+  /// 根底栏未选目的地的文字与图标：玻璃与实色两条路径共用，只服务根底栏。
+  Color get navigationLabel => isDark
+      ? MileafPalette.navigationLabelDark
+      : MileafPalette.navigationLabelLight;
   Color get navigationHighlight =>
       isDark ? MileafPalette.navHighlightDark : MileafPalette.navHighlightLight;
   List<BoxShadow> get navigationShadow =>
       isDark ? MileafElevation.navigationDark : MileafElevation.navigationLight;
 
-  /// 液态玻璃（ADR 0013）：玻璃体上下沿、顶部高光、下沿弯月。
+  /// 液态玻璃（ADR 0013）：玻璃体上下沿、顶部受光带、下沿弯月、端头增厚。
   ///
   /// 玻璃只叠加本模式的中性色——浅色用白、深色用近黑——所以它只会把
   /// 背后内容朝 canvas 方向推，正文与图标对比不因透明度下降。
@@ -81,6 +86,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
   Color get glassMeniscus => isDark
       ? MileafPalette.glassDarkMeniscus
       : MileafPalette.glassLightMeniscus;
+
+  /// 端头增厚：胶囊两端的弯曲侧壁沿视线方向更厚，受光更亮（只压左右两端）。
+  Color get glassLip =>
+      isDark ? MileafPalette.glassDarkLip : MileafPalette.glassLightLip;
 
   /// 受光边缘：顶边最亮、两侧衰减、底沿最暗。
   GlassEdge get glassEdge => isDark
@@ -97,7 +106,14 @@ class MileafColors extends ThemeExtension<MileafColors> {
           inner: MileafPalette.glassInnerLight,
         );
 
-  /// 选中镜片：比底栏更密的一层玻璃，自带更亮的顶边。
+  /// 选中镜片：比底栏更密的一层玻璃，自带更亮的顶边与自己的受光带。
+  ///
+  /// 受光带只在底栏镜片打开（`MileafGlassLens(sheen: true)`）；顶栏的车辆胶囊与
+  /// 设置圆钮贴在磨砂顶栏上、不叠在内容上，仍按规格 §3 的顶栏取值。
+  Color get glassLensSheen => isDark
+      ? MileafPalette.glassDarkLensSheen
+      : MileafPalette.glassLightLensSheen;
+
   Color get glassLensTop =>
       isDark ? MileafPalette.glassDarkLensTop : MileafPalette.glassLightLensTop;
   Color get glassLensBottom => isDark
