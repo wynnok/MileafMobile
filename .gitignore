@@ -149,4 +149,12 @@ app.*.symbols
 
 # Agent scratch: research working notes, test logs, one-off measurement scripts.
 # ADR/spec 会引用其中的路径作为调研证据，但不入库（与 2026-11-05 对 creator/ 的口径一致）。
+# 随时可整目录删除；引用它的文档按「当时工作稿」理解。
 /.dsh-tmp/
+
+# Agent/skill scratch directories that must never enter the repo
+# （.hallmark/ 的 log.json、preflight.json 已被历史提交跟踪，忽略规则只对新文件生效；清理需单独授权）
+/.claude/
+
+# Local delivery artifacts copied out of build/ for on-device verification
+/build/releases/

@@ -1,6 +1,6 @@
 # 充电记录行与地点行重排实施记录
 
-2026-11-18 在 `main` 工作区完成（基线 `af126cc`）。条款依据：[apple-polish](apple-polish.md) R21 第 5 条（三列网格只用 `metricSm`、两列网格可用 `metricMd`）、R22（字体角色：记录行标题 `headline`、记录尾值 `metricSm`）、R23.1（功能文字只有 `text`/`textSecondary` 两级，`textFaint` 只留占位/禁用/装饰）、R24（「两条起始线」与卡片内边距 16、分隔线规则、间距档位）、R25；[焕新规格](../specs/ui-ux-refinement.md) R05（列表行合同：整行可点、局部费用动作独立不串跳）、R09（元信息不用「·」拼长句，改分行成列）、R10（测试断言放宽需映射规则）；文案合同见 [apple-polish-copy](apple-polish-copy.md) CP02/CP03/CP04/CP09/CP10。配色、字号、圆角、动效 token 一律沿用既有值，未新增。
+2026-11-18 在 `main` 工作区完成（基线 `af126cc`）。条款依据：[apple-polish](../specs/apple-polish.md) R21 第 5 条（三列网格只用 `metricSm`、两列网格可用 `metricMd`）、R22（字体角色：记录行标题 `headline`、记录尾值 `metricSm`）、R23.1（功能文字只有 `text`/`textSecondary` 两级，`textFaint` 只留占位/禁用/装饰）、R24（「两条起始线」与卡片内边距 16、分隔线规则、间距档位）、R25；[焕新规格](../specs/ui-ux-refinement.md) R05（列表行合同：整行可点、局部费用动作独立不串跳）、R09（元信息不用「·」拼长句，改分行成列）、R10（测试断言放宽需映射规则）；文案合同见 [apple-polish-copy](../specs/apple-polish-copy.md) CP02/CP03/CP04/CP09/CP10。配色、字号、圆角、动效 token 一律沿用既有值，未新增。
 
 ## 1 问题
 

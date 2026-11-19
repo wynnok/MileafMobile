@@ -29,11 +29,11 @@
 
 C10 已通过，说明 C 的阅读顺序和“一个主导 tile”的方向成立。但把当前正式渲染放大看，问题不在方向，在**工艺与系统**：
 
-1. **深色是补出来的。** [visual_theme.dart](../../lib/src/visual_theme.dart) 用 `ColorScheme.fromSeed` 生成深色；[collage.dart](../../lib/src/collage.dart) 的深色 mint `#1E3B2C`、sand `#3B3120` 发浊，hero `#06140F` 与页面底 `#09140F` 几乎同色，深色下车况主屏失去锚点。浅色是事实上的主设计。[深色概览](../implementation/collage-renders/overview/overview-normal-dark-100.png)
+1. **深色是补出来的。** `lib/src/visual_theme.dart`（随 C 方向退役已删除，见提交 `725ceda` 前的历史）用 `ColorScheme.fromSeed` 生成深色；`lib/src/collage.dart`（同上）的深色 mint `#1E3B2C`、sand `#3B3120` 发浊，hero `#06140F` 与页面底 `#09140F` 几乎同色，深色下车况主屏失去锚点。浅色是事实上的主设计。（深色概览图随 2026-11-02 图册归档删除，见 [render-archive.md](../implementation/render-archive.md)。）
 
-2. **没有 token 体系。** 颜色和 18px 卡片圆角集中在主题文件，但页面里散着 9–48px 字号、8–22px 圆角、重复硬编码色（`#8AD6AF` 7 次、`#EEF7EF` 6 次）。`collage.dart` 只抽象了 4 种表面，没有间距、阴影、动效、图表 token。结果是“每页各自精致”，不是“一套系统”。
+2. **没有 token 体系。** 颜色和 18px 卡片圆角集中在主题文件，但页面里散着 9–48px 字号、8–22px 圆角、重复硬编码色（`#8AD6AF` 7 次、`#EEF7EF` 6 次）。`collage.dart`（已删除）只抽象了 4 种表面，没有间距、阴影、动效、图表 token。结果是“每页各自精致”，不是“一套系统”。
 
-3. **会被截图放大的硬伤。** [overview_page.dart:717](../../lib/src/overview_page.dart#L717) 直接输出“326880 分钟前”；`_monthBento()` 的 `stretch: true` 让本月 tile 下方出现整块空白（[overview_page.dart:1456](../../lib/src/overview_page.dart#L1456)、[collage.dart:63](../../lib/src/collage.dart#L63)）；“72（币种未知）”被迫换行；AppBar 的“刷新车辆”与页内“刷新概览”形成两个刷新入口（[workspace_page.dart:218](../../lib/src/workspace_page.dart#L218)、[overview_page.dart:1444](../../lib/src/overview_page.dart#L1444)）。
+3. **会被截图放大的硬伤。** [overview_page.dart:717](../../lib/src/overview_page.dart#L717) 直接输出“326880 分钟前”；`_monthBento()` 的 `stretch: true` 让本月 tile 下方出现整块空白（[overview_page.dart:1456](../../lib/src/overview_page.dart#L1456)、`collage.dart:63`（已删除））；“72（币种未知）”被迫换行；AppBar 的“刷新车辆”与页内“刷新概览”形成两个刷新入口（[workspace_page.dart:218](../../lib/src/workspace_page.dart#L218)、[overview_page.dart:1444](../../lib/src/overview_page.dart#L1444)）。
 
 4. **数字只做了半套。** `fontFeatures: tabularFigures` 只在 hero、本月主数等少数位置生效；图表读数、记录行、辅助数字未统一；没有数字字体策略。
 

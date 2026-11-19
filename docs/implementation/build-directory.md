@@ -103,3 +103,10 @@
 - `tool/flutterw analyze --no-pub lib test`：仅 1 条既有 info（`test/apple_polish_ap10_test.dart:342` 的 `prefer_interpolation_to_compose_strings`），与本次清理无关。
 - 全量 `tool/flutterw test --no-pub`：**1176 通过 / 55 跳过 / 0 失败**，退出 0（3 分 25 秒），与 HEAD `a640e65` 登记的终验数字一致（见 [days-matter-migration.md](days-matter-migration.md)）。
 - 未做双端原生构建：本次不改变任何构建输入，只删可重建产物；真机、真实站点/地图、性能等外部 gate（#11/#16/#17）状态不变。
+
+## 2026-11-19 二次清理（结构梳理时）
+
+同日晚间的结构梳理又删了一次 `build/`：清理前 12 项、863 MB（`app/` 644 MB、`test_cache/` 104 MB、`jni/` 23 MB、各插件中间件与 `mc10/` 临时出图等），清理后只剩 `build/releases/` 下的 64 MB —— 那是当次交付给真机验证的 arm64 APK，属忽略目录内单文件例外（见 [repo-layout](../agents/repo-layout.md) §2）。
+
+- 重建入口未变：`tool/flutterw test` 重建测试缓存；`tool/flutterw android assembleRelease -Ptarget-platform=android-arm64 -Psplit-per-abi=true -Pforce-version-code-ignoring-abi=true` 重建 release APK（产物 `build/app/outputs/apk/release/app-arm64-v8a-release.apk`）。
+- 本次没有删 `.cache/`、`.tooling/`、`.dart_tool/`；记录见 [repo-structure.md](repo-structure.md)。
