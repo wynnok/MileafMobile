@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 
 import 'copy/dates.dart' as copy;
 import 'copy/messages.dart' as messages;
+import 'copy/state_feedback.dart' as feedback;
+import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
 import 'design/layout.dart';
@@ -263,18 +265,15 @@ class _DrivesPageState extends State<DrivesPage>
       }
     } catch (e) {
       if (current()) {
-        final clock = workspace.calendar!.local(workspace.session.now());
+        // MG09 三要素：现状句（原因）留在正文，缓存统计的时间要素走
+        // statusLine「数据截至 HH:mm」（state_feedback 共享构造），不再把
+        // 时间拼进原因句；动作沿下方状态条的「重试行程统计」。
         setState(
-          () => statsError = driving == null
-              ? (e is FormatException
-                    ? messages.versionIncompatibleMessage()
-                    : e is ApiFailure
-                    ? e.message
-                    : messages.readFailedMessage('行程统计'))
-              : messages.staleMessage(
-                  workspace.calendar!.local(statsCheckedAt ?? clock),
-                  clock,
-                ),
+          () => statsError = e is FormatException
+              ? messages.versionIncompatibleMessage()
+              : e is ApiFailure
+              ? e.message
+              : messages.readFailedMessage('行程统计'),
         );
       }
     } finally {
@@ -538,9 +537,6 @@ class _DrivesPageState extends State<DrivesPage>
     return '${md(DateTime.parse(range['from']!))}—${md(DateTime.parse(range['to']!))}';
   }
 
-  String _recordDate(dto.Drive drive) =>
-      date(workspace.calendar!.local(drive.startedAt));
-
   String _recordTime(dto.Drive drive) {
     final calendar = workspace.calendar!;
     final start = calendar.local(drive.startedAt);
@@ -553,11 +549,6 @@ class _DrivesPageState extends State<DrivesPage>
     final endDate = date(start) == date(localEnd) ? '' : '${date(localEnd)} ';
     return '${hm(start)}–$endDate${hm(localEnd)}';
   }
-
-  String _duration(dto.Drive d) =>
-      d.durationMin == null ? '—' : '${d.durationMin} 分钟';
-
-  String _net(dto.Drive d) => '电耗 ${number(d.consumptionWhKm, 'Wh/km')}';
 
   String _route(dto.Drive d) =>
       '${place(d.start.displayName)} → ${place(d.end.displayName)}';
@@ -613,8 +604,8 @@ class _DrivesPageState extends State<DrivesPage>
     return recentDays == 7 ? '近 7 天' : '近 30 天';
   }
 
-  /// DF3 区间（本地日历），只用共享格式化器。
-  String? get _periodRange {
+  /// DF3 区间（本地日历），只用共享格式化器；同一窗位另有读屏读法（「至」）。
+  ({String text, String reading})? get _periodRange {
     if (statsSnapshot.isEmpty) return null;
     final calendar = workspace.calendar!;
     final from = calendar.local(DateTime.parse(statsSnapshot['from']!));
@@ -622,7 +613,10 @@ class _DrivesPageState extends State<DrivesPage>
       DateTime.parse(statsSnapshot['to']!)
           .subtract(const Duration(microseconds: 1)),
     );
-    return copy.formatRange(from, to);
+    return (
+      text: copy.formatRange(from, to),
+      reading: copy.formatRangeReading(from, to),
+    );
   }
 
   Widget _summarySkeleton() => const Column(
@@ -672,55 +666,11 @@ class _DrivesPageState extends State<DrivesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行，与概览
-          // 焦点卡同一处理（R21.4 区间仍只出现一次）。
-          if (large)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _periodName,
-                  style: context.type.headline.copyWith(
-                    color: context.colors.text,
-                  ),
-                ),
-                if (_periodRange case final range?) ...[
-                  const SizedBox(height: MileafSpace.s4),
-                  Text(
-                    range,
-                    style: context.type.subheadline.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    _periodName,
-                    style: context.type.headline.copyWith(
-                      color: context.colors.text,
-                    ),
-                  ),
-                ),
-                if (_periodRange case final range?) ...[
-                  const SizedBox(width: MileafSpace.s8),
-                  Flexible(
-                    child: Text(
-                      range,
-                      style: context.type.subheadline.copyWith(
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          const SizedBox(height: MileafSpace.s4),
+          // R21.4：区间只在这里出现一次。一行放得下时区间靠右与卡片右沿同线，
+          // 放不下时整段落到期间名下一行——由实际宽度决定，不再用 150% 阈值近似。
+          MileafPeriodHeader(label: _periodName, range: _periodRange),
+          // PD12（MG06/D1）：卡头 → 焦点值间距 s4 → s12。
+          const SizedBox(height: MileafSpace.s12),
           Semantics(
             container: true,
             label:
@@ -831,35 +781,86 @@ class _DrivesPageState extends State<DrivesPage>
     );
   }
 
+  /// MG05 记录行句法统一（与充电记录行同构，charging-rows 先例）：标题行
+  /// （起讫时刻，headline；日期由分组头承担）+ 路线一行 + 三格 metricSm 读值
+  /// 网格（里程/时长/电耗，标签在上、数值同基线成列，第三格放不下时换行）。
+  /// 整行可点；进行中徽标留在标题行尾。读屏沿元素顺序朗读：起讫时刻、路线，
+  /// 再逐格「标签 数值 单位」，与充电记录行一致，不再合成 meta 串。
   Widget _routeRow(dto.Drive d) {
+    final colors = context.colors;
+    final type = context.type;
     final distance = _distance(d);
-    // CP09：时间与时长用逗号分行写，电耗另起一行。
-    final meta = '${_recordTime(d)}，${_duration(d)}\n${_net(d)}';
-    return ConstrainedBox(
+    final duration = d.durationMin?.toString();
+    final net = d.consumptionWhKm == null
+        ? null
+        : grouped(d.consumptionWhKm!, decimals: 0);
+    final large = MileafLayout.largeText(context);
+    return InkWell(
       key: ValueKey('drive-${d.id}'),
-      constraints: const BoxConstraints(
-        minHeight: MileafSpace.rowMin + MileafSpace.s16,
-      ),
-      child: MileafDataRow(
-        title: _route(d),
-        titleMaxLines: MediaQuery.textScalerOf(context).scale(14) > 14
-            ? null
-            : 2,
-        meta: meta,
-        badge: d.endedAt == null
-            ? Text(
-                '进行中',
-                style: context.type.footnote.copyWith(
-                  color: context.colors.warning,
+      onTap: () => widget.onRecord?.call(d.id),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    _recordTime(d),
+                    maxLines: large ? null : 1,
+                    overflow: large ? null : TextOverflow.ellipsis,
+                    // R22：记录类行标题用 headline（与充电记录行同角色）。
+                    style: type.headline,
+                  ),
                 ),
-              )
-            : null,
-        value: distance ?? '—',
-        unit: 'km',
-        onTap: () => widget.onRecord?.call(d.id),
-        semanticLabel:
-            '${_recordDate(d)}，${_route(d)}，$meta${d.endedAt == null ? '，进行中' : ''}'
-            '，${distance ?? '里程未记录'}${distance == null ? '' : ' km'}',
+                if (d.endedAt == null) ...[
+                  const SizedBox(width: MileafSpace.s8),
+                  Text(
+                    '进行中',
+                    style: type.footnote.copyWith(color: colors.warning),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: MileafSpace.inline2),
+            Text(
+              _route(d),
+              maxLines: large ? null : 2,
+              overflow: large ? null : TextOverflow.ellipsis,
+              style: type.subheadline.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: MileafSpace.s8),
+            // R21 第 5 条/R21.5：固定读值网格取代 meta 串；MileafNumber
+            // 先量后画，360 宽先收列、200% 单列堆叠，数值与单位不拆行。
+            MetricGrid(
+              spacing: MileafSpace.s8,
+              children: [
+                MetricBlock(
+                  label: '里程',
+                  value: distance,
+                  unit: distance == null ? null : 'km',
+                  scale: MetricValueScale.metricSm,
+                  semanticLabel:
+                      distance == null ? '里程未记录' : '里程 $distance km',
+                ),
+                MetricBlock(
+                  label: '时长',
+                  value: duration,
+                  unit: duration == null ? null : '分钟',
+                  scale: MetricValueScale.metricSm,
+                ),
+                MetricBlock(
+                  label: terms.energyPerKm,
+                  value: net,
+                  unit: net == null ? null : 'Wh/km',
+                  scale: MetricValueScale.metricSm,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -887,6 +888,22 @@ class _DrivesPageState extends State<DrivesPage>
     final colors = context.colors;
     final type = context.type;
     if (items.isEmpty) {
+      // MG09 空态分档：无筛选即 noData 档，现状句走 state_feedback 共享构造，
+      // 下一步动作给 compact 文字动作槽；带日期筛选时空态的动作就是上方
+      // 已有的「返回完整区间」，不另造第二个入口。
+      if (selectedDay == null) {
+        final empty = feedback.emptyStateCopy(
+          feedback.EmptyStateTier.noData,
+          object: '行程',
+        );
+        return StateView(
+          kind: StateViewKind.empty,
+          compact: true,
+          title: empty.status,
+          textActionLabel: empty.action,
+          onTextAction: _refresh,
+        );
+      }
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
         child: Text(
@@ -914,7 +931,11 @@ class _DrivesPageState extends State<DrivesPage>
         for (final entry in groups.entries) ...[
           Padding(
             padding: const EdgeInsets.only(top: MileafSpace.s20),
-            child: MileafGroupHeader(title: entry.key),
+            // MG05b：分组标题对齐卡内起始线（页面边距 + 16，R24 两条起始线）。
+            child: MileafGroupHeader(
+              title: entry.key,
+              inset: MileafSpace.cardPad,
+            ),
           ),
           const SizedBox(height: MileafSpace.s8),
           // R24：记录行走组卡，卡内横向内边 16；发丝线只画在行与行之间
@@ -1038,6 +1059,12 @@ class _DrivesPageState extends State<DrivesPage>
                       InlineBanner(
                         message: statsError!,
                         tone: BannerTone.error,
+                        // MG09 时间要素：显示的仍是截至该时刻的缓存统计
+                        //（state_feedback 共享构造，页面不写时间字面量）。
+                        statusLine:
+                            driving == null || statsCheckedAt == null
+                            ? null
+                            : feedback.dataAsOfLine(statsCheckedAt!),
                         actionLabel: '重试行程统计',
                         onAction: () => loadStats(force: true),
                       ),

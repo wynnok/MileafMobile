@@ -188,6 +188,92 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  group('MileafPeriodHeader', () {
+    // R21.4：期间名 + 区间。排法按实际宽度：一行放得下就一行（区间靠右），
+    // 放不下时区间整段落到下一行左对齐，两个文本框都不会被挤成两截。
+    testWidgets('一行放得下时区间与期间名同线、右端贴内容右沿', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpComponent(
+        tester,
+        const MileafPeriodHeader(
+          label: '近 30 天',
+          range: (text: '9月10日\u201310月9日', reading: '9月10日至10月9日'),
+        ),
+        brightness: Brightness.light,
+        width: 500,
+      );
+      final labelBox = tester.getRect(find.text('近 30 天'));
+      final rangeBox = tester.getRect(find.text('9月10日\u201310月9日'));
+      expect(rangeBox.top, labelBox.top);
+      expect(rangeBox.right, closeTo(480, 0.01), reason: '右端贴内容右沿');
+      expect(find.byType(Wrap), findsOneWidget);
+      // DF3：读屏读作「至」，不念连接号。
+      expect(find.bySemanticsLabel('9月10日至10月9日'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('放不下时区间落到下一行、单行完整、左端贴内容左沿', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafPeriodHeader(
+          label: '近 30 天',
+          range: (text: '9月10日\u201310月9日', reading: '9月10日至10月9日'),
+        ),
+        brightness: Brightness.light,
+        width: 220,
+      );
+      final labelBox = tester.getRect(find.text('近 30 天'));
+      final rangeBox = tester.getRect(find.text('9月10日\u201310月9日'));
+      expect(rangeBox.top, greaterThan(labelBox.bottom), reason: '整段落到下一行');
+      expect(rangeBox.left, labelBox.left);
+      expect(
+        rangeBox.height,
+        lessThan(labelBox.height * 1.2),
+        reason: '区间本身不折行',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('整段放不下一行时只在连接号后换行，读屏仍读整段区间', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpComponent(
+        tester,
+        const MileafPeriodHeader(
+          label: '近 30 天',
+          range: (text: '9月10日\u201310月9日', reading: '9月10日至10月9日'),
+        ),
+        brightness: Brightness.light,
+        width: 320,
+        scale: 2,
+      );
+      final head = tester.getRect(find.text('9月10日\u2013'));
+      final tail = tester.getRect(find.text('10月9日'));
+      expect(tail.top, greaterThanOrEqualTo(head.bottom), reason: '在连接号后换行');
+      expect(tail.top, isNot(head.top), reason: '不在同一行');
+      expect(head.left, tail.left, reason: '两行同左缘');
+      expect(head.height, tail.height, reason: '每截日期本身都是一行');
+      expect(find.text('9月10日\u201310月9日'), findsNothing);
+      expect(
+        find.bySemanticsLabel('9月10日至10月9日'),
+        findsOneWidget,
+        reason: 'DF3 读屏仍读整段区间（连接号读作「至」）',
+      );
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('没有区间时只留期间名，不占位', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafPeriodHeader(label: '近 30 天'),
+        brightness: Brightness.light,
+      );
+      expect(find.text('近 30 天'), findsOneWidget);
+      expect(find.textContaining('\u2013'), findsNothing, reason: '读值未到时不造区间');
+    });
+  });
+
   group('MetricBlock', () {
     testWidgets('缺失显示破折号，不补零', (tester) async {
       final semantics = tester.ensureSemantics();

@@ -7,7 +7,9 @@
 /// 该时区墙钟）；不要传入带偏移量的 DateTime（其字段跟随机器时区）。
 library;
 
-const String _enDash = '\u2013';
+/// DF3 区间的连接号（U+2013）。呈现层（卡片标签）也要靠它选中唯一的换行点，
+/// 因此公开而不是各写一份。
+const String rangeSeparator = '\u2013';
 
 String _pad2(int value) => value.toString().padLeft(2, '0');
 
@@ -36,7 +38,7 @@ String formatDayGroup(DateTime time, DateTime today) {
 }
 
 /// DF3 日期区间：连接号 –（U+2013）；同月省日首，跨月两端带月，跨年两端带年。
-String formatRange(DateTime from, DateTime to) => _rangeText(from, to, _enDash);
+String formatRange(DateTime from, DateTime to) => _rangeText(from, to, rangeSeparator);
 
 String _rangeText(DateTime from, DateTime to, String separator) {
   if (from.year != to.year) {
@@ -53,8 +55,8 @@ String formatTime(DateTime time) => '${_pad2(time.hour)}:${_pad2(time.minute)}';
 
 /// DF4 时间段：同日 HH:mm–HH:mm；跨日写全两端。
 String formatTimeRange(DateTime from, DateTime to, {required DateTime today}) {
-  if (_sameDay(from, to)) return '${formatTime(from)}$_enDash${formatTime(to)}';
-  return '${formatDay(from, today)} ${formatTime(from)}$_enDash'
+  if (_sameDay(from, to)) return '${formatTime(from)}$rangeSeparator${formatTime(to)}';
+  return '${formatDay(from, today)} ${formatTime(from)}$rangeSeparator'
       '${formatDay(to, today)} ${formatTime(to)}';
 }
 
@@ -70,9 +72,9 @@ String formatMonth(DateTime time, DateTime today) =>
 String formatMonthRange(DateTime from, DateTime to, DateTime today) {
   if (from.year == to.year) {
     final prefix = from.year == today.year ? '' : '${from.year}年';
-    return '$prefix${from.month}月$_enDash${to.month}月';
+    return '$prefix${from.month}月$rangeSeparator${to.month}月';
   }
-  return '${from.year}年${from.month}月$_enDash${to.year}年${to.month}月';
+  return '${from.year}年${from.month}月$rangeSeparator${to.year}年${to.month}月';
 }
 
 /// DF7 相对时间（数据新鲜度）：刚刚（<1 分钟）、N 分钟前（<60）、

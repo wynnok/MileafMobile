@@ -8,6 +8,7 @@ import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
 import 'copy/messages.dart' as messages;
 import 'copy/page_actions.dart' as copy_actions;
+import 'copy/state_feedback.dart' as feedback;
 import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -953,7 +954,7 @@ class _OverviewPageState extends State<OverviewPage>
     final parts = value == null ? '—' : grouped(value, decimals: 1);
     final drives = driving?.totals.drives;
     final label = period == OverviewPeriod.month ? '本月驾驶' : '近 7 天驾驶';
-    final window = _dayRange(ranges['driving']?.current);
+    final window = _rangeParts(ranges['driving']?.current);
     final semantic =
         '$label $parts 公里，${drives ?? '—'} ${terms.tripCount}，'
         '${_deltaSentence ?? ''}';
@@ -965,49 +966,11 @@ class _OverviewPageState extends State<OverviewPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 320 宽 200% 时卡头一行放不下期间名与区间：大字改两行（R21.4 仍只出现一次）。
-            if (MileafLayout.largeText(context)) ...[
-              Text(
-                label,
-                style: context.type.headline.copyWith(
-                  color: context.colors.text,
-                ),
-              ),
-              if (window != null) ...[
-                const SizedBox(height: MileafSpace.s4),
-                Text(
-                  window,
-                  style: context.type.subheadline.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ],
-            ] else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: context.type.headline.copyWith(
-                        color: context.colors.text,
-                      ),
-                    ),
-                  ),
-                  if (window != null) ...[
-                    const SizedBox(width: MileafSpace.s8),
-                    Flexible(
-                      child: Text(
-                        window,
-                        style: context.type.subheadline.copyWith(
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            const SizedBox(height: MileafSpace.s4),
+            // R21.4：区间只在焦点卡标签出现一次；一行放得下时右对齐，放不下时
+            // 整段落到期间名下一行（与行程页共用一个卡头组件）。
+            MileafPeriodHeader(label: label, range: window),
+            // PD12（MG06/D1）：卡头 → 焦点值间距 s4 → s12。
+            const SizedBox(height: MileafSpace.s12),
             MetricBlock(
               semanticLabel: semantic,
               value: value == null ? null : parts,
@@ -1032,12 +995,19 @@ class _OverviewPageState extends State<OverviewPage>
   }
 
   /// DF3 区间（本地日历）：只在期间卡标签出现一次。
-  String? _dayRange(StatisticsWindow? window) {
+  String? _dayRange(StatisticsWindow? window) => _rangeParts(window)?.text;
+
+  /// 同一窗位的「看得见」与「读得出」两种写法（DF3 连接号 / 读作「至」）。
+  ({String text, String reading})? _rangeParts(StatisticsWindow? window) {
     final calendar = workspace.calendar;
     if (window == null || calendar == null) return null;
-    return copy.formatRange(
-      calendar.local(window.from),
-      calendar.local(window.to.subtract(const Duration(microseconds: 1))),
+    final from = calendar.local(window.from);
+    final to = calendar.local(
+      window.to.subtract(const Duration(microseconds: 1)),
+    );
+    return (
+      text: copy.formatRange(from, to),
+      reading: copy.formatRangeReading(from, to),
     );
   }
 
@@ -1949,6 +1919,11 @@ class _OverviewPageState extends State<OverviewPage>
                       InlineBanner(
                         message: error!,
                         tone: BannerTone.error,
+                        // MG09 时间要素：显示的仍是截至该时刻的缓存车况
+                        //（state_feedback 共享构造，页面不写时间字面量）。
+                        statusLine: result == null
+                            ? null
+                            : feedback.dataAsOfLine(result!.checkedAt),
                         actionLabel: _retry,
                         actionSemanticLabel: copy_actions.retryOverview,
                         onAction: () => loadSummary(force: true),
@@ -1968,6 +1943,9 @@ class _OverviewPageState extends State<OverviewPage>
                       InlineBanner(
                         message: errors['driving']!,
                         tone: BannerTone.error,
+                        statusLine: results['driving'] == null
+                            ? null
+                            : feedback.dataAsOfLine(results['driving']!.checkedAt),
                         actionLabel: _retry,
                         actionSemanticLabel: copy_actions.retryDrivingData,
                         onAction: () => loadStats('driving', force: true),
@@ -1976,6 +1954,9 @@ class _OverviewPageState extends State<OverviewPage>
                       InlineBanner(
                         message: errors['charging']!,
                         tone: BannerTone.error,
+                        statusLine: results['charging'] == null
+                            ? null
+                            : feedback.dataAsOfLine(results['charging']!.checkedAt),
                         actionLabel: _retry,
                         actionSemanticLabel: copy_actions.retryChargingData,
                         onAction: () => loadStats('charging', force: true),
@@ -2165,7 +2146,11 @@ class _MetaPageState extends State<MetaPage> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: MileafSpace.section),
                 // P12：服务信息为分组卡 + 技术详情，行内是「标题 + 尾部当前值」。
-                const MileafGroupHeader(title: '当前连接'),
+                // MG05b：分组标题对齐卡内起始线（页面边距 + 16，R24）。
+                const MileafGroupHeader(
+                  title: '当前连接',
+                  inset: MileafSpace.cardPad,
+                ),
                 const SizedBox(height: MileafSpace.s8),
                 MileafGroupCard(
                   child: Column(

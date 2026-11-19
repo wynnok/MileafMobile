@@ -353,15 +353,14 @@ void main() {
       final semantics = tester.ensureSemantics();
       await pumpWorkspace(tester);
       await openDrives(tester);
-      final rows = find.byType(MileafDataRow);
-      expect(rows, findsWidgets);
+      // MG05 结构映射：记录行由 MileafDataRow 改为带 drive-N key 的行内
+      // InkWell（读值网格结构），起始线与分隔线规则不变，探针改走行 key。
+      final rows = [
+        find.byKey(const ValueKey('drive-17')),
+        find.byKey(const ValueKey('drive-16')),
+      ];
       var checked = 0;
-      for (final element in rows.evaluate()) {
-        final widget = element.widget as MileafDataRow;
-        if (widget.bottomLine || widget.topLine) {
-          fail('记录行不应自己画整行分隔线');
-        }
-        final row = find.byWidget(element.widget);
+      for (final row in rows) {
         final card = find
             .ancestor(of: row, matching: find.byType(MileafGroupCard))
             .first;
@@ -808,24 +807,33 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('记录按天分组，路线与电耗分行，尾值 metricSm', (tester) async {
+    testWidgets('记录按天分组：起讫时刻标题行 + 三格读值网格（MG05 同构）', (tester) async {
       final semantics = tester.ensureSemantics();
       await pumpWorkspace(tester);
       await openDrives(tester);
       expect(find.text('3月30日 周一'), findsOneWidget);
       expect(find.text('最近的路'), findsNothing);
       expect(find.textContaining('净电耗'), findsNothing);
+      // MG05 结构映射：起讫时刻进标题行（headline），里程/时长/电耗进
+      // 读值网格（标签在上、数值成列），不再合成 meta 串。
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('drive-17')),
-          matching: find.textContaining('电耗 188 Wh/km'),
+          matching: find.text('10:00–10:30'),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('drive-17')),
-          matching: find.textContaining('10:00–10:30，30 分钟'),
+          matching: find.text('电耗'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('drive-17')),
+          matching: find.textContaining('188 Wh/km'),
         ),
         findsOneWidget,
       );
@@ -1016,9 +1024,17 @@ bool _isHairline(Widget widget) {
       widget.constraints?.maxHeight == 0;
 }
 
-/// 组卡内的记录行数量。
+/// 组卡内的记录行数量（MG05 后记录行是带 drive-N key 的行内 InkWell）。
 int rowsIn(Finder scope) => find
-    .descendant(of: scope, matching: find.byType(MileafDataRow))
+    .descendant(
+      of: scope,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is InkWell &&
+            widget.key is ValueKey<String> &&
+            (widget.key as ValueKey<String>).value.startsWith('drive-'),
+      ),
+    )
     .evaluate()
     .length;
 

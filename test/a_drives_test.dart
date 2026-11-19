@@ -26,7 +26,8 @@ void main() {
     expect(find.text('49 趟'), findsOneWidget);
     expect(find.text('估算耗电'), findsOneWidget);
     expect(find.textContaining('180.00 kWh'), findsWidgets);
-    expect(find.text('电耗'), findsOneWidget);
+    // MG05 结构映射：记录行读值网格也带「电耗」标签（焦点卡 + 每行一格）。
+    expect(find.text('电耗'), findsNWidgets(3));
     expect(find.textContaining('188 Wh/km'), findsWidgets);
     // 记录按天分组后仍在首屏；节奏卡（「每日里程」）移到记录之后。
     expect(

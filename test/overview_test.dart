@@ -136,6 +136,69 @@ void main() {
     await tester.pumpAndSettle();
     semantics.dispose();
   });
+  testWidgets('MG09 刷新失败有缓存数据：状态条带「数据截至 HH:mm」时间行且重试可点', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final store = MemorySessionStore()
+      ..value = jsonEncode({
+        'site': 'https://example.com/prefix',
+        'token': 'test',
+        'expires_at': '2099-01-01T00:00:00Z',
+      });
+    var failing = false;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/meta')) return overviewMetaResponse();
+      if (request.url.path.endsWith('/stats')) {
+        return overviewTrendResponse(request.url.queryParameters['kind']);
+      }
+      if (request.url.path.endsWith('/vehicles')) {
+        return http.Response(
+          File('test/fixtures/vehicles.json').readAsStringSync(),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (failing) return http.Response('', 503);
+      return http.Response(
+        File('test/fixtures/summary.json').readAsStringSync(),
+        200,
+        headers: {
+          'etag': '"summary"',
+          'cache-control': 'max-age=30',
+          'content-type': 'application/json; charset=utf-8',
+        },
+      );
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        trustStore: MemoryTrustStore(),
+        sessionStore: store,
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext('UTC'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(battery(68), findsOneWidget);
+    failing = true;
+    await tester.tap(find.byTooltip('刷新概览'));
+    await tester.pumpAndSettle();
+    // 现状句不变（CP07），时间要素走 statusLine 共享构造。
+    expect(find.textContaining('显示的是上次的数据'), findsOneWidget);
+    expect(find.textContaining('数据截至'), findsOneWidget);
+    // 时间行是独立节点，读屏可单独朗读「数据截至 HH:mm」（DF4）。
+    expect(
+      find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')),
+      findsOneWidget,
+    );
+    // 重试可点：恢复后状态条消失、数据保留。
+    failing = false;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('显示的是上次的数据'), findsNothing);
+    expect(find.textContaining('数据截至'), findsNothing);
+    expect(battery(68), findsOneWidget);
+    semantics.dispose();
+  });
   testWidgets('快速切车不显示旧车迟到内容，选择能在重启恢复，刷新失败保留本车快照', (tester) async {
     final semantics = tester.ensureSemantics();
     final store = MemorySessionStore()

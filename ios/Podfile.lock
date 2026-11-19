@@ -39,9 +39,9 @@ SPEC CHECKSUMS:
   AMap3DMap-NO-IDFA: 439e67a50a683ea71b72a949882dcdf55f1cf2cd
   AMapFoundation-NO-IDFA: b59e0f5bd904e747b34171f1f690e22e0003acaa
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  flutter_secure_storage_darwin: 46e401699982ee74142909676535e0f6a7321e58
-  flutter_timezone: 7c838e17ffd4645d261e87037e5bebf6d38fe544
-  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  flutter_secure_storage_darwin: 79a377dfb00a246ccab2c64fe79d4d78c89e0fbc
+  flutter_timezone: ac3da59ac941ff1c98a2e1f0293420e020120282
+  shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
 
 PODFILE CHECKSUM: e1cad207990d54ec4efebb3bd799ca0967377881
 

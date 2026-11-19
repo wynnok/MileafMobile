@@ -263,6 +263,12 @@ void main() {
     expect(statsQueries.last['from'], listQueries.last['from']);
     expect(statsQueries.last['to'], listQueries.last['to']);
     await tester.scrollUntilVisible(find.text('查看当天'), 120);
+    // 记录行改读值网格后行高增加：先把它带到视口中部再点，命中区不被遮挡。
+    await Scrollable.ensureVisible(
+      tester.element(find.text('查看当天')),
+      alignment: .5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('查看当天'));
     await tester.pumpAndSettle();
     expect(listQueries.last['from'], '2026-03-29T16:00:00.000Z');
@@ -285,7 +291,10 @@ void main() {
     failing = true;
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
+    // MG09 三要素：原因句在正文、缓存统计的时间走 statusLine「数据截至 HH:mm」、
+    // 动作保留「重试行程统计」。
+    expect(find.textContaining('数据截至'), findsOneWidget);
+    expect(find.text('重试行程统计'), findsOneWidget);
     expect(find.text('49 趟'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
@@ -358,7 +367,8 @@ void main() {
     expect(find.text('49 趟'), findsOneWidget);
     // 焦点卡三格的「电耗」来自统计 totals（155），不是列表每趟的 188。
     expect(find.text('155 Wh/km'), findsWidgets);
-    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
+    // MG05 结构映射：记录行读值网格的数值格（MileafNumber 语义「电耗 188 Wh/km」）。
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
   });
   testWidgets('C 记录按天分组并保留每趟的时间与独立详情入口', (tester) async {
     await openDrives(
@@ -369,9 +379,9 @@ void main() {
     // P02：记录改成按天分组卡，分组标题用 CP04 DF2（今天/昨天/M月D日 周X）。
     await tester.scrollUntilVisible(find.text('今天'), 140);
     expect(find.text('今天'), findsOneWidget);
-    // 每行仍保留本趟的时间与时长（CP09 用逗号分行，不用「·」）。
-    expect(find.textContaining('10:00\u201310:30，30 分钟'), findsWidgets);
-    expect(find.textContaining('05:30\u201306:00，30 分钟'), findsWidgets);
+    // MG05 结构映射：起讫时刻是标题行，时长进读值网格（CP09 不用「·」）。
+    expect(find.text('10:00\u201310:30'), findsWidgets);
+    expect(find.text('05:30\u201306:00'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')),
       140,
@@ -490,7 +500,7 @@ void main() {
       find.byKey(const ValueKey('drive-17')),
       140,
     );
-    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
     expect(find.textContaining('未知地点'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('drive-17')).hitTestable(),
@@ -558,7 +568,7 @@ void main() {
       200,
     );
     expect(find.text('进行中'), findsOneWidget);
-    expect(find.textContaining('电耗 0 Wh/km'), findsOneWidget);
+    expect(find.textContaining('0 Wh/km'), findsOneWidget);
     expect(find.textContaining('—'), findsWidgets);
     expect(find.byKey(const ValueKey('drive-16')), findsOneWidget);
     refresh = true;
@@ -572,8 +582,68 @@ void main() {
     await tester.tap(refreshAction);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
-    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
   });
+  testWidgets('360 宽焦点卡区间与期间名同行完整显示，不把日期折成孤字', (tester) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await openDrives(
+      tester,
+      (r) async => jsonResponse('{"items":[],"next_cursor":null}'),
+      now: () => DateTime.utc(2026, 10, 9, 4),
+    );
+    // 测试字体每字 1em：11 字区间（165）超过旧布局「内容宽一半」（144）但放得下
+    // 整行（102 + 8 + 165 = 275 < 296）。旧布局把卡片内容宽一刀两半，末尾的
+    // 「日」被挤到第二行；新布局一行放得下时保持一行。
+    const label = '近 30 天';
+    const range = '9月10日\u201310月9日';
+    expect(find.text(label), findsOneWidget);
+    expect(find.text(range), findsOneWidget);
+    final labelBox = tester.getRect(find.text(label));
+    final rangeBox = tester.getRect(find.text(range));
+    expect(rangeBox.top, labelBox.top, reason: '区间与期间名同一行');
+    expect(
+      rangeBox.height,
+      lessThan(labelBox.height * 1.2),
+      reason: '区间整段只有一行，不折出孤字',
+    );
+    // DF3：读屏把连接号读作「至」，不念成两半。
+    // DF3：读屏把连接号读作「至」，不念成两半（卡头的语义节点含期间名与区间）。
+    expect(
+      tester.getSemantics(find.text('9月10日\u201310月9日')).label,
+      contains('9月10日至10月9日'),
+    );
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
+  testWidgets('320 宽 200% 焦点卡区间在连接号后断行，两截日期都完整可读', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    await openDrives(
+      tester,
+      (r) async => jsonResponse('{"items":[],"next_cursor":null}'),
+      now: () => DateTime.utc(2026, 10, 9, 4),
+    );
+    final head = tester.getRect(find.text('9月10日\u2013'));
+    final tail = tester.getRect(find.text('10月9日'));
+    expect(tail.top, greaterThanOrEqualTo(head.bottom));
+    expect(head.left, tail.left, reason: '两行同左缘');
+    expect(head.height, tail.height, reason: '每截日期本身都是一行');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('自定义日期含首尾跨DST且无730天限制，前台换时区保留日历日期，默认窗口换日重算', (tester) async {
     var zone = 'America/New_York';
     var now = DateTime.utc(2026, 3, 30, 12);
@@ -669,11 +739,106 @@ void main() {
     invalid = false;
     await tester.tap(find.text('重试行程'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
     failure = true;
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
     expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
-    expect(find.textContaining('电耗 188 Wh/km'), findsWidgets);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
+  });
+
+  testWidgets('MG05 记录行读值网格：标签在上、同排数值成列', (tester) async {
+    await openDrives(
+      tester,
+      (_) async =>
+          jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
+    );
+    final record = find.byKey(const ValueKey('drive-17'));
+    await tester.scrollUntilVisible(record, 140);
+    // 三格标签与数值分立：标签在上、数值在下（R21.5 同基线成列）。
+    Finder cellLabel(String label) =>
+        find.descendant(of: record, matching: find.text(label));
+    // 数值由 MileafNumber 的 Text.rich 承载（20.0 km / 30 分钟）。
+    Finder cellValue(String value) =>
+        find.descendant(of: record, matching: find.textContaining(value));
+    for (final (label, value) in [
+      ('里程', '20.0 km'),
+      ('时长', '30 分钟'),
+    ]) {
+      final labelTop = tester.getTopLeft(cellLabel(label)).dy;
+      final valueTop = tester.getTopLeft(cellValue(value)).dy;
+      expect(valueTop, greaterThan(labelTop), reason: '$label 标签应在数值上方');
+    }
+    // 同一排的两格：标签顶对齐、数值顶对齐。
+    final mileLabel = tester.getTopLeft(cellLabel('里程')).dy;
+    final durationLabel = tester.getTopLeft(cellLabel('时长')).dy;
+    expect(durationLabel, closeTo(mileLabel, 0.5));
+    final mileValue = tester.getTopLeft(cellValue('20.0 km')).dy;
+    final durationValue = tester.getTopLeft(cellValue('30 分钟')).dy;
+    expect(durationValue, closeTo(mileValue, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('MG09 统计刷新失败三要素：时间行可朗读、重试可点恢复', (tester) async {
+    final semantics = tester.ensureSemantics();
+    var failing = false;
+    await openDrives(
+      tester,
+      (_) async =>
+          jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
+      statsHandler: (_) async => failing
+          ? http.Response('', 503)
+          : jsonResponse(
+              File('test/fixtures/driving-stats.json').readAsStringSync(),
+            ),
+    );
+    failing = true;
+    await tester.tap(find.byTooltip('刷新行程'));
+    await tester.pumpAndSettle();
+    // 时间行是独立节点，读屏可单独朗读「数据截至 HH:mm」（DF4）。
+    expect(
+      find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')),
+      findsOneWidget,
+    );
+    failing = false;
+    await tester.tap(find.text('重试行程统计'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('数据截至'), findsNothing);
+    expect(find.text('49 趟'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('MG05 360 宽 200% 记录行网格单列堆叠，无折行孤字与溢出', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    await openDrives(
+      tester,
+      (_) async =>
+          jsonResponse(File('test/fixtures/drives.json').readAsStringSync()),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('drive-17')),
+      200,
+    );
+    // 200% 下网格先量后画收成单列：里程与时长标签不再同排。
+    final record = find.byKey(const ValueKey('drive-17'));
+    final mile = tester
+        .getTopLeft(
+          find.descendant(of: record, matching: find.text('里程')),
+        )
+        .dy;
+    final duration = tester
+        .getTopLeft(
+          find.descendant(of: record, matching: find.text('时长')),
+        )
+        .dy;
+    expect(duration, greaterThan(mile), reason: '200% 应单列堆叠');
+    expect(tester.takeException(), isNull);
   });
 }
