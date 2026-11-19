@@ -181,11 +181,11 @@ enum BannerTone { neutral, warning, error, accent }
 /// [BannerTone] 到 DM01 状态枚举的转发（对齐状态见实施记录 §7）。
 extension BannerToneStatusForward on BannerTone {
   MileafStatusTone get statusTone => switch (this) {
-        BannerTone.neutral => MileafStatusTone.neutral,
-        BannerTone.warning => MileafStatusTone.warning,
-        BannerTone.error => MileafStatusTone.error,
-        BannerTone.accent => MileafStatusTone.accent,
-      };
+    BannerTone.neutral => MileafStatusTone.neutral,
+    BannerTone.warning => MileafStatusTone.warning,
+    BannerTone.error => MileafStatusTone.error,
+    BannerTone.accent => MileafStatusTone.accent,
+  };
 }
 
 /// Inline status strip used for stale data and failed resources.

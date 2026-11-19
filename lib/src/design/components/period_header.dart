@@ -55,9 +55,7 @@ class MileafPeriodHeader extends StatelessWidget {
               if (range != null)
                 _RangeText(
                   range,
-                  style: type.subheadline.copyWith(
-                    color: colors.textSecondary,
-                  ),
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
                   available: available,
                 ),
             ],
@@ -72,11 +70,7 @@ class MileafPeriodHeader extends StatelessWidget {
 ///
 /// 两种情况都按读法朗读（DF3：连接号读作「至」），不把区间念成两半。
 class _RangeText extends StatelessWidget {
-  const _RangeText(
-    this.range, {
-    required this.style,
-    required this.available,
-  });
+  const _RangeText(this.range, {required this.style, required this.available});
 
   final PeriodRange range;
   final TextStyle style;

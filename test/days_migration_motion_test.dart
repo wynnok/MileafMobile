@@ -21,7 +21,10 @@ void main() {
 
   List<String> numberTexts(WidgetTester tester) => tester
       .widgetList<Text>(
-        find.descendant(of: find.byType(MileafNumber), matching: find.byType(Text)),
+        find.descendant(
+          of: find.byType(MileafNumber),
+          matching: find.byType(Text),
+        ),
       )
       .map((t) => (t.textSpan! as TextSpan).toPlainText())
       .toList();
@@ -30,7 +33,8 @@ void main() {
     tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(
-      () => tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue(),
+      () => tester.binding.platformDispatcher
+          .clearAccessibilityFeaturesTestValue(),
     );
   }
 
@@ -44,18 +48,22 @@ void main() {
       await tester.pump(); // 启动过渡。
       await tester.pump(const Duration(milliseconds: 60)); // 中间帧。
 
-      final fades = tester.widgetList<FadeTransition>(
-        find.descendant(
-          of: find.byType(MileafNumber),
-          matching: find.byType(FadeTransition),
-        ),
-      ).toList();
+      final fades = tester
+          .widgetList<FadeTransition>(
+            find.descendant(
+              of: find.byType(MileafNumber),
+              matching: find.byType(FadeTransition),
+            ),
+          )
+          .toList();
       expect(fades, hasLength(2), reason: '交叉淡化期间新旧两层各一个透明度');
       final opacities = fades.map((f) => f.opacity.value).toList()..sort();
-      expect(opacities.first, inInclusiveRange(0.01, 0.99),
-          reason: '旧值已离开全显、仍在淡出');
-      expect(opacities.last, inInclusiveRange(0.01, 0.99),
-          reason: '新值已淡入但未完成');
+      expect(
+        opacities.first,
+        inInclusiveRange(0.01, 0.99),
+        reason: '旧值已离开全显、仍在淡出',
+      );
+      expect(opacities.last, inInclusiveRange(0.01, 0.99), reason: '新值已淡入但未完成');
       expect(numberTexts(tester), containsAll(['12 km', '34 km']));
 
       expect(tester.getSize(find.byType(MileafNumber)).height, heightBefore);
@@ -101,19 +109,22 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 60));
       expect(find.bySemanticsLabel(RegExp('34')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('12')), findsNothing,
-          reason: '旧值经 ExcludeSemantics 移出语义树，读屏单一来源');
+      expect(
+        find.bySemanticsLabel(RegExp('12')),
+        findsNothing,
+        reason: '旧值经 ExcludeSemantics 移出语义树，读屏单一来源',
+      );
       semantics.dispose();
     });
 
     testWidgets('MetricBlock：live 标签随值更新，全程只有一份', (tester) async {
       final semantics = tester.ensureSemantics();
       Widget blockHost(String value) => MetricBlock(
-            label: '驾驶里程',
-            value: value,
-            unit: 'km',
-            scale: MetricValueScale.metricLg,
-          );
+        label: '驾驶里程',
+        value: value,
+        unit: 'km',
+        scale: MetricValueScale.metricLg,
+      );
       await pumpComponent(tester, blockHost('12'));
       await pumpComponent(tester, blockHost('34'));
       await tester.pump();

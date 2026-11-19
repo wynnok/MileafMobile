@@ -135,9 +135,9 @@ void main() {
       );
       expect(find.text('数据截至 14:02'), findsOneWidget);
       // 朗读顺序按深度优先遍历（语义树同序）：正文 -> 时间行 -> 动作。
-      int indexOfText(String data) => tester.allElements
-          .toList()
-          .indexWhere((e) => e.widget is Text && (e.widget as Text).data == data);
+      int indexOfText(String data) => tester.allElements.toList().indexWhere(
+        (e) => e.widget is Text && (e.widget as Text).data == data,
+      );
       final message = indexOfText('没能更新，显示的是 10:02 的数据');
       final status = indexOfText('数据截至 14:02');
       final action = indexOfText('重试');
@@ -157,10 +157,7 @@ void main() {
     });
 
     testWidgets('neutral 不产生彩色（图标与正文同为 textSecondary）', (tester) async {
-      await pumpComponent(
-        tester,
-        const InlineBanner(message: '扩展能力暂未确认'),
-      );
+      await pumpComponent(tester, const InlineBanner(message: '扩展能力暂未确认'));
       final icon = tester.widget<MileafIcon>(find.byType(MileafIcon));
       expect(icon.color, dark.textSecondary);
       final text = tester.widget<Text>(find.text('扩展能力暂未确认'));
@@ -249,8 +246,9 @@ void main() {
   });
 
   group('减动效（本组件无时间动画）', () {
-    testWidgets('StateView 不持有 AnimationController，减动效下无任何 ticker',
-        (tester) async {
+    testWidgets('StateView 不持有 AnimationController，减动效下无任何 ticker', (
+      tester,
+    ) async {
       expect(StateView(kind: StateViewKind.empty), isA<StatelessWidget>());
       tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
           const FakeAccessibilityFeatures(disableAnimations: true);

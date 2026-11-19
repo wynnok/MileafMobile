@@ -24,24 +24,22 @@ void main() {
     palettes.forEach((mode, colors) {
       group(mode, () {
         for (final entry in _registry(colors).where((e) => !e.exempt)) {
-          test(
-            '${entry.foreground} × ${entry.background} ≥ '
-            '${entry.floor.toStringAsFixed(1)}（${entry.purpose}）',
-            () {
-              final ratio = contrastRatio(
-                entry.foregroundOf(colors),
-                entry.backgroundOf(colors),
-              );
-              expect(
-                ratio,
-                greaterThanOrEqualTo(entry.floor),
-                reason: '$mode：${entry.foreground} 在 ${entry.background} 上 '
-                    '实测 ${ratio.toStringAsFixed(2)}:1，'
-                    '低于 ${entry.floor}:1 门槛（${entry.purpose}）。'
-                    '禁止改色值救测；按 MG03 走豁免登记流程。',
-              );
-            },
-          );
+          test('${entry.foreground} × ${entry.background} ≥ '
+              '${entry.floor.toStringAsFixed(1)}（${entry.purpose}）', () {
+            final ratio = contrastRatio(
+              entry.foregroundOf(colors),
+              entry.backgroundOf(colors),
+            );
+            expect(
+              ratio,
+              greaterThanOrEqualTo(entry.floor),
+              reason:
+                  '$mode：${entry.foreground} 在 ${entry.background} 上 '
+                  '实测 ${ratio.toStringAsFixed(2)}:1，'
+                  '低于 ${entry.floor}:1 门槛（${entry.purpose}）。'
+                  '禁止改色值救测；按 MG03 走豁免登记流程。',
+            );
+          });
         }
       });
     });
@@ -67,16 +65,19 @@ void main() {
     // textFaint 现值 #63707C / #7E8A96 保留不变（MG03 裁决：以
     // overview-chart-header.md:79 的 WCAG 复测口径为准）。
     for (final entry in palettes.entries) {
-      for (final e
-          in _registry(entry.value).where((element) => element.exempt)) {
+      for (final e in _registry(
+        entry.value,
+      ).where((element) => element.exempt)) {
         final ratio = contrastRatio(
           e.foregroundOf(entry.value),
           e.backgroundOf(entry.value),
         );
         // ignore: avoid_print
-        print('MG03 豁免登记 [${entry.key}] ${e.foreground} × ${e.background}'
-            '（${e.purpose}）：实测 ${ratio.toStringAsFixed(2)}:1'
-            '（门槛 ${e.floor.toStringAsFixed(1)}:1，豁免待用户裁定）');
+        print(
+          'MG03 豁免登记 [${entry.key}] ${e.foreground} × ${e.background}'
+          '（${e.purpose}）：实测 ${ratio.toStringAsFixed(2)}:1'
+          '（门槛 ${e.floor.toStringAsFixed(1)}:1，豁免待用户裁定）',
+        );
         expect(ratio, greaterThan(0));
       }
     }
@@ -184,43 +185,42 @@ List<_GuardEntry> _registry(MileafColors colors) {
       ('text', (c) => c.text),
       ('textSecondary', (c) => c.textSecondary),
       ('textFaint', (c) => c.textFaint),
-    ])
-      ...[
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: 'canvas',
-          backgroundOf: (c) => c.canvas,
-          floor: 4.5,
-          purpose: '正文类：页面底色上的正文',
-        ),
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: 'surface',
-          backgroundOf: (c) => c.surface,
-          floor: 4.5,
-          purpose: '正文类：卡面 / 表面底上的正文',
-        ),
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: 'segmentTrack',
-          backgroundOf: (c) => c.segmentTrack,
-          floor: 4.5,
-          purpose: '正文类：分段轨道中性底上的文字',
-          exempt: f.$1 == 'textFaint' && !isDark,
-        ),
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: softName,
-          backgroundOf: _accentSoftOverCanvas,
-          floor: 4.5,
-          purpose: '正文类：弱强调底上的文字',
-          exempt: f.$1 == 'textFaint',
-        ),
-      ],
+    ]) ...[
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: 'canvas',
+        backgroundOf: (c) => c.canvas,
+        floor: 4.5,
+        purpose: '正文类：页面底色上的正文',
+      ),
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: 'surface',
+        backgroundOf: (c) => c.surface,
+        floor: 4.5,
+        purpose: '正文类：卡面 / 表面底上的正文',
+      ),
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: 'segmentTrack',
+        backgroundOf: (c) => c.segmentTrack,
+        floor: 4.5,
+        purpose: '正文类：分段轨道中性底上的文字',
+        exempt: f.$1 == 'textFaint' && !isDark,
+      ),
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: softName,
+        backgroundOf: _accentSoftOverCanvas,
+        floor: 4.5,
+        purpose: '正文类：弱强调底上的文字',
+        exempt: f.$1 == 'textFaint',
+      ),
+    ],
     // 深色 accentSoft 再记一条 over surface 合成底（半透明的实际落底
     // 随下层内容变化，取 canvas / surface 两条常见口径）。
     if (isDark)
@@ -261,25 +261,24 @@ List<_GuardEntry> _registry(MileafColors colors) {
       ('reference', (c) => c.reference),
       ('warning', (c) => c.warning),
       ('error', (c) => c.error),
-    ])
-      ...[
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: 'canvas',
-          backgroundOf: (c) => c.canvas,
-          floor: 3.0,
-          purpose: '图形与边框类：页面底色上的图形 / 描边',
-        ),
-        _GuardEntry(
-          foreground: f.$1,
-          foregroundOf: f.$2,
-          background: 'surface',
-          backgroundOf: (c) => c.surface,
-          floor: 3.0,
-          purpose: '图形与边框类：卡面 / 表面底上的图形 / 描边',
-        ),
-      ],
+    ]) ...[
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: 'canvas',
+        backgroundOf: (c) => c.canvas,
+        floor: 3.0,
+        purpose: '图形与边框类：页面底色上的图形 / 描边',
+      ),
+      _GuardEntry(
+        foreground: f.$1,
+        foregroundOf: f.$2,
+        background: 'surface',
+        backgroundOf: (c) => c.surface,
+        floor: 3.0,
+        purpose: '图形与边框类：卡面 / 表面底上的图形 / 描边',
+      ),
+    ],
   ];
 
   final strongTextEntries = [

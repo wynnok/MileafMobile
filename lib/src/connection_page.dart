@@ -33,8 +33,10 @@ class _ConnectionPageState extends State<ConnectionPage> {
   final _form = GlobalKey<FormState>();
   SiteAddress? _healthySite;
   bool _loading = false;
+
   /// MG09：区分成功句（文字层强调色）与失败句（状态条 + 重试动作）。
   bool _messageIsSuccess = false;
+
   /// MG09：失败是否来自「检查连接」，来自检查的失败才有明确的重试动作。
   bool _checkFailed = false;
   bool _loadingTrust = false;

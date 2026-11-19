@@ -430,10 +430,7 @@ void main() {
     expect(tester.getTopLeft(icon.first).dx, header);
     final statusText = left('已保存');
     // 细线缩进公式与状态文字起点一致：卡内边距 + 图标 20 + 间距 12。
-    expect(
-      statusText,
-      header + MileafIconMetrics.nav + MileafSpace.s12,
-    );
+    expect(statusText, header + MileafIconMetrics.nav + MileafSpace.s12);
     expect(left('保存在本机 · 所有车辆与站点共用'), statusText);
 
     // 保存后的结果句是画布层脚注：与分组标题同一条起始线。

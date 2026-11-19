@@ -86,8 +86,9 @@ double _headerToValueGap(WidgetTester tester) {
         matching: find.byType(MileafModuleCard),
       )
       .first;
-  final headerBottom =
-      tester.getRect(find.byType(MileafPeriodHeader).first).bottom;
+  final headerBottom = tester
+      .getRect(find.byType(MileafPeriodHeader).first)
+      .bottom;
   final valueBlock = find
       .descendant(
         of: card,

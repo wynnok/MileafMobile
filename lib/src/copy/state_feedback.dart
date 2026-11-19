@@ -27,10 +27,7 @@ class EmptyStateCopy {
 EmptyStateCopy emptyStateCopy(EmptyStateTier tier, {String? object}) {
   final name = object ?? '数据';
   return switch (tier) {
-    EmptyStateTier.offline => const EmptyStateCopy(
-      '网络不可用，显示的是缓存数据',
-      '重试',
-    ),
+    EmptyStateTier.offline => const EmptyStateCopy('网络不可用，显示的是缓存数据', '重试'),
     EmptyStateTier.loadFailed => EmptyStateCopy(readFailedMessage(name), '重试'),
     EmptyStateTier.noData => EmptyStateCopy(emptyMessage(name), '刷新'),
     EmptyStateTier.filterNoMatch => EmptyStateCopy('筛选后没有$name', '调整筛选'),

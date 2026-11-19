@@ -28,8 +28,7 @@ http.Response _json(String body) => http.Response(
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
 
-String _fixture(String name) =>
-    File('test/fixtures/$name').readAsStringSync();
+String _fixture(String name) => File('test/fixtures/$name').readAsStringSync();
 
 class _AppearanceStore implements AppearancePreferenceStore {
   _AppearanceStore(this.value);

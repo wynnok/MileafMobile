@@ -38,7 +38,8 @@ String formatDayGroup(DateTime time, DateTime today) {
 }
 
 /// DF3 日期区间：连接号 –（U+2013）；同月省日首，跨月两端带月，跨年两端带年。
-String formatRange(DateTime from, DateTime to) => _rangeText(from, to, rangeSeparator);
+String formatRange(DateTime from, DateTime to) =>
+    _rangeText(from, to, rangeSeparator);
 
 String _rangeText(DateTime from, DateTime to, String separator) {
   if (from.year != to.year) {
@@ -55,7 +56,8 @@ String formatTime(DateTime time) => '${_pad2(time.hour)}:${_pad2(time.minute)}';
 
 /// DF4 时间段：同日 HH:mm–HH:mm；跨日写全两端。
 String formatTimeRange(DateTime from, DateTime to, {required DateTime today}) {
-  if (_sameDay(from, to)) return '${formatTime(from)}$rangeSeparator${formatTime(to)}';
+  if (_sameDay(from, to))
+    return '${formatTime(from)}$rangeSeparator${formatTime(to)}';
   return '${formatDay(from, today)} ${formatTime(from)}$rangeSeparator'
       '${formatDay(to, today)} ${formatTime(to)}';
 }

@@ -116,10 +116,7 @@ void main() {
           await tester.drag(pageScrollOf(page), const Offset(0, -250));
           await tester.pumpAndSettle();
         }
-        await Scrollable.ensureVisible(
-          tester.element(target),
-          alignment: .2,
-        );
+        await Scrollable.ensureVisible(tester.element(target), alignment: .2);
         await tester.pumpAndSettle();
       }
 

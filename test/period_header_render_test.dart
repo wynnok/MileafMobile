@@ -89,9 +89,7 @@ Future<void> _shot(
             );
           }
           if (r.url.path.endsWith('/summary')) {
-            return _json(
-              File('test/fixtures/summary.json').readAsStringSync(),
-            );
+            return _json(File('test/fixtures/summary.json').readAsStringSync());
           }
           return _json('{"items":[],"next_cursor":null}');
         }),

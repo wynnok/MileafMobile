@@ -186,10 +186,7 @@ void main() {
     expect(find.textContaining('显示的是上次的数据'), findsOneWidget);
     expect(find.textContaining('数据截至'), findsOneWidget);
     // 时间行是独立节点，读屏可单独朗读「数据截至 HH:mm」（DF4）。
-    expect(
-      find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')), findsOneWidget);
     // 重试可点：恢复后状态条消失、数据保留。
     failing = false;
     await tester.tap(find.text('重试'));
