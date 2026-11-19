@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -47,6 +49,39 @@ void main() {
     final retry = find.bySemanticsLabel('重试检查连接');
     expect(retry, findsOneWidget);
     await tester.tap(retry);
+    await tester.pumpAndSettle();
+    expect(healthCalls, 2);
+  });
+
+  testWidgets('MG09 连接页证书校验失败：走失败状态条而非成功句（双轴审查修复 2）', (tester) async {
+    var healthCalls = 0;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/health')) {
+        healthCalls++;
+        // api 层透传客户端异常（仅超时被包装），模拟 TLS 握手失败。
+        throw const HandshakeException('Handshake failed');
+      }
+      return http.Response('{}', 404);
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        trustStore: MemoryTrustStore(),
+        sessionStore: MemorySessionStore(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, '服务根地址'),
+      'https://example.com/mileaf',
+    );
+    await tester.tap(find.text('检查连接'));
+    await tester.pumpAndSettle();
+    // 失败必须呈现为失败（error 状态条 + 重试），不得以成功样式渲染。
+    expect(find.byType(InlineBanner), findsOneWidget);
+    expect(find.textContaining('证书校验失败'), findsOneWidget);
+    expect(find.bySemanticsLabel('重试检查连接'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('重试检查连接'));
     await tester.pumpAndSettle();
     expect(healthCalls, 2);
   });

@@ -136,6 +136,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
       failed = true;
       result = '请求超时，请检查网络后重试';
     } on HandshakeException {
+      failed = true;
       result = '证书校验失败，请检查服务证书；不会忽略证书错误';
     } on FormatException {
       failed = true;

@@ -76,7 +76,7 @@
 ### DM07 页面包登记行（2026-11-19，估算法）
 
 > 下表为 DM07 包内代码目验/估算法登记（逐页清点非图表彩色元素与视口面积占比），
-> 精确量化以 DM08 重采全库图册后的修订为准；浅/深均不含图表绘图区主数据系列
+> 精确量化列为后续候选；本表交付口径为渲染目验估算法（DM06 充电页另附图册可复核）；浅/深均不含图表绘图区主数据系列
 > （accent / series* 已按 MG01 口径豁免），图例、轴文字与选中标记计入。
 
 | 页面 | 浅色彩色面积估算 | 深色彩色面积估算 | 是否 ≤20% | 豁免 / 整改记录 |
@@ -98,9 +98,9 @@
 - 改动文件：`lib/src/design/semantic.dart`（additive 追加）、`test/days_migration_color_guard_test.dart`（新）、本文件（新）、`docs/implementation/overview-reading.md`（仅文末追加批注）。
 - 本次不 git 提交（按 DM01 边界由主会话统一提交）；不推送。
 
-## 4 DM06 充电页面包登记（2026-11-19）
+## 5 DM06 充电页面包登记（2026-11-19）
 
-### 4.1 彩色面积登记（MG01）
+### 5.1 彩色面积登记（MG01）
 
 图册：`days-matter-migration-renders/dm06/`（充电列表浅/深 390×844 100%、浅 200%、浅 360；充电详情浅/深顶部与计量费用各一）。估算口径：非图表彩色面积/视口内容面积，目验取值。
 
@@ -111,7 +111,7 @@
 
 两页其余彩色候选已核对为中性：进行中胶囊（segmentTrack 底 + textSecondary）、AC/DC/DC 胶囊（segmentTrack）、费用口径旁注与「N 次中 M 次有费用」（textSecondary/textMuted）、筛选脚注（textMuted）、进行中状态行（textSecondary）。
 
-### 4.2 状态取色核对（MG02）
+### 5.2 状态取色核对（MG02）
 
 - InlineBanner 五处调用点（能力/进行中/统计/地点/记录）均为受限四档 `BannerTone.error`，无自由 Color 参数；进行中胶囊维持中性底（`MileafRunningPill` = segmentTrack + textSecondary，未用 accent）。
 - 映射核对：警示（时区不可读）= warning 文字；失败 = error（InlineBanner、补录表单校验与错误行）；缺失/未记录（「—」、币种未记录旁注、覆盖句）= 全中性；进行中 = 中性底（胶囊）+ accent 图标（进行中卡闪电，动作/倒数位允许）。

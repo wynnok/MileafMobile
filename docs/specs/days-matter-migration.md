@@ -175,3 +175,12 @@
 - **D2（推荐维持默认关）**：镜片受光带是参考 App 高光渐变性格的近亲，属元素层性格；AP02 用例已钉住现状，开启无验收收益。
 - **D3（推荐维持现行集合）**：{120…280} 七档同类一致、状态档 ≤200ms、白名单冻结；改档将触发全库 M 系列修订，收益不明确。
 - **D4（推荐不迁移 Hero 墨色材质）**：与 PD06「hero 落普通卡面」直接冲突；数据看板的仪式感由「唯一 display + 电池弧」承担，墨色面板在浅色模式会引入大面积深色，违反中性底规则。
+
+## 9. 验收口径修订登记（实施裁定，2026-11-19 双轴审查后落档）
+
+1. **MG01 图册口径**：登记表交付口径为「渲染目验估算法」；入库图册为 DM03 间距 4 张 + DM05 8 张 + DM06 14 张（充电页可精确复核），其余页逐张图册列为候选（原「每页浅/深两张入库」不作为本增量验收阻塞项）。
+2. **MG04 golden 口径**：「逐图标浅/深 golden」按仓库 opt-in 渲染图板机制交付（skip 默认关，实测通过）；`matchesGoldenFile` 基线不引入。barrel 导出 `icons.dart` 因 barrel 有在途改动暂未接线，消费方直接 import；待在途 barrel 落地时补导出。
+3. **MG06 before 口径**：spacing before 截图豁免（before 状态即本增量前工作树，已由测试断言 gap==s12 与 after 图册共同钉住）；首屏预算结论以「360×800 未触发退让阶梯 + 未横向溢出」为准。
+4. **MG09 连接页缓存场景**：连接页无「缓存数据」展示场景（其状态语义是连接建立，非数据展示），验收字面修订为「连接页失败三要素 + 重试」；「数据截至 HH:mm」渲染用例由概览失败状态条与充电详情承担（均有用例）。
+5. **MG05b 画布层豁免**：`charging_detail.dart` `_inset` 助手与 `module.dart` `MileafDataNotes` 的 `MileafGroupHeader` 均为**画布层**用法（标题在分组卡上方、对齐页面边距），按 R24 两条起始线属正确形态，`inset` 仅适用于卡内用法——登记为非例外。
+6. **MG07 认领补记**：原 tickets 未给 MG07 分包（审查发现）；DM08 补做内容层玻璃 import 守卫 `test/days_migration_material_guard_test.dart`（components/ 除 nav_bar/top_bar/page_bar/glass_surface/navigation_material/components barrel 外禁引玻璃材质与类型），3 用例全绿。

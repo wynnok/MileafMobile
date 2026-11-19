@@ -2051,21 +2051,12 @@ class _ChargingPageState extends State<ChargingPage>
     final colors = context.colors;
     final type = context.type;
     // MG09 空态四档：对象名沿用原 CP07 口径。页面没有独立离线信号（读取走
-    // 站点缓存），离线档不由本页触发；读取失败给 loadFailed 句（重试动作由
-    // 页尾错误条承担）；带筛选（地点/类型/费用/搜索/单日）给筛选无结果句。
+    // 站点缓存），离线档不由本页触发；读取失败由页尾错误条承担三要素（现状
+    // 句+数据截至+重试），模块内不重复叙事（双轴审查建议 3）；带筛选（地点/
+    // 类型/费用/搜索/单日）给筛选无结果句。
     final object = expandedAvailable ? '已完成的充电' : '充电记录';
     if (items.isEmpty) {
-      if (error != null) {
-        final tier = state_feedback.EmptyStateTier.loadFailed;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
-          child: Text(
-            state_feedback.emptyStateCopy(tier, object: object).status,
-            style: type.body.copyWith(color: colors.textSecondary),
-          ),
-        );
-      }
-      if (!loaded) return const SizedBox.shrink();
+      if (error != null || !loaded) return const SizedBox.shrink();
       final tier = hasFilters || selectedDay != null
           ? state_feedback.EmptyStateTier.filterNoMatch
           : state_feedback.EmptyStateTier.noData;

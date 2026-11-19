@@ -32,7 +32,7 @@
 ## 验证
 
 - `tool/flutterw analyze`：全仓 3 条诊断，均为既有基线（`creator/video/...` 工作区 2 条——该目录不入库、`test/apple_polish_ap10_test.dart:342` info 1 条）；本增量文件 0 诊断。
-- `tool/flutterw test` 全量：见文末「全量复跑」结论（含首轮 1170 过/55 跳过/2 失败与修复后复跑）。
+- `tool/flutterw test` 全量（**取得于含在途改动的工作树**，HEAD 提交树需叠加「工作区状态」所列文件方可全绿）：首轮 1170 过 / 55 跳过 / 2 失败（`ui_ux_u09a`/`ui_ux_u09d` 为 DM07 空态分档后的断言映射缺口）；修复后复跑 1172 过 / 55 跳过 / 0 失败；双轴审查修复后**终值 1176 过 / 55 跳过 / 0 失败**（新增：连接页证书失败用例、MG07 材质守卫 3 用例；MG06 两组移入 spacing 测试文件）。
 - 守卫：对比度 60 用例、文案守卫（基线登记后全绿）、裸值守卫（state_feedback 0）、图标家族、动效 8 用例、状态三要素 16 用例。
 - 图册：`docs/implementation/days-matter-migration-renders/`——dm03-spacing 4 张（PD12 首屏浅深×两页）、dm05 8 张、dm06 14 张；浅深目验通过，彩色面积登记行见 color.md。
 
@@ -50,9 +50,19 @@
 
 工作树在实施前已有他人在途未提交改动（Apple 焕新 AP 系列、period-header 切片、底栏相关：`lib/src/overview_page.dart`、`drives_page.dart`、`design/components.dart`、`tokens.dart`、`page_bar.dart`、`copy/dates.dart`、`test/design_components_test.dart`、`drives_test.dart`、`navigation_bar_test.dart`、`AGENTS.md`、`ios/Podfile.lock`、period_header 全套）。本增量的 overview/drives 改动（s12、行程记录行网格、三要素接线）与这些在途改动**同文件叠加**，无法按路径干净分离；按「不卷入他人在途改动」原则，以下文件**保持未提交**，待在途切片落地后一并处理：
 
-`lib/src/overview_page.dart`、`lib/src/drives_page.dart`、`test/overview_test.dart`、`test/drives_test.dart`、`test/apple_polish_ap07_test.dart`、`test/a_drives_test.dart`、`test/days_migration_dm05_render_test.dart`（依赖两页在途结构）。
+`lib/src/overview_page.dart`、`lib/src/drives_page.dart`、`test/overview_test.dart`、`test/drives_test.dart`、`test/apple_polish_ap07_test.dart`、`test/a_drives_test.dart`、`test/days_migration_dm05_render_test.dart`、`test/days_migration_spacing_test.dart`（依赖两页在途结构与 period-header 组件）。
 
 其余 DM05–DM07 成果（充电/统计/设置/连接/详情/地图设置页及其测试、基线、图册、实施记录）已选择性提交。AGENTS.md 条目追加在工作树（同文件有在途条目），随在途改动一并提交。
+
+## 双轴审查与修复（DM08 收口）
+
+审查汇总见 [days-matter-migration-review.md](days-matter-migration-review.md)。修复项：
+
+1. **连接页证书校验失败回归（真 bug）**：`HandshakeException` 分支漏置 `failed`，失败被渲染为成功样式——补 `failed = true` 并新增用例（MockClient 抛 HandshakeException → error 状态条 + 重试）。
+2. **充电记录空态双报**：失败分支回退为空白语义，三要素由页尾错误条承担。
+3. **MG07 守卫补齐**：新增 `test/days_migration_material_guard_test.dart`（内容层组件禁引玻璃材质/类型，排除集 = page_bar/top_bar/nav_bar/glass_surface/navigation_material/components barrel；3 用例全绿）。
+4. **MG06 测试拆分**：页级间距断言移至 `test/days_migration_spacing_test.dart`（工作树，随 DM05 页面接线与在途切片一并提交），`days_migration_motion_test.dart` 瘦身为纯组件级 MG08 用例，消除「已提交测试引用未提交组件」的 HEAD 编译断裂。
+5. 验收口径修订见规格 §9（MG01 图册估算法口径、MG04 opt-in 图板、MG06 before 豁免、MG09 连接页场景修订、MG05b 画布层豁免）。
 
 ## 外部边界
 
