@@ -44,6 +44,7 @@ Grafana 是指标参考，不要求逐项一致或迁移桌面布局。
 双端真机网络、已许可地图服务与真实坐标校准仍缺，不能把构建或合成数据测试当成通过。
 
 - [最终验证与本地产物](docs/implementation/final-verification.md)
+- [build 目录内容与清理](docs/implementation/build-directory.md)
 - [性能合成数据准备与未测状态](docs/implementation/performance.md)
 - [A 渲染索引](docs/implementation/a-renders/gallery/README.md)
 - [A 可达性审计](docs/implementation/a-accessibility.md)
