@@ -983,6 +983,8 @@ class _DrivesPageState extends State<DrivesPage>
           // R24：记录行走组卡，卡内横向内边 16；发丝线只画在行与行之间
           // （从卡内 16 到卡片右缘），每天最后一行不画线，卡片裁到圆角。
           MileafGroupCard(
+            // CL57：一整组行程卡取 journey 洗底，列表页因此也有彩色面。
+            hue: MileafDataDomain.journey.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

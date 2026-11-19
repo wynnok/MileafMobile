@@ -201,7 +201,16 @@ class MetricBlock extends StatelessWidget {
       // CL08：缺失值本身就是「不知道」，不属于该域的数据——不上色。
       // 这条放在组件里而不是 20 个调用点：调用方传 hue 是「这一格是什么数据」，
       // 有没有数据要由组件自己判。
-      color: value == null ? null : hue?.strong(colors),
+      //
+      // CL55（ADR 0017）：读数按字号分档取色。display/metricLg/metricMd 是
+      // 40/32/24 号，落在 WCAG「大文本」里，门槛 3:1 而不是 4.5:1——这三个档
+      // 取 solid（3.55:1，饱和度与图表线同档），比原来的 strong 明显更亮；
+      // metricSm（20 号，600 重）仍取 strong，保守过正文门槛。
+      color: value == null
+          ? null
+          : (scale == MetricValueScale.metricSm
+                ? hue?.strong(colors)
+                : hue?.solid(colors)),
     );
     final text = Column(
       crossAxisAlignment: cross,

@@ -191,16 +191,79 @@ abstract final class MileafHueRamp {
   static const violetDark = Color(0xFFD6A7F9);
 }
 
-/// 语义色相的 wash 叠色（CL02）：
-/// - `soft` 16% 用于小面底（选中格、身份标签），合成后仍让 strong 文字过 4.5:1；
-/// - `tint` 8% 用于 ≥10% 屏幕面积的大面（焦点卡、章节卡背板）。
+/// 鲜明度 v2 的「亮面」档（ADR 0017 / CL49）。
 ///
-/// 两档都用 alpha 而不是预乘色值，这样同一份取值在 canvas 与 surface 两种底上都成立。
+/// 这不是把 [MileafHueRamp] 再提亮一格，而是换了判据：三个既有档位都要**压在
+/// 白底上**（图形 3:1、文字 4.5:1），色相因此只能落在 L≈0.61–0.65 的深段，
+/// 彩度也被同一明度锁死（实测已达色域边界的 95–98%，没有上调空间）。亮面档
+/// 反过来——它**只做面的底色**，压在上面的字与字形取墨色（[MileafPalette.slate900]），
+/// 于是明度可以抬到 L=0.74，彩度取该明度下色域边界的 96%。
+///
+/// 六个值在浅深两模式共用：亮面自带墨字之后，唯一的约束是「墨字还能读」，
+/// 实测 7.34–8.47:1，与底色是白还是近黑无关（对深色 canvas 另有 7.96–9.19:1）。
+abstract final class MileafHueVivid {
+  const MileafHueVivid._();
+
+  /// L=0.74 · C=0.132 · 墨字 7.88:1。
+  static const azure = Color(0xFF6BAEFC);
+
+  /// L=0.74 · C=0.121 · 墨字 8.27:1。
+  static const aqua = Color(0xFF20C2C4);
+
+  /// L=0.74 · C=0.187 · 墨字 8.47:1。
+  static const mint = Color(0xFF20CB6C);
+
+  /// L=0.74 · C=0.146 · 墨字 7.79:1。
+  static const amber = Color(0xFFD5A21B);
+
+  /// L=0.74 · C=0.153 · 墨字 7.35:1。
+  static const coral = Color(0xFFFC7F86);
+
+  /// L=0.74 · C=0.174 · 墨字 7.34:1。
+  static const violet = Color(0xFFCC88FC);
+}
+
+/// 语义色相的洗色档（ADR 0017 / CL50–CL51），**全部以 [MileafHueVivid] 为原料**。
+///
+/// 以亮面为原料、而不是以 solid 为原料，是这次「变鲜明」的关键：同一张卡片，
+/// 8% 的深色洗色只能做到 C≈0.01（肉眼近乎白），24% 的亮面洗色能到 C≈0.03–0.055，
+/// 深一档的入口卡（[deepAlpha]）能到 0.07–0.12——这才看得出「这是一张蓝色的卡」。
+///
+/// - [veilAlpha] 40%：图表填充、弧环轨道。**不承载任何文字**，只压图形；
+///   浅色下 strong 线在 veil 上 4.02–4.12:1（图形门槛 3:1 过，正文门槛 4.5 不过——
+///   所以它只允许压在图形下面）。
+/// - [softAlpha] / [tintAlpha] 24%（深 22%）：小格底与卡片背板，承载 strong 文字，
+///   实测最差 4.56:1（深 4.92:1）。两档同值不是偷懒：上限由前景文字决定，
+///   与面积无关（见下）。
+///
+/// 四档都用 alpha 而不是预乘色值，这样同一份取值在 canvas 与 surface 两种底上都成立。
 abstract final class MileafHueWash {
   const MileafHueWash._();
 
-  static const softAlpha = .16;
-  static const tintAlpha = .08;
+  static const veilAlpha = .40;
+
+  /// 承载文字的两档洗色：24%（深 22%）。
+  ///
+  /// 这个数**不是**按面积定的，而是按「洗色底上最强的前景」反解出来的：
+  /// 卡内读数是 strong（白底 5.90:1），洗色每加 2 个百分点，它在 canvas 上
+  /// 就掉约 0.07；24% 时最差的一格（amber / azure 压 canvas）还有 4.56:1，
+  /// 26% 就是 4.49:1——刚好破线。
+  ///
+  /// 所以 ADR 0016 里「面积越大 alpha 越低」的判断被实测改写：决定上限的
+  /// 是**前景是谁**，不是面积。真正的大面（入口卡）改用 [deepAlpha] 配墨字
+  /// （CL56），而不是继续往下压 tint。
+  static const softAlpha = .24;
+  static const softAlphaDark = .22;
+  static const tintAlpha = .24;
+  static const tintAlphaDark = .22;
+
+  /// 入口卡（统计根页 2×2 章节卡）用的深洗底：同一张卡从「看得出是蓝的」
+  /// 变成「就是蓝色的」。这一档的约束换成了墨字——55% 时正文 11.4–12.0:1、
+  /// 次级墨字（78%）6.9–7.1:1，都留了一档余量。
+  ///
+  /// **只在浅色模式用**：深色底的 surface 已是近黑，同样 55% 会把读数
+  /// （深色 strong=solid）压到 4.0:1 以下，所以深色仍走 [tintAlphaDark]。
+  static const deepAlpha = .55;
 }
 
 /// 4px base spacing. Named steps are the only values pages may use.
@@ -564,22 +627,40 @@ abstract final class MileafIconMetrics {
 abstract final class MileafChartMetrics {
   const MileafChartMetrics._();
 
-  static const lineStroke = 2.0;
+  /// 主线 2.0 → 2.6（ADR 0017 / CL53）：填充加深之后，同宽度的线会被自己的面
+  /// 吞掉；线宽与面的对比一起提，图表才读得出「这是两条不同的信息」。
+  static const lineStroke = 2.6;
 
   /// R06：参照线 1.5 虚线 4/4，比主线细一档。
   static const referenceStroke = 1.5;
   static const microStroke = 1.2;
+
+  /// 旧口径：同色 16% 淡填充。仍被页面自绘图表（续航波动带等）使用，
+  /// 也仍是「没有色相」时的回落值。
   static const areaMaxOpacity = .16;
   static const areaMinOpacity = .0;
+
+  /// 新口径（ADR 0017 / CL53）：亮面 40%→6% 渐变。40% 是反解出来的上限——
+  /// 再深，压在上面的 strong 线就掉到 4.5:1 以下（图表读数与线同屏按更严的
+  /// 那一档算）。只给接了色相的共享图表用，页面自绘图表不跟着变。
+  static const fillMaxOpacity = .40;
+  static const fillMinOpacity = .06;
   static const currentPoint = 4.0;
   static const currentHalo = 8.0;
   static const pointRadius = 2.5;
-  static const stemStroke = 1.5;
-  static const stemEndpoint = 2.5;
+
+  /// 当前点 = 亮面圆心 + strong 描边（CL54）：亮面自身对白底只有 2.1–2.5:1，
+  /// 不能单独作为承界图形；外圈 strong 把边界补齐，圆心才允许用最亮的那个色。
+  static const currentRing = 1.5;
+  static const stemStroke = 4.0;
+  static const stemEndpoint = 3.5;
 
   /// A real zero under a bar: a dot on the baseline, never a sliver of volume.
   static const zeroDot = 1.5;
-  static const barMaxWidth = 12.0;
+
+  /// 柱宽 12 → 16（ADR 0017 / CL53.1）：柱是页面上数量最多的彩色面，
+  /// 面积翻倍比换色更能读成「更鲜明」。
+  static const barMaxWidth = 16.0;
   static const barSlotCoverage = .6;
   static const barRadius = 2.0;
   static const axisLabelSize = 12.0;

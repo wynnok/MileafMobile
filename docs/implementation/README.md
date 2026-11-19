@@ -2,7 +2,7 @@
 
 本目录放**过程与证据**：每个切片改了什么、怎么验证的、审查发现了什么、还剩什么。条款在 [specs/](../specs/)，决定在 [adr/](../adr/)；这里不重复写条款。总入口见 [docs/README.md](../README.md)。
 
-当前状态：76 个顶层 Markdown（75 份记录 + 本索引）+ 33 个子目录（分包记录与图册）。最近一次结构核对见 [repo-structure.md](repo-structure.md)。
+当前状态：77 个顶层 Markdown（76 份记录 + 本索引）+ 34 个子目录（分包记录与图册）。最近一次结构核对见 [repo-structure.md](repo-structure.md)。
 
 ## 1 交付总账
 
@@ -69,6 +69,7 @@
 | [liquid-glass-nav.md](liquid-glass-nav.md) | ADR 0013 | 液态玻璃底栏实施（含参数修订） |
 | [days-matter-migration.md](days-matter-migration.md) + [-color](days-matter-migration-color.md) / [-icons](days-matter-migration-icons.md) / [-state](days-matter-migration-state.md) / [-dm05](days-matter-migration-dm05.md) / [-dm06](days-matter-migration-dm06.md) / [-dm07](days-matter-migration-dm07.md) / [-review](days-matter-migration-review.md) | ADR 0015 | 理念迁移实施、分包记录与审查 |
 | [chromatic-language.md](chromatic-language.md) | ADR 0016 | 色彩与图标秩序实施（含分包记录子目录） |
+| [chromatic-intensity.md](chromatic-intensity.md) | ADR 0017 | 鲜明度 v2：亮面档、洗色重定与逐像素前后对照 |
 
 ## 5 历史记录（图册已按归档政策处理）
 
@@ -94,7 +95,8 @@
 
 | 目录 | 张数 | 状态 |
 | --- | --- | --- |
-| [days-matter-migration-renders/](days-matter-migration-renders/) | 26 | 最近一代（ADR 0015 迁移样张） |
+| [chromatic-intensity-renders/](chromatic-intensity-renders/) | 8 | 切片证据（ADR 0017：四页 × 浅深，390×844 / 2x） |
+| [days-matter-migration-renders/](days-matter-migration-renders/) | 26 | 上一代（ADR 0015 迁移样张） |
 | [charging-rows-renders/](charging-rows-renders/) | 18 | 切片证据（ADR 0014） |
 | [liquid-glass-nav-renders/](liquid-glass-nav-renders/) | 17 | 切片证据（ADR 0013） |
 | [settings-order-renders/](settings-order-renders/) | 28 | 切片证据（ADR 0014） |

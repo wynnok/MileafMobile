@@ -21,16 +21,17 @@
 | [0013](0013-liquid-glass-navigation.md) | 以液态玻璃重塑悬浮底栏 | accepted，已实施 | 2026-11-18 修订 L03/L04 并新增 L10–L12 |
 | [0014](0014-apple-polish.md) | 以单一重心、统一语法和清晰文案精修 Apple 质感 | accepted，已实施 | 接续 [0012](0012-apple-design-renewal.md) |
 | [0015](0015-days-matter-language-migration.md) | 以参考应用的设计理念校准行笺（理念层迁移） | accepted，已实施 | 净增益为 MG01–MG09 六个收尾点 |
-| [0016](0016-chromatic-language.md) | 语义色相与图标秩序：一动作色 + 六数据身份色 | accepted，已实施（当前） | 取代 [0006](0006-appearance-and-accent.md) 的单强调色纪律；[0015](0015-days-matter-language-migration.md) 其余条款继续有效 |
+| [0016](0016-chromatic-language.md) | 语义色相与图标秩序：一动作色 + 六数据身份色 | accepted，已实施 | 取代 [0006](0006-appearance-and-accent.md) 的单强调色纪律；D2（三级强度）与 D3（5%/2% 预算）被 [0017](0017-chromatic-intensity.md) 取代 |
+| [0017](0017-chromatic-intensity.md) | 鲜明度 v2：把彩色从细线与浅洗搬到亮面 | accepted，已实施（当前） | 取代 [0016](0016-chromatic-language.md) 的 D2/D3；其余 D1/D4–D7 继续有效 |
 
 ## 阅读建议
 
-- 想理解**现在的视觉为什么长这样**：从 [0016](0016-chromatic-language.md) 往回读 [0015](0015-days-matter-language-migration.md) → [0014](0014-apple-polish.md) → [0012](0012-apple-design-renewal.md) → [0011](0011-ui-ux-refinement.md) → [0006](0006-appearance-and-accent.md) → [0003](0003-visual-direction-a.md)。
+- 想理解**现在的视觉为什么长这样**：从 [0017](0017-chromatic-intensity.md) → [0016](0016-chromatic-language.md) 往回读 [0015](0015-days-matter-language-migration.md) → [0014](0014-apple-polish.md) → [0012](0012-apple-design-renewal.md) → [0011](0011-ui-ux-refinement.md) → [0006](0006-appearance-and-accent.md) → [0003](0003-visual-direction-a.md)。
 - 想理解**数据边界与写入例外**：[0005](0005-active-charging-evidence.md)、[0007](0007-missing-charging-cost-entry.md)。
 - 想理解**地图与设置**：[0002](0002-map-provider.md)、[0008](0008-user-amap-key.md)、[0009](0009-settings-navigation.md)、[0010](0010-map-settings-visual.md)。
 
 ## 新增 ADR
 
-1. 取下一个序号（当前最大 0016），文件名 kebab-case。
+1. 取下一个序号（当前最大 0017），文件名 kebab-case。
 2. 首部写「日期 / 状态 / 关系」，正文写决定、取舍与被拒方案。
 3. 更新本索引表；若改变了长期规则，同步 [AGENTS.md](../../AGENTS.md) 与 [docs/README.md](../README.md)。

@@ -71,17 +71,54 @@ void main() {
       expect(MileafHue.azure.solid(dark), MileafPalette.azure300);
     });
 
-    test('soft / tint 是 solid 的 16% / 8% alpha（两模式同一规律）', () {
+    test('soft / tint / veil 是亮面的 alpha（ADR 0017 起不再取 solid）', () {
       for (final colors in <MileafColors>[light, dark]) {
         for (final hue in MileafHue.values) {
-          final soft = hue.soft(colors);
-          final tint = hue.tint(colors);
-          expect(soft.r, hue.solid(colors).r, reason: '${hue.name} soft 色相不变');
-          expect(soft.g, hue.solid(colors).g);
-          expect(soft.b, hue.solid(colors).b);
-          expect(soft.a, closeTo(MileafHueWash.softAlpha, .005));
-          expect(tint.a, closeTo(MileafHueWash.tintAlpha, .005));
+          final vivid = hue.vivid(colors);
+          for (final (name, layer) in <(String, Color)>[
+            ('soft', hue.soft(colors)),
+            ('tint', hue.tint(colors)),
+            ('veil', hue.veil(colors)),
+          ]) {
+            expect(
+              layer.r,
+              closeTo(vivid.r, .005),
+              reason: '${hue.name} $name 色相不变',
+            );
+            expect(layer.g, closeTo(vivid.g, .005));
+            expect(layer.b, closeTo(vivid.b, .005));
+          }
+          expect(
+            hue.soft(colors).a,
+            closeTo(
+              colors.isDark
+                  ? MileafHueWash.softAlphaDark
+                  : MileafHueWash.softAlpha,
+              .005,
+            ),
+          );
+          expect(
+            hue.tint(colors).a,
+            closeTo(
+              colors.isDark
+                  ? MileafHueWash.tintAlphaDark
+                  : MileafHueWash.tintAlpha,
+              .005,
+            ),
+          );
+          expect(hue.veil(colors).a, closeTo(MileafHueWash.veilAlpha, .005));
         }
+      }
+    });
+
+    test('亮面档两模式同值，且与 solid/strong 都不同（CL49）', () {
+      for (final hue in MileafHue.values) {
+        final vivid = hue.vivid(light);
+        expect(vivid, hue.vivid(dark));
+        expect(vivid, isNot(hue.solid(light)));
+        expect(vivid, isNot(hue.strong(light)));
+        expect(hue.onVivid(light), MileafPalette.slate900);
+        expect(hue.onVivid(dark), MileafPalette.slate900);
       }
     });
 

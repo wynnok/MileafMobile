@@ -56,8 +56,9 @@ String formatTime(DateTime time) => '${_pad2(time.hour)}:${_pad2(time.minute)}';
 
 /// DF4 时间段：同日 HH:mm–HH:mm；跨日写全两端。
 String formatTimeRange(DateTime from, DateTime to, {required DateTime today}) {
-  if (_sameDay(from, to))
+  if (_sameDay(from, to)) {
     return '${formatTime(from)}$rangeSeparator${formatTime(to)}';
+  }
   return '${formatDay(from, today)} ${formatTime(from)}$rangeSeparator'
       '${formatDay(to, today)} ${formatTime(to)}';
 }

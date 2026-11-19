@@ -413,12 +413,22 @@ extension MileafDataDomainHue on MileafDataDomain {
   };
 }
 
-/// 色相 → 三级强度（CL02/CL09）的唯一解析出口。
+/// 色相 → 强度阶梯（CL02/CL09，ADR 0017 扩到五档）的唯一解析出口。
 ///
-/// - [solid]：图形级（浅 3.55:1 / 深 7.42:1），用于图表线面柱点、弧环、图标字形；
-/// - [strong]：文字与实心级（浅 5.90:1），用于彩色读数、域标签、实心图标按钮；
-/// - [soft]/[tint]：16% / 8% 叠色，取当前模式的 [solid] 加 alpha；
+/// - [vivid]：亮面（L=0.74，墨字 ≥7.3:1），洗色的原料，也用于「圆心 + 描边」
+///   这类自带边界的点；**不能**单独当承界图形用（对白底只有 2.1–2.5:1）；
+/// - [solid]：图形级（浅 3.55:1 / 深 7.42:1），用于弧环、图标字形、区间带，
+///   以及任何**直接压在 canvas/surface 上**的彩色图形；
+/// - [strong]：文字与实心级（浅 5.90:1），用于彩色读数、域标签、实心图标按钮，
+///   以及**压在洗色面上**的一切彩色前景（图表线柱、卡片内读数、卡片内图标）；
+/// - [veil]：40% 亮面叠色，图表填充与弧环轨道，只压图形不承载文字；
+/// - [soft]/[tint]：24% 亮面叠色（深色 22%），小格与卡片背板；
 /// - [onStrong]：压在 [strong] 实心底上的文字，浅色取白、深色取近黑（两者都 ≥5:1）。
+///
+/// 为什么洗色面上一律取 [strong] 而不是 [solid]：24% 的亮面洗色已经把底抬到
+/// L≈0.94 附近，[solid] 压上去只剩 2.6–2.75:1，掉出图形门槛 3:1；换成同一
+/// 色相的深一档 [strong] 之后是 4.56–4.66:1——这不是「顺手调深一点」，
+/// 而是洗色一旦加深，面上的前景就必须整体换档。
 ///
 /// 不新增 [MileafColors] 字段：解析只需要 isDark 与既有前景，避免把
 /// copyWith / lerp / ThemeExtension 的接口面撑开。
@@ -453,18 +463,45 @@ extension MileafHueTone on MileafHue {
           MileafHue.violet => MileafHueRamp.violetStrongLight,
         };
 
-  Color soft(MileafColors colors) =>
-      solid(colors).withValues(alpha: MileafHueWash.softAlpha);
+  /// 亮面（CL49）：两模式同一取值，因为它的对比约束来自**墨字**而不是底色。
+  Color vivid(MileafColors colors) => switch (this) {
+    MileafHue.azure => MileafHueVivid.azure,
+    MileafHue.aqua => MileafHueVivid.aqua,
+    MileafHue.mint => MileafHueVivid.mint,
+    MileafHue.amber => MileafHueVivid.amber,
+    MileafHue.coral => MileafHueVivid.coral,
+    MileafHue.violet => MileafHueVivid.violet,
+  };
 
-  Color tint(MileafColors colors) =>
-      solid(colors).withValues(alpha: MileafHueWash.tintAlpha);
+  /// 图表填充 / 弧环轨道（CL50）：只压图形，不承载文字。
+  Color veil(MileafColors colors) =>
+      vivid(colors).withValues(alpha: MileafHueWash.veilAlpha);
+
+  /// 小格底（选中格、身份标签），承载 [strong] 文字。
+  Color soft(MileafColors colors) => vivid(colors).withValues(
+    alpha: colors.isDark
+        ? MileafHueWash.softAlphaDark
+        : MileafHueWash.softAlpha,
+  );
+
+  /// 卡片背板（≥10% 屏幕面积），承载 [strong] 文字与 [strong] 前景。
+  Color tint(MileafColors colors) => vivid(colors).withValues(
+    alpha: colors.isDark
+        ? MileafHueWash.tintAlphaDark
+        : MileafHueWash.tintAlpha,
+  );
 
   Color onStrong(MileafColors colors) => colors.textOnAccent;
+
+  /// 压在 [vivid] 亮面上的文字与字形（CL49.1）：两模式都用近黑。
+  Color onVivid(MileafColors colors) => MileafPalette.slate900;
 }
 
 extension MileafDataDomainTone on MileafDataDomain {
+  Color vivid(MileafColors colors) => hue.vivid(colors);
   Color solid(MileafColors colors) => hue.solid(colors);
   Color strong(MileafColors colors) => hue.strong(colors);
+  Color veil(MileafColors colors) => hue.veil(colors);
   Color soft(MileafColors colors) => hue.soft(colors);
   Color tint(MileafColors colors) => hue.tint(colors);
 }

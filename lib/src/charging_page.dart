@@ -2046,6 +2046,8 @@ class _ChargingPageState extends State<ChargingPage>
   /// 语法）；行内横向内边统一 16（apple-polish R24「两条起始线」），分隔线
   /// 从文字起始处到卡片右缘。
   Widget _recordCard(List<dto.ChargingSession> rows) => MileafGroupCard(
+    // CL57：充电记录同属补能域，整块卡取 energy 洗底。
+    hue: MileafDataDomain.energy.hue,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

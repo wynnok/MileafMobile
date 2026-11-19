@@ -7,9 +7,9 @@
 
 - 版本 `0.1.3+4`；`main` 是唯一开发主线，本地与 `origin/main` 同步。
 - 已交付（代码 + 自动化）：连接与显式初始化、登录与会话、车辆切换、概览、行程列表与详情、充电列表与详情、统计（总览 + 六个专题）、设置（外观 / 地图 / 站点 / 币种 / 服务信息）、缺失充电费用补录、双端地图。
-- 设计增量按序叠加：ADR 0003 A「夜航」→ 0006 外观 v2 → 0011 UI/UX 精修 → 0012 Apple 焕新 → 0014 Apple 质感 → 0015 理念迁移 → **0016 色彩与图标秩序（当前）**。现行视觉以 0016 为准，更早方向只作历史证据。
-- 自动化基线：`tool/flutterw analyze --no-pub lib test` 仅 1 条既有 info（`test/apple_polish_ap10_test.dart:342`）；`tool/flutterw test --no-pub` 全绿（以最近一次提交记录为准，见 `docs/agents/history.md`）。
-- 仍未完成：真机、真实站点、真实底图（#11）、设备性能（#16）、整机与 Grafana 复核（#17）；chromatic 增量的图册尚未采集（MC12 部分）。
+- 设计增量按序叠加：ADR 0003 A「夜航」→ 0006 外观 v2 → 0011 UI/UX 精修 → 0012 Apple 焕新 → 0014 Apple 质感 → 0015 理念迁移 → 0016 色彩与图标秩序 → **0017 鲜明度 v2（当前）**。现行视觉以 0017 为准（0016 的 D2/D3 已被取代），更早方向只作历史证据。
+- 自动化基线：`tool/flutterw analyze --no-pub lib test` 仅 1 条既有 info（`test/apple_polish_ap10_test.dart:342`）；`tool/flutterw test --no-pub` 全绿 1347 通过 / 56 跳过（以最近一次提交记录为准，见 `docs/agents/history.md`）。
+- 仍未完成：真机、真实站点、真实底图（#11）、设备性能（#16）、整机与 Grafana 复核（#17）；ADR 0016 的 MC12 图册尚未采集（0017 的四页样张已在 `docs/implementation/chromatic-intensity-renders/`）。
 - GitHub 未关闭票：#1（Spec 与路线图）、#11 / #16 / #17（外部验收）、#22–#26（阅读体验增量）、#27–#40（UI/UX 增量）。后两组的代码已落地，票据收敛需当次授权。
 
 ## 硬约束

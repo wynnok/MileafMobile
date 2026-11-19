@@ -27,12 +27,22 @@ String dataNoteLabel(DataNoteCategory category) => switch (category) {
 ///
 /// 半径 [MileafRadius.lg]（20）、内边 [MileafSpace.cardPad]（16）、静态卡无阴影；
 /// 不出现卡中卡，内部分组用分隔线或 16 间距。
+/// 背板浓度（ADR 0017 / CL56）。
+///
+/// [MileafCardEmphasis.field] 是默认档：浅 26% 亮面洗底，够看出「这张卡属于
+/// 哪个域」，又不动卡内已有的读数色。
+///
+/// [MileafCardEmphasis.deep] 是入口卡专用档：浅色 55% 亮面洗底，卡内的文字
+/// 必须整体改用墨色（[MileafModuleCard] 只负责底，文字由调用方换）。
+enum MileafCardEmphasis { field, deep }
+
 class MileafModuleCard extends StatelessWidget {
   const MileafModuleCard({
     super.key,
     required this.child,
     this.padding,
     this.hue,
+    this.emphasis = MileafCardEmphasis.field,
   });
 
   final Widget child;
@@ -40,20 +50,34 @@ class MileafModuleCard extends StatelessWidget {
   /// 默认卡内 16 内边；焦点卡在 §6 退让阶梯第 2 步可收紧到 12。
   final EdgeInsetsGeometry? padding;
 
-  /// CL02/CL06：这一块的数据身份色相。给了就把卡背板叠上 `hue.tint`（8%）——
-  /// 这是本增量里唯一允许覆盖 ≥10% 屏幕面积的彩色用法（大面只能 tint），
+  /// CL02/CL06：这一块的数据身份色相。给了就把卡背板叠上 `hue.tint`
+  /// （浅 24% / 深 22% 亮面洗底）——这是覆盖 ≥10% 屏幕面积的彩色用法，
   /// 也是「卡片之间没有层次」（canvas ↔ surface 只有 1.09:1）的解决办法：
   /// 焦点卡因此从白卡里浮出来，而不是靠阴影。
   final MileafHue? hue;
+
+  /// CL56：入口卡的深洗底。深色模式自动退回 [MileafCardEmphasis.field]——
+  /// 深底上再加浓会把卡内读数压到正文门槛以下。
+  final MileafCardEmphasis emphasis;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hue = this.hue;
+    final deep = emphasis == MileafCardEmphasis.deep && !colors.isDark;
+    final Color? fill;
+    if (hue == null) {
+      fill = null;
+    } else if (deep) {
+      fill = Color.alphaBlend(
+        hue.vivid(colors).withValues(alpha: MileafHueWash.deepAlpha),
+        colors.surface,
+      );
+    } else {
+      fill = Color.alphaBlend(hue.tint(colors), colors.surface);
+    }
     return Material(
-      color: hue == null
-          ? colors.surface
-          : Color.alphaBlend(hue.tint(colors), colors.surface),
+      color: fill ?? colors.surface,
       borderRadius: BorderRadius.circular(MileafRadius.lg),
       clipBehavior: Clip.hardEdge,
       child: Padding(
@@ -73,19 +97,32 @@ class MileafGroupCard extends StatelessWidget {
     required this.child,
     this.padding = EdgeInsets.zero,
     this.clip = true,
+    this.hue,
   });
+
+  /// CL57：记录分组卡的域色相。一整组记录只属于一个域（行程组 = journey，
+  /// 充电记录 = energy），所以整块卡背板走 hue.tint——这是让「列表页」也有
+  /// 可读彩色面的唯一办法：列表页没有图表，彩色像素全靠卡背板与读数。
+  /// 行内读数仍按各自的域取 strong，卡背板不抢占它们的身份色。
+  final MileafHue? hue;
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final bool clip;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: context.colors.surface,
-    borderRadius: BorderRadius.circular(MileafRadius.lg),
-    clipBehavior: clip ? Clip.hardEdge : Clip.none,
-    child: Padding(padding: padding, child: child),
-  );
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final hue = this.hue;
+    return Material(
+      color: hue == null
+          ? colors.surface
+          : Color.alphaBlend(hue.tint(colors), colors.surface),
+      borderRadius: BorderRadius.circular(MileafRadius.lg),
+      clipBehavior: clip ? Clip.hardEdge : Clip.none,
+      child: Padding(padding: padding, child: child),
+    );
+  }
 }
 
 /// R24 分组标题：卡片内或页尾的分组名，subheadline 500（R22）。

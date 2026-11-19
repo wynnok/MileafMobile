@@ -1171,23 +1171,33 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   ///
   /// CL12：读数取所属域的 strong 档；[hue] 为 null 时仍是中性 text（缺失、
   /// 未知与「未记录」永不彩色，CL08）。
-  Widget _topicValue(String value, String? unit, {MileafHue? hue}) {
+  Widget _topicValue(
+    String value,
+    String? unit, {
+    MileafHue? hue,
+    bool onDeep = false,
+  }) {
     final colors = context.colors;
     final type = context.type;
+    // CL56：深洗底上的读数改成墨色。深底卡的「身份」由整张卡的颜色承担，
+    // 不再靠读数颜色；20 号字在 #AED2FD 一类底上取墨色是 11.6–12.0:1。
+    final tone = onDeep ? colors.text : (hue?.strong(colors) ?? colors.text);
     return Text.rich(
       TextSpan(
         text: value,
         style: type.metricSm.copyWith(
           // CL08：缺失读数（「—」）永远中性，色相只标注有值的数据。
-          color: value == '—'
-              ? colors.text
-              : hue?.strong(colors) ?? colors.text,
+          color: value == '—' ? colors.text : tone,
         ),
         children: [
           if (unit != null)
             TextSpan(
               text: ' $unit',
-              style: type.subheadline.copyWith(color: colors.textSecondary),
+              style: type.subheadline.copyWith(
+                color: onDeep
+                    ? colors.text.withValues(alpha: .78)
+                    : colors.textSecondary,
+              ),
             ),
         ],
       ),
@@ -1214,8 +1224,15 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   }) {
     final colors = context.colors;
     final type = context.type;
+    // CL56：2×2 章节卡是「入口」，不是「读数」——一张卡只属于一个域，
+    // 所以让整张卡承担身份色（浅色 55% 洗底 + 墨色文字），而不是把颜色
+    // 藏进一枚 20 号的数字。深色模式自动退回浅洗底。
+    final deep = hue != null && !colors.isDark;
+    final onDeep = colors.text;
+    final onDeepMuted = colors.text.withValues(alpha: .78);
     return MileafModuleCard(
       hue: hue,
+      emphasis: deep ? MileafCardEmphasis.deep : MileafCardEmphasis.field,
       padding: const EdgeInsets.all(MileafSpace.s8),
       child: InkWell(
         key: ValueKey('statistics-topic-$title'),
@@ -1230,7 +1247,10 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                   icon,
                   size: MileafIconMetrics.nav,
                   // CL12：身份图标取所属域的 strong；无域时沿用动作色。
-                  color: hue?.strong(colors) ?? colors.accentStrong,
+                  // CL56：深洗底上改取墨色（strong 在 55% 底上只有 3.4:1）。
+                  color: deep
+                      ? onDeep
+                      : hue?.strong(colors) ?? colors.accentStrong,
                 ),
                 const SizedBox(width: MileafSpace.s8),
                 Expanded(
@@ -1246,11 +1266,18 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             // IntrinsicHeight 的固有尺寸测量（D-AP07-06）。这里用同一对角色
             // （metricSm 数值 + subheadline 单位）直接排版，视觉与两列网格的
             // metricSm 数值一致，同时让同一行两张卡可以拉伸到等高。
-            _topicValue(value, unit, hue: neutralValue ? null : hue),
+            _topicValue(
+              value,
+              unit,
+              hue: neutralValue ? null : hue,
+              onDeep: deep && !neutralValue,
+            ),
             const SizedBox(height: MileafSpace.s4),
             Text(
               note,
-              style: type.footnote.copyWith(color: colors.textSecondary),
+              style: type.footnote.copyWith(
+                color: deep ? onDeepMuted : colors.textSecondary,
+              ),
             ),
           ],
         ),

@@ -86,3 +86,5 @@
 
 
 本文件继续接收新的逐条记录：每次改动收口时追加一条，写清日期、触发（用户指令原话关键部分）、落地（代码／文档路径）、验证与仍未关闭的外部条件。`AGENTS.md` 只在这些记录**改变了长期规则**时同步改一行。
+
+- 2026-11-19 鲜明度 v2（用户原话要点：「引用对话的这次修改…比较成功…但我觉得还是比较收敛，不够鲜明活泼。…配色还可以再活泼、再鲜明、再大胆一点」）。诊断：ADR 0016 把 1 个色相扩到 7 个，但彩色仍只落在细线（1.5–2.0px）、8% 洗色与 20 号读数上，逐像素实测 C>0.04 的像素占比只有 0.5–3.9%（行程/充电几乎为 0）。做法：新增 L=0.74 的亮面档（`MileafHueVivid`，彩度取色域边界 96%，配墨字 7.3–8.5:1），洗色三档改以亮面为原料并反解到 24%/22%（上限由 strong 4.5:1 决定，不是面积），图表面积填充 40%→6% + 线柱改 strong（6.2→2.6 宽、柱 12→16），大号读数（40/32/24 号）改取 solid，统计根页 2×2 章节卡改浅色 55% 深洗底 + 墨字，行程/充电记录分组卡取所属域洗底。代码：`tokens.dart`（亮面 + 四档洗色 + 图表度量）、`semantic.dart`（vivid/veil/onVivid）、`charts.dart`、`metric.dart`、`module.dart`（`MileafCardEmphasis`、`MileafGroupCard.hue`）、`statistics_insights_page.dart`、`drives_page.dart`、`charging_page.dart`。文档：ADR 0017（取代 0016 的 D2/D3）、规格 §12 CL49–CL58、实施记录 `chromatic-intensity.md` + 8 张样张、三份索引与 AGENTS 同步。验证：新增 `chromatic_intensity_guard_test.dart`（12 用例），全量 **1347 通过 / 56 跳过 / 0 失败**，`analyze lib test` 仅剩 1 条既有 info（顺带修掉上一轮 format 提交引入的 `curly_braces_in_flow_control_structures`）。外部 gate #11/#16/#17 不因本轮关闭；未推送。

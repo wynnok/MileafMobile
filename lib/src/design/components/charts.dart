@@ -753,9 +753,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
                       selected: selected,
                       plot: plot,
                       progress: 1,
+                      // CL53：线取 strong（浅色深一档、深色即 solid），面取亮面。
                       primary:
-                          widget.hue?.solid(colors) ??
+                          widget.hue?.strong(colors) ??
                           (onHero ? colors.accentHero : colors.accent),
+                      fill: widget.hue?.vivid(colors),
                       reference: colors.reference,
                       axis: onHero ? colors.heroMuted : colors.textSecondary,
                       baseline: onHero
@@ -819,7 +821,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
       switch (series.style) {
         ChartSeriesStyle.reference => colors.reference,
         _ =>
-          widget.hue?.solid(colors) ??
+          widget.hue?.strong(colors) ??
               (widget.onHero ? colors.accentHero : colors.accent),
       };
 
@@ -1560,6 +1562,7 @@ class _ChartPainter extends CustomPainter {
     required this.plot,
     required this.progress,
     required this.primary,
+    this.fill,
     required this.reference,
     required this.axis,
     this.yRange,
@@ -1579,6 +1582,10 @@ class _ChartPainter extends CustomPainter {
   final Rect plot;
   final double progress;
   final Color primary;
+
+  /// 面积填充与选中点圆心用的亮面色（CL53）。为 null 时退回 [primary] 与
+  /// 改造前的 16% 淡填充——未接色相的图表（如 hero 内嵌图）保持原样。
+  final Color? fill;
   final Color reference;
   final Color axis;
   final Color baseline;
@@ -1746,10 +1753,29 @@ class _ChartPainter extends CustomPainter {
       MileafChartGrammar.selectionDot + MileafChartGrammar.selectionRing,
       Paint()..color = markerBackdrop,
     );
+    final center = fill;
+    if (center == null) {
+      canvas.drawCircle(
+        point,
+        MileafChartGrammar.selectionDot,
+        Paint()..color = primary,
+      );
+      return;
+    }
+    // CL54：亮面圆心 + strong 描边。亮面单独对白底只有 2.1–2.5:1，边界由
+    // 描边补齐；这枚点因此是页面上唯一「100% 亮面」的图形。
     canvas.drawCircle(
       point,
       MileafChartGrammar.selectionDot,
-      Paint()..color = primary,
+      Paint()..color = center,
+    );
+    canvas.drawCircle(
+      point,
+      MileafChartGrammar.selectionDot,
+      Paint()
+        ..color = primary
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = MileafChartMetrics.currentRing,
     );
   }
 
@@ -1760,14 +1786,24 @@ class _ChartPainter extends CustomPainter {
     double Function(num) y,
   ) {
     final runs = chartRuns(chart.values);
+    // CL53：接了色相的图表用亮面做填充，深一档的 strong 做线——面与线是
+    // 两个不同的色阶，而不是同一个颜色的两种透明度。没有色相时保持改造前
+    // 的「同色 16% 淡填充」，避免未接线的 hero 图被顺手改掉。
+    final areaBase = fill ?? primary;
+    final areaMax = fill == null
+        ? MileafChartMetrics.areaMaxOpacity
+        : MileafChartMetrics.fillMaxOpacity;
+    final areaMin = fill == null
+        ? MileafChartMetrics.areaMinOpacity
+        : MileafChartMetrics.fillMinOpacity;
     final areaPaint = Paint()
       ..shader =
           LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              primary.withValues(alpha: MileafChartMetrics.areaMaxOpacity),
-              primary.withValues(alpha: MileafChartMetrics.areaMinOpacity),
+              areaBase.withValues(alpha: areaMax),
+              areaBase.withValues(alpha: areaMin),
             ],
           ).createShader(
             Rect.fromLTWH(plot.left, plot.top, plot.width, plot.height),
@@ -1903,6 +1939,9 @@ class _ChartPainter extends CustomPainter {
         bottomLeft: positive ? zero : radius,
         bottomRight: positive ? zero : radius,
       );
+      // CL53.1：柱体仍取 strong（浅色 5.90:1 / 深色 7.42:1）。试过「亮面填充 +
+      // strong 描边」：图形卡本身是色相洗底，同色相的亮面压在同色相的浅底上
+      // 只剩 1.5:1，远看像空心描边，反而更弱——亮面只适合压在中性底上。
       canvas.drawRRect(rrect, Paint()..color = primary);
       if (value == 0) {
         canvas.drawCircle(
