@@ -32,7 +32,7 @@
 ## 验证
 
 - `tool/flutterw analyze`：全仓 3 条诊断，均为既有基线（`creator/video/...` 工作区 2 条——该目录不入库、`test/apple_polish_ap10_test.dart:342` info 1 条）；本增量文件 0 诊断。
-- `tool/flutterw test` 全量（**取得于含在途改动的工作树**，HEAD 提交树需叠加「工作区状态」所列文件方可全绿）：首轮 1170 过 / 55 跳过 / 2 失败（`ui_ux_u09a`/`ui_ux_u09d` 为 DM07 空态分档后的断言映射缺口）；修复后复跑 1172 过 / 55 跳过 / 0 失败；双轴审查修复后**终值 1176 过 / 55 跳过 / 0 失败**（新增：连接页证书失败用例、MG07 材质守卫 3 用例；MG06 两组移入 spacing 测试文件）。
+- `tool/flutterw test` 全量（**取得于含在途改动的工作树**，HEAD 提交树需叠加「工作区状态」所列文件方可全绿）：首轮 1170 过 / 55 跳过 / 2 失败（`ui_ux_u09a`/`ui_ux_u09d` 为 DM07 空态分档后的断言映射缺口）；修复后复跑 1172 过 / 55 跳过 / 0 失败；双轴审查修复后 1176 过 / 55 跳过 / 0 失败（新增：连接页证书失败用例、MG07 材质守卫 3 用例；MG06 两组移入 spacing 测试文件）；**落地后 HEAD 自洽终验（8a66a3c 上复跑）1176 过 / 55 跳过 / 0 失败**。
 - 守卫：对比度 60 用例、文案守卫（基线登记后全绿）、裸值守卫（state_feedback 0）、图标家族、动效 8 用例、状态三要素 16 用例。
 - 图册：`docs/implementation/days-matter-migration-renders/`——dm03-spacing 4 张（PD12 首屏浅深×两页）、dm05 8 张、dm06 14 张；浅深目验通过，彩色面积登记行见 color.md。
 
@@ -44,15 +44,11 @@
 4. **离线档零触发**：四档分档的 offline 档暂无连通性信号触发路径（充电/统计），需数据层立项后接线；文案已就位。
 5. **禁改文件的 tone 化**：`currency.dart` 与 `session_pages.dart` 的 error 反馈仍为旧形式（文件在禁区），列为后续候选。
 6. **MG01 量化口径**：登记表为渲染目验估算法；充电页已有精确图册，其余页精确量化列为候选。
-7. **混合文件未提交**（见下）。
+7. ~~混合文件未提交~~（已随落地提交 8bbdd7b/8a66a3c 清零，见「工作区状态」）。
 
 ## 工作区状态（重要）
 
-工作树在实施前已有他人在途未提交改动（Apple 焕新 AP 系列、period-header 切片、底栏相关：`lib/src/overview_page.dart`、`drives_page.dart`、`design/components.dart`、`tokens.dart`、`page_bar.dart`、`copy/dates.dart`、`test/design_components_test.dart`、`drives_test.dart`、`navigation_bar_test.dart`、`AGENTS.md`、`ios/Podfile.lock`、period_header 全套）。本增量的 overview/drives 改动（s12、行程记录行网格、三要素接线）与这些在途改动**同文件叠加**，无法按路径干净分离；按「不卷入他人在途改动」原则，以下文件**保持未提交**，待在途切片落地后一并处理：
-
-`lib/src/overview_page.dart`、`lib/src/drives_page.dart`、`test/overview_test.dart`、`test/drives_test.dart`、`test/apple_polish_ap07_test.dart`、`test/a_drives_test.dart`、`test/days_migration_dm05_render_test.dart`、`test/days_migration_spacing_test.dart`（依赖两页在途结构与 period-header 组件）。
-
-其余 DM05–DM07 成果（充电/统计/设置/连接/详情/地图设置页及其测试、基线、图册、实施记录）已选择性提交。AGENTS.md 条目追加在工作树（同文件有在途条目），随在途改动一并提交。
+**已落地（2026-11-19，用户授权「落地工作区在途改动」后执行）**：`8bbdd7b` 落 back 字形前缘对齐切片（tokens/page_bar/navigation_bar_test）；`8a66a3c` 落 period-header 切片（共享 `MileafPeriodHeader`、`rangeSeparator`、组件测试与图册）+ DM05 两页接线（s12、行程记录行网格、inset、数据截至行）+ `days_migration_spacing_test.dart`/`days_migration_dm05_render_test.dart` + AGENTS 条目 + Podfile.lock。**此后 HEAD 提交树自洽**（此前「需叠加工作树在途改动」的声明作废），全量终验在 HEAD 上复跑（见「验证」节）。工作树仅剩 `.dsh-tmp/` 只读审计工作稿（不入库）。
 
 ## 双轴审查与修复（DM08 收口）
 

@@ -1,6 +1,6 @@
 # 理念迁移实施 Tickets（DM00–DM08）
 
-> 2026-11-19，状态 **accepted 并已实施**（用户当日确认 D1–D4 按推荐执行并授权 /implement；实施与验证事实见 [days-matter-migration](../implementation/days-matter-migration.md)）。DM00–DM08 完成；已提交部分与工作树未提交部分（overview/drives 两页与在途切片同文件叠加、AGENTS 条目）的边界见实施记录「工作区状态」节——**HEAD 提交树需叠加工作树在途改动方可全绿**（已提交的 MG06 间距测试断言依赖工作树中的页面接线与 period-header 组件）。MG07 原计划无认领包（审查发现），已由 DM08 补做（`test/days_migration_material_guard_test.dart`）。遗留与待裁定清单见实施记录。设计规则见[迁移规格](days-matter-migration.md)（MG01–MG09）。分包原则沿 ADR0014 过程条款：共享系统先行、公开符号在并行期冻结签名、页面包在隔离工作树并行、各包只改声明范围内的文件（write scopes 为提示性，不构成锁）。
+> 2026-11-19，状态 **accepted 并已实施**（用户当日确认 D1–D4 按推荐执行并授权 /implement；实施与验证事实见 [days-matter-migration](../implementation/days-matter-migration.md)）。DM00–DM08 完成，且 overview/drives 两页改动与在途切片已随落地提交（`8bbdd7b`/`8a66a3c`）清零——**HEAD 提交树自洽**，全量终验在 HEAD 复跑（见实施记录「工作区状态」与「验证」节）。MG07 原计划无认领包（审查发现），已由 DM08 补做（`test/days_migration_material_guard_test.dart`）。遗留与待裁定清单见实施记录。设计规则见[迁移规格](days-matter-migration.md)（MG01–MG09）。分包原则沿 ADR0014 过程条款：共享系统先行、公开符号在并行期冻结签名、页面包在隔离工作树并行、各包只改声明范围内的文件（write scopes 为提示性，不构成锁）。
 
 ## 任务及依赖
 
