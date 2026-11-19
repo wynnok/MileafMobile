@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
@@ -13,7 +14,13 @@ enum MetricValueScale { display, metricLg, metricMd, metricSm }
 
 /// Numeric result with its unit, rendered as one `TextSpan` per part and
 /// measured before drawing so 200% text reflows instead of clipping.
-class MileafNumber extends StatelessWidget {
+///
+/// MG08/PD13：数值内容变更统一 120ms 交叉淡化（M08 扩展为「任何焦点值内容
+/// 变更」）；`transitionBuilder` 只动 opacity，`layoutBuilder` 把新旧值叠在
+/// 同一 Stack 里按原对齐方向对齐——高度取两侧最大值，不跳高度。交叉淡化期间
+/// 旧值经 `ExcludeSemantics` 移出语义树，同一时刻只有一个数值可被朗读。
+/// 减少动效时长归零，内容直接切换。
+class MileafNumber extends StatefulWidget {
   const MileafNumber({
     super.key,
     this.value,
@@ -34,11 +41,16 @@ class MileafNumber extends StatelessWidget {
   final Color? unitColor;
   final bool alignEnd;
 
+  @override
+  State<MileafNumber> createState() => _MileafNumberState();
+}
+
+class _MileafNumberState extends State<MileafNumber> {
   List<TextStyle> _tiers(BuildContext context) {
     final type = context.type;
     // A missing value must not become a giant em-dash bar in display size.
-    if (value == null) return [type.metricMd];
-    final all = switch (scale) {
+    if (widget.value == null) return [type.metricMd];
+    final all = switch (widget.scale) {
       MetricValueScale.display => [type.display, type.metricLg, type.metricMd],
       MetricValueScale.metricLg => [type.metricLg, type.metricMd],
       MetricValueScale.metricMd => [type.metricMd],
@@ -47,7 +59,7 @@ class MileafNumber extends StatelessWidget {
     return all;
   }
 
-  TextStyle _unitStyle(BuildContext context) => switch (scale) {
+  TextStyle _unitStyle(BuildContext context) => switch (widget.scale) {
     MetricValueScale.display => context.type.body,
     _ => context.type.subheadline,
   };
@@ -55,11 +67,15 @@ class MileafNumber extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final numberColor = color ?? (onHero ? colors.heroText : colors.text);
-    final resolvedUnit = unit == null || unit!.isEmpty ? null : unit;
-    final text = value ?? '—';
+    final numberColor =
+        widget.color ?? (widget.onHero ? colors.heroText : colors.text);
+    final resolvedUnit =
+        widget.unit == null || widget.unit!.isEmpty ? null : widget.unit;
+    final text = widget.value ?? '—';
     final unitStyle = _unitStyle(context).copyWith(
-      color: unitColor ?? (onHero ? colors.heroMuted : colors.textSecondary),
+      color:
+          widget.unitColor ??
+          (widget.onHero ? colors.heroMuted : colors.textSecondary),
     );
     final textScaler = MediaQuery.textScalerOf(context);
     return LayoutBuilder(
@@ -92,17 +108,39 @@ class MileafNumber extends StatelessWidget {
           chosen = candidate;
           if (fits) break;
         }
-        return Text.rich(
-          TextSpan(
-            text: text,
-            style: chosen,
+        return AnimatedSwitcher(
+          // M08/PD13：焦点值内容变更 120ms 交叉淡化；减动效归零后直接切换。
+          duration: MileafLayout.motion(context, MileafDurations.value),
+          switchInCurve: MileafCurves.fade,
+          switchOutCurve: MileafCurves.fade,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: widget.alignEnd
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
             children: [
-              if (resolvedUnit != null)
-                TextSpan(text: ' $resolvedUnit', style: unitStyle),
+              // 当前值排首位：widget 遍历（find/语义）永远先命中新值。
+              ?currentChild,
+              // 切换期间旧值移出语义树：读屏单一来源（MG08）。
+              for (final child in previousChildren)
+                ExcludeSemantics(child: child),
             ],
           ),
-          textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-          maxLines: 1,
+          child: Text.rich(
+            // 内容不变不触发动画；内容变更才换 key 走淡化。
+            key: ValueKey('$text|$resolvedUnit'),
+            TextSpan(
+              text: text,
+              style: chosen,
+              children: [
+                if (resolvedUnit != null)
+                  TextSpan(text: ' $resolvedUnit', style: unitStyle),
+              ],
+            ),
+            textAlign: widget.alignEnd ? TextAlign.end : TextAlign.start,
+            maxLines: 1,
+          ),
         );
       },
     );
