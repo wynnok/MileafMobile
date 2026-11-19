@@ -482,6 +482,13 @@ abstract final class MileafIconMetrics {
 
   static const grid = 24.0;
   static const stroke = 1.5;
+
+  /// back 字形可见笔画的前缘（24 网格格数）：尖点 9.4 − 描边半径 1.5/2。
+  ///
+  /// 返回箭头的可见笔画比其他图标窄（x 9.4–15.6），图标箱前缘对齐内容时
+  /// 箭头看起来仍缩进一截。调用方把图标箱前缘放在内容左缘后，再平移
+  /// `backGlyphLead / grid * size` 即让可见笔画前缘与内容左缘重合（R26）。
+  static const double backGlyphLead = 8.65;
   static const inline = 16.0;
   static const nav = 20.0;
   static const header = 24.0;

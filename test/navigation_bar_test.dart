@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/components/page_bar.dart';
 import 'package:mileaf/src/design/icons.dart';
+import 'package:mileaf/src/design/tokens.dart';
 import 'package:mileaf/src/design/theme.dart';
 import 'package:mileaf/src/design/layout.dart';
 import 'package:mileaf/src/overview_page.dart';
@@ -16,6 +17,13 @@ import 'support/render_png.dart';
 final backIcon = find.byWidgetPredicate(
   (widget) => widget is MileafIcon && widget.name == MileafIconName.back,
 );
+
+/// back 字形的前导留白换算到导航图标尺寸；导航行平移后可见笔画前缘
+/// 才与内容左缘对齐（MileafIconMetrics.backGlyphLead）。
+final backGlyphInset =
+    MileafIconMetrics.backGlyphLead *
+    MileafIconMetrics.nav /
+    MileafIconMetrics.grid;
 
 void main() {
   const output = String.fromEnvironment('MILEAF_NAV_RENDER_OUTPUT');
@@ -62,8 +70,13 @@ void main() {
           matching: find.text('用车节奏'),
         ),
       );
-      expect(icon.left, closeTo(period.left, .01));
-      expect(title.left - icon.right, closeTo(12, .01));
+      // 字形平移后：可见笔画前缘与内容左缘重合；标题与图标箱（布局盒，
+      // 不随光学平移移动）仍保持 12 的间距。
+      expect(icon.left + backGlyphInset, closeTo(period.left, .01));
+      expect(
+        title.left - (icon.left + backGlyphInset + MileafIconMetrics.nav),
+        closeTo(12, .01),
+      );
       final action = tester.getRect(find.text('全部指标'));
       expect(width - action.right, closeTo(period.left, .01));
       expect(tester.takeException(), isNull);
@@ -133,7 +146,7 @@ void main() {
         expect(back.width, greaterThanOrEqualTo(44));
         expect(back.height, greaterThanOrEqualTo(44));
         expect(
-          tester.getTopLeft(backIcon).dx,
+          tester.getTopLeft(backIcon).dx + backGlyphInset,
           closeTo(tester.getTopLeft(find.text('内容')).dx, .01),
         );
         if (scale == 2) {

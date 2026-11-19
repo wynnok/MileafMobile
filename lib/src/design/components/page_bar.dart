@@ -164,6 +164,13 @@ AppBar mileafPageBar(
 /// R24 间距表没有 56 这一档；52 + 4 与既有导航行几何一致。
 const _rowFloor = MileafSpace.inputMinHeight + MileafSpace.s4;
 
+/// back 字形的前导留白换算到导航图标尺寸：8.65 格 × 20/24 ≈ 7.2。
+/// 见 [MileafIconMetrics.backGlyphLead]。
+const _backGlyphInset =
+    MileafIconMetrics.backGlyphLead *
+    MileafIconMetrics.nav /
+    MileafIconMetrics.grid;
+
 class _NavigationBackButton extends StatefulWidget {
   const _NavigationBackButton({required this.onPressed});
   final VoidCallback onPressed;
@@ -189,10 +196,15 @@ class _NavigationBackButtonState extends State<_NavigationBackButton> {
                 : Offset.zero,
             duration: MileafLayout.motion(context, MileafDurations.press),
             // R32：返回图标改用自绘里程图标（24 网格、1.5 描边）。
-            child: MileafIcon(
-              MileafIconName.back,
-              size: MileafIconMetrics.nav,
-              color: context.colors.textMuted,
+            // back 字形在 20 图标箱内自带约 7.2 前导留白；平移后可见笔画
+            // 前缘与图标箱前缘（即内容左缘）真正重合，而不是缩进一截。
+            child: Transform.translate(
+              offset: const Offset(-_backGlyphInset, 0),
+              child: MileafIcon(
+                MileafIconName.back,
+                size: MileafIconMetrics.nav,
+                color: context.colors.textMuted,
+              ),
             ),
           ),
         ),
