@@ -76,6 +76,9 @@
 
 ## 2026-11-19 之后
 
+- 2026-11-19 图册第三轮归档（用户授权：「剩四个也被取代的整册，一并对齐」）：删除 `apple-polish-renders`（442 张 / 60 MB，ADR 0014）、`readability-renders`（320 张 / 46 MB）、`appearance-v2-renders`（156 张 / 28 MB，ADR 0006）、`a-renders`（156 张 / 25 MB，ADR 0003），各留 README（恢复提交 `34eb042`）；12 条指向已删子目录 README 的链接改指 `a-renders/README.md`。三轮合计归档 4682 张 PNG，`docs/` 558 MB → 60 MB。政策随之更新：只保留切片证据图册，整册被取代即归档。
+
+
 - 2026-11-19 图册第二轮归档（用户授权：「2. 两代旧图册归档 已经被替代的可以删除」）：删除 `ui-ux-refinement-renders`（1850 张 / 214 MiB，ADR 0011）与 `apple-design-renewal-renders`（1057 张 / 125 MiB，ADR 0012）的图片、`index.html` 与 manifest，各留 README（恢复提交 `9f4e0b1`）；`docs/specs/apple-design-renewal.md` §2.2 的 5 处目视引用与 `U08.md` 的 manifest 链接改为「（图已归档）」文字。记录见 `docs/implementation/render-archive.md` 第二轮归档一节，索引与结构记录同步更新。
 
 

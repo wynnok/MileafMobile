@@ -56,6 +56,6 @@ Standards 轴 6 条硬违规、Spec 轴 10 条（含重复报告）已全部处�
 
 ## 证据
 
-- 图册：[`docs/implementation/a-renders/charging-method/`](a-renders/charging-method/README.md)（12 张）。
+- 图册：[`docs/implementation/a-renders/charging-method/`](a-renders/README.md)（12 张）。
 - 命令：`tool/flutterw analyze --no-pub`、`tool/flutterw test --no-pub`。
 - 真机、真实站点、性能、双端隔离构建仍是独立外部 gate，未因此次改动关闭。

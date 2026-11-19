@@ -28,8 +28,10 @@
 
 ## 保留的图册
 
+> **2026-11-19 更新**：本节所列两册随后也已归档（见文末「第三轮归档」）；现在保留下来的都是**切片证据图册**（每个切片几到一百多张），不再保留整代整册。
+
 - [appearance-v2-renders/](appearance-v2-renders/README.md)：当前一代，电光蓝 + 中性底，含 132 张整册与 24 张同机位新旧对比。
-- [a-renders/](a-renders/gallery/README.md)：上一代 A 夜航（玉绿），仅作外观 v2 的对照与历史证据，不再更新。
+- [a-renders/](a-renders/README.md)：上一代 A 夜航（玉绿），仅作外观 v2 的对照与历史证据，不再更新。
 - `docs/prototypes/*/renders/`：设计原型自带的评审图，是被 ADR 与 Spec 直接引用的设计 primary source，不属于实施快照，保留。
 
 ## 一并删除的过时渲染入口
@@ -82,3 +84,21 @@ ls /tmp/mileaf-renders/docs/implementation/
 文档处理：`docs/specs/apple-design-renewal.md` §2.2 的 5 处目视图像引用与 `U08.md` 的 manifest 链接改为「（图已归档）」文字，并指向本文件或图册 README；其余引用都是行内代码里的路径描述，作为历史陈述保留。
 
 `.git` 历史体积不变（旧对象仍在）；本次收益是工作区体积与 clone 时间。归档后保留的整册：`apple-polish-renders/`（ADR 0014，上一代）、`readability-renders/`、`appearance-v2-renders/`、`a-renders/` 与各切片证据图册。
+
+## 2026-11-19 第三轮归档（用户授权）
+
+用户确认「剩四个也被取代的整册，一并对齐」后，把 2026-11-02 政策里保留的两册连同另两册整册一并归档。口径与第二轮一致：删图片与清单，各留一份 README（恢复提交 `34eb042`）。
+
+| 目录 | 来源决定 | 删除 | 体积 |
+| --- | --- | --- | --- |
+| `apple-polish-renders/` | [ADR 0014](../adr/0014-apple-polish.md) | 442 张 PNG + 分票清单 | 60 MB |
+| `readability-renders/` | ADR 0011 时期的阅读体验增量 | 320 张 PNG | 46 MB |
+| `appearance-v2-renders/` | [ADR 0006](../adr/0006-appearance-and-accent.md) | 156 张 PNG（含 `compare/` 对照） | 28 MB |
+| `a-renders/` | [ADR 0003](../adr/0003-visual-direction-a.md) | 156 张 PNG（含 `overview/`、`gallery/`、`charging-method/`） | 25 MB |
+| 合计 | | 1074 张 | 159 MB |
+
+同时删掉 `a-renders/overview/`、`a-renders/gallery/`、`a-renders/charging-method/` 三个子目录的 README，指向它们的 12 条文档链接统一改指 `a-renders/README.md`。
+
+三轮合计归档 4682 张 PNG：`docs/` 由 558 MB 降到 60 MB，`docs/implementation/` 由 539 MB 降到约 40 MB。`.git` 历史体积不变，图片仍可从历史提交恢复（单张 `git show <提交>:<路径>`，整目录 `git worktree add`）。
+
+**现行图册政策**：只保留切片证据图册（每个切片几到一百多张 PNG，供 ADR/Spec 逐条引用）；整代整册一旦被后续 ADR 取代即归档为 README 存根。

@@ -14,4 +14,4 @@ git show 725ceda:docs/implementation/collage-renders/statistics/overview-empty-d
 git worktree add /tmp/mileaf-renders 725ceda
 ```
 
-清理范围与理由见 [render-archive.md](../render-archive.md)。当前在用的图册是 [appearance-v2-renders](../appearance-v2-renders/README.md)（外观 v2）与 [a-renders](../a-renders/gallery/README.md)（A 夜航）。
+清理范围与理由见 [render-archive.md](../render-archive.md)。当前在用的图册是 [appearance-v2-renders](../appearance-v2-renders/README.md)（外观 v2）与 [a-renders](../a-renders/README.md)（A 夜航）。

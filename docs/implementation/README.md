@@ -90,7 +90,7 @@
 
 ## 7 图册
 
-图册政策（当前一代 + 上一代、归档留 README）见 [render-archive.md](render-archive.md)。张数为 2026-11-19 统计。
+图册政策见 [render-archive.md](render-archive.md)：**保留切片证据图册；整册一旦被后续 ADR 取代即归档，目录只留 README**（2026-11-19 起执行）。张数为归档前统计。
 
 | 目录 | 张数 | 状态 |
 | --- | --- | --- |
@@ -106,12 +106,12 @@
 | [settings-renders/](settings-renders/) | 14 | 切片证据（ADR 0009/0010） |
 | [map-key-renders/](map-key-renders/) | 14 | 切片证据（ADR 0008） |
 | [charging-cost-renders/](charging-cost-renders/) | 112 | 切片证据（ADR 0007） |
-| [apple-polish-renders/](apple-polish-renders/) | 442 | 上一代整册（ADR 0014） |
+| [apple-polish-renders/](apple-polish-renders/README.md) | 0 | 已归档（ADR 0014，2026-11-19 删 442 张 / 60 MB） |
 | [apple-design-renewal-renders/](apple-design-renewal-renders/README.md) | 0 | 已归档（ADR 0012，2026-11-19 删 1057 张 / 125 MiB，仅留 README） |
 | [ui-ux-refinement-renders/](ui-ux-refinement-renders/README.md) | 0 | 已归档（ADR 0011，2026-11-19 删 1850 张 / 214 MiB，仅留 README） |
-| [readability-renders/](readability-renders/) | 320 | 历史整册（阅读体验增量） |
-| [appearance-v2-renders/](appearance-v2-renders/) | 156 | 历史整册（ADR 0006） |
-| [a-renders/](a-renders/) | 156 | 历史整册（ADR 0003） |
+| [readability-renders/](readability-renders/README.md) | 0 | 已归档（2026-11-19 删 320 张 / 46 MB） |
+| [appearance-v2-renders/](appearance-v2-renders/README.md) | 0 | 已归档（ADR 0006，2026-11-19 删 156 张 / 28 MB） |
+| [a-renders/](a-renders/README.md) | 0 | 已归档（ADR 0003，2026-11-19 删 156 张 / 25 MB） |
 | [collage-renders/](collage-renders/)、[lake-renders/](lake-renders/)、[owner-*-renders/](owner-experience-renders/)、[overview-briefing-renders/](overview-briefing-renders/)、[drives-expansion-renders/](drives-expansion-renders/)、[charging-briefing-renders/](charging-briefing-renders/) | 0 | 已按 render-archive 归档，仅留 README |
 
 ## 8 维护规则
