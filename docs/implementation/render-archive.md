@@ -66,3 +66,19 @@ ls /tmp/mileaf-renders/docs/implementation/
 1. 视觉方向换代时，新图册直接取代旧图册；只保留当前一代与上一代对照，更早的图册按本文方式归档。
 2. 同一代的渲染不重复写入新目录；需要重跑时覆盖原目录，避免出现 `-final`、`-v2` 之类的平行图册。
 3. 票面或验收证据需要长期引用单张图片时，把它复制进当前一代图册并写明用途，不要为一次性核对新增整套图册。
+
+## 2026-11-19 第二轮归档（用户授权）
+
+用户确认「已经被替代的可以删除」后，按同一口径归档两代已结束的整册。删除的是图片、`index.html` 与 manifest 清单；两个目录各留一份 README 说明归档事实、恢复方式与检索线索，文字记录（ADR/Spec/逐票记录）全部保留。
+
+| 目录 | 时期 | 来源决定 | 删除文件 | 体积 |
+| --- | --- | --- | --- | --- |
+| `ui-ux-refinement-renders/` | 2026-11-12 ~ 11-14 | [ADR 0011](../adr/0011-ui-ux-refinement.md)、[交付手册](../specs/ui-ux-refinement-delivery.md) | 1850 张 PNG + `index.html` + 各票 manifest | 214 MiB |
+| `apple-design-renewal-renders/` | 2026-11-14 | [ADR 0012](../adr/0012-apple-design-renewal.md)、[交付手册](../specs/apple-design-renewal-delivery.md) | 1057 张 PNG + `index.html` + 各票 manifest | 125 MiB |
+| 合计 | | | 2907 张 | 339 MiB |
+
+恢复：图片仍在提交 `9f4e0b1` 及更早的历史里，单张 `git show 9f4e0b1:<路径>`，整目录 `git worktree add /tmp/mileaf-renders 9f4e0b1`。
+
+文档处理：`docs/specs/apple-design-renewal.md` §2.2 的 5 处目视图像引用与 `U08.md` 的 manifest 链接改为「（图已归档）」文字，并指向本文件或图册 README；其余引用都是行内代码里的路径描述，作为历史陈述保留。
+
+`.git` 历史体积不变（旧对象仍在）；本次收益是工作区体积与 clone 时间。归档后保留的整册：`apple-polish-renders/`（ADR 0014，上一代）、`readability-renders/`、`appearance-v2-renders/`、`a-renders/` 与各切片证据图册。

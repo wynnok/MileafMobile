@@ -50,7 +50,7 @@
 
 ### 2.2 图像证据边界
 
-本轮目视了旧正式渲染中的[概览](../implementation/ui-ux-refinement-renders/u04/overview-normal-light-360-100-top.png)、[行程](../implementation/ui-ux-refinement-renders/u05/drives-normal-light-360-100-top.png)、[统计](../implementation/ui-ux-refinement-renders/gallery/u08-statistics-normal-light-360-100-top.png)、[充电详情](../implementation/ui-ux-refinement-renders/gallery/charge-detail-normal-light-360-100-top.png)及[设置](../implementation/ui-ux-refinement-renders/flows/u10-settings-light-360-100-top.png)。图像来源与字体见[旧图册记录](../implementation/ui-ux-refinement-renders/README.md)。
+本轮目视了旧正式渲染中的概览（图已归档）、行程（图已归档）、统计（图已归档）、充电详情（图已归档）及设置（图已归档）。图像来源与字体见旧图册记录（已归档，见 [render-archive.md](../implementation/render-archive.md)）。
 
 这些图像提供块面、层级和密度参考，其生成早于 `5409783` 后续导航与控件修正。新设计以当前源码接续。新规格没有已生成的候选截图、交互录像或真机材质证据，F00 会重新获取相同输入的 before。
 

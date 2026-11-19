@@ -51,7 +51,7 @@
 ## 没做什么（需要用户表态）
 
 1. **`docs/implementation/` 物理分层**：74 份记录仍平铺在一层，索引已按主题分组；若改成 `delivery/`、`product/`、`design/`、`renders/`，需同步改写数千条相对链接。
-2. **旧图册归档**：`ui-ux-refinement-renders`（1850 张 / 214 MB）与 `apple-design-renewal-renders`（1057 张 / 125 MB）是两代已结束的整册，按 render-archive 政策可归档，但属于删除已入库文件，需单独授权。
+2. ~~旧图册归档~~ **已执行（2026-11-19，用户授权「已经被替代的可以删除」）**：`ui-ux-refinement-renders`（1850 张 / 214 MiB）与 `apple-design-renewal-renders`（1057 张 / 125 MiB）已按 [render-archive.md](render-archive.md) 第二轮归档，各留 README 说明恢复方式。
 3. **`GLOSSARY.md`**：术语表尚未建立；现按 `docs/agents/domain.md`「文件尚不存在时直接继续」处理。
 4. **GitHub 票收敛**：#22–#26、#27–#40 的代码均已落地但票仍 OPEN；关闭属于仓库外动作，需单独授权。
 5. **`.hallmark/`（log.json、preflight.json）**：已被入库的技能运行状态文件，删除需单独授权。
@@ -68,6 +68,6 @@
 
 ## 遗留
 
-- 图册总量仍是 539 MB（本次未动），是工作区体积的最大单项；归档需授权。
+- 图册总量由 539 MB 降至约 200 MB（两代整册 339 MiB 已归档）；其余保留项（`apple-polish-renders` 60 MiB 等）属上一代与切片证据。
 - `.cache/`（17 GB）与 `.tooling/`（7.5 GB）是项目内工具链与缓存，删除后需按 [toolchain.md](toolchain.md) 重建，本次保留。
 - 文档里对 `.dsh-tmp/` 的路径引用（ADR 0015/0016、specs 若干）仍是「当时工作稿」语义，未逐条改写。

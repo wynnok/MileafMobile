@@ -76,6 +76,9 @@
 
 ## 2026-11-19 之后
 
+- 2026-11-19 图册第二轮归档（用户授权：「2. 两代旧图册归档 已经被替代的可以删除」）：删除 `ui-ux-refinement-renders`（1850 张 / 214 MiB，ADR 0011）与 `apple-design-renewal-renders`（1057 张 / 125 MiB，ADR 0012）的图片、`index.html` 与 manifest，各留 README（恢复提交 `9f4e0b1`）；`docs/specs/apple-design-renewal.md` §2.2 的 5 处目视引用与 `U08.md` 的 manifest 链接改为「（图已归档）」文字。记录见 `docs/implementation/render-archive.md` 第二轮归档一节，索引与结构记录同步更新。
+
+
 - 2026-11-19 结构梳理与索引重建（用户指令：多 Agent 编码导致结构混乱、build 目录混乱，只有软链接与 creator/ 是手工加的；要求梳理 AGENTS.md、docs 与代码结构后合并提交并推送 main）。做法：清理未跟踪垃圾（build 863 MB→64 MB 只留 releases APK、.dsh-tmp、.hallmark、.claude、.DS_Store）；新增 docs/agents/repo-layout.md（顶层允许项、可删性、lib/test/tool/docs 约定）、docs/README.md、docs/adr/README.md、docs/implementation/README.md 三份索引；AGENTS.md 由 77 行历史改为 6 节规则，历史迁入本文件；根 README 更新到 0.1.3+4 与 ADR 0016；修复 6 条文档死链。未改动 lib/test/android/ios，未删除任何已入库文件。记录见 docs/implementation/repo-structure.md。
 
 
