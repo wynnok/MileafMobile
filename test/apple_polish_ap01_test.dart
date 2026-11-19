@@ -305,7 +305,8 @@ void main() {
 
   group('R32 自绘图标', () {
     test('九个新图标入枚举，24 网格 1.5 描边几何不变', () {
-      expect(MileafIconName.values.length, 25);
+      // MC03（CL11）：再扩 leaf/thermometer/speed/share 四个字形，总数 25→29。
+      expect(MileafIconName.values.length, 29);
       for (final name in [
         MileafIconName.calendar,
         MileafIconName.more,
@@ -323,7 +324,7 @@ void main() {
       expect(MileafIconMetrics.stroke, 1.5);
     });
 
-    testWidgets('25 个图标在浅深 24 尺寸下都可绘制', (tester) async {
+    testWidgets('29 个图标在浅深 24 尺寸下都可绘制', (tester) async {
       for (final brightness in Brightness.values) {
         await tester.pumpWidget(
           MaterialApp(
@@ -343,7 +344,7 @@ void main() {
           ),
         );
         expect(tester.takeException(), isNull);
-        expect(find.byType(MileafIcon), findsNWidgets(25));
+        expect(find.byType(MileafIcon), findsNWidgets(29));
       }
     });
   });

@@ -410,13 +410,33 @@ class _StatisticsViewState extends State<_StatisticsView>
     ],
   );
 
-  Widget _metric(String label, num? value, String unit, {int decimals = 0}) =>
-      MetricBlock(
-        label: label,
-        value: value == null ? null : grouped(value, decimals: decimals),
-        unit: value == null ? null : unit,
-        scale: MetricValueScale.metricLg,
-      );
+  Widget _metric(
+    String label,
+    num? value,
+    String unit, {
+    int decimals = 0,
+    MileafDataDomain? domain,
+  }) => MetricBlock(
+    label: label,
+    value: value == null ? null : grouped(value, decimals: decimals),
+    unit: value == null ? null : unit,
+    scale: MetricValueScale.metricLg,
+    // CL12：读数按数据域取色；缺省仍中性（缺失值永不彩色）。
+    hue: domain?.hue,
+  );
+
+  /// CL01 域绑定：里程 / 次数 / 最高速度属 journey，能量属 energy——根页
+  /// 主图随所选指标换域，而不是换成一个页面装饰色。
+  MileafDataDomain get _drivingDomain => switch (drivingMetric) {
+    2 => MileafDataDomain.energy,
+    _ => MileafDataDomain.journey,
+  };
+
+  /// CL01 域绑定：充入能量与次数属 energy，费用与均价属 cost。
+  MileafDataDomain get _chargingDomain => switch (chargingMetric) {
+    0 || 1 => MileafDataDomain.energy,
+    _ => MileafDataDomain.cost,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -474,9 +494,15 @@ class _StatisticsViewState extends State<_StatisticsView>
                   : const LinearProgressIndicator(),
             if (error != null) ...[
               Semantics(liveRegion: true, child: Text(error!)),
-              TextButton(
+              // CL14：动作按钮补图标，图标复述词义（重试 = refresh）。
+              TextButton.icon(
                 onPressed: () => load(force: true),
-                child: const Text('重试统计'),
+                icon: MileafIcon(
+                  MileafActionIcon.retry,
+                  size: MileafIconMetrics.inline,
+                  color: context.colors.accentStrong,
+                ),
+                label: const Text('重试统计'),
               ),
             ],
             if (data case final driving?)
@@ -552,8 +578,19 @@ class _StatisticsViewState extends State<_StatisticsView>
         padding: const EdgeInsets.only(top: MileafSpace.s8),
         child: MetricGrid(
           children: [
-            _metric('总里程', totals.distanceKm, 'km', decimals: 1),
-            _metric('行程数', totals.drives, '次'),
+            _metric(
+              '总里程',
+              totals.distanceKm,
+              'km',
+              decimals: 1,
+              domain: MileafDataDomain.journey,
+            ),
+            _metric(
+              '行程数',
+              totals.drives,
+              '次',
+              domain: MileafDataDomain.journey,
+            ),
           ],
         ),
       ),
@@ -561,6 +598,8 @@ class _StatisticsViewState extends State<_StatisticsView>
       TimeSeriesChart(
         key: ValueKey('driving-$drivingMetric'),
         title: '$title趋势',
+        // CL12：主图按当前所选指标的域取色（CL01）。
+        hue: _drivingDomain.hue,
         unit: unit,
         subtitle: _range(calendar),
         times: times,
@@ -650,6 +689,8 @@ class _StatisticsViewState extends State<_StatisticsView>
         TimeSeriesChart(
           title: '净 / 毛电耗',
           unit: 'Wh/km',
+          // CL01：净 / 毛电耗同属 efficiency 域，两条序列同一色相。
+          hue: MileafDataDomain.efficiency.hue,
           subtitle: _range(calendar),
           times: times,
           series: [
@@ -732,12 +773,20 @@ class _StatisticsViewState extends State<_StatisticsView>
         padding: const EdgeInsets.only(top: MileafSpace.s8),
         child: MetricGrid(
           children: [
-            _metric('充入电池能量', energy, 'kWh', decimals: 2),
+            _metric(
+              '充入电池能量',
+              energy,
+              'kWh',
+              decimals: 2,
+              domain: MileafDataDomain.energy,
+            ),
             MetricBlock(
               label: '已知费用合计',
               value: widget.currency.amountValue(totals.cost),
               scale: MetricValueScale.metricLg,
               note: widget.currency.amountNote,
+              // CL01/CL12：费用属 cost 域；缺失（金额为空）仍是中性「—」。
+              hue: MileafDataDomain.cost.hue,
             ),
           ],
         ),
@@ -745,6 +794,8 @@ class _StatisticsViewState extends State<_StatisticsView>
       const SizedBox(height: MileafSpace.section),
       TimeSeriesChart(
         key: ValueKey('charging-$chargingMetric'),
+        // CL12：电量 / 次数属 energy，费用 / 均价属 cost。
+        hue: _chargingDomain.hue,
         title: '${titles[chargingMetric]}趋势',
         unit: unit,
         subtitle: _range(calendar),
@@ -798,6 +849,8 @@ class _StatisticsViewState extends State<_StatisticsView>
       const SectionHeader(title: 'AC / DC 补能'),
       const SizedBox(height: MileafSpace.s8),
       MileafCategoryBars(
+        // CL01/CL02：AC / DC 属 energy 域，两柱同色相两档、未知仍中性。
+        hue: MileafDataDomain.energy.hue,
         values: [
           ('AC', energyMissing ? null : totals.acEnergyKwh),
           ('DC', energyMissing ? null : totals.dcEnergyKwh),
@@ -932,6 +985,8 @@ class _StatisticsViewState extends State<_StatisticsView>
         TimeSeriesChart(
           title: 'AC / DC 时间分布',
           unit: 'kWh',
+          // CL01：AC / DC 分类能量属 energy 域。
+          hue: MileafDataDomain.energy.hue,
           subtitle: _range(calendar),
           times: times,
           series: [

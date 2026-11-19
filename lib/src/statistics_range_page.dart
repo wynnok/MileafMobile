@@ -379,10 +379,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         // 有效样本不足也是「无数据」档：样本缺失，不是失败。
         StateView(
           kind: StateViewKind.empty,
-          title: emptyStateCopy(
-            EmptyStateTier.noData,
-            object: '有效续航样本',
-          ).status,
+          title: emptyStateCopy(EmptyStateTier.noData, object: '有效续航样本').status,
           message: '有效样本不足时不推算额定续航。',
           actionLabel: '刷新',
           actionSemanticLabel: '重试读取续航观察',
@@ -396,6 +393,8 @@ class _RangeObservationPageState extends State<RangeObservationPage>
             padding: const EdgeInsets.all(MileafSpace.cardInset),
             child: MetricBlock(
               label: '月中位数',
+              // CL12：结论值取 efficiency 的 strong；缺失值本身是「—」，不染彩色。
+              hue: MileafDataDomain.efficiency.hue,
               value: missingMonth ? null : value(chosen['median_range_km']),
               unit: 'km',
               scale: MetricValueScale.metricLg,
@@ -537,11 +536,14 @@ class _RangeObservationPageState extends State<RangeObservationPage>
                   ),
                   StatisticsTopicFact(
                     label: 'P10',
+                    // CL01：续航分位数属 efficiency 域。
+                    hue: MileafDataDomain.efficiency.hue,
                     value: value(chosen?['p10_range_km']),
                     unit: 'km',
                   ),
                   StatisticsTopicFact(
                     label: 'P90',
+                    hue: MileafDataDomain.efficiency.hue,
                     value: value(chosen?['p90_range_km']),
                     unit: 'km',
                   ),

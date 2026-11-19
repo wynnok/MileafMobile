@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../icons.dart';
 import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
@@ -9,7 +10,13 @@ import '../typography.dart';
 
 /// 一条事实：字段名 + 值 + 单位。
 class MileafFact {
-  const MileafFact({required this.label, this.value, this.unit});
+  const MileafFact({
+    required this.label,
+    this.value,
+    this.unit,
+    this.icon,
+    this.hue,
+  });
 
   final String label;
 
@@ -18,6 +25,16 @@ class MileafFact {
 
   /// 单位跟随值，比字段名小一档；缺失值不配单位。
   final String? unit;
+
+  /// CL12/CL13：字段名前的身份图标（inline 16，间距 [MileafSpace.s8]）。
+  ///
+  /// 图标复述字段名说的那件事（速度配 speed、温度配 thermometer、功率配
+  /// bolt），不带第二套语义；为 null 时行结构与改造前逐像素等价。
+  final MileafIconName? icon;
+
+  /// 图标的所属域色相；给了就取 `hue.strong`，缺省退次级中性色。字段名、数值
+  /// 与单位列仍是既有中性色——彩色只落在那个 16 图标上。
+  final MileafHue? hue;
 }
 
 /// 细分隔事实表：字段名在左，值靠右对齐成一条竖线。
@@ -127,6 +144,28 @@ class MileafFactList extends StatelessWidget {
                     : null,
               ),
             ],
+          ],
+        );
+      }
+      // CL12/CL13：行首身份图标（inline 16 + s8）。图标单占一列，而不是挤在
+      // 字段名之前——200% 大字把「字段名在上、值在下」堆成两行时，两行仍从同
+      // 一条左线起（R24 两条起始线），数值右对齐的竖线也不受影响。
+      final icon = fact.icon;
+      if (icon != null) {
+        body = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              // CL20 基线微调（2/4 档）：16 图标与首行字段名光学居中。
+              padding: const EdgeInsets.only(top: MileafSpace.s4),
+              child: MileafIcon(
+                icon,
+                size: MileafIconMetrics.inline,
+                color: fact.hue?.strong(colors) ?? colors.textMuted,
+              ),
+            ),
+            const SizedBox(width: MileafSpace.s8),
+            Expanded(child: body),
           ],
         );
       }

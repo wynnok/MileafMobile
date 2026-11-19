@@ -140,6 +140,69 @@ abstract final class MileafPalette {
   static const glassLensInnerDark = Color(0x17FFFFFF); // 9%
 }
 
+/// 语义色相（ADR 0016 / 规格 CL01–CL03）：六个**数据身份色相**，绑定数据域
+/// 而不是页面，因此同一个指标在任何页面都是同一个颜色。
+///
+/// 家族感不是"都偏灰"，而是**锚在同一对比度上**：
+/// - 浅色 solid（图形：线/面/柱/点/弧/图标）对 #FFFFFF = 3.55:1
+/// - 浅色 strong（文字与实心：彩色读数/域标签）对 #FFFFFF = 5.90:1
+/// - 深色单档（图形与文字同一值）对 #12161C = 7.42:1
+///
+/// 三个锚值取自 azure 的品牌现值（ADR 0006：azure500 / azure600 / azure300），
+/// 其余五色在 OKLCH 上按同一 L 解出、彩度取该 L 下可用彩度的 90–95%，所以六色
+/// 属于同一家族而不是六种各自调过的颜色。azure 因此**保留现值、不参与解算**
+/// （与解算值偏差 ≤0.04 对比度单位）。
+///
+/// 色相角度（OKLCH）：azure 253 / aqua 196 / mint 152 / amber 85 / coral 18 /
+/// violet 310——相邻 44–68°，没有参考 App 在蓝紫段那种 20° 内的密簇。
+abstract final class MileafHueRamp {
+  const MileafHueRamp._();
+
+  /// journey 行程/里程（品牌色，动作色也是它）。
+  static const azureSolidLight = Color(0xFF2688F5);
+  static const azureStrongLight = Color(0xFF0B62C4);
+  static const azureDark = Color(0xFF64A8FF);
+
+  /// energy 能量/电量/充入/功率。
+  static const aquaSolidLight = Color(0xFF199698);
+  static const aquaStrongLight = Color(0xFF0E6E6F);
+  static const aquaDark = Color(0xFF3DD6D7);
+
+  /// efficiency 效率/续航/电耗。
+  static const mintSolidLight = Color(0xFF199B52);
+  static const mintStrongLight = Color(0xFF0E723A);
+  static const mintDark = Color(0xFF4BDE81);
+
+  /// cost 费用/单价。浅色只能落在金棕：明亮琥珀（#FFB020 一类）对白底只有
+  /// 1.9:1，在 3:1 图形底线下物理上不存在；cost 的"活泼"由 wash 底 + strong
+  /// 文字承担（见规格 §10 的 CL-偏差）。
+  static const amberSolidLight = Color(0xFFAA8215);
+  static const amberStrongLight = Color(0xFF7F5F0B);
+  static const amberDark = Color(0xFFE9B535);
+
+  /// climate 温度/环境。
+  static const coralSolidLight = Color(0xFFFB3C5A);
+  static const coralStrongLight = Color(0xFFC0143A);
+  static const coralDark = Color(0xFFF9A2A5);
+
+  /// dwell 停放/时长/间隔。
+  static const violetSolidLight = Color(0xFFBC57FA);
+  static const violetStrongLight = Color(0xFF9627D0);
+  static const violetDark = Color(0xFFD6A7F9);
+}
+
+/// 语义色相的 wash 叠色（CL02）：
+/// - `soft` 16% 用于小面底（选中格、身份标签），合成后仍让 strong 文字过 4.5:1；
+/// - `tint` 8% 用于 ≥10% 屏幕面积的大面（焦点卡、章节卡背板）。
+///
+/// 两档都用 alpha 而不是预乘色值，这样同一份取值在 canvas 与 surface 两种底上都成立。
+abstract final class MileafHueWash {
+  const MileafHueWash._();
+
+  static const softAlpha = .16;
+  static const tintAlpha = .08;
+}
+
 /// 4px base spacing. Named steps are the only values pages may use.
 abstract final class MileafSpace {
   const MileafSpace._();

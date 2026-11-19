@@ -49,11 +49,16 @@ class StatisticsTopicFact {
     this.value,
     this.unit,
     this.note,
+    this.hue,
   });
   final String label;
   final String? value;
   final String? unit;
   final String? note;
+
+  /// CL01/CL12：这一格读数的数据域色相。缺省时由 [StatisticsTopicFacts]
+  /// 的整组色相兜底，再缺省就是中性——缺失读数（「—」）永远中性（CL08）。
+  final MileafHue? hue;
 }
 
 /// 样本明细卡（R25 专题骨架）：3–5 个证据事实，两列发丝分格、大字单列。
@@ -63,10 +68,14 @@ class StatisticsTopicFacts extends StatelessWidget {
     super.key,
     required this.facts,
     this.title = '样本明细',
+    this.hue,
   });
 
   final List<StatisticsTopicFact> facts;
   final String title;
+
+  /// CL12：整组读数的兜底色相（专题只有一个域时用它，避免逐格重复）。
+  final MileafHue? hue;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +105,8 @@ class StatisticsTopicFacts extends StatelessWidget {
         value: fact.value,
         unit: fact.unit,
         note: fact.note,
+        // CL08：缺失读数不带色相（MetricBlock 只在有值时才把数字染成 strong）。
+        hue: fact.value == null || fact.value == '—' ? null : fact.hue ?? hue,
         semanticLabel:
             '${fact.label} ${fact.value ?? '—'} ${fact.unit ?? ''}${fact.note == null ? '' : '，${fact.note}'}',
         scale: MetricValueScale.metricMd,
@@ -306,11 +317,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
         InlineBanner(message: calendarError!, tone: BannerTone.warning),
       if (d?['status'] == 'no_records')
         // MG09 空态分档：无数据档现状句与建议动作走共享构造。
-        _empty(
-          EmptyStateTier.noData,
-          object: '已完成行程',
-          message: '换一个期间或继续记录。',
-        )
+        _empty(EmptyStateTier.noData, object: '已完成行程', message: '换一个期间或继续记录。')
       else if (d?['status'] == 'unsupported')
         // 能力缺失不属于四档原因，维持领域空态，不提供无效动作。
         const StateView(

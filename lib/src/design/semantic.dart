@@ -387,6 +387,88 @@ extension MileafColorsContext on BuildContext {
   MileafColors get colors => MileafColors.of(this);
 }
 
+/// 语义色相的枚举（ADR 0016 D1 / 规格 CL01）。
+///
+/// 六个色相**只表达「这是什么数据」**，不表达动作。动作色仍然是唯一的
+/// [MileafColors.accent]（CL05）：按钮填充、链接、选中态、焦点环、开关永远
+/// 走 azure，永不借用这里的任何一个色相。
+///
+/// 与 [MileafStatusTone] 的分工：状态（进行中/警示/失败/缺失）走 tone 映射
+/// （MG02），数据身份走 hue——两者不得互换（CL08）。
+enum MileafHue { azure, aqua, mint, amber, coral, violet }
+
+/// 数据域（CL01）：页面只声明「这一格是哪类数据」，由域解析出色相，避免页面
+/// 各自挑色导致同一指标在不同页面变色。
+enum MileafDataDomain { journey, energy, efficiency, cost, climate, dwell }
+
+extension MileafDataDomainHue on MileafDataDomain {
+  /// 域 → 色相的唯一映射（CL01 的表就是这张 switch）。
+  MileafHue get hue => switch (this) {
+    MileafDataDomain.journey => MileafHue.azure,
+    MileafDataDomain.energy => MileafHue.aqua,
+    MileafDataDomain.efficiency => MileafHue.mint,
+    MileafDataDomain.cost => MileafHue.amber,
+    MileafDataDomain.climate => MileafHue.coral,
+    MileafDataDomain.dwell => MileafHue.violet,
+  };
+}
+
+/// 色相 → 三级强度（CL02/CL09）的唯一解析出口。
+///
+/// - [solid]：图形级（浅 3.55:1 / 深 7.42:1），用于图表线面柱点、弧环、图标字形；
+/// - [strong]：文字与实心级（浅 5.90:1），用于彩色读数、域标签、实心图标按钮；
+/// - [soft]/[tint]：16% / 8% 叠色，取当前模式的 [solid] 加 alpha；
+/// - [onStrong]：压在 [strong] 实心底上的文字，浅色取白、深色取近黑（两者都 ≥5:1）。
+///
+/// 不新增 [MileafColors] 字段：解析只需要 isDark 与既有前景，避免把
+/// copyWith / lerp / ThemeExtension 的接口面撑开。
+extension MileafHueTone on MileafHue {
+  Color solid(MileafColors colors) => colors.isDark
+      ? switch (this) {
+          MileafHue.azure => MileafHueRamp.azureDark,
+          MileafHue.aqua => MileafHueRamp.aquaDark,
+          MileafHue.mint => MileafHueRamp.mintDark,
+          MileafHue.amber => MileafHueRamp.amberDark,
+          MileafHue.coral => MileafHueRamp.coralDark,
+          MileafHue.violet => MileafHueRamp.violetDark,
+        }
+      : switch (this) {
+          MileafHue.azure => MileafHueRamp.azureSolidLight,
+          MileafHue.aqua => MileafHueRamp.aquaSolidLight,
+          MileafHue.mint => MileafHueRamp.mintSolidLight,
+          MileafHue.amber => MileafHueRamp.amberSolidLight,
+          MileafHue.coral => MileafHueRamp.coralSolidLight,
+          MileafHue.violet => MileafHueRamp.violetSolidLight,
+        };
+
+  /// 深色只有一档（CL02.1）：深色底上分「图形级/文字级」会得到两个近似浅色。
+  Color strong(MileafColors colors) => colors.isDark
+      ? solid(colors)
+      : switch (this) {
+          MileafHue.azure => MileafHueRamp.azureStrongLight,
+          MileafHue.aqua => MileafHueRamp.aquaStrongLight,
+          MileafHue.mint => MileafHueRamp.mintStrongLight,
+          MileafHue.amber => MileafHueRamp.amberStrongLight,
+          MileafHue.coral => MileafHueRamp.coralStrongLight,
+          MileafHue.violet => MileafHueRamp.violetStrongLight,
+        };
+
+  Color soft(MileafColors colors) =>
+      solid(colors).withValues(alpha: MileafHueWash.softAlpha);
+
+  Color tint(MileafColors colors) =>
+      solid(colors).withValues(alpha: MileafHueWash.tintAlpha);
+
+  Color onStrong(MileafColors colors) => colors.textOnAccent;
+}
+
+extension MileafDataDomainTone on MileafDataDomain {
+  Color solid(MileafColors colors) => hue.solid(colors);
+  Color strong(MileafColors colors) => hue.strong(colors);
+  Color soft(MileafColors colors) => hue.soft(colors);
+  Color tint(MileafColors colors) => hue.tint(colors);
+}
+
 /// MG02（days-matter-migration.md §4）状态取色的受限枚举。
 ///
 /// 这是 DM04 StateView / InlineBanner 色彩参数的数据源：页面只能表达
@@ -422,9 +504,9 @@ enum MileafStatusTone { neutral, accent, warning, error }
 /// InlineBanner 参数枚举以此为准，后续扩展不得改变现有四值的解析结果。
 extension MileafStatusToneColorResolver on MileafStatusTone {
   Color resolveColor(MileafColors colors) => switch (this) {
-        MileafStatusTone.neutral => colors.textSecondary,
-        MileafStatusTone.accent => colors.accentStrong,
-        MileafStatusTone.warning => colors.warning,
-        MileafStatusTone.error => colors.error,
-      };
+    MileafStatusTone.neutral => colors.textSecondary,
+    MileafStatusTone.accent => colors.accentStrong,
+    MileafStatusTone.warning => colors.warning,
+    MileafStatusTone.error => colors.error,
+  };
 }

@@ -18,6 +18,7 @@ class SocIntervalBar extends StatelessWidget {
     this.compact = false,
     this.beginLabel = '出发',
     this.endLabel = '到达',
+    this.hue,
   });
 
   /// 出发电量 (start of the trip/charge) in percent.
@@ -33,6 +34,10 @@ class SocIntervalBar extends StatelessWidget {
   /// apple-polish 对照表传「开始/结束」（AP10 提案，D-AP10-03）。
   final String beginLabel;
   final String endLabel;
+
+  /// CL01/CL02：区间带（数据图形）的语义色相。传了就取 `hue.solid`；缺省仍
+  /// 走 `accent`，与改造前像素等价。填充不透明度与轨道中性色保持不变。
+  final MileafHue? hue;
 
   static const double _trackHeight = 8;
 
@@ -85,7 +90,7 @@ class SocIntervalBar extends StatelessWidget {
                             bottom: 0,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: colors.accent,
+                                color: hue?.solid(colors) ?? colors.accent,
                                 borderRadius: MileafRadius.xsAll,
                               ),
                             ),

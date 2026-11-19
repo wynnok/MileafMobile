@@ -458,10 +458,11 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('25 个关键图标在 16/20/24 都可绘制', (tester) async {
+    testWidgets('29 个关键图标在 16/20/24 都可绘制', (tester) async {
       // AP01（R32）：新增 calendar/more/expand/chevronDown/back/plus/
       // minus/moon/offline 九个自绘图标，总数 16→25。
-      expect(MileafIconName.values.length, 25);
+      // MC03（CL11）：再扩 leaf/thermometer/speed/share，总数 25→29。
+      expect(MileafIconName.values.length, 29);
       for (final brightness in Brightness.values) {
         for (final size in [
           MileafIconMetrics.inline,

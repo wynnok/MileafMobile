@@ -185,6 +185,7 @@ class TimeSeriesChart extends StatefulWidget {
     this.trailing,
     this.note,
     this.onHero = false,
+    this.hue,
     this.showYAxis = false,
     this.yRange,
     this.showXAxis = true,
@@ -226,6 +227,10 @@ class TimeSeriesChart extends StatefulWidget {
   final Widget? trailing;
   final String? note;
   final bool onHero;
+
+  /// CL12/CL15：图表的数据身份色相。整张图只用一个色相（多测量同色是既有
+  /// 图例规则的一部分，见 `_legend` 注释），参照系列仍走中性 `reference`。
+  final MileafHue? hue;
   final bool showYAxis;
   final (double, double)? yRange;
   final bool showXAxis;
@@ -748,7 +753,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
                       selected: selected,
                       plot: plot,
                       progress: 1,
-                      primary: onHero ? colors.accentHero : colors.accent,
+                      primary:
+                          widget.hue?.solid(colors) ??
+                          (onHero ? colors.accentHero : colors.accent),
                       reference: colors.reference,
                       axis: onHero ? colors.heroMuted : colors.textSecondary,
                       baseline: onHero
@@ -811,7 +818,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
   Color _seriesColor(ChartSeries series, MileafColors colors) =>
       switch (series.style) {
         ChartSeriesStyle.reference => colors.reference,
-        _ => widget.onHero ? colors.accentHero : colors.accent,
+        _ =>
+          widget.hue?.solid(colors) ??
+              (widget.onHero ? colors.accentHero : colors.accent),
       };
 
   List<({ChartSeries series, bool swatch})> _legendEntries() {
@@ -1324,6 +1333,11 @@ class _ChartMessage extends StatelessWidget {
 }
 
 /// Daily charging stems with baseline marks for zero and gaps for null.
+/// 柱/茎式单序列图表（每日里程、每日充电等节奏图）。
+///
+/// CL12/CL15：`hue` 由 MC08 补（随每日充电图接线）——本类只是
+/// [TimeSeriesChart] 的 stem 包装，身份色相必须原样转发，缺省 null 与改造前
+/// 像素等价。
 class StemChart extends StatelessWidget {
   const StemChart({
     super.key,
@@ -1332,6 +1346,7 @@ class StemChart extends StatelessWidget {
     required this.times,
     required this.values,
     required this.semanticsLabel,
+    this.hue,
     this.subtitle,
     this.controls,
     this.headerTrailing,
@@ -1356,6 +1371,9 @@ class StemChart extends StatelessWidget {
   final List<DateTime> times;
   final List<num?> values;
   final String semanticsLabel;
+
+  /// 这一张图的数据身份色相；缺省 null 时与改造前像素等价。
+  final MileafHue? hue;
   final String? subtitle;
   final Widget? controls;
 
@@ -1386,6 +1404,7 @@ class StemChart extends StatelessWidget {
       ChartSeries(label: title, values: values, style: ChartSeriesStyle.stem),
     ],
     semanticsLabel: semanticsLabel,
+    hue: hue,
     subtitle: subtitle,
     controls: controls,
     headerTrailing: headerTrailing,
@@ -1476,6 +1495,7 @@ class _SparkPainter extends CustomPainter {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTRB(x(i) - width / 2, top, x(i) + width / 2, y(0)),
+            // CL22-exempt: 柱底 1px 取整，是图形细节不是间距/圆角档位。
             const Radius.circular(1),
           ),
           Paint()..color = color,

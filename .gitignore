@@ -146,3 +146,7 @@ app.*.symbols
 
 # Creator/promo workspace (renders, deps, scratch); intentionally untracked in full
 /creator/
+
+# Agent scratch: research working notes, test logs, one-off measurement scripts.
+# ADR/spec 会引用其中的路径作为调研证据，但不入库（与 2026-11-05 对 creator/ 的口径一致）。
+/.dsh-tmp/

@@ -9,7 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// （MileafGlassSurface / MileafGlassLens / NavigationMaterial）。
 /// Chrome 持有文件：底栏（nav_bar）、顶栏（top_bar 的镜片控件）、二级导航
 /// 磨砂（page_bar）、材质定义与解析（glass_surface、navigation_material）、
-/// barrel 转发导出（components.dart）。
+/// barrel 转发导出（components.dart）、浮层菜单（pull_down，CL30/CL31 起）。
+///
+/// CL30 把玻璃扩到「浮层菜单」与「地图浮控」两处（ADR 0016 D6）：这两层压在
+/// 页面之上，模糊作用于背后内容；内容卡片/列表/图表仍然平涂（CL32 不变）。
 /// workspace_page.dart 属外壳（Chrome），不在内容层扫描集内。
 void main() {
   const chromeFiles = {
@@ -19,6 +22,7 @@ void main() {
     'top_bar.dart',
     'page_bar.dart', // R14/R26 二级导航磨砂，Chrome 层
     'components.dart', // barrel 转发导出，非消费
+    'pull_down.dart', // CL30/CL31：浮层菜单玻璃，浮层不是内容层
   };
   const glassImports = ['glass_surface.dart', 'navigation_material.dart'];
   const glassTypes = [
@@ -28,17 +32,32 @@ void main() {
     'LiquidGlass',
   ];
 
-  List<String> contentComponents() {
-    final dir = Directory('lib/src/design/components');
-    return dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('.g.dart'))
-        .map((f) => f.path)
-        .where((p) => !chromeFiles.contains(p.split('/').last))
-        .toList()
-      ..sort();
-  }
+  /// CL32（ADR 0016）：玻璃的允许集是「Chrome + 浮层」，不是「只有 components/」。
+  /// 页面级浮层（地图浮控）与外壳（工作区）也在允许集里，其余**全库**扫描。
+  const floatingOrChrome = {
+    'map_panel.dart', // CL30：地图四枚浮控的玻璃垫
+    'semantic.dart', // 玻璃 token 的解析出口
+  };
+
+  Iterable<String> allSources() =>
+      Directory('lib/src')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('.g.dart'))
+          .map((f) => f.path)
+          .toList()
+        ..sort();
+
+  List<String> contentComponents() => allSources()
+      .where((p) => p.startsWith('lib/src/design/components/'))
+      .where((p) => !chromeFiles.contains(p.split('/').last))
+      .toList();
+
+  /// 全库扫描：除 Chrome/浮层允许集之外，任何文件都不得引用玻璃。
+  List<String> contentEverywhere() => allSources()
+      .where((p) => !chromeFiles.contains(p.split('/').last))
+      .where((p) => !floatingOrChrome.contains(p.split('/').last))
+      .toList();
 
   test('内容层组件不 import 玻璃材质', () {
     final problems = <String>[];
@@ -51,6 +70,22 @@ void main() {
       }
     }
     expect(problems, isEmpty, reason: '玻璃只允许出现在 Chrome 层：$problems');
+  });
+
+  test('CL32 全库扫描：内容层页面也不得引用玻璃（扫描范围不止 components/）', () {
+    final problems = <String>[];
+    for (final path in contentEverywhere()) {
+      if (path.startsWith('lib/src/design/components/')) continue;
+      final source = File(path).readAsStringSync();
+      for (final glass in [...glassImports, ...glassTypes, 'BackdropFilter']) {
+        if (source.contains(glass)) problems.add('$path 引用了 $glass');
+      }
+    }
+    expect(
+      problems,
+      isEmpty,
+      reason: 'CL32：玻璃只允许出现在底栏/顶栏/二级导航/浮层菜单/地图浮控：$problems',
+    );
   });
 
   test('内容层组件不直接引用玻璃类型', () {

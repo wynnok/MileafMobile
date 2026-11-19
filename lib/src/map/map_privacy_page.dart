@@ -73,6 +73,9 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
   }
 
   Future<void> _clear(MapKeyController keys) async {
+    // 弹层仍实色（CL30.1），只给「清除 Key」补动作图标；弹层继承主题的
+    // TextButton 前景色 accentStrong，图标取同一前景色（CL12）。
+    final colors = context.colors;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -85,7 +88,20 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('清除 Key'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // CL14/MileafActionIcon：清除配 close（clear），图标在左、
+                // 间距只取 buttonIconGap。
+                MileafIcon(
+                  MileafActionIcon.clear,
+                  size: MileafIconMetrics.inline,
+                  color: colors.accentStrong,
+                ),
+                const SizedBox(width: MileafControlMetrics.buttonIconGap),
+                const Text('清除 Key'),
+              ],
+            ),
           ),
         ],
       ),
@@ -315,6 +331,9 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
       return [
         MileafGroupRow(
           title: '重试读取配置',
+          // CL12/CL14：重试是 refresh 字形；行首图标落卡片内边距，因此本行标题
+          // 与上方状态句的起始线一致（图标 20 + 间距 12），细线缩进也相同。
+          leading: MileafActionIcon.retry,
           trailing: _chevron(context),
           enabled: !keys.busy,
           onTap: keys.restore,
@@ -411,6 +430,8 @@ class _MapPrivacyPageState extends State<MapPrivacyPage> {
           // R27：处理中保留文字，尾部活动指示器由 loading 承载。
           MileafButton(
             label: '保存 Key',
+            // CL14/MileafActionIcon：保存配 check（save，确认写入）。
+            icon: MileafActionIcon.save,
             expand: true,
             loading: keys.busy,
             onPressed: keys.busy ? null : () => _save(keys),

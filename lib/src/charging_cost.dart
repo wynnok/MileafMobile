@@ -51,6 +51,9 @@ class ChargingCostAction extends StatelessWidget {
       child: MileafButton(
         label: '补录费用',
         kind: MileafButtonKind.ghost,
+        // CL12.1/CL14：动作图标复述按钮词义（钱包=费用补录），取**按钮前景色**
+        // （ghost 即 accentStrong），不染 cost 色相——动作色与数据身份色不得混用。
+        icon: MileafActionIcon.addCost,
         onPressed: onPressed,
       ),
     ),

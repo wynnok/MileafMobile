@@ -870,31 +870,40 @@ void main() {
       );
     });
 
-    testWidgets('菜单 surfaceRaised、半径 14、行高 44、选中项尾部勾选', (tester) async {
+    testWidgets('菜单玻璃背板、半径 14、行高 44、选中项尾部勾选', (tester) async {
       await pumpBoard(tester, pullDown());
-      const colors = MileafColors.dark();
       await tester.tap(find.byType(MileafPullDown<String>));
       await tester.pumpAndSettle();
-      final items = tester.widgetList<PopupMenuItem<String>>(
-        find.byType(PopupMenuItem<String>),
-      );
-      expect(items.length, 3);
-      for (final item in items) {
-        expect(item.height, MileafControlMetrics.menuRowHeight);
-      }
-      final surface = tester
-          .widgetList<Material>(find.byType(Material))
-          .where(
-            (material) =>
-                material.color == colors.surfaceRaised &&
-                material.shape is RoundedRectangleBorder,
-          )
-          .toList();
-      expect(surface, isNotEmpty, reason: 'R28 菜单用 surfaceRaised 实色');
-      final shape = surface.first.shape! as RoundedRectangleBorder;
+      // CL30/CL31：浮层菜单的背板由 surfaceRaised 实色改为玻璃（与底栏同参数）。
+      final surface = find.byKey(kPullDownMenuSurfaceKey);
+      expect(surface, findsOneWidget);
       expect(
-        shape.borderRadius,
+        tester.widget(surface),
+        isA<MileafGlassSurface>(),
+        reason: '菜单背板是共享玻璃，不是自绘的第三种材质',
+      );
+      expect(
+        tester.widget<MileafGlassSurface>(surface).borderRadius,
         BorderRadius.circular(MileafControlMetrics.menuRadius),
+      );
+      expect(
+        find.descendant(of: surface, matching: find.byType(BackdropFilter)),
+        findsOneWidget,
+      );
+      // 行高 44、菜单上下各留 s8（R28 几何不变）。
+      final rect = tester.getRect(surface);
+      expect(
+        rect.height,
+        MileafControlMetrics.menuRowHeight * 3 + MileafSpace.s16,
+      );
+      expect(
+        tester.getCenter(find.text('AC')).dy -
+            tester
+                .getCenter(
+                  find.descendant(of: surface, matching: find.text('全部类型')),
+                )
+                .dy,
+        MileafControlMetrics.menuRowHeight,
       );
       // 选中项尾部勾选，只出现一次。
       expect(find.byType(MileafIcon), findsWidgets);
@@ -913,7 +922,11 @@ void main() {
       await tester.tap(find.text('DC'));
       await tester.pumpAndSettle();
       expect(picked, 'dc');
-      expect(find.byType(PopupMenuItem<String>), findsNothing);
+      expect(
+        find.byKey(kPullDownMenuSurfaceKey),
+        findsNothing,
+        reason: '选择后菜单关闭（浮层玻璃整块撤掉）',
+      );
     });
 
     testWidgets('读屏标签带对象名与当前值', (tester) async {

@@ -8,6 +8,11 @@ import '../typography.dart';
 /// 区块标题（R22 `title2`）+ 可选区间标签（`subheadline`）与一个文字动作。
 ///
 /// No underline decoration; the gap to the content is owned by the caller.
+///
+/// CL13.2（ADR 0016）：**区块标题不带前置身份图标**。R24 要求身份块标题与卡片
+/// 外缘共享同一条左线（`ui_ux_u09d_test` / `ui_ux_u09e_test` 钉住这条），
+/// 前置图标会把标题文字从这条线上推走 24px。数据身份色因此只出现在**行内**
+/// （读数颜色、图表系列、卡片 tint、行首图标），不出现在标题行。
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,

@@ -2,11 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/design/semantic.dart';
 
 import 'support/map_key_fixture.dart';
 import 'charging_detail_test.dart' show app, fixture, initial, response;
 
 void main() {
+  testWidgets('MC08 充电详情：电量弧与功率曲线 energy、已记录费用 cost', (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/charging-sessions/1')) {
+        return response(fixture('charging-detail'));
+      }
+      if (request.url.path.endsWith('/charging-sessions/1/series')) {
+        return response(fixture('charging-series'));
+      }
+      return initial(request);
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('最近充电').hitTestable(), 300);
+    await tester.tap(find.text('最近充电').hitTestable());
+    await tester.pumpAndSettle();
+
+    final colors = MileafColors.of(tester.element(find.text('充入电量')));
+    const energy = MileafDataDomain.energy;
+    const cost = MileafDataDomain.cost;
+
+    // CL01/CL12：电量弧是 energy 域的数据图形，取 solid。
+    final arc = tester.widget<BatteryArc>(find.byType(BatteryArc));
+    expect(arc.hue, energy.hue);
+    // 三格里的「充入电量」同属 energy 域，读数取文字级 strong。
+    expect(
+      tester
+          .widgetList<MetricBlock>(find.byType(MetricBlock))
+          .firstWhere((block) => block.label == '充入电量')
+          .hue,
+      energy.hue,
+    );
+    // CL01：已记录费用是 cost 域；读数取 strong，缺失时仍由组件给中性 —。
+    expect(
+      tester
+          .widgetList<MileafNumber>(find.byType(MileafNumber))
+          .any((number) => number.color == cost.strong(colors)),
+      isTrue,
+    );
+    // CL01：功率曲线属 energy 域，整张图一个色相。
+    await tester.scrollUntilVisible(find.byType(TimeSeriesChart), 300);
+    expect(
+      tester.widget<TimeSeriesChart>(find.byType(TimeSeriesChart)).hue,
+      energy.hue,
+    );
+  });
+
   testWidgets('A 充电详情以电量弧开场并给出三结果', (tester) async {
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/charging-sessions/1')) {

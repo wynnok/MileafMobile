@@ -315,6 +315,10 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
                   : conditionsValue(b['consumption_wh_km']),
               unit: 'Wh/km',
               scale: MetricValueScale.metricLg,
+              // CL12：净电耗属 efficiency 域；缺失值本身是「—」，不染彩色。
+              color: b['consumption_wh_km'] == null
+                  ? null
+                  : MileafDataDomain.efficiency.hue.strong(colors),
             ),
             // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
             if (b['consumption_wh_km'] == null)
@@ -531,6 +535,8 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
         ),
         StatisticsTopicFact(
           label: '已知里程',
+          // CL01：里程属 journey 域。
+          hue: MileafDataDomain.journey.hue,
           value: conditionsValue(b['distance_km']),
           unit: 'km',
         ),
@@ -546,11 +552,13 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
         ),
         StatisticsTopicFact(
           label: '单程中位数',
+          hue: MileafDataDomain.journey.hue,
           value: conditionsValue(b['median_drive_distance_km']),
           unit: 'km',
         ),
         StatisticsTopicFact(
           label: '平均速度',
+          hue: MileafDataDomain.journey.hue,
           value: conditionsValue(b['mean_trip_speed_kmh']),
           unit: 'km/h',
         ),

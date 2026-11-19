@@ -30,6 +30,23 @@ abstract final class MileafControlMetrics {
   static const menuRowHeight = 44.0;
   static const floatingSheetInset = MileafSpace.s8;
 
+  /// CL13.1/CL14：按钮图标**在左**，与文字的间距恒为 s8，视觉居中。
+  ///
+  /// 间距只有这一处来源：主按钮、次按钮、文字按钮共用 [iconLeading]，页面不得
+  /// 自己给图标加间距或把它挪到文字右侧。
+  static const buttonIconGap = MileafSpace.s8;
+
+  /// CL14 的图标槽：图标（inline 16，取按钮前景色）+ s8 间距。
+  ///
+  /// 没给图标时不占位——文字按钮可以没有图标，但一旦给出就固定在文字左侧
+  /// （CL14 第三条：同一动作可省略图标，不得换一个图标）。
+  static List<Widget> iconLeading(MileafIconName? icon, Color color) => [
+    if (icon != null) ...[
+      MileafIcon(icon, size: MileafIconMetrics.inline, color: color),
+      const SizedBox(width: buttonIconGap),
+    ],
+  ];
+
   /// R27：选中底阴影仅浅色（y1 / blur3 / 黑 12%），深色无阴影。
   static List<BoxShadow> selectionShadow(MileafColors colors) => colors.isDark
       ? const []
@@ -79,6 +96,56 @@ class MileafPressOverlay extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// CL14 动作图标映射：动作语义 → 字形，页面按动作取图标，不再每页各挑一个。
+///
+/// 纪律：**图标只复述按钮词义，不得引入按钮文字里没有的概念。**「刷新」配
+/// refresh、「查看对比明细」配 chart，因为那两句文字说的就是刷新与明细；图标
+/// 不承担第二套动作名，也不为装饰而加（映射表 #8：参考 App「动作不靠图标」，
+/// 本轮按用户指令反向要求补图标）。
+///
+/// 同一个动作在不同页面、不同层级都用同一个字形：文字按钮可以省略图标
+/// （[MileafButton.icon] 为 null），但不得换一个图标。因此「刷新」与「重试」
+/// 虽然是两种措辞，仍是同一个 refresh 字形。
+abstract final class MileafActionIcon {
+  const MileafActionIcon._();
+
+  /// 刷新（重新取当前数据）。
+  static const refresh = MileafIconName.refresh;
+
+  /// 分享（页面级动作）。
+  static const share = MileafIconName.share;
+
+  /// 对比 / 明细下钻（按钮文字里说的是「明细」「对比」）。
+  static const compare = MileafIconName.chart;
+
+  /// 补录费用（只有费用补录入口用钱包，不用于充电记录行）。
+  static const addCost = MileafIconName.wallet;
+
+  /// 放大 / 查看完整地图。
+  static const expand = MileafIconName.expand;
+
+  /// 查看地图（跳到地图或地图详情）。
+  static const map = MileafIconName.mapPin;
+
+  /// 重试：动作与 [refresh] 相同，只是措辞是「重试」。
+  static const retry = MileafIconName.refresh;
+
+  /// 筛选（展开条件选择，与下拉箭头一致）。
+  static const filter = MileafIconName.chevronDown;
+
+  /// 复制。
+  static const copy = MileafIconName.copy;
+
+  /// 清除（关闭弹层、清空输入）。
+  static const clear = MileafIconName.close;
+
+  /// 保存（确认写入）。
+  static const save = MileafIconName.check;
+
+  /// 日期区间。
+  static const dateRange = MileafIconName.calendar;
 }
 
 enum MileafButtonKind { primary, secondary, ghost }
@@ -170,10 +237,8 @@ class _MileafButtonState extends State<MileafButton> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (icon != null) ...[
-          MileafIcon(icon, size: MileafIconMetrics.inline, color: foreground),
-          const SizedBox(width: MileafSpace.s8),
-        ],
+        // CL14：图标在左、间距 s8，间距只来自 buttonIconGap。
+        ...MileafControlMetrics.iconLeading(icon, foreground),
         Flexible(
           child: Text(
             label,

@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../design/components/button.dart' show MileafControlMetrics;
+import '../design/components/glass_surface.dart';
 import '../design/components/icon_button.dart';
 import '../design/icons.dart';
+import '../design/layout.dart';
 import '../design/semantic.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -352,12 +355,16 @@ class _MapPanelState extends State<MapPanel> {
           Positioned(
             right: MileafSpace.s8,
             top: MileafSpace.s8,
-            // P15：地图上的控件是圆形实色按钮（不用玻璃）。
-            child: MileafIconButton(
-              icon: MileafIconName.expand,
-              tooltip: '查看完整地图',
-              fill: MileafIconButtonFill.track,
-              onPressed: widget.onExpand,
+            // CL30/CL31：地图浮控的背板由实色改玻璃（P15 的「不用玻璃」被
+            // 本增量取代），参数与底栏、浮层菜单同源。
+            child: _glassButton(
+              context,
+              child: MileafIconButton(
+                icon: MileafIconName.expand,
+                tooltip: '查看完整地图',
+                fill: MileafIconButtonFill.none,
+                onPressed: widget.onExpand,
+              ),
             ),
           ),
         if (widget.overlay != null)
@@ -425,13 +432,44 @@ class _MapPanelState extends State<MapPanel> {
     VoidCallback onPressed,
   ) => Padding(
     padding: const EdgeInsets.only(top: MileafSpace.s8),
-    child: MileafIconButton(
-      icon: icon,
-      tooltip: tooltip,
-      fill: MileafIconButtonFill.track,
-      onPressed: onPressed,
+    child: _glassButton(
+      context,
+      child: MileafIconButton(
+        icon: icon,
+        tooltip: tooltip,
+        fill: MileafIconButtonFill.none,
+        onPressed: onPressed,
+      ),
     ),
   );
+
+  /// CL30/CL31：地图浮控（放大/缩小/适配轨迹、查看完整地图）的玻璃背板。
+  ///
+  /// 一个玻璃数值都不在这里重写：模糊 σ、过饱和、上下叠色、受光边缘与阴影
+  /// 全都由 [MileafGlassSurface] 从 [MileafMaterialMetrics] 与
+  /// [MileafColors.glass] 取，因此与底栏、浮层菜单是同一块玻璃。它自带的
+  /// 1px 受光描边就是浅色压在亮底图上的边界兜底（glassRim* 的注释：白边线在
+  /// 浅底上等于没有边界，所以下半圈用石墨收暗）。
+  ///
+  /// 几何不变：圆钮视觉仍是 36（R27），命中仍是平台触控尺寸；玻璃只垫在
+  /// 圆钮那一格下面，控件外面那圈 44/48 的命中区保持透明。
+  Widget _glassButton(BuildContext context, {required Widget child}) =>
+      SizedBox.square(
+        dimension: MileafLayout.touchTarget(context),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox.square(
+              dimension: MileafControlMetrics.iconVisual,
+              child: MileafGlassSurface(
+                borderRadius: MileafRadius.fullAll,
+                child: const SizedBox.expand(),
+              ),
+            ),
+            child,
+          ],
+        ),
+      );
 
   Widget _loading(BuildContext context) {
     final colors = context.colors;

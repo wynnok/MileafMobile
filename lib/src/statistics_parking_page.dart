@@ -470,6 +470,8 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         child: MileafModuleCard(
           padding: const EdgeInsets.all(MileafSpace.cardInset),
           child: MetricBlock(
+            // CL12：结论值取 dwell 的 strong；缺失时不传色（「—」不染彩色）。
+            hue: totalMissing ? null : MileafDataDomain.dwell.hue,
             value: totalMissing
                 ? null
                 : nf.applyMinusSign(n(t['soc_change_pp'])),
@@ -485,10 +487,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       if (d != null && rows.isEmpty && !busy && error == null)
         StateView(
           kind: StateViewKind.empty,
-          title: emptyStateCopy(
-            EmptyStateTier.noData,
-            object: '停车窗口',
-          ).status,
+          title: emptyStateCopy(EmptyStateTier.noData, object: '停车窗口').status,
           actionLabel: '刷新',
           actionSemanticLabel: '重试读取停放观察',
           onAction: () => load(force: true),
@@ -836,6 +835,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
                     large,
                     scale,
                     axisPad,
+                    MileafDataDomain.dwell.hue,
                   ),
                 ),
               ),
@@ -945,6 +945,7 @@ class _ParkingPainter extends CustomPainter {
     this.largeText,
     this.scale,
     this.axisPad,
+    this.hue,
   );
   final List<Map<String, dynamic>> rows;
   final int selected;
@@ -956,6 +957,10 @@ class _ParkingPainter extends CustomPainter {
 
   /// 与命中映射共享的刻度尺，保证点按位置与绘制槽位同源。
   final _ParkingScale scale;
+
+  /// CL12：正负柱的数据身份色相（停放 = dwell）。为空时退回动作色，
+  /// 保证与本增量之前的渲染像素等价。
+  final MileafHue? hue;
 
   /// R29：Y 轴刻度在绘图区右侧，绘图区让出该宽度。
   final double axisPad;
@@ -1073,7 +1078,7 @@ class _ParkingPainter extends CustomPainter {
           bottomLeft: Radius.circular(MileafRadius.xs),
           bottomRight: Radius.circular(MileafRadius.xs),
         ),
-        Paint()..color = colors.accent,
+        Paint()..color = hue?.solid(colors) ?? colors.accent,
       );
       final point = Offset(x(i), y(v));
       if (i == selected) {
@@ -1088,7 +1093,7 @@ class _ParkingPainter extends CustomPainter {
         i == selected
             ? MileafChartGrammar.selectionDot
             : MileafChartMetrics.pointRadius,
-        Paint()..color = colors.accent,
+        Paint()..color = hue?.solid(colors) ?? colors.accent,
       );
     }
     // R29：选中补 1 逻辑像素竖线。
@@ -1132,7 +1137,9 @@ class _ParkingPainter extends CustomPainter {
       old.axisStyle != axisStyle ||
       old.scale != scale ||
       old.axisPad != axisPad ||
-      old.calendar != calendar;
+      old.calendar != calendar ||
+      // CL12：色相变了必须重画，否则切换期间或主题后柱色不跟着变。
+      old.hue != hue;
 }
 
 /// R06.10 状态编码：在线实色（accent），睡眠中性实色+斜线，离线中性实色+

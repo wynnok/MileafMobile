@@ -69,8 +69,9 @@ class _MileafNumberState extends State<MileafNumber> {
     final colors = context.colors;
     final numberColor =
         widget.color ?? (widget.onHero ? colors.heroText : colors.text);
-    final resolvedUnit =
-        widget.unit == null || widget.unit!.isEmpty ? null : widget.unit;
+    final resolvedUnit = widget.unit == null || widget.unit!.isEmpty
+        ? null
+        : widget.unit;
     final text = widget.value ?? '—';
     final unitStyle = _unitStyle(context).copyWith(
       color:
@@ -162,7 +163,13 @@ class MetricBlock extends StatelessWidget {
     this.selected = false,
     this.semanticLabel,
     this.alignEnd = false,
+    this.hue,
   });
+
+  /// CL12：这一格的数据身份色相。给了就把**读数**染成 `hue.strong`（浅色
+  /// 5.90:1 / 深色 7.42:1，正文门槛之上），标签与旁注保持中性——彩色只落在
+  /// 数字上，网格的 2×2 排布与字号阶梯都不动（CL15）。
+  final MileafHue? hue;
 
   final String? label;
   final String? value;
@@ -191,6 +198,10 @@ class MetricBlock extends StatelessWidget {
       scale: scale,
       onHero: onHero,
       alignEnd: alignEnd,
+      // CL08：缺失值本身就是「不知道」，不属于该域的数据——不上色。
+      // 这条放在组件里而不是 20 个调用点：调用方传 hue 是「这一格是什么数据」，
+      // 有没有数据要由组件自己判。
+      color: value == null ? null : hue?.strong(colors),
     );
     final text = Column(
       crossAxisAlignment: cross,

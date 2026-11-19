@@ -13,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/design/components/charts.dart';
+import 'package:mileaf/src/design/components/icons.dart';
+import 'package:mileaf/src/design/components/period_header.dart';
 import 'package:mileaf/src/workspace.dart';
 import 'package:mileaf/src/map/map_consent.dart';
 import 'package:mileaf/src/map/map_platform.dart';
@@ -584,9 +586,9 @@ void main() {
     expect(find.byKey(const ValueKey('drive-15')), findsNothing);
     expect(find.textContaining('188 Wh/km'), findsWidgets);
   });
-  testWidgets('360 宽焦点卡区间与期间名同行完整显示，不把日期折成孤字', (tester) async {
+  testWidgets('390 宽焦点卡区间与期间名同行完整显示，不把日期折成孤字', (tester) async {
     final semantics = tester.ensureSemantics();
-    tester.view.physicalSize = const Size(360, 800);
+    tester.view.physicalSize = const Size(390, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -597,9 +599,9 @@ void main() {
       (r) async => jsonResponse('{"items":[],"next_cursor":null}'),
       now: () => DateTime.utc(2026, 10, 9, 4),
     );
-    // 测试字体每字 1em：11 字区间（165）超过旧布局「内容宽一半」（144）但放得下
-    // 整行（102 + 8 + 165 = 275 < 296）。旧布局把卡片内容宽一刀两半，末尾的
-    // 「日」被挤到第二行；新布局一行放得下时保持一行。
+    // 测试字体每字 1em：11 字区间（165）超过「内容宽一半」（144），但整行放得
+    // 下（图标 16 + 8 + 期间名 102 + 8 + 区间 165 = 299 < 390 − 40 − 24 = 326）。
+    // CL12 的卡头图标只占 24，放得下时一行排法不变。
     const label = '近 30 天';
     const range = '9月10日\u201310月9日';
     expect(find.text(label), findsOneWidget);
@@ -616,6 +618,61 @@ void main() {
     // DF3：读屏把连接号读作「至」，不念成两半（卡头的语义节点含期间名与区间）。
     expect(
       tester.getSemantics(find.text('9月10日\u201310月9日')).label,
+      contains('9月10日至10月9日'),
+    );
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
+  testWidgets('360 宽卡头不折行、区间与内容右沿同线，且不带前置图标', (tester) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await openDrives(
+      tester,
+      (r) async => jsonResponse('{"items":[],"next_cursor":null}'),
+      now: () => DateTime.utc(2026, 10, 9, 4),
+    );
+    // CL13.2：卡头不带前置图标（R24 左线优先），所以这里量的是「期间名与区间
+    // 同左缘」。360 宽下整行放不下时走 period-header 的第二种排法——区间整段
+    // 落到下一行、与期间名同线，仍然不是「…11月18 / 日」那种孤字。
+    const label = '近 30 天';
+    const range = '9月10日\u201310月9日';
+    final headerBox = tester.getRect(find.byType(MileafPeriodHeader));
+    final labelBox = tester.getRect(find.text(label));
+    final rangeBox = tester.getRect(find.text(range));
+    expect(
+      find.descendant(
+        of: find.byType(MileafPeriodHeader),
+        matching: find.byType(MileafIcon),
+      ),
+      findsNothing,
+      reason: 'CL13.2：身份块卡头不带图标',
+    );
+    expect(labelBox.left, closeTo(headerBox.left, 1), reason: '期间名贴卡头左缘');
+    // 去掉前置图标以后 360 宽放得下整行：区间与期间名同一行，右端贴内容右沿。
+    expect(
+      rangeBox.top,
+      closeTo(labelBox.top, 1),
+      reason: '区间与期间名同一行（不折行就不会有孤字）',
+    );
+    expect(
+      rangeBox.right,
+      closeTo(headerBox.right, 1),
+      reason: '区间右对齐内容右沿（R21.4 的排法）',
+    );
+    expect(
+      rangeBox.height,
+      lessThan(labelBox.height * 1.2),
+      reason: '区间整段只有一行，不折出孤字',
+    );
+    // DF3：读屏仍把连接号读作「至」，不念成两半。
+    expect(
+      tester.getSemantics(find.text(range)).label,
       contains('9月10日至10月9日'),
     );
     expect(tester.takeException(), isNull);
@@ -761,10 +818,7 @@ void main() {
     // 数值由 MileafNumber 的 Text.rich 承载（20.0 km / 30 分钟）。
     Finder cellValue(String value) =>
         find.descendant(of: record, matching: find.textContaining(value));
-    for (final (label, value) in [
-      ('里程', '20.0 km'),
-      ('时长', '30 分钟'),
-    ]) {
+    for (final (label, value) in [('里程', '20.0 km'), ('时长', '30 分钟')]) {
       final labelTop = tester.getTopLeft(cellLabel(label)).dy;
       final valueTop = tester.getTopLeft(cellValue(value)).dy;
       expect(valueTop, greaterThan(labelTop), reason: '$label 标签应在数值上方');
@@ -796,10 +850,7 @@ void main() {
     await tester.tap(find.byTooltip('刷新行程'));
     await tester.pumpAndSettle();
     // 时间行是独立节点，读屏可单独朗读「数据截至 HH:mm」（DF4）。
-    expect(
-      find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel(RegExp(r'数据截至 \d{2}:\d{2}')), findsOneWidget);
     failing = false;
     await tester.tap(find.text('重试行程统计'));
     await tester.pumpAndSettle();
@@ -829,14 +880,10 @@ void main() {
     // 200% 下网格先量后画收成单列：里程与时长标签不再同排。
     final record = find.byKey(const ValueKey('drive-17'));
     final mile = tester
-        .getTopLeft(
-          find.descendant(of: record, matching: find.text('里程')),
-        )
+        .getTopLeft(find.descendant(of: record, matching: find.text('里程')))
         .dy;
     final duration = tester
-        .getTopLeft(
-          find.descendant(of: record, matching: find.text('时长')),
-        )
+        .getTopLeft(find.descendant(of: record, matching: find.text('时长')))
         .dy;
     expect(duration, greaterThan(mile), reason: '200% 应单列堆叠');
     expect(tester.takeException(), isNull);

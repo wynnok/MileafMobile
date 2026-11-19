@@ -636,12 +636,18 @@ class _DrivesPageState extends State<DrivesPage>
         ? null
         : grouped(totals.distanceKm, decimals: 1);
     final large = MileafLayout.largeText(context);
+    // CL01/CL12：焦点卡的里程与行程数属 journey 域，电耗属 efficiency 域；读数
+    // 取 `strong`（浅色 5.90:1），标签仍中性。CL07：本页首屏已有 journey（焦点
+    // 卡 + 焦点值）、dwell（记录行时长）、efficiency（电耗）三个色相，「估算
+    // 耗电」若再上 energy 就是 4 个，故按条款留同级中性。
+    final journey = MileafDataDomain.journey.hue;
     final cells = [
       MetricBlock(
         label: '行程',
         value: totals == null ? null : '${totals.drives}',
         unit: totals == null ? null : '趟',
         scale: MetricValueScale.metricSm,
+        hue: journey,
       ),
       MetricBlock(
         label: '估算耗电',
@@ -658,9 +664,13 @@ class _DrivesPageState extends State<DrivesPage>
             : grouped(totals!.consumptionWhKmNet!, decimals: 0),
         unit: totals == null ? null : 'Wh/km',
         scale: MetricValueScale.metricSm,
+        hue: MileafDataDomain.efficiency.hue,
       ),
     ];
     return MileafModuleCard(
+      // CL02/CL06：焦点卡是首屏最大的面，只叠 8% journey tint（不叠 alpha、
+      // 不加深色材质）；描边与内边仍走既有档位。
+      hue: journey,
       // §6 退让阶梯第 2 步：焦点卡内边 16 → 12。
       padding: const EdgeInsets.all(MileafSpace.s12),
       child: Column(
@@ -683,6 +693,8 @@ class _DrivesPageState extends State<DrivesPage>
               value: distance,
               unit: 'km',
               scale: MetricValueScale.metricLg,
+              // CL12：焦点值取 journey.strong（浅色 5.90:1 / 深色 7.42:1）。
+              hue: journey,
             ),
           ),
           const SizedBox(height: MileafSpace.s12),
@@ -748,6 +760,8 @@ class _DrivesPageState extends State<DrivesPage>
     return TimeSeriesChart(
       title: '每日里程',
       unit: 'km',
+      // CL12/CL15：图表绘图区与图例取 journey.solid；参照系列仍走中性。
+      hue: MileafDataDomain.journey.hue,
       times: wall,
       series: [
         ChartSeries(
@@ -795,69 +809,97 @@ class _DrivesPageState extends State<DrivesPage>
         ? null
         : grouped(d.consumptionWhKm!, decimals: 0);
     final large = MileafLayout.largeText(context);
+    // CL01/CL12：记录行三格按域取色（里程 journey / 时长 dwell / 电耗
+    // efficiency），行首图标取 journey.strong。
+    final journey = MileafDataDomain.journey.hue;
     return InkWell(
       key: ValueKey('drive-${d.id}'),
       onTap: () => widget.onRecord?.call(d.id),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s12),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    _recordTime(d),
-                    maxLines: large ? null : 1,
-                    overflow: large ? null : TextOverflow.ellipsis,
-                    // R22：记录类行标题用 headline（与充电记录行同角色）。
-                    style: type.headline,
+            // CL12/CL13：行首身份图标（inline 16 + s8），与充电记录行的行首
+            // 图标同构（MG05 句法统一）；发丝线仍从卡内 16 起（R24），与图标
+            // 左缘同线。s4 是 CL20 的基线微调：16 图标与 headline 首行光学居中。
+            Padding(
+              padding: const EdgeInsets.only(top: MileafSpace.s4),
+              child: MileafIcon(
+                MileafIconName.route,
+                size: MileafIconMetrics.inline,
+                color: journey.strong(colors),
+              ),
+            ),
+            const SizedBox(width: MileafSpace.s8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _recordTime(d),
+                          maxLines: large ? null : 1,
+                          overflow: large ? null : TextOverflow.ellipsis,
+                          // R22：记录类行标题用 headline（与充电记录行同角色）。
+                          style: type.headline,
+                        ),
+                      ),
+                      if (d.endedAt == null) ...[
+                        const SizedBox(width: MileafSpace.s8),
+                        Text(
+                          '进行中',
+                          style: type.footnote.copyWith(color: colors.warning),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-                if (d.endedAt == null) ...[
-                  const SizedBox(width: MileafSpace.s8),
+                  const SizedBox(height: MileafSpace.inline2),
                   Text(
-                    '进行中',
-                    style: type.footnote.copyWith(color: colors.warning),
+                    _route(d),
+                    maxLines: large ? null : 2,
+                    overflow: large ? null : TextOverflow.ellipsis,
+                    style: type.subheadline.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: MileafSpace.s8),
+                  // R21 第 5 条/R21.5：固定读值网格取代 meta 串；MileafNumber
+                  // 先量后画，360 宽先收列、200% 单列堆叠，数值与单位不拆行。
+                  MetricGrid(
+                    spacing: MileafSpace.s8,
+                    children: [
+                      MetricBlock(
+                        label: '里程',
+                        value: distance,
+                        unit: distance == null ? null : 'km',
+                        scale: MetricValueScale.metricSm,
+                        semanticLabel: distance == null
+                            ? '里程未记录'
+                            : '里程 $distance km',
+                        hue: journey,
+                      ),
+                      MetricBlock(
+                        label: '时长',
+                        value: duration,
+                        unit: duration == null ? null : '分钟',
+                        scale: MetricValueScale.metricSm,
+                        hue: MileafDataDomain.dwell.hue,
+                      ),
+                      MetricBlock(
+                        label: terms.energyPerKm,
+                        value: net,
+                        unit: net == null ? null : 'Wh/km',
+                        scale: MetricValueScale.metricSm,
+                        hue: MileafDataDomain.efficiency.hue,
+                      ),
+                    ],
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: MileafSpace.inline2),
-            Text(
-              _route(d),
-              maxLines: large ? null : 2,
-              overflow: large ? null : TextOverflow.ellipsis,
-              style: type.subheadline.copyWith(color: colors.textSecondary),
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            // R21 第 5 条/R21.5：固定读值网格取代 meta 串；MileafNumber
-            // 先量后画，360 宽先收列、200% 单列堆叠，数值与单位不拆行。
-            MetricGrid(
-              spacing: MileafSpace.s8,
-              children: [
-                MetricBlock(
-                  label: '里程',
-                  value: distance,
-                  unit: distance == null ? null : 'km',
-                  scale: MetricValueScale.metricSm,
-                  semanticLabel:
-                      distance == null ? '里程未记录' : '里程 $distance km',
-                ),
-                MetricBlock(
-                  label: '时长',
-                  value: duration,
-                  unit: duration == null ? null : '分钟',
-                  scale: MetricValueScale.metricSm,
-                ),
-                MetricBlock(
-                  label: terms.energyPerKm,
-                  value: net,
-                  unit: net == null ? null : 'Wh/km',
-                  scale: MetricValueScale.metricSm,
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -1061,8 +1103,7 @@ class _DrivesPageState extends State<DrivesPage>
                         tone: BannerTone.error,
                         // MG09 时间要素：显示的仍是截至该时刻的缓存统计
                         //（state_feedback 共享构造，页面不写时间字面量）。
-                        statusLine:
-                            driving == null || statsCheckedAt == null
+                        statusLine: driving == null || statsCheckedAt == null
                             ? null
                             : feedback.dataAsOfLine(statsCheckedAt!),
                         actionLabel: '重试行程统计',

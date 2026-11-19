@@ -35,6 +35,10 @@ enum MileafIconName {
   minus,
   moon,
   offline,
+  leaf,
+  thermometer,
+  speed,
+  share,
 }
 
 class MileafIcon extends StatelessWidget {
@@ -343,6 +347,58 @@ class _MileafIconPainter extends CustomPainter {
         path
           ..moveTo(x(4.5), y(4.5))
           ..lineTo(x(19.5), y(19.5));
+      case MileafIconName.leaf:
+        // 叶片（CL11：效率/续航）：两条对称三次贝塞尔围出轮廓——叶柄端
+        // (12,20.2) 向左上扫到叶尖 (12,4.2)，再镜像扫回；加一条中脉与一截
+        // 叶柄。不加密集叶脉，保证 16px 下仍读成叶子而不是网格。
+        path
+          ..moveTo(x(12), y(20.2))
+          ..cubicTo(x(5.5), y(17.0), x(5.5), y(7.4), x(12), y(4.2))
+          ..cubicTo(x(18.5), y(7.4), x(18.5), y(17.0), x(12), y(20.2))
+          ..moveTo(x(12), y(20.2))
+          ..lineTo(x(12), y(6.4))
+          ..moveTo(x(12), y(20.2))
+          ..lineTo(x(12), y(21.6));
+      case MileafIconName.thermometer:
+        // 温度（CL11：环境）：竖向药丸球管 + 底部圆球 + 三条刻度横线。
+        // 球管底 14.6 与圆球顶 14.5 相接，合成一支温度计。
+        path
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(x(9.9), y(3.4), x(4.2), y(11.2)),
+              Radius.circular(x(2.1)),
+            ),
+          )
+          ..addOval(Rect.fromCircle(center: at(12, 17.6), radius: x(3.1)))
+          ..moveTo(x(6.6), y(8.4))
+          ..lineTo(x(8.6), y(8.4))
+          ..moveTo(x(6.6), y(11.6))
+          ..lineTo(x(8.6), y(11.6))
+          ..moveTo(x(6.6), y(14.8))
+          ..lineTo(x(8.6), y(14.8));
+      case MileafIconName.speed:
+        // 速度（CL11）：半圆表盘（圆心 12,14.6、r7.4，自左侧 π 扫 π）+
+        // 自圆心指向 10 点钟的指针 + 中心实心点 1.15。
+        path
+          ..addArc(
+            Rect.fromCircle(center: at(12, 14.6), radius: x(7.4)),
+            math.pi,
+            math.pi,
+          )
+          ..moveTo(x(12), y(14.6))
+          ..lineTo(x(8.9), y(10.4));
+        filled.add((at(12, 14.6), 1.15));
+      case MileafIconName.share:
+        // 分享（CL11）：三个节点（右上 / 左中 / 右下）+ 两条连线；
+        // 连线起止落在左中圆与两个右侧圆的切点附近，读成「从一个点分发」。
+        path
+          ..addOval(Rect.fromCircle(center: at(18, 5.8), radius: x(2.1)))
+          ..addOval(Rect.fromCircle(center: at(6, 12), radius: x(2.1)))
+          ..addOval(Rect.fromCircle(center: at(18, 18.2), radius: x(2.1)))
+          ..moveTo(x(7.9), y(11.0))
+          ..lineTo(x(16.1), y(6.9))
+          ..moveTo(x(7.9), y(13.0))
+          ..lineTo(x(16.1), y(17.1));
     }
     canvas.drawPath(path, paint);
     final fill = Paint()..color = color;

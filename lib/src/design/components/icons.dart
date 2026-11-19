@@ -75,5 +75,9 @@ abstract final class MileafIconFamily {
     MileafIconName.minus: '缩小地图',
     MileafIconName.moon: '车辆休眠',
     MileafIconName.offline: '离线，无网络',
+    MileafIconName.leaf: '续航与效率',
+    MileafIconName.thermometer: '温度',
+    MileafIconName.speed: '速度',
+    MileafIconName.share: '分享',
   };
 }

@@ -18,6 +18,7 @@ class MileafDataRow extends StatefulWidget {
     this.value,
     this.unit,
     this.icon,
+    this.hue,
     this.badge,
     this.onTap,
     this.showChevron = false,
@@ -36,6 +37,15 @@ class MileafDataRow extends StatefulWidget {
   final String? value;
   final String? unit;
   final MileafIconName? icon;
+
+  /// CL12：行首身份图标的数据身份色相（追加于 MC06，缺省 null 时行为不变）。
+  ///
+  /// 只染行首那个 20px 字形：启用态取 `hue.strong`（浅色 5.90:1，过正文门槛），
+  /// 禁用态仍是中性的 textFaint——「没有数据」永远不用语义色相承载（CL08）。
+  /// 与 [MileafGroupRow.hue] 同一取值口径，页面按「行属于哪个数据域」传域色相，
+  /// 不自己挑 [MileafHue]。
+  final MileafHue? hue;
+
   final Widget? badge;
   final VoidCallback? onTap;
   final bool showChevron;
@@ -76,7 +86,9 @@ class _MileafDataRowState extends State<MileafDataRow> {
         : MileafIcon(
             widget.icon!,
             size: MileafIconMetrics.nav,
-            color: widget.enabled ? colors.textMuted : colors.textFaint,
+            color: widget.enabled
+                ? widget.hue?.strong(colors) ?? colors.textMuted
+                : colors.textFaint,
           );
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,

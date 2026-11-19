@@ -480,6 +480,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
 
   Widget _socArc(dto.ChargingSessionDetail d, {required bool large}) =>
       BatteryArc(
+        // CL01：电量弧是 energy 域的数据图形（充入电量），取 solid。
+        hue: MileafDataDomain.energy.hue,
         level: d.endSoc,
         start: d.startSoc,
         label: '',
@@ -498,6 +500,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           value: d.energyAddedKwh == null ? null : decimal(d.energyAddedKwh!),
           unit: 'kWh',
           scale: MetricValueScale.metricSm,
+          hue: MileafDataDomain.energy.hue,
         ),
         _costCell(d, fillable: fillable),
         MetricBlock(
@@ -535,6 +538,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             child: MileafNumber(
               value: widget.currency.amountValue(d.cost),
               scale: MetricValueScale.metricSm,
+              // CL01/CL08：已记录费用取 cost 的文字级色；缺失保持中性 —。
+              color: d.cost == null
+                  ? null
+                  : MileafDataDomain.cost.strong(colors),
             ),
           ),
       ],
@@ -612,6 +619,8 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     };
     return _card(
       TimeSeriesChart(
+        // CL01/CL12：功率曲线属 energy 域；整张图只用一个色相，参照仍中性。
+        hue: MileafDataDomain.energy.hue,
         title: '充电过程',
         unit: unit,
         times: times,

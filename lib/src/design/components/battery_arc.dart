@@ -22,6 +22,7 @@ class BatteryArc extends StatelessWidget {
     this.onHero = false,
     this.showLabel = true,
     this.semanticsLabel,
+    this.hue,
   });
 
   final num? level;
@@ -31,6 +32,13 @@ class BatteryArc extends StatelessWidget {
   final bool onHero;
   final bool showLabel;
   final String? semanticsLabel;
+
+  /// CL01/CL02：弧前景（数据图形）的语义色相。传了就取 `hue.solid`；缺省仍
+  /// 走 `accent`（hero 内 `accentHero`），与改造前像素等价。
+  ///
+  /// 轨道**不**跟随色相：它仍是原有的 `trackOpacity` 低透明度底（CL02 的
+  /// 次级元素），环与轨道之间因此始终是「一个数据色 + 一层洗色」的关系。
+  final MileafHue? hue;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +50,8 @@ class BatteryArc extends StatelessWidget {
               ? MileafBatteryMetrics.largeTextSize
               : MileafBatteryMetrics.size),
     );
-    final arcColor = onHero ? colors.accentHero : colors.accent;
+    final arcColor =
+        hue?.solid(colors) ?? (onHero ? colors.accentHero : colors.accent);
     final trackColor = (onHero ? colors.heroText : colors.accent).withValues(
       alpha: MileafBatteryMetrics.trackOpacity,
     );

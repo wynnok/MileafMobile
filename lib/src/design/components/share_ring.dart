@@ -50,6 +50,7 @@ class MileafShareRing extends StatefulWidget {
     this.centerUnit = '%',
     this.centerLabel,
     this.size,
+    this.hue,
   });
 
   /// Drawn in order from 12 o'clock, clockwise. Values ≤ 0 are dropped.
@@ -62,6 +63,13 @@ class MileafShareRing extends StatefulWidget {
   /// Dominant category name, e.g. `AC`; `null` keeps the centre number-only.
   final String? centerLabel;
   final double? size;
+
+  /// CL01/CL02：分段色相。传了就按段序取**同色相两档**——第一段
+  /// `hue.solid`、第二段 `hue.strong`（CL02 明写的多段用法），第三段
+  ///（「未知」）仍用调用方给的 [ShareRingSegment.color]，即中性色。
+  ///
+  /// 缺省时完全沿用 [ShareRingSegment.color]，与改造前像素等价。
+  final MileafHue? hue;
 
   @override
   State<MileafShareRing> createState() => _MileafShareRingState();
@@ -161,7 +169,10 @@ class _MileafShareRingState extends State<MileafShareRing>
           builder: (context, _) => CustomPaint(
             painter: _ShareRingPainter(
               fractions: _currentFractions(),
-              colors: [for (final segment in widget.segments) segment.color],
+              colors: [
+                for (final (index, segment) in widget.segments.indexed)
+                  _segmentColor(colors, index, segment),
+              ],
               track: colors.line,
               stroke: MileafShareRingMetrics.stroke,
             ),
@@ -170,6 +181,24 @@ class _MileafShareRingState extends State<MileafShareRing>
         ),
       ),
     );
+  }
+
+  /// 环的取色出口：一个色相两档，剩下的一段（未知）交回调用方。
+  ///
+  /// 未知 / 未记录**永不**用语义色相（CL08），所以第三段保持调用方给的中性
+  /// 色，环不替调用方决定「未知该长什么样」。
+  Color _segmentColor(
+    MileafColors colors,
+    int index,
+    ShareRingSegment segment,
+  ) {
+    final hue = widget.hue;
+    if (hue == null) return segment.color;
+    return switch (index) {
+      0 => hue.solid(colors),
+      1 => hue.strong(colors),
+      _ => segment.color,
+    };
   }
 
   Widget _center(BuildContext context, double available) {

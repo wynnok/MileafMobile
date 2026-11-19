@@ -386,6 +386,9 @@ class _VehicleSheet extends StatelessWidget {
               children: [
                 for (final vehicle in session.vehicles)
                   MileafGroupRow(
+                    // CL12/CL13：车辆行的身份图标固定为 car（20，行首），取色由
+                    // 行组件给出（中性 textSecondary）——本页不引入数据身份色相。
+                    leading: MileafIconName.car,
                     title: _label(vehicle),
                     // 无名称时区分信息就是名称，不再重复第二行。
                     meta: vehicle.name?.trim().isNotEmpty ?? false
@@ -414,6 +417,8 @@ class _VehicleSheet extends StatelessWidget {
               message: '刷新车辆列表',
               child: MileafButton(
                 label: '刷新车辆列表',
+                // CL14/MileafActionIcon：刷新配 refresh（图标只复述词义）。
+                icon: MileafActionIcon.refresh,
                 kind: MileafButtonKind.ghost,
                 onPressed: session.loading
                     ? null

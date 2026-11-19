@@ -199,6 +199,8 @@ class VehiclePage extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: MileafButton(
                     label: '重试车辆读取',
+                    // CL14：重试与刷新是同一动作，同一 refresh 字形（不换图标）。
+                    icon: MileafActionIcon.retry,
                     kind: MileafButtonKind.ghost,
                     onPressed: session.loading ? null : session.loadVehicles,
                   ),
@@ -223,6 +225,9 @@ class VehiclePage extends StatelessWidget {
                     children: [
                       for (final (index, vehicle) in session.vehicles.indexed)
                         MileafGroupRow(
+                          // CL12/CL13：车辆行身份图标 car，与车辆弹层同一字形；
+                          // 设置/连接保持中性（映射表 #9 不迁移七彩索引色）。
+                          leading: MileafIconName.car,
                           title: vehicleName(vehicle),
                           // 名称缺失时标题回退已携带区分信息，副文置空避免重复。
                           meta: (vehicle.name?.trim().isNotEmpty ?? false)

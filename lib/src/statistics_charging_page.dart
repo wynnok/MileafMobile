@@ -411,9 +411,15 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.only(top: MileafSpace.s8),
-                child: TextButton(
+                // CL14/CL06：下钻行补行尾箭头（与「查看对比明细」同一语法）。
+                child: TextButton.icon(
                   onPressed: openBucket,
-                  child: const Text('查看此期间补能'),
+                  icon: MileafIcon(
+                    MileafIconName.chevron,
+                    size: MileafIconMetrics.inline,
+                    color: context.colors.accentStrong,
+                  ),
+                  label: const Text('查看此期间补能'),
                 ),
               ),
             ),
@@ -506,6 +512,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
         ? null
         : '${rich.costKnownEnergyKwh.toStringAsFixed(1)} kWh';
     return MileafModuleCard(
+      // CL02/CL06：结论卡＝本专题焦点卡，只叠 8% 的 cost tint（大面只能 tint）。
+      hue: MileafDataDomain.cost.hue,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -514,7 +522,14 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             style: type.subheadline.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: MileafSpace.s4),
-          MileafNumber(value: cost, scale: MetricValueScale.metricLg),
+          MileafNumber(
+            value: cost,
+            scale: MetricValueScale.metricLg,
+            // CL12：焦点值取 cost 的 strong；缺失值本身是「—」，不染彩色。
+            color: cost == null
+                ? null
+                : MileafDataDomain.cost.hue.strong(colors),
+          ),
           // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
           if (!legacyStats && known == 0)
             Text(
@@ -620,6 +635,10 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
       child: TimeSeriesChart(
         title: titles[metric],
         unit: units[metric],
+        // CL01/CL12：电量与次数属 energy，费用与均价属 cost。
+        hue: metric >= 1 && metric <= 2
+            ? MileafDataDomain.cost.hue
+            : MileafDataDomain.energy.hue,
         subtitle: '按结束日期统计',
         times: [for (final bucket in buckets) bucket.bucketStart],
         series: [
@@ -683,6 +702,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
         facts: [
           StatisticsTopicFact(
             label: '充入电量',
+            // CL01：充入电量属 energy 域。
+            hue: MileafDataDomain.energy.hue,
             value: energy,
             unit: 'kWh',
             note: rich == null
@@ -691,12 +712,16 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           ),
           StatisticsTopicFact(
             label: '充电次数',
+            // CL01：充电次数按 CL01 归 energy。
+            hue: MileafDataDomain.energy.hue,
             value: '${totals.sessions}',
             unit: '次',
             note: '已完成',
           ),
           StatisticsTopicFact(
             label: '记录时长',
+            // CL01：时长属 dwell 域（与停放/充电时长同一色相）。
+            hue: MileafDataDomain.dwell.hue,
             value: duration,
             unit: '分钟',
             note: rich == null
@@ -705,6 +730,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           ),
           StatisticsTopicFact(
             label: '费用有记录',
+            // CL01：费用覆盖次数属 cost 域。
+            hue: MileafDataDomain.cost.hue,
             value: rich == null
                 ? '—'
                 : '${rich.costKnownSessions} / ${rich.sessions}',
@@ -712,6 +739,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           ),
           StatisticsTopicFact(
             label: 'DC 占已知分类',
+            // CL01：分类能量占比属 energy 域。
+            hue: MileafDataDomain.energy.hue,
             // 已知分类能量为 0 时分母为空：比例未知，不是 0%。
             value: energyMissing || totals.dcEnergyShare == null
                 ? '—'
@@ -754,7 +783,8 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                MileafCompositionBar(segments: rows),
+                // CL01/CL02：AC / DC / 未知同属 energy，两段取同色相两档。
+                MileafCompositionBar(segments: rows, hue: MileafHue.aqua),
                 const SizedBox(height: MileafSpace.s12),
                 Wrap(
                   spacing: MileafSpace.s16,

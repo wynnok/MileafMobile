@@ -28,23 +28,40 @@ String dataNoteLabel(DataNoteCategory category) => switch (category) {
 /// 半径 [MileafRadius.lg]（20）、内边 [MileafSpace.cardPad]（16）、静态卡无阴影；
 /// 不出现卡中卡，内部分组用分隔线或 16 间距。
 class MileafModuleCard extends StatelessWidget {
-  const MileafModuleCard({super.key, required this.child, this.padding});
+  const MileafModuleCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.hue,
+  });
 
   final Widget child;
 
   /// 默认卡内 16 内边；焦点卡在 §6 退让阶梯第 2 步可收紧到 12。
   final EdgeInsetsGeometry? padding;
 
+  /// CL02/CL06：这一块的数据身份色相。给了就把卡背板叠上 `hue.tint`（8%）——
+  /// 这是本增量里唯一允许覆盖 ≥10% 屏幕面积的彩色用法（大面只能 tint），
+  /// 也是「卡片之间没有层次」（canvas ↔ surface 只有 1.09:1）的解决办法：
+  /// 焦点卡因此从白卡里浮出来，而不是靠阴影。
+  final MileafHue? hue;
+
   @override
-  Widget build(BuildContext context) => Material(
-    color: context.colors.surface,
-    borderRadius: BorderRadius.circular(MileafRadius.lg),
-    clipBehavior: Clip.hardEdge,
-    child: Padding(
-      padding: padding ?? const EdgeInsets.all(MileafSpace.cardPad),
-      child: child,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final hue = this.hue;
+    return Material(
+      color: hue == null
+          ? colors.surface
+          : Color.alphaBlend(hue.tint(colors), colors.surface),
+      borderRadius: BorderRadius.circular(MileafRadius.lg),
+      clipBehavior: Clip.hardEdge,
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(MileafSpace.cardPad),
+        child: child,
+      ),
+    );
+  }
 }
 
 /// R24 分组卡：设置分组、记录分组与专题明细的容器。
@@ -139,6 +156,7 @@ class MileafGroupRow extends StatelessWidget {
     this.topLine = false,
     this.bottomLine = false,
     this.semanticLabel,
+    this.hue,
   });
 
   final String title;
@@ -156,6 +174,9 @@ class MileafGroupRow extends StatelessWidget {
   final bool topLine;
   final bool bottomLine;
   final String? semanticLabel;
+
+  /// CL12：行首身份图标的数据身份色相；启用态取 `hue.strong`，禁用态仍是中性。
+  final MileafHue? hue;
 
   /// 单行分组行最小高（R24）。
   static const double rowHeight = 52.0;
@@ -182,7 +203,9 @@ class MileafGroupRow extends StatelessWidget {
         : MileafIcon(
             leading!,
             size: MileafIconMetrics.nav,
-            color: enabled ? colors.textSecondary : colors.textFaint,
+            color: !enabled
+                ? colors.textFaint
+                : hue?.strong(colors) ?? colors.textSecondary,
           );
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,

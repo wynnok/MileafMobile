@@ -18,6 +18,7 @@ class MileafCompositionBar extends StatelessWidget {
     required this.segments,
     this.emptyMessage = 'AC/DC 分类能量缺失',
     this.height = 8,
+    this.hue,
   });
 
   /// Label and known energy in kWh; `null` means the field was never recorded.
@@ -25,11 +26,17 @@ class MileafCompositionBar extends StatelessWidget {
   final String emptyMessage;
   final double height;
 
-  static Color _color(BuildContext context, int index) {
+  /// CL01/CL02：分段色相。传了就是「同一色相两档 + 中性」——主段
+  /// `hue.solid`、次段 `hue.strong`、「未知」仍 `seriesNeutral`；
+  /// 缺省沿用 series 三档，与改造前像素等价。
+  final MileafHue? hue;
+
+  Color _color(BuildContext context, int index) {
     final colors = context.colors;
+    final hue = this.hue;
     return switch (index % 3) {
-      0 => colors.seriesPrimary,
-      1 => colors.seriesSecondary,
+      0 => hue?.solid(colors) ?? colors.seriesPrimary,
+      1 => hue?.strong(colors) ?? colors.seriesSecondary,
       _ => colors.seriesNeutral,
     };
   }

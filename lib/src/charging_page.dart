@@ -1091,6 +1091,10 @@ class _ChargingPageState extends State<ChargingPage>
         0,
       ),
       child: MileafModuleCard(
+        // CL01/CL06：账目卡是 energy 域的焦点卡，背板只叠 8% tint（大面唯一
+        // 允许的彩色用法）；卡里的费用读数是 cost 域，靠文字级 strong 取色，
+        // 两者各按自己的域走，不混用一个色相。
+        hue: MileafDataDomain.energy.hue,
         // §6 阶梯第 2 步：焦点卡内边 16 → 12。
         padding: const EdgeInsets.all(MileafSpace.cardInset),
         child: Column(
@@ -1102,9 +1106,11 @@ class _ChargingPageState extends State<ChargingPage>
             ),
             const SizedBox(height: MileafSpace.s4),
             // S06：0 元是真实 0，只有「无费用记录」才显示 —。
+            // CL08：缺失读数保持中性，只有真有费用时才取 cost 的文字级色。
             MileafNumber(
               value: missing ? null : widget.currency.amountValue(total.cost),
               scale: MetricValueScale.metricLg,
+              color: missing ? null : MileafDataDomain.cost.strong(colors),
             ),
             const SizedBox(height: MileafSpace.s4),
             Text(
@@ -1145,6 +1151,7 @@ class _ChargingPageState extends State<ChargingPage>
         unit: energyMissing ? null : 'kWh',
         scale: MetricValueScale.metricSm,
         note: energyNote,
+        hue: MileafDataDomain.energy.hue,
         semanticLabel: energyMissing
             ? '${terms.chargedEnergy}未知'
             : '${terms.chargedEnergy} ${decimal(total.energyAddedKwh)} 千瓦时',
@@ -1154,6 +1161,8 @@ class _ChargingPageState extends State<ChargingPage>
         value: unitCost == null ? null : decimal(unitCost),
         unit: unitCost == null ? null : '${widget.currency.symbol}/kWh',
         scale: MetricValueScale.metricSm,
+        // CL01：充入均价属 cost 域（单价/均价），与账目卡的费用读数同色。
+        hue: MileafDataDomain.cost.hue,
         note: '按充入电池的电量计，仅含有费用的充电',
         semanticLabel: unitCost == null
             ? '${terms.averagePrice}未知'
@@ -1161,6 +1170,8 @@ class _ChargingPageState extends State<ChargingPage>
       ),
       MetricBlock(
         label: '充电时长',
+        // CL01：时长属 dwell 域（与停放/记录时长同一色相）。
+        hue: MileafDataDomain.dwell.hue,
         value: durationMissing
             ? null
             : copy.duration(Duration(minutes: total.durationMinTotal.round())),
@@ -1178,6 +1189,9 @@ class _ChargingPageState extends State<ChargingPage>
         0,
       ),
       child: MileafModuleCard(
+        // CL01/CL02：充入电量与充入均价两格都属于补能口径，卡背板取 energy
+        // tint；格内读数各自按域取文字级色。
+        hue: MileafDataDomain.energy.hue,
         padding: const EdgeInsets.all(MileafSpace.cardInset),
         child: MileafLayout.largeText(context)
             ? Column(
@@ -1261,9 +1275,16 @@ class _ChargingPageState extends State<ChargingPage>
           _ => bucket.sessions,
         },
     ];
+    // CL01：图的数据身份跟着**所选指标**走——电量/次数是 energy，费用/均价
+    // 是 cost。固定 energy 会让「费用」在图上与记录行的 cost 不同色，违反
+    // 「同一指标同一色相」；本页可见数据色相仍只有 energy + cost 两个。
+    final chartHue = chartMetric == 1 || chartMetric == 2
+        ? MileafDataDomain.cost.hue
+        : MileafDataDomain.energy.hue;
     return StemChart(
       title: '每日充电',
       unit: metric.$2,
+      hue: chartHue,
       times: times,
       values: values,
       semanticsLabel: '每日充电图表',
@@ -1381,18 +1402,15 @@ class _ChargingPageState extends State<ChargingPage>
 
   Widget _supplyRing(ChargingMethodReading reading) {
     final colors = context.colors;
+    // CL01/CL02：AC / DC 都是「充入能量」，同一个 energy 域，靠两档强度
+    // 分辨——主段 solid、次段 strong（组件内处理）。图例样本与弧同色。
+    final hue = MileafDataDomain.energy.hue;
+    final primary = hue.solid(colors), secondary = hue.strong(colors);
     final ring = MileafShareRing(
+      hue: hue,
       segments: [
-        ShareRingSegment(
-          label: 'AC',
-          value: reading.acShare,
-          color: colors.seriesPrimary,
-        ),
-        ShareRingSegment(
-          label: 'DC',
-          value: reading.dcShare,
-          color: colors.seriesSecondary,
-        ),
+        ShareRingSegment(label: 'AC', value: reading.acShare, color: primary),
+        ShareRingSegment(label: 'DC', value: reading.dcShare, color: secondary),
       ],
       centerValue: reading.centerValue,
       centerLabel: reading.centerLabel,
@@ -1413,18 +1431,8 @@ class _ChargingPageState extends State<ChargingPage>
       semanticsLabel: '查看 $label 充电记录',
     );
     final rows = <Widget>[
-      legend(
-        'AC',
-        '${decimal(reading.acShare * 100)}%',
-        colors.seriesPrimary,
-        'ac',
-      ),
-      legend(
-        'DC',
-        '${decimal(reading.dcShare * 100)}%',
-        colors.seriesSecondary,
-        'dc',
-      ),
+      legend('AC', '${decimal(reading.acShare * 100)}%', primary, 'ac'),
+      legend('DC', '${decimal(reading.dcShare * 100)}%', secondary, 'dc'),
     ];
     if (MileafLayout.largeText(context)) {
       return Column(
@@ -1826,6 +1834,14 @@ class _ChargingPageState extends State<ChargingPage>
             children: [
               Row(
                 children: [
+                  // CL12/CL13：地点行的身份图标是 energy 域的 mapPin（16，行内），
+                  // 与记录行的 bolt 同一族、同一间距。
+                  MileafIcon(
+                    MileafIconName.mapPin,
+                    size: MileafIconMetrics.inline,
+                    color: MileafDataDomain.energy.strong(colors),
+                  ),
+                  const SizedBox(width: MileafSpace.s8),
                   Expanded(
                     child: Text(
                       name,
@@ -1860,6 +1876,7 @@ class _ChargingPageState extends State<ChargingPage>
                     unit: energyMissing ? null : 'kWh',
                     note: energyMissing ? '充入电量缺失' : null,
                     scale: MetricValueScale.metricMd,
+                    hue: MileafDataDomain.energy.hue,
                     semanticLabel: energyMissing ? '充入，充入电量缺失' : null,
                   ),
                   MetricBlock(
@@ -1870,6 +1887,8 @@ class _ChargingPageState extends State<ChargingPage>
                         ? '币种未记录'
                         : null,
                     scale: MetricValueScale.metricMd,
+                    // CL01：充入均价属 cost 域。
+                    hue: MileafDataDomain.cost.hue,
                     semanticLabel: spokenPrice,
                   ),
                 ],
@@ -1900,6 +1919,14 @@ class _ChargingPageState extends State<ChargingPage>
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // CL12/CL13：记录行的身份图标是 energy 域的 bolt（16，行内），
+                // 取 strong 以便与标题同一光学重量；间距恒为 s8。
+                MileafIcon(
+                  MileafIconName.bolt,
+                  size: MileafIconMetrics.inline,
+                  color: MileafDataDomain.energy.strong(colors),
+                ),
+                const SizedBox(width: MileafSpace.s8),
                 Expanded(
                   child: Text(
                     value.location.displayName?.trim().isNotEmpty == true
@@ -1951,6 +1978,7 @@ class _ChargingPageState extends State<ChargingPage>
                       : decimal(value.energyAddedKwh!),
                   unit: value.energyAddedKwh == null ? null : 'kWh',
                   scale: MetricValueScale.metricSm,
+                  hue: MileafDataDomain.energy.hue,
                 ),
                 MetricBlock(
                   label: '电网用电',
@@ -1959,12 +1987,14 @@ class _ChargingPageState extends State<ChargingPage>
                       : decimal(value.energyUsedKwh!),
                   unit: value.energyUsedKwh == null ? null : 'kWh',
                   scale: MetricValueScale.metricSm,
+                  hue: MileafDataDomain.energy.hue,
                 ),
                 MetricBlock(
                   label: '费用',
                   value: cost,
                   note: note,
                   scale: MetricValueScale.metricSm,
+                  hue: MileafDataDomain.cost.hue,
                   semanticLabel: '费用 $cost${note == null ? '' : '，$note'}',
                 ),
               ],

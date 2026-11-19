@@ -393,6 +393,17 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     _ => point.elevationM,
   };
 
+  /// 过程图当前指标的数据身份色相（CL01/CL07）：速度 journey、电量 energy。
+  ///
+  /// 分段切换的是**指标**，所以色相跟着指标走，而不是把整张卡钉在 journey：
+  /// 切到电量时本图与下方「电量过程」同为 energy，同一指标在同页不会两色。
+  /// 海拔没有数据域，返回 null 让图表走缺省取色（不冒领任何一个域色）。
+  MileafHue? get _sampleHue => switch (metric) {
+    0 => MileafDataDomain.journey.hue,
+    1 => MileafDataDomain.energy.hue,
+    _ => null,
+  };
+
   MapScene _mapScene({required bool interactive}) {
     final points = series?.series ?? const <dto.DrivePoint>[];
     final selected = points.isEmpty
@@ -515,6 +526,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   /// R21.5：详情页三列关键值只用 metricSm，放不下时网格自己收列。
   Widget _keyValues(dto.DriveDetail d) {
     final cells = [
+      // CL01/CL12：三格按域取色（距离 journey / 时长 dwell / 电耗 efficiency），
+      // 读数取 `strong`，标签与旁注仍中性；R21.5 的三列与收列规则不变。
       MetricBlock(
         label: '距离',
         // R22：数值与单位各占一个角色，值里不再重复单位。
@@ -524,6 +537,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.distanceKm == null ? null : 'km',
         scale: MetricValueScale.metricSm,
         semanticLabel: '距离 ${number(d.distanceKm, 'km', decimals: 1)}',
+        hue: MileafDataDomain.journey.hue,
       ),
       MetricBlock(
         label: '时长',
@@ -531,6 +545,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.durationMin == null ? null : '分钟',
         scale: MetricValueScale.metricSm,
         semanticLabel: '时长 ${number(d.durationMin, '分钟')}',
+        hue: MileafDataDomain.dwell.hue,
       ),
       MetricBlock(
         label: '电耗',
@@ -538,6 +553,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.consumptionWhKm == null ? null : 'Wh/km',
         scale: MetricValueScale.metricSm,
         semanticLabel: '电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
+        hue: MileafDataDomain.efficiency.hue,
       ),
     ];
     return MetricGrid(spacing: MileafSpace.s12, children: cells);
@@ -567,6 +583,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         title: '行驶过程',
         controls: _segments(),
         unit: _sampleUnits[metric],
+        // CL12/CL15：绘图区与图例取当前指标域的 solid；参照系列仍保持中性。
+        hue: _sampleHue,
         times: wall,
         series: [
           ChartSeries(
@@ -669,6 +687,8 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               child: TimeSeriesChart(
                 title: '电量过程',
                 unit: '%',
+                // CL01：电量属 energy 域，与本页电量弧/电量区间同一个 aqua。
+                hue: MileafDataDomain.energy.hue,
                 times: [for (final point in s.series) local(point.t)],
                 series: [
                   ChartSeries(
@@ -716,7 +736,12 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         children: [
           Text('电量变化', style: type.headline.copyWith(color: colors.text)),
           const SizedBox(height: MileafSpace.s12),
-          SocIntervalBar(start: d.start.batteryLevel, end: d.end.batteryLevel),
+          // CL12：区间带是数据图形，取 energy.solid（图形级 3.55:1）。
+          SocIntervalBar(
+            start: d.start.batteryLevel,
+            end: d.end.batteryLevel,
+            hue: MileafDataDomain.energy.hue,
+          ),
           if (delta != null && verb != null) ...[
             const SizedBox(height: MileafSpace.s8),
             Text(
@@ -738,6 +763,9 @@ class _DriveDetailPageState extends State<DriveDetailPage>
       children: [
         const SectionHeader(title: '驾驶与环境'),
         const SizedBox(height: MileafSpace.s8),
+        // CL12：每行一个身份图标（inline 16，取 `hue.strong`），图标只复述字段名
+        // ——速度 speed / 温度 thermometer / 功率 bolt——字段名、数值与单位列仍
+        // 中性，事实表的右对齐竖线不变（§9.2 驾驶与环境三组域）。
         MileafFactList(
           key: const ValueKey('drive-facts'),
           facts: [
@@ -745,23 +773,37 @@ class _DriveDetailPageState extends State<DriveDetailPage>
               label: '平均速度',
               value: value(d.speedAvgKmh),
               unit: 'km/h',
+              icon: MileafIconName.speed,
+              hue: MileafDataDomain.journey.hue,
             ),
             MileafFact(
               label: '最高速度',
               value: value(d.speedMaxKmh),
               unit: 'km/h',
+              icon: MileafIconName.speed,
+              hue: MileafDataDomain.journey.hue,
             ),
             MileafFact(
               label: '车外均温',
               value: value(d.outsideTempCAvg, decimals: 1),
               unit: '°C',
+              icon: MileafIconName.thermometer,
+              hue: MileafDataDomain.climate.hue,
             ),
             MileafFact(
               label: '车内均温',
               value: value(d.insideTempCAvg, decimals: 1),
               unit: '°C',
+              icon: MileafIconName.thermometer,
+              hue: MileafDataDomain.climate.hue,
             ),
-            MileafFact(label: '最大功率', value: value(d.powerMaxKw), unit: 'kW'),
+            MileafFact(
+              label: '最大功率',
+              value: value(d.powerMaxKw),
+              unit: 'kW',
+              icon: MileafIconName.bolt,
+              hue: MileafDataDomain.energy.hue,
+            ),
           ],
         ),
       ],
@@ -775,6 +817,9 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     final ref = _referenceUsable(d)
         ? reference!.totals.consumptionWhKmNet
         : null;
+    // CL01：电耗属 efficiency 域，本期读数取 efficiency.strong；「近 30 天」是
+    // **参照角色**而不是第二种数据身份，按 CL07 留中性（不传 hue），与图表里
+    // 参照系列走 reference 同一纪律。
     final cells = <Widget>[
       MetricBlock(
         label: '本次',
@@ -782,6 +827,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.consumptionWhKm == null ? null : 'Wh/km',
         scale: MetricValueScale.metricSm,
         semanticLabel: '本次 ${number(d.consumptionWhKm, 'Wh/km')}',
+        hue: MileafDataDomain.efficiency.hue,
       ),
       if (ref != null)
         MetricBlock(
@@ -970,6 +1016,9 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                                 child: MileafButton(
                                   label: '返回行程列表',
                                   kind: MileafButtonKind.ghost,
+                                  // CL14：图标在左、复述词义（返回 = back），取该控件
+                                  // 前景色（文字按钮 = accentStrong）。
+                                  icon: MileafIconName.back,
                                   onPressed: () {
                                     widget.onReturnToList?.call();
                                     Navigator.pop(context);

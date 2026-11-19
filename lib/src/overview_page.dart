@@ -961,6 +961,9 @@ class _OverviewPageState extends State<OverviewPage>
     return Padding(
       padding: const EdgeInsets.only(top: MileafSpace.s16),
       child: MileafModuleCard(
+        // CL02/CL06：焦点卡是首屏唯一「≥10% 面积」的彩色面，只允许 8% tint；
+        // 卡片之间的台阶靠彩度差而不是阴影（canvas ↔ surface 只有 1.09:1）。
+        hue: MileafDataDomain.journey.hue,
         // §6 退让阶梯第 2 步：焦点卡内边 16 → 12，为首屏预算腾出 8。
         padding: const EdgeInsets.all(MileafSpace.s12),
         child: Column(
@@ -973,6 +976,9 @@ class _OverviewPageState extends State<OverviewPage>
             const SizedBox(height: MileafSpace.s12),
             MetricBlock(
               semanticLabel: semantic,
+              // CL12：焦点值是驾驶里程，取 journey 的 strong（浅色 5.90:1）；
+              // 读不到数仍是「—」由 MileafNumber 处理，不补彩色（CL08）。
+              hue: value == null ? null : MileafDataDomain.journey.hue,
               value: value == null ? null : parts,
               unit: 'km',
               scale: MetricValueScale.metricLg,
@@ -1206,6 +1212,10 @@ class _OverviewPageState extends State<OverviewPage>
       key: chartKey,
       plotKey: plotKey,
       showYAxis: true,
+      // CL12/CL15：整张图一个数据身份色相；指标控件换指标时色相跟着数据域走
+      // （里程 journey / 电耗 efficiency / 充电 energy / 费用 cost），参照系列
+      // 仍取中性 reference。CL39 的 120ms 身份淡入由图表内部承担。
+      hue: _metricHue,
       title: title,
       unit: unit,
       // R29：无数据时卡内只留一句人话，绘图区收起（CP02：不再出现「采样点」）。
@@ -1269,6 +1279,17 @@ class _OverviewPageState extends State<OverviewPage>
     return last < 0 ? 0 : last;
   }
 
+  /// CL01/CL15：主图色相按「当前指标属于哪个数据域」解析，页面不自己挑色相。
+  ///
+  /// 缺省指标是里程（journey），也就是规格 §9.2 写的「每日里程图 journey」；
+  /// 切到电耗/充电/费用时色相必须跟着数据走，否则同一个指标会在两页变色。
+  MileafHue get _metricHue => switch (metric) {
+    _Metric.distance => MileafDataDomain.journey.hue,
+    _Metric.net || _Metric.energy => MileafDataDomain.efficiency.hue,
+    _Metric.charge => MileafDataDomain.energy.hue,
+    _Metric.cost => MileafDataDomain.cost.hue,
+  };
+
   Widget _metricTabs() => ChipRow(
     equalWidth: true,
     children: [
@@ -1293,14 +1314,19 @@ class _OverviewPageState extends State<OverviewPage>
   /// One cell of the period ledger. The label is spelled out because the
   /// shared default stops at the value and would drop the currency caveat,
   /// which is part of the number's meaning here.
+  /// CL12：每格只把**读数**染成该格所属域的 strong；标签、旁注与网格排布
+  /// 都不动（彩色落在数字上，2×2 的层级仍由字号承担）。
   Widget _readingCell(
     String label, {
+    required MileafHue hue,
     Key? key,
     String? value,
     String? unit,
     String? note,
   }) => MetricBlock(
     key: key,
+    // CL08：读不到数时格子显示「—」，那是缺失、不是该域的数据——不得着色。
+    hue: value == null ? null : hue,
     label: label,
     value: value,
     unit: unit,
@@ -1328,26 +1354,32 @@ class _OverviewPageState extends State<OverviewPage>
     final energy = charging?.totals.energyAddedKwh;
     final costNote = [widget.currency.amountNote, coverage].nonNulls.join('，');
     final cells = [
+      // 四格各自绑定数据域（CL01）：电耗 efficiency、费用 cost、
+      // 充入电量 energy、行程数 journey。
       _readingCell(
         terms.energyPerKm,
+        hue: MileafDataDomain.efficiency.hue,
         key: const ValueKey('overview-plate-net'),
         value: net?.toStringAsFixed(0),
         unit: net == null ? null : 'Wh/km',
       ),
       _readingCell(
         terms.recordedCost,
+        hue: MileafDataDomain.cost.hue,
         key: const ValueKey('overview-plate-cost'),
         value: cost == null ? null : widget.currency.amountValue(cost),
         note: costNote,
       ),
       _readingCell(
         terms.charging,
+        hue: MileafDataDomain.energy.hue,
         key: const ValueKey('overview-plate-energy'),
         value: energy == null ? null : grouped(energy, decimals: 2),
         unit: energy == null ? null : 'kWh',
       ),
       _readingCell(
         terms.trip,
+        hue: MileafDataDomain.journey.hue,
         key: const ValueKey('overview-plate-drives'),
         value: driving?.totals.drives.toString(),
         unit: driving == null ? null : terms.tripCount,
@@ -1384,12 +1416,15 @@ class _OverviewPageState extends State<OverviewPage>
   Widget _recentSection(dto.Summary d) {
     final drive = d.lastDrive;
     final charge = d.lastCharge;
+    // CL12：行首身份图标取所属域的 strong——行程 journey、充电 energy；
+    // 没有记录时 onTap 为 null（禁用态），图标自行退回中性（CL08）。
     Widget row({
       required String title,
       required String meta,
       String? value,
       String? unit,
       required MileafIconName icon,
+      required MileafHue hue,
       VoidCallback? onTap,
     }) => MileafDataRow(
       title: title,
@@ -1397,6 +1432,9 @@ class _OverviewPageState extends State<OverviewPage>
       value: value,
       unit: unit,
       icon: icon,
+      // CL08：没有记录时这一行是「缺失」而不是「行程」，身份色相随之退回中性
+      // （图标仍是 route/bolt 字形，读者看得见这是哪一类，只是不着色）。
+      hue: onTap == null ? null : hue,
       showChevron: onTap != null,
       onTap: onTap,
       semanticLabel:
@@ -1419,6 +1457,7 @@ class _OverviewPageState extends State<OverviewPage>
               value: drive?.distanceKm?.toStringAsFixed(1),
               unit: drive?.distanceKm == null ? null : 'km',
               icon: MileafIconName.route,
+              hue: MileafDataDomain.journey.hue,
               onTap: drive == null
                   ? null
                   : () => widget.onRecord?.call('drive', drive.id),
@@ -1432,6 +1471,7 @@ class _OverviewPageState extends State<OverviewPage>
               value: charge?.endSoc?.toStringAsFixed(0),
               unit: charge?.endSoc == null ? null : '%',
               icon: MileafIconName.bolt,
+              hue: MileafDataDomain.energy.hue,
               onTap: charge == null
                   ? null
                   : () => widget.onRecord?.call('charging', charge.id),
@@ -1482,15 +1522,20 @@ class _OverviewPageState extends State<OverviewPage>
       return const SizedBox.shrink();
     }
     void open(String topic) => widget.onInsight!.call(topic, range!.selection);
+    // CL12：三行的身份图标按数据域取色——节奏 dwell、能耗与长期 efficiency；
+    // 图标只复述行标题里的词义（节奏=钟、能耗与续航=叶），不改行文案。
     Widget row({
       required String title,
       required String meta,
       required MileafIconName icon,
+      // CL01：专题行可以没有读数（例如「长期」只是入口），那种行保持中性。
+      MileafHue? hue,
       required String topic,
     }) => MileafDataRow(
       title: title,
       meta: meta,
       icon: icon,
+      hue: hue,
       showChevron: true,
       onTap: () => open(topic),
     );
@@ -1506,17 +1551,22 @@ class _OverviewPageState extends State<OverviewPage>
               title: '节奏',
               meta: '驾驶时间与单程',
               icon: MileafIconName.clock,
+              hue: MileafDataDomain.dwell.hue,
               topic: 'usage',
             ),
             row(
               title: '能耗',
               meta: '温度与距离',
-              icon: MileafIconName.chart,
+              // CL11：leaf 就是 efficiency 域的字形（电耗/续航共用同一个）。
+              icon: MileafIconName.leaf,
+              hue: MileafDataDomain.efficiency.hue,
               topic: 'energy',
             ),
             row(
               title: '长期',
               meta: '续航与停放',
+              // CL01/CL12：这一行没有读数（本身是「续航与停放」的入口），
+              // 与统计根页的「长期」章节卡同构——中性 + battery 字形。
               icon: MileafIconName.battery,
               topic: 'long',
             ),
@@ -1601,11 +1651,24 @@ class _OverviewPageState extends State<OverviewPage>
   /// 沿既有回调 onStatistics 与 StatisticsSelection，路由与参数不变。
   Widget _statisticsDrills() {
     final selection = ranges['driving']?.selection;
+    final colors = context.colors;
+    // CL14：文字按钮补图标，「统计」= chart（MileafActionIcon.compare 的
+    // 「明细下钻」字形）；图标走 MileafControlMetrics.iconLeading 的单一间距，
+    // 禁用态跟着文字一起退回中性。
     Widget drill(String kind, String label) => TextButton(
       onPressed: selection == null
           ? null
           : () => widget.onStatistics?.call(kind, selection),
-      child: Text(label),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...MileafControlMetrics.iconLeading(
+            MileafActionIcon.compare,
+            selection == null ? colors.textFaint : colors.accentStrong,
+          ),
+          Text(label),
+        ],
+      ),
     );
     return Align(
       alignment: AlignmentDirectional.centerStart,
@@ -1722,6 +1785,9 @@ class _OverviewPageState extends State<OverviewPage>
               ),
               MileafGroupRow(
                 title: '查看对比明细',
+                // CL14：文字动作补图标，图标只复述按钮词义（「明细」= chart），
+                // 且同一动作在全站只用一个字形（MileafActionIcon.compare）。
+                leading: MileafActionIcon.compare,
                 trailing: MileafIcon(
                   MileafIconName.chevron,
                   size: MileafIconMetrics.inline,
@@ -1945,7 +2011,9 @@ class _OverviewPageState extends State<OverviewPage>
                         tone: BannerTone.error,
                         statusLine: results['driving'] == null
                             ? null
-                            : feedback.dataAsOfLine(results['driving']!.checkedAt),
+                            : feedback.dataAsOfLine(
+                                results['driving']!.checkedAt,
+                              ),
                         actionLabel: _retry,
                         actionSemanticLabel: copy_actions.retryDrivingData,
                         onAction: () => loadStats('driving', force: true),
@@ -1956,7 +2024,9 @@ class _OverviewPageState extends State<OverviewPage>
                         tone: BannerTone.error,
                         statusLine: results['charging'] == null
                             ? null
-                            : feedback.dataAsOfLine(results['charging']!.checkedAt),
+                            : feedback.dataAsOfLine(
+                                results['charging']!.checkedAt,
+                              ),
                         actionLabel: _retry,
                         actionSemanticLabel: copy_actions.retryChargingData,
                         onAction: () => loadStats('charging', force: true),
