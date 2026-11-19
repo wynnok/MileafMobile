@@ -1,6 +1,6 @@
 # 理念迁移实施 Tickets（DM00–DM08）
 
-> 2026-11-19，状态 **proposed**（随 [ADR0015](../adr/0015-days-matter-language-migration.md) 待确认；确认后按本表分拆到多 Agent、多会话实施）。设计规则见[迁移规格](days-matter-migration.md)（MG01–MG09）。分包原则沿 ADR0014 过程条款：共享系统先行、公开符号在并行期冻结签名、页面包在隔离工作树并行、各包只改声明范围内的文件（write scopes 为提示性，不构成锁）。
+> 2026-11-19，状态 **accepted 并已实施**（用户当日确认 D1–D4 按推荐执行并授权 /implement；实施与验证事实见 [days-matter-migration](../implementation/days-matter-migration.md)）。DM00–DM07 已按本表完成本地提交（overview/drives 两页改动与在途切片同文件叠加暂留工作区），DM08 集成收口完成；遗留与待裁定清单见实施记录。设计规则见[迁移规格](days-matter-migration.md)（MG01–MG09）。分包原则沿 ADR0014 过程条款：共享系统先行、公开符号在并行期冻结签名、页面包在隔离工作树并行、各包只改声明范围内的文件（write scopes 为提示性，不构成锁）。
 
 ## 任务及依赖
 

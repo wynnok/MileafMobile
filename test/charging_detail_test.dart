@@ -187,7 +187,9 @@ void main() {
     expect(find.text('补录'), findsNothing);
     expect(find.text('0 USD'), findsWidgets);
     // CP06：重试统一「重试」；曲线错误由相邻错误文字区分。
+    // MG09 三要素：曲线失败无旧快照时不出现时间行。
     await tester.scrollUntilVisible(find.text('重试').hitTestable(), 200);
+    expect(find.textContaining('数据截至'), findsNothing);
     failSeries = false;
     await tester.tap(find.text('重试').hitTestable());
     await tester.pumpAndSettle();
@@ -202,6 +204,8 @@ void main() {
     // CP07：失败有旧数据走共享构造函数。
     await tester.scrollUntilVisible(find.textContaining('没能更新，显示的是'), -200);
     expect(find.textContaining('没能更新，显示的是'), findsOneWidget);
+    // MG09 三要素：明细有旧快照时补「数据截至 HH:mm」时间行。
+    expect(find.textContaining('数据截至'), findsOneWidget);
     expect(find.text('0 USD'), findsWidgets);
   });
 

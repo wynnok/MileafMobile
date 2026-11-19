@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -123,7 +123,8 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const MileafGroupHeader(title: '当前连接'),
+              // R24/MG05b：分组标题对齐卡内边距（页面边距 + 16）。
+              const MileafGroupHeader(title: '当前连接', inset: MileafSpace.cardPad),
               const SizedBox(height: MileafSpace.s8),
               MileafGroupCard(
                 child: Column(
@@ -174,7 +175,7 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
                 _feedback(context),
               ],
               const SizedBox(height: MileafSpace.section),
-              const MileafGroupHeader(title: '本机访问'),
+              const MileafGroupHeader(title: '本机访问', inset: MileafSpace.cardPad),
               const SizedBox(height: MileafSpace.s8),
               MileafGroupCard(
                 child: Padding(
@@ -296,14 +297,11 @@ class _ConnectionManagementPageState extends State<ConnectionManagementPage> {
     color: context.colors.textFaint,
   );
 
-  Widget _feedback(BuildContext context) => Semantics(
-    liveRegion: true,
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        _message!,
-        style: context.type.body.copyWith(color: context.colors.error),
-      ),
-    ),
+  /// MG09 三要素：现状句（含原因）由横幅承载；下一步动作是本页
+  /// 「验证并替换连接 / 退出此设备」既有按钮，不另设内嵌动作。
+  /// 取色走受限四档 tone（MG02，页面不再直接指定 error 色）。
+  Widget _feedback(BuildContext context) => InlineBanner(
+    message: _message!,
+    tone: BannerTone.error,
   );
 }

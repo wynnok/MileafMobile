@@ -1100,7 +1100,8 @@ void main() {
     await tester.tap(find.text('充电').last);
     await tester.pumpAndSettle();
     expect(find.text('匹配 0 次充电'), findsOneWidget);
-    expect(find.textContaining('这段时间没有已完成的充电'), findsOneWidget);
+    // MG09 空态四档：带筛选（地点）时给筛选无结果句（R10 结构映射）。
+    expect(find.textContaining('筛选后没有已完成的充电'), findsOneWidget);
     expect(find.textContaining('地点：家 · 地库'), findsOneWidget);
     expect(find.text('清除筛选'), findsOneWidget);
     expect(tester.takeException(), isNull);

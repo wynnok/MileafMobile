@@ -200,7 +200,10 @@ void main() {
 
   testWidgets('全缺失不推算额定续航并保留能力说明', (tester) async {
     await openU09d(tester, rangeClient([], scenario: 'allmissing'));
-    expect(find.text('尚无有效续航样本'), findsOneWidget);
+    // MG09 空态分档：noData 档现状句走共享构造；「不推算额定续航」能力说明
+    // 由空态 message 行保留。
+    expect(find.text('这段时间没有有效续航样本'), findsOneWidget);
+    expect(find.text('有效样本不足时不推算额定续航。'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

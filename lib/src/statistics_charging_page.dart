@@ -6,12 +6,13 @@ import 'api.dart';
 import 'copy/dates.dart' as copy_dates;
 import 'copy/durations.dart' as copy_durations;
 import 'copy/messages.dart' as copy_msg;
+import 'copy/state_feedback.dart';
 import 'charging_page.dart';
 import 'charging_detail.dart';
 import 'charging_experience_contract.g.dart' as expanded;
 import 'charging_statistics_contract.g.dart' as legacy;
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -421,10 +422,14 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           if (expandedAvailable) _locationSection(),
           _dataNotes(detail),
         ] else if (!loading && error == null)
-          const StateView(
+          // MG09 空态分档：无数据档现状句与建议动作走共享构造。
+          StateView(
             kind: StateViewKind.empty,
-            title: '还没有充电记录',
-            message: '尚无补能统计；换一个期间或继续记录。',
+            title: emptyStateCopy(EmptyStateTier.noData, object: '充电记录').status,
+            message: '换一个期间或继续记录。',
+            actionLabel: '刷新',
+            actionSemanticLabel: '重试读取补能统计',
+            onAction: () => load(force: true),
           ),
       ];
       final column = Column(

@@ -9,7 +9,7 @@ import 'copy/durations.dart' as copy;
 import 'copy/messages.dart' as messages;
 import 'copy/terms.dart' as terms;
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -688,14 +688,13 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             SizedBox(height: MileafLayout.rootTopClearance(context)),
           if (topic != 'overview') insightHeader(),
           if (error != null)
-            Row(
-              children: [
-                Expanded(child: Text(error!)),
-                TextButton(
-                  onPressed: () => load(force: true),
-                  child: const Text('重试能力'),
-                ),
-              ],
+            // MG09 三要素：现状句（含原因）+ 重试动作统一走 InlineBanner。
+            InlineBanner(
+              message: error!,
+              tone: BannerTone.error,
+              actionLabel: '重试能力',
+              actionSemanticLabel: '重试读取统计能力',
+              onAction: () => load(force: true),
             ),
           if (features!.values.any((v) => v))
             Wrap(
@@ -753,7 +752,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                     const MileafProgressLine(),
                     const Text('正在读取统计'),
                   ],
-                  if (error != null) Text(error!),
+                  if (error != null)
+                    // MG09 三要素：现状句（含原因）+ 下方「重试统计」动作。
+                    SizedBox(
+                      width: double.infinity,
+                      child: InlineBanner(message: error!, tone: BannerTone.error),
+                    ),
                   TextButton(
                     onPressed: () => load(force: true),
                     child: const Text('重试统计'),

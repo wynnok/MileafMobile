@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'copy/dates.dart' as copy_dates;
 import 'copy/messages.dart' as copy_msg;
+import 'copy/state_feedback.dart';
 import 'design/components/components.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
@@ -304,9 +305,19 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
       if (d == null && calendarError != null && error == null)
         InlineBanner(message: calendarError!, tone: BannerTone.warning),
       if (d?['status'] == 'no_records')
-        _empty('区间内无已完成行程', '这段时间没有已完成的行程；换一个期间或继续记录。')
+        // MG09 空态分档：无数据档现状句与建议动作走共享构造。
+        _empty(
+          EmptyStateTier.noData,
+          object: '已完成行程',
+          message: '换一个期间或继续记录。',
+        )
       else if (d?['status'] == 'unsupported')
-        _empty('当前站点不支持用车节奏分析', '站点未声明用车节奏分析能力。')
+        // 能力缺失不属于四档原因，维持领域空态，不提供无效动作。
+        const StateView(
+          kind: StateViewKind.empty,
+          title: '当前站点不支持用车节奏分析',
+          message: '站点未声明用车节奏分析能力。',
+        )
       else if (d != null) ...[
         _conclusion(d),
         _calendarSection(),
@@ -358,12 +369,23 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
     );
   }
 
-  Widget _empty(String title, String message) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      StateView(kind: StateViewKind.empty, title: title, message: message),
-    ],
-  );
+  /// MG09 空态四档分档：现状句与建议动作取自 `emptyStateCopy`（state_feedback），
+  /// 下一步动作即原地强制刷新。
+  Widget _empty(EmptyStateTier tier, {String? object, String? message}) {
+    final copy = emptyStateCopy(tier, object: object);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        StateView(
+          kind: StateViewKind.empty,
+          title: copy.status,
+          message: message,
+          actionLabel: copy.action,
+          onAction: () => load(force: true),
+        ),
+      ],
+    );
+  }
 
   Widget _retryNotice(
     String message, {
@@ -1237,10 +1259,17 @@ class _DrivingEvidencePageState extends State<DrivingEvidencePage> {
                   if (error != null)
                     InlineBanner(message: error!, tone: BannerTone.error),
                   if (!loading && error == null && items.isEmpty)
-                    const StateView(
+                    // MG09 空态分档：筛选无结果档；下一步动作是返回调整筛选。
+                    StateView(
                       kind: StateViewKind.empty,
-                      title: '没有匹配行程',
-                      message: '当前筛选没有已完成的行程。可以返回调整日期或分组。',
+                      title: emptyStateCopy(
+                        EmptyStateTier.filterNoMatch,
+                        object: '已完成行程',
+                      ).status,
+                      message: '可以返回调整日期或分组。',
+                      actionLabel: '调整筛选',
+                      actionSemanticLabel: '返回调整行程筛选',
+                      onAction: () => Navigator.of(context).maybePop(),
                     ),
                   for (final d in items)
                     MileafDataRow(

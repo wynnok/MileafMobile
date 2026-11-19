@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../design/components/components.dart';
-import '../design/icons.dart';
+import '../design/components/icons.dart';
 import '../design/layout.dart';
 import '../design/motion.dart';
 import '../design/semantic.dart';

@@ -178,7 +178,9 @@ void main() {
     await tester.scrollUntilVisible(find.text('节奏').hitTestable(), 150);
     await tester.tap(find.text('节奏').first);
     await tester.pumpAndSettle();
-    expect(find.text('区间内无已完成行程'), findsOneWidget);
+    expect(find.text('这段时间没有已完成行程'), findsOneWidget);
+    // MG09：空态带四档分档的建议动作（刷新）。
+    expect(find.text('刷新'), findsOneWidget);
   });
   testWidgets('距离分组使用完整证据筛选且翻页保持原截止', (tester) async {
     final seen = <Uri>[];

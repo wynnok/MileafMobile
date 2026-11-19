@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'copy/dates.dart' as copy_dates;
 import 'copy/messages.dart' as copy_msg;
+import 'copy/state_feedback.dart';
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -207,10 +208,13 @@ class _ConditionsState extends State<StatisticsConditionsPage> {
           message: _unsupportedMessage,
         )
       else if (d != null && d['status'] == 'no_records')
-        const StateView(
+        // MG09 空态分档：无数据档现状句与建议动作走共享构造。
+        StateView(
           kind: StateViewKind.empty,
-          title: '区间内无已完成行程',
-          message: '这段时间没有可配对的已完成行程。',
+          title: emptyStateCopy(EmptyStateTier.noData, object: '可配对行程').status,
+          actionLabel: '刷新',
+          actionSemanticLabel: '重试读取能耗条件',
+          onAction: () => load(force: true),
         )
       else if (d != null && d['status'] == 'available') ...[
         if (loading && data != null) ...[

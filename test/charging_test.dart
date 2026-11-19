@@ -13,6 +13,9 @@ import 'package:mileaf/main.dart';
 import 'package:mileaf/src/design/components/components.dart';
 import 'package:mileaf/src/workspace.dart';
 
+import 'package:mileaf/src/charging_page.dart' show chargingLocationKey;
+import 'package:mileaf/src/design/tokens.dart' show MileafSpace;
+
 import 'charging_expansion_test.dart' show expansionResponse;
 import 'support/c_fixture.dart' show cEmptyChargingV2;
 import 'support/session_store.dart';
@@ -585,6 +588,71 @@ void main() {
       reason: '空态不显示图例与三列',
     );
     expect(find.textContaining('DC 占已知分类能量'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('记录行与地点行守 R24 两条起始线（行内卡内 16、分隔线同线）', (tester) async {
+    // expansionResponse 只保留一条已完成记录；守卫需要两条记录才有行间分隔线。
+    final client = MockClient((request) async {
+      final response = expansionResponse(request);
+      if (request.url.path.endsWith('/charging-sessions')) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final items = (body['items'] as List).toList();
+        final extra = Map<String, dynamic>.from(
+          (items.first as Map<String, dynamic>),
+        )..['id'] = 88;
+        extra['started_at'] = '2026-03-27T02:00:00Z';
+        extra['ended_at'] = extra['started_at'];
+        extra['is_active'] = false;
+        items.add(extra);
+        body['items'] = items;
+        return jsonResponse(body);
+      }
+      return response;
+    });
+    await tester.pumpWidget(app(client));
+    await tester.pumpAndSettle();
+    await tester.tap(navTab('充电'));
+    await tester.pumpAndSettle();
+    // charging-rows 两条起始线：行经 _cardRow 包卡内 16 横向内边，分隔线
+    // margin 左缘与文字同一起始线。
+    final cardPadPad = find.byWidgetPredicate(
+      (widget) =>
+          widget is Padding &&
+          widget.padding ==
+              const EdgeInsets.symmetric(horizontal: MileafSpace.cardPad),
+    );
+    final hairline = find.byWidgetPredicate(
+      (widget) =>
+          widget is Container &&
+          (widget.margin as EdgeInsets?)?.left == MileafSpace.cardPad,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('charge-9')).hitTestable(),
+      300,
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(const ValueKey('charge-9')),
+        matching: cardPadPad,
+      ),
+      findsWidgets,
+      reason: '记录行经卡内 16 起始线',
+    );
+    expect(hairline, findsWidgets, reason: '分隔线从卡内 16 起');
+    await tester.scrollUntilVisible(
+      find.byKey(chargingLocationKey('geofence:1')).hitTestable(),
+      300,
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(chargingLocationKey('geofence:1')),
+        matching: cardPadPad,
+      ),
+      findsWidgets,
+      reason: '地点行经卡内 16 起始线',
+    );
+    // 惰性视口：滚到地点卡后记录卡可能已回收，分隔线只在记录卡可见时断言。
     expect(tester.takeException(), isNull);
   });
 }

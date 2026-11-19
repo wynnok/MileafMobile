@@ -10,7 +10,7 @@ import 'copy/messages.dart' as messages;
 import 'copy/units.dart' as units;
 
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';

@@ -7,6 +7,7 @@ import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
 import 'copy/page_actions.dart' as copy_actions;
 import 'copy/messages.dart' as messages;
+import 'copy/state_feedback.dart' as state_feedback;
 import 'copy/terms.dart' as terms;
 
 import 'design/components/components.dart';
@@ -2049,15 +2050,29 @@ class _ChargingPageState extends State<ChargingPage>
   Widget _recordsSection() {
     final colors = context.colors;
     final type = context.type;
-    final empty = expandedAvailable
-        ? messages.emptyMessage('已完成的充电')
-        : messages.emptyMessage('充电记录');
+    // MG09 空态四档：对象名沿用原 CP07 口径。页面没有独立离线信号（读取走
+    // 站点缓存），离线档不由本页触发；读取失败给 loadFailed 句（重试动作由
+    // 页尾错误条承担）；带筛选（地点/类型/费用/搜索/单日）给筛选无结果句。
+    final object = expandedAvailable ? '已完成的充电' : '充电记录';
     if (items.isEmpty) {
-      if (error != null || !loaded) return const SizedBox.shrink();
+      if (error != null) {
+        final tier = state_feedback.EmptyStateTier.loadFailed;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
+          child: Text(
+            state_feedback.emptyStateCopy(tier, object: object).status,
+            style: type.body.copyWith(color: colors.textSecondary),
+          ),
+        );
+      }
+      if (!loaded) return const SizedBox.shrink();
+      final tier = hasFilters || selectedDay != null
+          ? state_feedback.EmptyStateTier.filterNoMatch
+          : state_feedback.EmptyStateTier.noData;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: MileafSpace.s16),
         child: Text(
-          empty,
+          state_feedback.emptyStateCopy(tier, object: object).status,
           style: type.body.copyWith(color: colors.textSecondary),
         ),
       );
@@ -2490,6 +2505,12 @@ class _ChargingPageState extends State<ChargingPage>
                       InlineBanner(
                         message: error!,
                         tone: BannerTone.error,
+                        // MG09 三要素之二：有旧快照时给出精确截至时间。
+                        statusLine: items.isNotEmpty && listCheckedAt != null
+                            ? state_feedback.dataAsOfLine(
+                                workspace.calendar!.local(listCheckedAt!),
+                              )
+                            : null,
                         actionLabel: '重试',
                         actionSemanticLabel: copy_actions.retryChargingRecords,
                         onAction: retryLoad,

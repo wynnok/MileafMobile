@@ -138,17 +138,12 @@ class _SetupPageState extends State<SetupPage> {
                       if (session.message != null)
                         Padding(
                           padding: const EdgeInsets.only(top: MileafSpace.s16),
-                          child: Semantics(
-                            liveRegion: true,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                session.message!,
-                                style: context.type.body.copyWith(
-                                  color: context.colors.error,
-                                ),
-                              ),
-                            ),
+                          // MG09 三要素：现状句（含原因）由横幅承载；下一步
+                          // 动作是「设置口令并登录 / 返回登录」既有按钮。
+                          // 取色走受限四档 tone（MG02，页面不再直接指定 error 色）。
+                          child: InlineBanner(
+                            message: session.message!,
+                            tone: BannerTone.error,
                           ),
                         ),
                     ],

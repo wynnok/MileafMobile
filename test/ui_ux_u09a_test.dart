@@ -420,7 +420,8 @@ void main() {
     );
     await tester.tap(find.text('10月1日'));
     await tester.pumpAndSettle();
-    expect(find.text('没有匹配行程'), findsOneWidget);
+    // MG09 空态分档：筛选无结果档现状句走共享构造（object='已完成行程'）。
+    expect(find.text('筛选后没有已完成行程'), findsOneWidget);
     expect(find.text('— 趟'), findsOneWidget);
   });
 

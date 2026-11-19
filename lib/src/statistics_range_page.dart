@@ -5,10 +5,11 @@ import 'package:flutter/services.dart';
 
 import 'copy/dates.dart' as copy;
 import 'copy/messages.dart' as messages;
+import 'copy/state_feedback.dart';
 import 'copy/terms.dart' as terms;
 import 'copy/units.dart' as units;
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -365,16 +366,27 @@ class _RangeObservationPageState extends State<RangeObservationPage>
           title: messages.unsupportedMessage('额定续航观察'),
         )
       else if (d != null && totals?['status'] == 'no_records')
-        const StateView(
+        // MG09 空态分档：无数据档现状句与建议动作走共享构造。
+        StateView(
           kind: StateViewKind.empty,
-          title: '观察窗口内没有充电记录',
+          title: emptyStateCopy(EmptyStateTier.noData, object: '充电记录').status,
           message: '换一个观察窗口，或继续记录充电。',
+          actionLabel: '刷新',
+          actionSemanticLabel: '重试读取续航观察',
+          onAction: () => load(force: true),
         )
       else if (d != null && totals?['status'] == 'insufficient_data')
-        const StateView(
+        // 有效样本不足也是「无数据」档：样本缺失，不是失败。
+        StateView(
           kind: StateViewKind.empty,
-          title: '尚无有效续航样本',
+          title: emptyStateCopy(
+            EmptyStateTier.noData,
+            object: '有效续航样本',
+          ).status,
           message: '有效样本不足时不推算额定续航。',
+          actionLabel: '刷新',
+          actionSemanticLabel: '重试读取续航观察',
+          onAction: () => load(force: true),
         )
       else ...[
         // 结论卡：月中位数 metricLg + 必要限定（§6 第 2 步收紧内边到 12）。

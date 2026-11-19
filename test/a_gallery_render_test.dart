@@ -80,23 +80,23 @@ const markers =
         'missing': (must: ['重试充电曲线', '46.8'], mustNot: []),
       },
       'topic-rhythm': {
-        'normal': (must: ['这段时间的用车节奏', '活跃'], mustNot: ['区间内无已完成行程']),
-        'empty': (must: ['区间内无已完成行程'], mustNot: ['活跃 22']),
+        'normal': (must: ['这段时间的用车节奏', '活跃'], mustNot: ['这段时间没有已完成行程']),
+        'empty': (must: ['这段时间没有已完成行程'], mustNot: ['活跃 22']),
         'missing': (must: ['—'], mustNot: []),
       },
       'topic-energy': {
-        'normal': (must: ['温度下的用车能耗', '210'], mustNot: ['区间内无已完成行程']),
-        'empty': (must: ['区间内无已完成行程'], mustNot: ['210']),
+        'normal': (must: ['温度下的用车能耗', '210'], mustNot: ['这段时间没有可配对行程']),
+        'empty': (must: ['这段时间没有可配对行程'], mustNot: ['210']),
         'missing': (must: ['—'], mustNot: ['210']),
       },
       'topic-charging': {
-        'normal': (must: ['补能账目', '¥186.4'], mustNot: ['还没有充电记录']),
-        'empty': (must: ['还没有充电记录'], mustNot: ['¥186.4', '0 / 0 次']),
+        'normal': (must: ['补能账目', '¥186.4'], mustNot: ['这段时间没有充电记录']),
+        'empty': (must: ['这段时间没有充电记录'], mustNot: ['¥186.4', '0 / 0 次']),
         'missing': (must: ['—'], mustNot: ['¥186.4']),
       },
       'topic-range': {
-        'normal': (must: ['满电等效额定续航', '432.0'], mustNot: ['观察窗口内无充电记录']),
-        'empty': (must: ['观察窗口内无充电记录'], mustNot: ['432.0']),
+        'normal': (must: ['满电等效额定续航', '432.0'], mustNot: ['这段时间没有充电记录']),
+        'empty': (must: ['这段时间没有充电记录'], mustNot: ['432.0']),
         'missing': (must: ['—'], mustNot: ['432.0']),
       },
       'topic-parking': {

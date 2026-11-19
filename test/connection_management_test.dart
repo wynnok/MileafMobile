@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
 import 'package:mileaf/src/api.dart';
+import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/design/tokens.dart';
 
 import 'support/session_store.dart';
 import 'support/vehicle_preferences.dart';
@@ -383,6 +385,36 @@ void main() {
     await backToWorkspace(tester);
     await tester.pumpAndSettle();
     expect(find.text('原连接'), findsOneWidget);
+  });
+  testWidgets('MG05b 分组标题对齐卡内边距（inset = cardPad）', (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.host == 'old.example') {
+        return http.Response(
+          vehicles('页面包车辆'),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      return http.Response('{}', 404);
+    });
+    await tester.pumpWidget(
+      MileafApp(
+        client: client,
+        trustStore: MemoryTrustStore(),
+        sessionStore: saved(),
+        vehiclePreferences: MemoryVehiclePreferences(),
+        calendar: () async => CalendarContext('UTC'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openSettings(tester);
+    final insets = tester
+        .widgetList<MileafGroupHeader>(find.byType(MileafGroupHeader))
+        .map((header) => header.inset)
+        .toList();
+    expect(insets, isNotEmpty);
+    expect(insets, everyElement(MileafSpace.cardPad));
+    await backToWorkspace(tester);
   });
   testWidgets('候选车辆失败或安全保存失败都保留旧连接，退出存储失败可重试清除', (tester) async {
     final store = FailingStore()..value = saved().value;

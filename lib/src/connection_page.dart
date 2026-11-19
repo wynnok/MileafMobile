@@ -33,6 +33,10 @@ class _ConnectionPageState extends State<ConnectionPage> {
   final _form = GlobalKey<FormState>();
   SiteAddress? _healthySite;
   bool _loading = false;
+  /// MG09：区分成功句（文字层强调色）与失败句（状态条 + 重试动作）。
+  bool _messageIsSuccess = false;
+  /// MG09：失败是否来自「检查连接」，来自检查的失败才有明确的重试动作。
+  bool _checkFailed = false;
   bool _loadingTrust = false;
   bool _trusted = false;
   bool _savingTrust = false;
@@ -60,6 +64,8 @@ class _ConnectionPageState extends State<ConnectionPage> {
       _trusted = trusted;
       _loadingTrust = false;
       _message = failure;
+      _messageIsSuccess = false;
+      _checkFailed = false;
     });
   }
 
@@ -82,6 +88,8 @@ class _ConnectionPageState extends State<ConnectionPage> {
         setState(() {
           _trusted = false;
           _message = '无法保存站点授权，请重试';
+          _messageIsSuccess = false;
+          _checkFailed = false;
         });
       }
     } finally {
@@ -116,25 +124,32 @@ class _ConnectionPageState extends State<ConnectionPage> {
       _message = null;
     });
     String result;
+    var failed = false;
     try {
       final version = await widget.api.health(SiteAddress.parse(_address.text));
       result = '服务正常，版本 $version';
       _healthySite = SiteAddress.parse(_address.text);
     } on ApiFailure catch (error) {
+      failed = true;
       result = error.message;
     } on TimeoutException {
+      failed = true;
       result = '请求超时，请检查网络后重试';
     } on HandshakeException {
       result = '证书校验失败，请检查服务证书；不会忽略证书错误';
     } on FormatException {
+      failed = true;
       result = '服务返回格式不兼容，请核对 Mileaf Server 版本';
     } on Exception {
+      failed = true;
       result = '服务不可达，请检查地址与网络后重试。若连接局域网站点，请在系统设置中检查行笺的局域网权限，允许后回到此处重试；也可改用仍可访问的 HTTPS 地址。';
     }
     if (!mounted) return;
     setState(() {
       _loading = false;
       _message = result;
+      _messageIsSuccess = !failed;
+      _checkFailed = failed;
     });
   }
 
@@ -238,7 +253,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
                       onPressed: () => widget.onConnected!(_healthySite!),
                     ),
                   ),
-                if (_message != null)
+                if (_message != null && _messageIsSuccess)
                   Padding(
                     padding: const EdgeInsets.only(top: MileafSpace.s16),
                     child: Semantics(
@@ -248,14 +263,28 @@ class _ConnectionPageState extends State<ConnectionPage> {
                         child: Text(
                           _message!,
                           style: context.type.body.copyWith(
-                            color: _healthySite != null
-                                ? context.colors.accentStrong
-                                : context.colors.error,
+                            color: context.colors.accentStrong,
                           ),
                         ),
                       ),
                     ),
                   ),
+                if (_message != null && !_messageIsSuccess) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: MileafSpace.s16),
+                    // MG09 三要素：现状句（含原因）+ 重试动作；取色走
+                    // 受限四档 tone（MG02，页面不再直接指定 error 色）。
+                    child: InlineBanner(
+                      message: _message!,
+                      tone: BannerTone.error,
+                      actionLabel: _checkFailed ? '重试' : null,
+                      actionSemanticLabel: _checkFailed ? '重试检查连接' : null,
+                      onAction: _checkFailed
+                          ? (_loading || _loadingTrust ? null : _check)
+                          : null,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -7,10 +7,11 @@ import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as durations;
 import 'copy/labels.dart' as labels;
 import 'copy/messages.dart' as messages;
+import 'copy/state_feedback.dart';
 import 'copy/terms.dart' as terms;
 import 'copy/units.dart' as units;
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
@@ -479,6 +480,19 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
           ),
         ),
       ),
+      // MG09 空态分档：整个观察窗口没有停车记录时给出无数据档现状句与
+      // 刷新动作，不停留在只画「—」的结论卡。
+      if (d != null && rows.isEmpty && !busy && error == null)
+        StateView(
+          kind: StateViewKind.empty,
+          title: emptyStateCopy(
+            EmptyStateTier.noData,
+            object: '停车窗口',
+          ).status,
+          actionLabel: '刷新',
+          actionSemanticLabel: '重试读取停放观察',
+          onAction: () => load(force: true),
+        ),
       if (t != null && totalMissing)
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s4),

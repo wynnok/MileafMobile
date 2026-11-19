@@ -270,7 +270,9 @@ void main() {
     );
     await tester.tap(find.text('补能'));
     await tester.pumpAndSettle();
-    expect(find.text('还没有充电记录'), findsOneWidget);
+    expect(find.text('这段时间没有充电记录'), findsOneWidget);
+    // MG09：空态带四档分档的建议动作（刷新）。
+    expect(find.text('刷新'), findsOneWidget);
     expect(find.text('已知支出 · 覆盖同时看'), findsNothing);
     expect(find.textContaining('费用有记录 0 / 0'), findsNothing);
     expect(find.text('充电方式'), findsNothing);

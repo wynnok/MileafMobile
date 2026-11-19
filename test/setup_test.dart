@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mileaf/main.dart';
+import 'package:mileaf/src/design/components/components.dart';
 
 import 'session_test.dart' show connect;
 import 'support/session_store.dart';
@@ -186,6 +187,9 @@ void main() {
     await tester.tap(find.text('设置口令并登录'));
     await tester.pumpAndSettle();
     expect(find.textContaining('初始化结果未确定'), findsOneWidget);
+    // MG09：初始化失败反馈走受限四档 tone 的状态条
+    // （页面不再直接指定 error 色），动作由既有主按钮承担。
+    expect(find.byType(InlineBanner), findsOneWidget);
     await tester.pump(const Duration(seconds: 30));
     expect(setups, 1);
     expect(logins, 0);

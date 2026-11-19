@@ -5,6 +5,7 @@ import 'charging_cost.dart';
 import 'copy/dates.dart' as copy;
 import 'copy/durations.dart' as copy;
 import 'copy/messages.dart' as messages;
+import 'copy/state_feedback.dart' as state_feedback;
 
 import 'design/components/components.dart';
 import 'design/icons.dart';
@@ -938,18 +939,20 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               if (detailLoading || seriesLoading) const MileafProgressLine(),
               if (detailError != null)
                 _inset(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(liveRegion: true, child: Text(detailError!)),
-                      if (!unavailable)
-                        TextButton(
-                          onPressed: detailLoading
-                              ? null
-                              : () => loadDetail(force: true),
-                          child: const Text('重试'),
-                        ),
-                    ],
+                  // MG09 三要素：失败原因（现状句）+ 数据截至时间行 + 重试动作。
+                  InlineBanner(
+                    message: detailError!,
+                    tone: BannerTone.error,
+                    statusLine: detail != null && detailCheckedAt != null
+                        ? state_feedback.dataAsOfLine(
+                            workspace.calendar!.local(detailCheckedAt!),
+                          )
+                        : null,
+                    actionLabel: '重试',
+                    actionSemanticLabel: '重试读取充电明细',
+                    onAction: unavailable || detailLoading
+                        ? null
+                        : () => loadDetail(force: true),
                   ),
                 ),
               if (unavailable)
@@ -965,17 +968,20 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
               if (detail case final d?) ...[_identity(d), _socCard(d)],
               if (seriesError != null)
                 _inset(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(liveRegion: true, child: Text(seriesError!)),
-                      TextButton(
-                        onPressed: seriesLoading
-                            ? null
-                            : () => loadSeries(force: true),
-                        child: const Text('重试'),
-                      ),
-                    ],
+                  // MG09 三要素：失败原因 + 数据截至时间行 + 重试动作。
+                  InlineBanner(
+                    message: seriesError!,
+                    tone: BannerTone.error,
+                    statusLine: series != null && seriesCheckedAt != null
+                        ? state_feedback.dataAsOfLine(
+                            workspace.calendar!.local(seriesCheckedAt!),
+                          )
+                        : null,
+                    actionLabel: '重试',
+                    actionSemanticLabel: '重试读取充电曲线',
+                    onAction: seriesLoading
+                        ? null
+                        : () => loadSeries(force: true),
                   ),
                 ),
               if (!ownershipMismatch &&

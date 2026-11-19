@@ -5,7 +5,7 @@ import 'appearance_sheet.dart';
 import 'connection_management.dart';
 import 'currency.dart';
 import 'design/components/components.dart';
-import 'design/icons.dart';
+import 'design/components/icons.dart';
 import 'design/layout.dart';
 import 'design/semantic.dart';
 import 'design/tokens.dart';
