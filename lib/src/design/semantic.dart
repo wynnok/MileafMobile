@@ -386,3 +386,45 @@ extension MileafColorsContext on BuildContext {
   /// Shorthand for the semantic palette: `context.colors.accent`.
   MileafColors get colors => MileafColors.of(this);
 }
+
+/// MG02（days-matter-migration.md §4）状态取色的受限枚举。
+///
+/// 这是 DM04 StateView / InlineBanner 色彩参数的数据源：页面只能表达
+/// 「这个状态属于哪一类」，不能直接传任意颜色；具体取色由
+/// [MileafStatusToneColorResolver] 按当前 [MileafColors] 统一解析。
+///
+/// 全站唯一映射表（MG02）：
+///
+/// | 状态 | tone | 解析色 |
+/// | --- | --- | --- |
+/// | 进行中 / 加载 | [MileafStatusTone.accent] | `accentStrong` |
+/// | 警示（数据异常、Key 失效） | [MileafStatusTone.warning] | `warning` |
+/// | 失败 / 破坏 | [MileafStatusTone.error] | `error` |
+/// | 缺失 / 未知 / 未记录 | [MileafStatusTone.neutral] | `textSecondary` |
+///
+/// 缺失 / 未知 / 未记录数据**禁止任何彩色**：一律中性（textSecondary，
+/// 配「—」或口径旁注），由守卫测试在 token 级钉住（neutral 解析结果
+/// 不得等于 accent / warning / error）。进行中胶囊维持中性底
+///（[MileafColors.segmentTrack]），只有状态文字/图形走 accent。
+///
+/// 参照 / 基线（`reference`）**不入本枚举**：它是图表读值的对比角色，
+/// 不是状态角色——需要表达「参照」时由图表与读值组件直接使用
+/// [MileafColors.reference]，不经状态枚举转发，避免「参照」被误当成
+/// 一种状态信号。
+enum MileafStatusTone { neutral, accent, warning, error }
+
+/// [MileafStatusTone] 的取色解析：给定 tone 与当前 [MileafColors]，
+/// 返回该状态应使用的语义色。
+///
+/// accent 态解析为 [MileafColors.accentStrong]（文字级强度，对内容底
+/// ≥4.5:1）；图形级 [MileafColors.accent] 不进入状态取色。签名保持
+/// 简单稳定（tone + MileafColors → Color）：DM04 的 StateView /
+/// InlineBanner 参数枚举以此为准，后续扩展不得改变现有四值的解析结果。
+extension MileafStatusToneColorResolver on MileafStatusTone {
+  Color resolveColor(MileafColors colors) => switch (this) {
+        MileafStatusTone.neutral => colors.textSecondary,
+        MileafStatusTone.accent => colors.accentStrong,
+        MileafStatusTone.warning => colors.warning,
+        MileafStatusTone.error => colors.error,
+      };
+}

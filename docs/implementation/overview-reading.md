@@ -101,3 +101,9 @@ R06.6 的顺序在这里是字面顺序：日期 → 值+单位 → 参照 → �
 ## 10 回滚
 
 读值区改动集中在 `overview_page.dart` 的 `_PointReading`、`_ChartReading`、`_readingCell`、`_readingPlate` 与 `_chartSection()` 的一行挂载；恢复旧的单段文字需同时移除 `charts.dart` 的 `readoutBuilder`（其余调用方不传该参数，移除不影响它们）。配色、字号、间距 token 未改动，无需回滚设计系统。
+
+---
+
+## 批注（2026-11-19 追加，Days Matter 迁移 DM01 色彩纪律）
+
+本文 §6 对 `textFaint` 的结论（「两种模式下都比 `textMuted` 更实，且都低于 4.5:1」）与 [overview-chart-header.md:79](overview-chart-header.md) 的 WCAG 相对亮度复测口径矛盾。按 [days-matter-migration.md](../specs/days-matter-migration.md) MG03，对比度结论**以复测口径裁决**：浅 `#63707C` 在 canvas `#F4F5F7` 上 4.65:1、surface `#FFFFFF` 上 5.07:1；深 `#7E8A96` 在 canvas `#0A0B0D` 上 5.59:1、surface `#12161C` 上 5.15:1，均 ≥4.5:1，**textFaint 现值保留不变**；该口径已固化为守卫测试 `test/days_migration_color_guard_test.dart`，完整结论表与低于门槛组合的豁免登记见 [days-matter-migration-color.md](days-matter-migration-color.md) §1。本批注只追加于文末，原文未改写。
