@@ -332,10 +332,8 @@ class _NavItemState extends State<_NavItem> {
     // 玻璃越薄，背后内容的明度范围越大：未选目的地不能再用页面次级灰
     // （textMuted 在透出的蓝色图表上不足 4.5:1），改用底栏专用的
     // navigationLabel——浅色压深一档、深色提亮一档（L03 修订）。
-    // 镜片比底栏更亮，图形若用 accent（对白底 3:1）只剩 3.0:1，因此选中图形
-    // 与选中文字同用 accentStrong（浅色首屏实测 5.16:1）。
     final itemColor = widget.active
-        ? colors.accentStrong
+        ? colors.navigationActive
         : colors.navigationLabel;
     return Semantics(
       button: true,
@@ -351,7 +349,7 @@ class _NavItemState extends State<_NavItem> {
             decoration: BoxDecoration(
               borderRadius: MileafRadius.fullAll,
               border: Border.all(
-                color: focused ? colors.focusRing : Colors.transparent,
+                color: focused ? colors.navigationActive : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -359,7 +357,7 @@ class _NavItemState extends State<_NavItem> {
               onTap: widget.onTap,
               borderRadius: MileafRadius.fullAll,
               highlightColor: colors.pressOverlay,
-              splashColor: colors.accentSoft,
+              splashColor: colors.navigationPress,
               child: ExcludeSemantics(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

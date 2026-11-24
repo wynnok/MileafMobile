@@ -1,6 +1,7 @@
 # 色彩与图标秩序实施票据（MC00–MC12）
 
 - 依据：[配色与图标秩序规格](./chromatic-language.md)（CL01–CL48）、[ADR 0016](../adr/0016-chromatic-language.md)。
+- [全量视觉优化分包](visual-hierarchy-tickets.md)承接 ADR 0018。MC 系列保留为原轮次票据，实施情况见[色彩与图标秩序实施记录](../implementation/chromatic-language.md)。
 - 本文件同时是**多 Agent / 多会话分包说明**：每票给 write scopes（互不重叠）、前置、动作（挂条款号）、测试、交接文件，以及可直接粘进新会话的提示词（§4）。
 - 波次：W0 基线 → W1 三个可并行币 → W2 组件层 → W3 五个可并行页面 → W4 归一 → W5 收口。
 

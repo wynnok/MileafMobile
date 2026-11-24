@@ -13,6 +13,9 @@ enum NavigationMaterialStyle {
   /// 随内容滚动的顶栏：与 canvas 同调的磨砂，背景只作为低频色块透出。
   frosted,
 
+  /// 内容滚至顶栏下方时使用有界的控件玻璃。
+  chrome,
+
   /// 悬浮在页面之上的根底栏：液态玻璃，高透、有受光边缘。
   glass,
 }
@@ -56,6 +59,13 @@ class NavigationMaterial extends StatelessWidget {
     final solid = resolvesSolid(context, forceSolid: forceSolid);
     if (style == NavigationMaterialStyle.glass && !solid) {
       return MileafGlassSurface(borderRadius: borderRadius, child: child);
+    }
+    if (style == NavigationMaterialStyle.chrome && !solid) {
+      return MileafGlassSurface.control(
+        borderRadius: borderRadius,
+        elevated: false,
+        child: child,
+      );
     }
     // 边线画在 foreground：写在 decoration 里会把容器撑大一个 hairline，
     // 实色底栏就会比玻璃底栏高 1px、选中镜片窄 1px（L08）。

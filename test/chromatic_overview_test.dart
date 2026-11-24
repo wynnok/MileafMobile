@@ -137,22 +137,22 @@ void main() {
   final cost = MileafDataDomain.cost.hue;
   final dwell = MileafDataDomain.dwell.hue;
 
-  testWidgets('焦点卡：8% journey tint + route 卡头图标 + 焦点值 journey strong', (
-    tester,
-  ) async {
+  testWidgets('车况与期间里程共用色面体系，按数据域区分', (tester) async {
     await openOverview(tester);
     final card = find.ancestor(
       of: find.text('本月驾驶'),
       matching: find.byType(MileafModuleCard),
     );
     expect(hueOf<MileafModuleCard>(tester, card), journey);
-    // CL06：≥10% 面积的面只有 8% tint 这一档，页面不叠第二层 alpha。
-    final material = tester.widget<Material>(
-      find.descendant(of: card, matching: find.byType(Material)).first,
-    );
     expect(
-      material.color,
-      Color.alphaBlend(journey.tint(colors), colors.surface),
+      tester.widget<MileafModuleCard>(card).emphasis,
+      MileafCardEmphasis.field,
+    );
+    final status = find.byKey(const ValueKey('overview-status'));
+    expect(hueOf<MileafModuleCard>(tester, status), energy);
+    expect(
+      tester.widget<MileafModuleCard>(status).emphasis,
+      MileafCardEmphasis.focus,
     );
 
     // CL13.2：身份块卡头不带前置图标——R24 要求标题与卡片外缘共享左线，
@@ -163,7 +163,7 @@ void main() {
         matching: find.byType(MileafIcon),
       ),
       findsNothing,
-      reason: '卡头不带图标，身份由 tint 与焦点值颜色承担',
+      reason: '卡头不带图标，读数和图表维持同一识别语义',
     );
 
     final focus = find.byWidgetPredicate(
@@ -332,7 +332,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('CL07 首屏可见数据身份色相 ≤3，CL06 大面只有焦点卡 tint', (tester) async {
+  testWidgets('概览首屏可见数据身份色相不超过三种', (tester) async {
     await openOverview(tester, size: const Size(360, 800));
     final hues = visibleHues(tester);
     expect(hues.length, lessThanOrEqualTo(3), reason: '首屏色相 $hues');

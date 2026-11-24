@@ -2,18 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// MG07 材质三分守卫（days-matter-migration）：玻璃材质只进 Chrome 层。
+/// 玻璃层职责守卫（ADR 0019 / VH17）。
 ///
-/// components/ 下除四个 Chrome 持有文件外，禁止 import 玻璃/磨砂材质
-/// （glass_surface.dart、navigation_material.dart）或直接引用玻璃类型
-/// （MileafGlassSurface / MileafGlassLens / NavigationMaterial）。
-/// Chrome 持有文件：底栏（nav_bar）、顶栏（top_bar 的镜片控件）、二级导航
-/// 磨砂（page_bar）、材质定义与解析（glass_surface、navigation_material）、
-/// barrel 转发导出（components.dart）、浮层菜单（pull_down，CL30/CL31 起）。
-///
-/// CL30 把玻璃扩到「浮层菜单」与「地图浮控」两处（ADR 0016 D6）：这两层压在
-/// 页面之上，模糊作用于背后内容；内容卡片/列表/图表仍然平涂（CL32 不变）。
-/// workspace_page.dart 属外壳（Chrome），不在内容层扫描集内。
+/// 内容卡与控件只使用固定色面光学，背景取样集中于顶栏和浮层。
 void main() {
   const chromeFiles = {
     'glass_surface.dart',
@@ -23,6 +14,14 @@ void main() {
     'page_bar.dart', // R14/R26 二级导航磨砂，Chrome 层
     'components.dart', // barrel 转发导出，非消费
     'pull_down.dart', // CL30/CL31：浮层菜单玻璃，浮层不是内容层
+    'sheet.dart', // 仅浮动选择器使用有界背景取样
+    'battery_arc.dart', // 仅概览车况的电量仪表镜片
+  };
+  const tintFiles = {
+    'module.dart',
+    'button.dart',
+    'icon_button.dart',
+    'chip_row.dart',
   };
   const glassImports = ['glass_surface.dart', 'navigation_material.dart'];
   const glassTypes = [
@@ -59,17 +58,21 @@ void main() {
       .where((p) => !floatingOrChrome.contains(p.split('/').last))
       .toList();
 
-  test('内容层组件不 import 玻璃材质', () {
+  test('固定色面之外的内容组件不 import 玻璃材质', () {
     final problems = <String>[];
     for (final path in contentComponents()) {
       final source = File(path).readAsStringSync();
       for (final glass in glassImports) {
+        if (glass == 'glass_surface.dart' &&
+            tintFiles.contains(path.split('/').last)) {
+          continue;
+        }
         if (source.contains("import") && source.contains(glass)) {
           problems.add('$path import 了 $glass');
         }
       }
     }
-    expect(problems, isEmpty, reason: '玻璃只允许出现在 Chrome 层：$problems');
+    expect(problems, isEmpty, reason: '内容层仅指定组件可使用固定色面：$problems');
   });
 
   test('CL32 全库扫描：内容层页面也不得引用玻璃（扫描范围不止 components/）', () {
@@ -88,21 +91,24 @@ void main() {
     );
   });
 
-  test('内容层组件不直接引用玻璃类型', () {
+  test('内容层组件只允许固定色面光学', () {
     final problems = <String>[];
     for (final path in contentComponents()) {
       final source = File(path).readAsStringSync();
-      for (final type in glassTypes) {
-        if (source.contains(type)) {
+      final checked = tintFiles.contains(path.split('/').last)
+          ? source.replaceAll('MileafGlassSurface.tinted(', '')
+          : source;
+      for (final type in [...glassTypes, 'BackdropFilter']) {
+        if (checked.contains(type)) {
           problems.add('$path 引用了 $type');
         }
       }
     }
-    expect(problems, isEmpty, reason: '内容层用 surface/canvas 分层，不用玻璃：$problems');
+    expect(problems, isEmpty, reason: '内容层不得取样背后内容：$problems');
   });
 
   test('Chrome 持有文件存在（扫描排除集与现状一致）', () {
-    for (final name in chromeFiles) {
+    for (final name in {...chromeFiles, ...tintFiles}) {
       expect(
         File('lib/src/design/components/$name').existsSync(),
         isTrue,

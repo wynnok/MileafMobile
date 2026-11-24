@@ -37,16 +37,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('外观'));
       await tester.pumpAndSettle();
-      final decoration =
-          tester
-                  .widget<DecoratedBox>(
-                    find.byKey(const ValueKey('sheet-surface')),
-                  )
-                  .decoration
-              as BoxDecoration;
-      expect(decoration.color, const MileafColors.light().surfaceRaised);
+      final surface = tester.widget<MileafGlassSurface>(
+        find.byKey(const ValueKey('sheet-surface')),
+      );
       expect(
-        decoration.borderRadius,
+        surface.borderRadius,
         BorderRadius.circular(MileafRadius.sheet),
         reason: 'R28 浮动弹层四角 28',
       );

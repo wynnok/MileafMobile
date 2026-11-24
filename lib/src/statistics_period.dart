@@ -189,7 +189,7 @@ class StatisticsPeriodControls extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      ChipRow(
+      MileafPeriodRow(
         children: [
           StatusChip(
             label: '本月',

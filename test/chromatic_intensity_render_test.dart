@@ -26,7 +26,7 @@ class _Appearance implements AppearancePreferenceStore {
   Future<void> write(String? next) async => value = next;
 }
 
-/// 鲜明度 v2 的对照样张：四个主页面 × 浅深两模式，只截首屏。
+/// 四个主页面的浅深首屏、滚动色面和悬浮选择器。
 void main() {
   setUpAll(() async {
     if (output.isEmpty) return;
@@ -89,6 +89,42 @@ void main() {
           find.byKey(boundary),
           '$output/$page-${brightness.name}.png',
         );
+        if (page == '概览') {
+          final scroll = tester.state<ScrollableState>(
+            find.byType(Scrollable).last,
+          );
+          scroll.position.jumpTo(132);
+          await tester.pumpAndSettle();
+          await saveRenderPng(
+            tester,
+            find.byKey(boundary),
+            '$output/概览-滚动玻璃-${brightness.name}.png',
+          );
+          await tester.tap(find.byKey(const ValueKey('top-bar-vehicle')));
+          await tester.pumpAndSettle();
+          expect(find.text('选择车辆'), findsOneWidget);
+          await saveRenderPng(
+            tester,
+            find.byKey(boundary),
+            '$output/选择车辆-${brightness.name}.png',
+          );
+          await tester.tap(find.byTooltip('关闭'));
+          await tester.pumpAndSettle();
+        }
+        if (page == '行程' || page == '统计') {
+          final scroll = tester.state<ScrollableState>(
+            find.byType(Scrollable).last,
+          );
+          scroll.position.jumpTo(
+            scroll.position.maxScrollExtent.clamp(0.0, 330.0),
+          );
+          await tester.pumpAndSettle();
+          await saveRenderPng(
+            tester,
+            find.byKey(boundary),
+            '$output/$page-滚动-${brightness.name}.png',
+          );
+        }
         expect(tester.takeException(), isNull);
       }
     }

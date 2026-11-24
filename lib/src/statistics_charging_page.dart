@@ -498,84 +498,97 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
     legacy.ChargingMetrics totals,
     expanded.ChargingMetrics? rich,
   ) {
-    final colors = context.colors;
-    final type = context.type;
     final known = rich?.costKnownSessions ?? 0;
     final legacyStats = rich == null;
-    final cost = legacyStats
-        ? (totals.cost == null ? null : scope.currency.amountValue(totals.cost))
-        : known == 0
+    final cost = totals.cost == null || (!legacyStats && known == 0)
         ? null
         : scope.currency.amountValue(totals.cost);
     final note = scope.currency.amountNote;
     final costEnergy = rich == null
         ? null
         : '${rich.costKnownEnergyKwh.toStringAsFixed(1)} kWh';
-    return MileafModuleCard(
-      // CL02/CL06：结论卡＝本专题焦点卡，只叠 8% 的 cost tint（大面只能 tint）。
-      hue: MileafDataDomain.cost.hue,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '已记录费用',
-            style: type.subheadline.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          MileafNumber(
-            value: cost,
-            scale: MetricValueScale.metricLg,
-            // CL12：焦点值取 cost 的 strong；缺失值本身是「—」，不染彩色。
-            color: cost == null
-                ? null
-                : MileafDataDomain.cost.hue.strong(colors),
-          ),
-          // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
-          if (!legacyStats && known == 0)
-            Text(
-              '暂无已知费用',
-              style: type.footnote.copyWith(color: colors.textSecondary),
-            ),
-          // CP03/CP09：币种未设置时数值不带符号，口径写在旁注。
-          if (note != null)
-            Padding(
-              padding: const EdgeInsets.only(top: MileafSpace.s4),
-              child: Text(
-                note,
-                style: type.footnote.copyWith(color: colors.textSecondary),
+    return MileafModuleCard.focused(
+      hue: cost == null ? null : MileafDataDomain.cost.hue,
+      child: Builder(
+        builder: (context) {
+          final colors = context.colors;
+          final type = context.type;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '已记录费用',
+                style: type.subheadline.copyWith(color: colors.textSecondary),
               ),
-            ),
-          if (!legacyStats) ...[
-            const SizedBox(height: MileafSpace.s8),
-            Text(
-              '${totals.sessions} 次中 $known 次有费用',
-              style: type.body.copyWith(
-                color: colors.text,
-                fontWeight: MileafType.weightSemiBold,
+              const SizedBox(height: MileafSpace.s4),
+              MileafNumber(
+                value: cost,
+                color: cost == null
+                    ? null
+                    : MileafDataDomain.cost.strong(colors),
+                scale: MetricValueScale.metricLg,
               ),
-            ),
-            const SizedBox(height: MileafSpace.s4),
-            Text(
-              '充入均价 ${scope.currency.amountValue(rich.unitCostAdded.value)}/kWh',
-              style: type.body.copyWith(color: colors.textSecondary),
-            ),
-            if (costEnergy != null)
-              Padding(
-                padding: const EdgeInsets.only(top: MileafSpace.s4),
-                child: Text(
-                  '有费用的 $known 次共入电 $costEnergy',
-                  style: type.footnote.copyWith(color: colors.textMuted),
+              // R02：缺失主值「—」配明确口径，不用巨大符号充当主视觉。
+              if (!legacyStats && known == 0)
+                Text(
+                  '暂无已知费用',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
                 ),
-              ),
-          ] else
-            Padding(
-              padding: const EdgeInsets.only(top: MileafSpace.s8),
-              child: Text(
-                '旧版统计不含费用覆盖与配对均价口径。',
-                style: type.footnote.copyWith(color: colors.textSecondary),
-              ),
-            ),
-        ],
+              // CP03/CP09：币种未设置时数值不带符号，口径写在旁注。
+              if (note != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: MileafSpace.s4),
+                  child: Text(
+                    note,
+                    style: type.footnote.copyWith(color: colors.textSecondary),
+                  ),
+                ),
+              if (!legacyStats) ...[
+                const SizedBox(height: MileafSpace.s8),
+                Text(
+                  '${totals.sessions} 次中 $known 次有费用',
+                  style: type.body.copyWith(
+                    color: colors.text,
+                    fontWeight: MileafType.weightSemiBold,
+                  ),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text.rich(
+                  TextSpan(
+                    text: '充入均价 ',
+                    children: [
+                      TextSpan(
+                        text:
+                            '${scope.currency.amountValue(rich.unitCostAdded.value)}/kWh',
+                        style: rich.unitCostAdded.value == null
+                            ? null
+                            : TextStyle(
+                                color: MileafDataDomain.cost.strong(colors),
+                              ),
+                      ),
+                    ],
+                  ),
+                  style: type.body.copyWith(color: colors.textSecondary),
+                ),
+                if (costEnergy != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: MileafSpace.s4),
+                    child: Text(
+                      '有费用的 $known 次共入电 $costEnergy',
+                      style: type.footnote.copyWith(color: colors.textMuted),
+                    ),
+                  ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(top: MileafSpace.s8),
+                  child: Text(
+                    '旧版统计不含费用覆盖与配对均价口径。',
+                    style: type.footnote.copyWith(color: colors.textSecondary),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -630,8 +643,10 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
       return copy_dates.formatDay(scope.workspace.calendar!.local(t), today);
     }
 
+    // R24：同一区块内相邻卡片之间 cardInset（12）——结论卡是焦点卡，趋势图
+    // 是它的下一张卡，与 P10 续航、P08 能耗同构；区块之间才用 section。
     return Padding(
-      padding: const EdgeInsets.only(top: MileafSpace.section),
+      padding: const EdgeInsets.only(top: MileafSpace.cardInset),
       child: TimeSeriesChart(
         title: titles[metric],
         unit: units[metric],
@@ -780,23 +795,32 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           const SectionHeader(title: '充电方式'),
           const SizedBox(height: MileafSpace.s8),
           MileafModuleCard(
+            hue: MileafDataDomain.energy.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // CL01/CL02：AC / DC / 未知同属 energy，两段取同色相两档。
-                MileafCompositionBar(segments: rows, hue: MileafHue.aqua),
+                MileafCompositionBar(
+                  segments: rows,
+                  hue: MileafDataDomain.energy.hue,
+                ),
                 const SizedBox(height: MileafSpace.s12),
                 Wrap(
                   spacing: MileafSpace.s16,
                   runSpacing: MileafSpace.s4,
                   children: [
-                    for (final (label, value) in rows)
+                    for (final (index, (label, value)) in rows.indexed)
                       Text(
                         value == null
                             ? '$label —'
                             : '$label ${value.toStringAsFixed(2)} kWh',
                         style: type.footnote.copyWith(
-                          color: colors.textSecondary,
+                          color: value == null
+                              ? colors.textSecondary
+                              : colors.seriesColor(
+                                  index,
+                                  hue: MileafDataDomain.energy.hue,
+                                ),
                         ),
                       ),
                   ],
@@ -812,6 +836,7 @@ class _StatisticsChargingPageState extends State<StatisticsChargingPage>
           if (rich != null) ...[
             const SizedBox(height: MileafSpace.s8),
             MileafGroupCard(
+              hue: MileafDataDomain.dwell.hue,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

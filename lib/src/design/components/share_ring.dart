@@ -65,7 +65,7 @@ class MileafShareRing extends StatefulWidget {
   final double? size;
 
   /// CL01/CL02：分段色相。传了就按段序取**同色相两档**——第一段
-  /// `hue.solid`、第二段 `hue.strong`（CL02 明写的多段用法），第三段
+  /// `hue.solid`、第二段 `hue.secondarySeries`，第三段
   ///（「未知」）仍用调用方给的 [ShareRingSegment.color]，即中性色。
   ///
   /// 缺省时完全沿用 [ShareRingSegment.color]，与改造前像素等价。
@@ -196,7 +196,7 @@ class _MileafShareRingState extends State<MileafShareRing>
     if (hue == null) return segment.color;
     return switch (index) {
       0 => hue.solid(colors),
-      1 => hue.strong(colors),
+      1 => hue.secondarySeries(colors),
       _ => segment.color,
     };
   }
@@ -207,7 +207,7 @@ class _MileafShareRingState extends State<MileafShareRing>
     final value = widget.centerValue ?? '—';
     final unit = widget.centerValue == null ? null : widget.centerUnit;
     final valueStyle = type.metricMd.copyWith(color: colors.text);
-    final unitStyle = type.footnote.copyWith(color: colors.textFaint);
+    final unitStyle = type.footnote.copyWith(color: colors.textSecondary);
     final (valueWidth, valueHeight) = _measure(context, value, valueStyle);
     final (unitWidth, unitHeight) = unit == null
         ? (0.0, 0.0)

@@ -35,7 +35,7 @@ class SocIntervalBar extends StatelessWidget {
   final String beginLabel;
   final String endLabel;
 
-  /// CL01/CL02：区间带（数据图形）的语义色相。传了就取 `hue.solid`；缺省仍
+  /// 区间带在叠色轨道上使用文字级色相；缺省仍
   /// 走 `accent`，与改造前像素等价。填充不透明度与轨道中性色保持不变。
   final MileafHue? hue;
 
@@ -90,7 +90,7 @@ class SocIntervalBar extends StatelessWidget {
                             bottom: 0,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: hue?.solid(colors) ?? colors.accent,
+                                color: hue?.strong(colors) ?? colors.accent,
                                 borderRadius: MileafRadius.xsAll,
                               ),
                             ),

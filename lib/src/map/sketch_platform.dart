@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../design/semantic.dart';
 import 'geo.dart';
 import 'map_platform.dart';
 import 'map_scene.dart';
@@ -62,6 +63,7 @@ class RouteSketch extends StatelessWidget {
         ),
       );
     }
+    final route = MileafDataDomain.journey.solid(context.colors);
     return Semantics(
       label: '路线示意，${scene.pointCount} 个有效采样点',
       child: ExcludeSemantics(
@@ -70,8 +72,8 @@ class RouteSketch extends StatelessWidget {
           child: CustomPaint(
             painter: _SketchPainter(
               scene,
-              line: theme.colorScheme.primary,
-              start: theme.colorScheme.primary,
+              line: route,
+              start: route,
               end: theme.colorScheme.onSurface,
               selected: theme.colorScheme.tertiary,
               grid: theme.colorScheme.outlineVariant,

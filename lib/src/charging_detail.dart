@@ -324,10 +324,12 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
   };
 
   /// R24 模块卡：卡与卡之间 12 间距；P05 每张卡内边 16。
-  Widget _card(Widget child) => _inset(
+  Widget _card(Widget child, {MileafHue? hue, MileafHue? focusHue}) => _inset(
     Padding(
       padding: const EdgeInsets.only(bottom: MileafSpace.s12),
-      child: MileafModuleCard(child: child),
+      child: focusHue == null
+          ? MileafModuleCard(hue: hue, child: child)
+          : MileafModuleCard.focused(hue: focusHue, child: child),
     ),
   );
 
@@ -379,13 +381,20 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     );
   }
 
-  Widget _stateLine(dto.ChargingSessionDetail d) => Text(
+  Widget _stateLine(BuildContext context, dto.ChargingSessionDetail d) => Text(
     d.isActive ? '充电中，已充入 ${number(d.energyAddedKwh, 'kWh')}，结束后计入统计' : '已结束',
     style: context.type.footnote.copyWith(color: context.colors.textSecondary),
   );
 
   /// P05 电量卡：电量环 + 起始到结束 + 状态 + 类型标签，分隔线之下三格。
-  Widget _socCard(dto.ChargingSessionDetail d) {
+  Widget _socCard(dto.ChargingSessionDetail d) => _card(
+    Builder(builder: (context) => _socContent(context, d)),
+    focusHue: d.endSoc == null && d.energyAddedKwh == null
+        ? null
+        : MileafDataDomain.energy.hue,
+  );
+
+  Widget _socContent(BuildContext context, dto.ChargingSessionDetail d) {
     final colors = context.colors;
     final type = context.type;
     final large = MileafLayout.largeText(context);
@@ -401,87 +410,86 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           added: d.energyAddedKwh,
           used: d.energyUsedKwh,
         );
-    return _card(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (large) ...[
-            Text(
-              '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
-              style: type.metricMd.copyWith(color: colors.text),
-            ),
-            const SizedBox(height: MileafSpace.s8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _socArc(d, large: true),
-                const SizedBox(width: MileafSpace.s12),
-                Expanded(child: _stateLine(d)),
-                if (d.isDc != null) StatusChip(label: d.isDc! ? 'DC' : 'AC'),
-              ],
-            ),
-          ] else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _socArc(d, large: false),
-                const SizedBox(width: MileafSpace.s16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
-                        style: type.metricMd.copyWith(color: colors.text),
-                      ),
-                      const SizedBox(height: MileafSpace.s4),
-                      _stateLine(d),
-                    ],
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (large) ...[
+          Text(
+            '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
+            style: type.metricMd.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: MileafSpace.s8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _socArc(d, large: true),
+              const SizedBox(width: MileafSpace.s12),
+              Expanded(child: _stateLine(context, d)),
+              if (d.isDc != null) StatusChip(label: d.isDc! ? 'DC' : 'AC'),
+            ],
+          ),
+        ] else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _socArc(d, large: false),
+              const SizedBox(width: MileafSpace.s16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${d.startSoc ?? '—'}% → ${d.endSoc ?? '—'}%',
+                      style: type.metricMd.copyWith(color: colors.text),
+                    ),
+                    const SizedBox(height: MileafSpace.s4),
+                    _stateLine(context, d),
+                  ],
                 ),
-                if (d.isDc != null) StatusChip(label: d.isDc! ? 'DC' : 'AC'),
+              ),
+              if (d.isDc != null) StatusChip(label: d.isDc! ? 'DC' : 'AC'),
+            ],
+          ),
+        const SizedBox(height: MileafSpace.s12),
+        Container(height: 1, color: colors.line),
+        const SizedBox(height: MileafSpace.s12),
+        if (large)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final cell in _plates(context, d, fillable: fillable))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: MileafSpace.s8),
+                  child: cell,
+                ),
+            ],
+          )
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final (index, cell) in _plates(
+                context,
+                d,
+                fillable: fillable,
+              ).indexed) ...[
+                if (index > 0) const SizedBox(width: MileafSpace.s12),
+                Expanded(child: cell),
               ],
-            ),
-          const SizedBox(height: MileafSpace.s12),
-          Container(height: 1, color: colors.line),
-          const SizedBox(height: MileafSpace.s12),
-          if (large)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final cell in _plates(d, fillable: fillable))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: MileafSpace.s8),
-                    child: cell,
-                  ),
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final (index, cell) in _plates(
-                  d,
-                  fillable: fillable,
-                ).indexed) ...[
-                  if (index > 0) const SizedBox(width: MileafSpace.s12),
-                  Expanded(child: cell),
-                ],
-              ],
-            ),
-          if (widget.currency.amountNote case final note?) ...[
-            const SizedBox(height: MileafSpace.s8),
-            Text(note, style: type.footnote.copyWith(color: colors.textMuted)),
-          ],
+            ],
+          ),
+        if (widget.currency.amountNote case final note?) ...[
+          const SizedBox(height: MileafSpace.s8),
+          Text(note, style: type.footnote.copyWith(color: colors.textMuted)),
         ],
-      ),
+      ],
     );
   }
 
   Widget _socArc(dto.ChargingSessionDetail d, {required bool large}) =>
       BatteryArc(
-        // CL01：电量弧是 energy 域的数据图形（充入电量），取 solid。
         hue: MileafDataDomain.energy.hue,
+        onHero: d.endSoc != null || d.energyAddedKwh != null,
         level: d.endSoc,
         start: d.startSoc,
         label: '',
@@ -493,33 +501,42 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       );
 
   /// P05 / R21.5：三格同排，仅用 metricSm；大字时改成一列。
-  List<Widget> _plates(dto.ChargingSessionDetail d, {required bool fillable}) =>
-      [
-        MetricBlock(
-          label: '充入电量',
-          value: d.energyAddedKwh == null ? null : decimal(d.energyAddedKwh!),
-          unit: 'kWh',
-          scale: MetricValueScale.metricSm,
-          hue: MileafDataDomain.energy.hue,
-        ),
-        _costCell(d, fillable: fillable),
-        MetricBlock(
-          label: '时长',
-          value: d.durationMin == null
-              ? null
-              : copy.duration(Duration(minutes: d.durationMin!.round())),
-          scale: MetricValueScale.metricSm,
-        ),
-      ];
+  List<Widget> _plates(
+    BuildContext context,
+    dto.ChargingSessionDetail d, {
+    required bool fillable,
+  }) => [
+    MetricBlock(
+      label: '充入电量',
+      value: d.energyAddedKwh == null ? null : decimal(d.energyAddedKwh!),
+      unit: 'kWh',
+      scale: MetricValueScale.metricSm,
+    ),
+    _costCell(context, d, fillable: fillable),
+    MetricBlock(
+      label: '时长',
+      value: d.durationMin == null
+          ? null
+          : copy.duration(Duration(minutes: d.durationMin!.round())),
+      scale: MetricValueScale.metricSm,
+    ),
+  ];
 
-  Widget _costCell(dto.ChargingSessionDetail d, {required bool fillable}) {
+  Widget _costCell(
+    BuildContext context,
+    dto.ChargingSessionDetail d, {
+    required bool fillable,
+  }) {
     final colors = context.colors;
     final type = context.type;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('费用', style: type.subheadline.copyWith(color: colors.textFaint)),
+        Text(
+          '费用',
+          style: type.subheadline.copyWith(color: colors.textSecondary),
+        ),
         const SizedBox(height: MileafSpace.s4),
         if (fillable)
           Align(
@@ -537,11 +554,10 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
             excludeSemantics: true,
             child: MileafNumber(
               value: widget.currency.amountValue(d.cost),
-              scale: MetricValueScale.metricSm,
-              // CL01/CL08：已记录费用取 cost 的文字级色；缺失保持中性 —。
               color: d.cost == null
                   ? null
                   : MileafDataDomain.cost.strong(colors),
+              scale: MetricValueScale.metricSm,
             ),
           ),
       ],
@@ -618,6 +634,9 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       _ => extra?.$3 ?? power,
     };
     return _card(
+      hue: values.any((value) => value != null)
+          ? MileafDataDomain.energy.hue
+          : null,
       TimeSeriesChart(
         // CL01/CL12：功率曲线属 energy 域；整张图只用一个色相，参照仍中性。
         hue: MileafDataDomain.energy.hue,
@@ -694,6 +713,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     required String title,
     required List<Widget> rows,
     String? footnote,
+    MileafHue? hue,
     EdgeInsetsGeometry padding = const EdgeInsets.only(bottom: MileafSpace.s16),
   }) => _inset(
     Padding(
@@ -704,6 +724,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
           MileafGroupHeader(title: title),
           const SizedBox(height: MileafSpace.s8),
           MileafGroupCard(
+            hue: hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -736,6 +757,7 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
     required String title,
     String? value,
     bool bottomLine = false,
+    MileafHue? readoutHue,
   }) {
     final large = MileafLayout.largeText(context);
     return MileafGroupRow(
@@ -743,11 +765,15 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
       value: large ? null : value,
       meta: large ? value : null,
       bottomLine: bottomLine,
+      readoutHue: readoutHue,
     );
   }
 
   Widget _energyCard(dto.ChargingSessionDetail d) => _group(
     title: '电量计量',
+    hue: d.energyAddedKwh == null && d.energyUsedKwh == null
+        ? null
+        : MileafDataDomain.energy.hue,
     rows: [
       _factRow(title: '充入电池', value: number(d.energyAddedKwh, 'kWh')),
       _factRow(
@@ -763,20 +789,29 @@ class _ChargingDetailPageState extends State<ChargingDetailPage>
 
   Widget _costCard(dto.ChargingSessionDetail d) {
     final extra = expandedDetail!;
+    final cost = d.cost;
+    final added = extra.unitCostAdded?.value;
+    final grid = extra.unitCostGrid?.value;
+    final hue = MileafDataDomain.cost.hue;
     return _group(
       title: '费用明细',
+      hue: cost == null && added == null && grid == null ? null : hue,
       rows: [
-        _factRow(title: '已记录费用', value: widget.currency.amountValue(d.cost)),
+        _factRow(
+          title: '已记录费用',
+          value: widget.currency.amountValue(cost),
+          readoutHue: cost == null ? null : hue,
+        ),
         _factRow(
           title: '每度充入电',
-          value:
-              '${widget.currency.amountValue(extra.unitCostAdded?.value)}/kWh',
+          value: '${widget.currency.amountValue(added)}/kWh',
+          readoutHue: added == null ? null : hue,
         ),
         _factRow(
           title: '每度电网用电',
-          value:
-              '${widget.currency.amountValue(extra.unitCostGrid?.value)}/kWh',
+          value: '${widget.currency.amountValue(grid)}/kWh',
           bottomLine: true,
+          readoutHue: grid == null ? null : hue,
         ),
       ],
       footnote: '均价按对应电量计，仅含有费用的充电；费用未知不代表免费。',

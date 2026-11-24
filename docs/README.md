@@ -7,7 +7,7 @@
 | 你想做什么 | 从哪开始 |
 | --- | --- |
 | 了解产品做什么、给谁 | [product/product-brief.md](product/product-brief.md) → [product/mobile-experience.md](product/mobile-experience.md) |
-| 知道某个决定为什么这么定 | [adr/README.md](adr/README.md)（ADR 0001–0016） |
+| 知道某个决定为什么这么定 | [adr/README.md](adr/README.md)（ADR 0001–0021） |
 | 查验收条款（R/P/S/G、CL、MG、L…） | [specs/](specs/)（下表按主题分组） |
 | 看某个切片改了什么、怎么验的 | [implementation/README.md](implementation/README.md) |
 | 跑构建、跑测试、装真机包 | [implementation/toolchain.md](implementation/toolchain.md)、[implementation/build-directory.md](implementation/build-directory.md) |
@@ -39,6 +39,7 @@
 | Apple 质感精修 + 文案规范 | [apple-polish.md](specs/apple-polish.md)、[copy](specs/apple-polish-copy.md) | [tickets](specs/apple-polish-tickets.md) | [delivery](specs/apple-polish-delivery.md) |
 | 理念迁移（Days Matter → 行笺） | [days-matter-migration.md](specs/days-matter-migration.md) | [tickets](specs/days-matter-migration-tickets.md) | — |
 | **色彩与图标秩序（当前）** | [chromatic-language.md](specs/chromatic-language.md) | [tickets](specs/chromatic-language-tickets.md) | — |
+| 全量视觉优化（配色与控件玻璃已落地） | [visual-hierarchy.md](specs/visual-hierarchy.md) | [分包与提示词](specs/visual-hierarchy-tickets.md) | [实施核验](implementation/visual-hierarchy-plan.md) |
 | 液态玻璃底栏（L01–L12） | [liquid-glass-navigation.md](specs/liquid-glass-navigation.md) | — | — |
 | 充电「我的补能方式」构成环 | [charging-method-share-ring.md](specs/charging-method-share-ring.md) | [tickets](specs/charging-method-share-ring-tickets.md) | — |
 | 缺失充电费用补录 | [missing-charging-cost-entry.md](specs/missing-charging-cost-entry.md) | [tickets](specs/missing-charging-cost-entry-tickets.md) | — |
@@ -63,7 +64,7 @@
 
 ## 5 现状与验收口径
 
-- **当前一代视觉**：ADR 0016 色彩与图标秩序（`lib/src/design/`），上一轮 ADR 0015 理念迁移。
+- **当前一代视觉**：[ADR 0021](adr/0021-sky-mint-palette.md) 的天蓝与薄荷配色与 [ADR 0019](adr/0019-content-surfaces.md) 的色面层级、玻璃规则，继承 ADR 0016 的图标秩序。页面与验收按 [VH 票据](specs/visual-hierarchy-tickets.md#5-天蓝与薄荷实施会话)登记。
 - **图册**：当前一代与上一代的取舍见 [implementation/render-archive.md](implementation/render-archive.md)；各切片的图册入口在 [implementation/README.md](implementation/README.md)。
 - **外部 gate 未关闭**：真机与真实站点（#17）、真实底图（#11）、设备性能（#16）。构建成功、本地渲染、自动化通过都不替代这些证据。
 

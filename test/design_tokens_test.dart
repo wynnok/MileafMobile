@@ -58,34 +58,32 @@ void main() {
   group('Spec §3 对比度', () {
     test('深色语义色', () {
       const c = MileafColors.dark();
-      _expectContrast('text/canvas', c.text, c.canvas, 17.87);
-      _expectContrast('muted/canvas', c.textMuted, c.canvas, 7.87);
-      _expectContrast('faint/canvas', c.textFaint, c.canvas, 5.59);
-      // Dark merges graphic and text accents: #64A8FF is 8.05:1 on canvas.
-      _expectContrast('accent/canvas', c.accent, c.canvas, 8.05, minimum: 3);
-      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 8.05);
-      _expectContrast('reference/canvas', c.reference, c.canvas, 6.80);
-      _expectContrast('warning/canvas', c.warning, c.canvas, 10.77);
-      _expectContrast('error/canvas', c.error, c.canvas, 7.75);
-      _expectContrast('textOnAccent/accent', c.textOnAccent, c.accent, 8.05);
+      _expectContrast('text/canvas', c.text, c.canvas, 16.99);
+      _expectContrast('muted/canvas', c.textMuted, c.canvas, 10.46);
+      _expectContrast('faint/canvas', c.textFaint, c.canvas, 7.17);
+      _expectContrast('accent/canvas', c.accent, c.canvas, 11.78, minimum: 3);
+      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 11.78);
+      _expectContrast('reference/canvas', c.reference, c.canvas, 6.47);
+      _expectContrast('warning/canvas', c.warning, c.canvas, 10.24);
+      _expectContrast('error/canvas', c.error, c.canvas, 7.37);
+      _expectContrast('textOnAccent/accent', c.textOnAccent, c.accent, 12.39);
     });
 
     test('浅色语义色', () {
       const c = MileafColors.light();
-      _expectContrast('text/canvas', c.text, c.canvas, 17.10);
-      _expectContrast('muted/canvas', c.textMuted, c.canvas, 5.38);
-      _expectContrast('faint/canvas', c.textFaint, c.canvas, 4.65);
-      // The graphic accent is allowed below AA for text: it is a 3:1 mark.
-      _expectContrast('accent/canvas', c.accent, c.canvas, 3.25, minimum: 3);
-      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 5.41);
-      _expectContrast('reference/canvas', c.reference, c.canvas, 4.99);
-      _expectContrast('warning/canvas', c.warning, c.canvas, 4.60);
-      _expectContrast('error/canvas', c.error, c.canvas, 4.90);
+      _expectContrast('text/canvas', c.text, c.canvas, 17.17);
+      _expectContrast('muted/canvas', c.textMuted, c.canvas, 5.98);
+      _expectContrast('faint/canvas', c.textFaint, c.canvas, 5.26);
+      _expectContrast('accent/canvas', c.accent, c.canvas, 4.62, minimum: 3);
+      _expectContrast('accentStrong/canvas', c.accentStrong, c.canvas, 7.21);
+      _expectContrast('reference/canvas', c.reference, c.canvas, 5.01);
+      _expectContrast('warning/canvas', c.warning, c.canvas, 4.62);
+      _expectContrast('error/canvas', c.error, c.canvas, 4.92);
       _expectContrast(
         'textOnAccent/accentStrong',
         c.textOnAccent,
         c.accentStrong,
-        5.90,
+        7.83,
       );
     });
 
@@ -306,14 +304,14 @@ void main() {
       const dark = MileafColors.dark();
       const light = MileafColors.light();
       expect(dark.hero, MileafPalette.slate900);
-      expect(dark.canvas, MileafPalette.slate950);
+      expect(dark.canvas, MileafPalette.canvasDark);
       expect(light.hero, MileafPalette.paper0);
-      expect(light.canvas, MileafPalette.paper50);
+      expect(light.canvas, MileafPalette.canvasLight);
       expect(light.surface, MileafPalette.paper0);
-      expect(light.accent, MileafPalette.azure500);
-      expect(light.accentStrong, MileafPalette.azure600);
-      expect(light.accentHero, MileafPalette.azure500);
-      expect(dark.accent, MileafPalette.azure300);
+      expect(light.accent, MileafPalette.brand);
+      expect(light.accentStrong, MileafPalette.brandStrongLight);
+      expect(light.accentHero, MileafPalette.brand);
+      expect(dark.accent, MileafPalette.brandForegroundDark);
       // Dark merges the two accent strengths by design (Spec §1 R3).
       expect(dark.accentStrong, dark.accent);
     });

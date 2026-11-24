@@ -187,13 +187,13 @@ void main() {
     );
     // 2026-11-18 修订：玻璃变薄后未选目的地改用底栏专属的 navigationLabel
     // （浅 #3A444E / 深 #C9D3DD），页面次级灰 textMuted 在透出的内容上不足
-    // 4.5:1；选中图标也随文字改用 accentStrong（accent 在亮镜片上只剩 3.0）。
+    // 4.5:1；选中图标和文字沿用底栏前景（accent 在亮镜片上只剩 3.0）。
     expect(inactive.style?.color, colors.navigationLabel);
     expect(colors.navigationLabel, isNot(colors.textMuted));
     final active = tester.widget<Text>(
       find.descendant(of: find.byType(MileafNavBar), matching: find.text('概览')),
     );
-    expect(active.style?.color, colors.accentStrong);
+    expect(active.style?.color, colors.navigationActive);
   });
 
   testWidgets('L04 高透仍可读：标签 ≥4.5、图标 ≥3（token 合成）', (tester) async {
@@ -218,13 +218,13 @@ void main() {
           reason: '未选标签 $where',
         );
         expect(
-          contrastRatio(colors.accentStrong, lens),
+          contrastRatio(colors.navigationActive, lens),
           greaterThanOrEqualTo(4.5),
           reason: '选中标签 $where',
         );
         // 选中图形与选中文字同色（L03/L12），文字下限更严，图形下限随之满足。
         expect(
-          contrastRatio(colors.accentStrong, lens),
+          contrastRatio(colors.navigationActive, lens),
           greaterThanOrEqualTo(3),
           reason: '选中图标 $where',
         );
@@ -495,7 +495,7 @@ void main() {
     expect(iconColors, hasLength(bar.items.length));
     expect(
       iconColors[bar.index].color,
-      colors.accentStrong,
+      colors.navigationActive,
       reason: '亮镜片上的选中图形要与文字同强度（accent 只剩 3.0:1）',
     );
     for (var i = 0; i < iconColors.length; i++) {

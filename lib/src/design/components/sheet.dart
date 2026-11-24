@@ -7,6 +7,7 @@ import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 import 'button.dart' show MileafControlMetrics;
+import 'glass_surface.dart';
 import 'icon_button.dart';
 
 /// R28 弹层样式。
@@ -36,11 +37,19 @@ Future<T?> showMileafSheet<T>({
     MileafDurations.sheetOut,
   );
   final previousFocus = FocusManager.instance.primaryFocus;
+  final colors = context.colors;
   final result = showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
     showDragHandle: false,
-    // R28：弹层正文不透明（surfaceRaised）；浮动样式由框架自己画带外边距的卡。
+    barrierColor: style == MileafSheetStyle.floating
+        ? colors.scrim.withValues(
+            alpha: colors.isDark
+                ? MileafMaterialMetrics.floatingSheetScrimDark
+                : MileafMaterialMetrics.floatingSheetScrimLight,
+          )
+        : null,
+    // 表单使用实色；浮动选择器由框架绘制有界玻璃。
     backgroundColor: style == null
         ? null
         : style == MileafSheetStyle.floating
@@ -173,19 +182,23 @@ class MileafSheetFrame extends StatelessWidget {
               floating ? inset : 0,
               floating ? inset : 0,
             ),
-            child: DecoratedBox(
-              key: const ValueKey('sheet-surface'),
-              decoration: BoxDecoration(
-                color: style == null ? null : colors.surfaceRaised,
-                borderRadius: floating
-                    ? BorderRadius.circular(MileafRadius.sheet)
-                    : const BorderRadius.vertical(
-                        top: Radius.circular(MileafRadius.sheet),
-                      ),
-                boxShadow: floating ? colors.sheetShadow : null,
-              ),
-              child: content,
-            ),
+            child: floating
+                ? MileafGlassSurface.control(
+                    key: const ValueKey('sheet-surface'),
+                    borderRadius: BorderRadius.circular(MileafRadius.sheet),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: content,
+                    ),
+                  )
+                : DecoratedBox(
+                    key: const ValueKey('sheet-surface'),
+                    decoration: BoxDecoration(
+                      color: style == null ? null : colors.surfaceRaised,
+                      borderRadius: MileafRadius.sheetTop,
+                    ),
+                    child: content,
+                  ),
           ),
         ),
       ),

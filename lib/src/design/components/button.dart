@@ -6,6 +6,7 @@ import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'glass_surface.dart';
 
 /// R27/R28 控件几何：分段、按钮、图标圆钮、小胶囊、菜单与浮动弹层的固定尺寸。
 ///
@@ -150,7 +151,7 @@ abstract final class MileafActionIcon {
 
 enum MileafButtonKind { primary, secondary, ghost }
 
-/// R27 按钮：主按钮 50 高胶囊（accentStrong 填充、headline 文字）；次按钮 50 高
+/// R27 按钮：主按钮 50 高胶囊（primaryAction 填充、headline 文字）；次按钮 50 高
 /// 胶囊（accentSoft 填充、accentStrong control 文字）；文字按钮 accentStrong
 /// body 400。处理中保留文字并在尾部加平台活动指示器，宽度不跳。
 class MileafButton extends StatefulWidget {
@@ -198,8 +199,8 @@ class _MileafButtonState extends State<MileafButton> {
     final errorText = destructive && kind != MileafButtonKind.primary;
     final (background, foreground, border) = switch (kind) {
       MileafButtonKind.primary => (
-        enabled || loading ? colors.accentStrong : colors.line,
-        enabled || loading ? colors.textOnAccent : colors.textFaint,
+        enabled || loading ? colors.primaryAction : colors.line,
+        enabled || loading ? colors.onPrimaryAction : colors.textFaint,
         null,
       ),
       MileafButtonKind.secondary => (
@@ -221,11 +222,10 @@ class _MileafButtonState extends State<MileafButton> {
         null,
       ),
     };
-    // §7.2 / M01：主按钮与文字按钮的按压是强调动作；次按钮已用 accentSoft 填充，
-    // 覆盖层改中性 pressOverlay，否则按下看不出变化。
-    final highlight = kind == MileafButtonKind.secondary
-        ? colors.pressOverlay
-        : colors.accentSoft;
+    // §7.2 / M01：有填色的按钮使用中性覆盖层，文字按钮使用品牌叠色。
+    final highlight = kind == MileafButtonKind.ghost
+        ? colors.accentSoft
+        : colors.pressOverlay;
     final textStyle = switch (kind) {
       // R27：主按钮文字 headline；次按钮 control；文字按钮 body 400。
       MileafButtonKind.primary => type.headline,
@@ -260,6 +260,52 @@ class _MileafButtonState extends State<MileafButton> {
       ],
     );
     final radius = BorderRadius.circular(MileafRadius.full);
+    final secondary = kind == MileafButtonKind.secondary;
+    final button = Material(
+      color: secondary ? Colors.transparent : background,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: enabled ? onPressed : null,
+        onHighlightChanged: enabled
+            ? (value) => setState(() => _pressed = value)
+            : null,
+        borderRadius: radius,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight: kind == MileafButtonKind.ghost
+                ? MileafLayout.touchTarget(context)
+                : MileafControlMetrics.buttonHeight,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s16),
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(
+              color: _focused
+                  ? kind == MileafButtonKind.primary
+                        ? colors.onPrimaryAction
+                        : colors.focusRing
+                  : border ?? Colors.transparent,
+              width: _focused ? 2 : 1,
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              child,
+              Positioned.fill(
+                child: MileafPressOverlay(
+                  visible: _pressed,
+                  color: highlight,
+                  borderRadius: radius,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     return Semantics(
       button: true,
       enabled: enabled,
@@ -273,53 +319,13 @@ class _MileafButtonState extends State<MileafButton> {
         curve: MileafCurves.press,
         child: Focus(
           onFocusChange: (value) => setState(() => _focused = value),
-          child: Material(
-            color: background,
-            borderRadius: radius,
-            child: InkWell(
-              onTap: enabled ? onPressed : null,
-              onHighlightChanged: enabled
-                  ? (value) => setState(() => _pressed = value)
-                  : null,
-              borderRadius: radius,
-              highlightColor: Colors.transparent,
-              splashColor: Colors.transparent,
-              child: Container(
-                constraints: BoxConstraints(
-                  minHeight: kind == MileafButtonKind.ghost
-                      ? MileafLayout.touchTarget(context)
-                      : MileafControlMetrics.buttonHeight,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: MileafSpace.s16,
-                ),
-                decoration: BoxDecoration(
+          child: secondary
+              ? MileafGlassSurface.tinted(
+                  color: Color.alphaBlend(background, colors.cardSurface()),
                   borderRadius: radius,
-                  border: Border.all(
-                    color: _focused
-                        ? kind == MileafButtonKind.primary
-                              ? colors.textOnAccent
-                              : colors.focusRing
-                        : border ?? Colors.transparent,
-                    width: _focused ? 2 : 1,
-                  ),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    child,
-                    Positioned.fill(
-                      child: MileafPressOverlay(
-                        visible: _pressed,
-                        color: highlight,
-                        borderRadius: radius,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+                  child: button,
+                )
+              : button,
         ),
       ),
     );

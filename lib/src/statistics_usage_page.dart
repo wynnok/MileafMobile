@@ -326,11 +326,20 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
           message: '站点未声明用车节奏分析能力。',
         )
       else if (d != null) ...[
+        // R24 页面节奏：区块之间 section（32），同一区块内相邻卡之间 cardInset
+        // （12）。本页每个后续节都自带区块标题（每日里程 / 样本明细 / 短途中途
+        // 长途 / 一周的用车节奏 / 关于这些数据），所以这里统一给 32——漏掉的话
+        // 标题会直接贴在上一张卡的底边上。
         _conclusion(d),
+        const SizedBox(height: MileafSpace.section),
         _calendarSection(),
+        const SizedBox(height: MileafSpace.section),
         _factsSection(d),
+        const SizedBox(height: MileafSpace.section),
         _distanceSection(d),
+        const SizedBox(height: MileafSpace.section),
         _weekdaySection(d),
+        const SizedBox(height: MileafSpace.section),
         _dataNotes(d),
       ] else if (calendar != null)
         _calendarSection()
@@ -418,50 +427,56 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
 
   /// P07 结论卡：主值 metricLg、一句上下文与必要限定。
   Widget _conclusion(Map<String, dynamic> d) {
-    final colors = context.colors;
-    final type = context.type;
     final activeDays = d['active_days'];
     final partial = d['partial_today'] == true;
-    return MileafModuleCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text.rich(
-            TextSpan(
-              children: [
+    return MileafModuleCard.focused(
+      hue: activeDays == null ? null : MileafDataDomain.dwell.hue,
+      child: Builder(
+        builder: (context) {
+          final colors = context.colors;
+          final type = context.type;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text.rich(
                 TextSpan(
-                  text: '用车 ',
-                  style: type.body.copyWith(color: colors.textSecondary),
+                  children: [
+                    TextSpan(
+                      text: '用车 ',
+                      style: type.body.copyWith(color: colors.textSecondary),
+                    ),
+                    TextSpan(
+                      text: activeDays == null ? '—' : usageValue(activeDays),
+                      style:
+                          (activeDays == null ? type.metricMd : type.metricLg)
+                              .copyWith(color: colors.text),
+                    ),
+                    TextSpan(
+                      text: ' 天',
+                      style: type.body.copyWith(color: colors.textSecondary),
+                    ),
+                  ],
                 ),
-                TextSpan(
-                  text: activeDays == null ? '—' : usageValue(activeDays),
-                  style: (activeDays == null ? type.metricMd : type.metricLg)
-                      .copyWith(color: colors.text),
+              ),
+              const SizedBox(height: MileafSpace.s4),
+              Text(
+                '共 ${usageValue(d['driving_distance_km'])} km，'
+                '平均每个用车日 ${usageValue(d['distance_per_active_day_km'])} km',
+                style: type.subheadline.copyWith(color: colors.textSecondary),
+              ),
+              if (activeDays == null)
+                Text(
+                  '暂无活跃天数',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
                 ),
-                TextSpan(
-                  text: ' 天',
-                  style: type.body.copyWith(color: colors.textSecondary),
+              if (partial)
+                Text(
+                  '今天尚未结束',
+                  style: type.footnote.copyWith(color: colors.textSecondary),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: MileafSpace.s4),
-          Text(
-            '共 ${usageValue(d['driving_distance_km'])} km，'
-            '平均每个用车日 ${usageValue(d['distance_per_active_day_km'])} km',
-            style: type.subheadline.copyWith(color: colors.textSecondary),
-          ),
-          if (activeDays == null)
-            Text(
-              '暂无活跃天数',
-              style: type.footnote.copyWith(color: colors.textSecondary),
-            ),
-          if (partial)
-            Text(
-              '今天尚未结束',
-              style: type.footnote.copyWith(color: colors.textSecondary),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -524,6 +539,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
           // 日历卡不用默认内边，图例与脚注单独给 16。不裁剪：模块卡的
           // 圆角裁剪会把首末格的外侧角变成点击死区（u09a 四角命中）。
           MileafGroupCard(
+            hue: MileafDataDomain.journey.hue,
             padding: EdgeInsets.zero,
             clip: false,
             child: LayoutBuilder(
@@ -778,6 +794,7 @@ class _StatisticsUsagePageState extends State<StatisticsUsagePage> {
         const SectionHeader(title: '短途、中途与长途'),
         const SizedBox(height: MileafSpace.s8),
         MileafGroupCard(
+          hue: MileafDataDomain.journey.hue,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

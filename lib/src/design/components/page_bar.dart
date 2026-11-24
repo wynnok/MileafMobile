@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../icons.dart';
 import '../layout.dart';
+import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'glass_surface.dart';
 import 'icon_button.dart';
 import 'navigation_material.dart';
 
@@ -248,9 +250,13 @@ class _MoreMenuButtonState extends State<_MoreMenuButton> {
     final box = _anchorKey.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
     final anchor = box.localToGlobal(Offset.zero) & box.size;
-    final selected = await Navigator.of(
-      context,
-    ).push<String>(_MileafMenuRoute(anchor: anchor, entries: widget.entries));
+    final selected = await Navigator.of(context).push<String>(
+      _MileafMenuRoute(
+        anchor: anchor,
+        entries: widget.entries,
+        reduceMotion: MileafLayout.reduceMotion(context),
+      ),
+    );
     if (selected == null || !mounted) return;
     for (final entry in widget.entries) {
       if (entry.label == selected) entry.onSelected();
@@ -267,10 +273,15 @@ class _MoreMenuButtonState extends State<_MoreMenuButton> {
 }
 
 class _MileafMenuRoute extends PopupRoute<String> {
-  _MileafMenuRoute({required this.anchor, required this.entries});
+  _MileafMenuRoute({
+    required this.anchor,
+    required this.entries,
+    required this.reduceMotion,
+  });
 
   final Rect anchor;
   final List<MileafNavigationMenuEntry> entries;
+  final bool reduceMotion;
 
   @override
   Color? get barrierColor => null;
@@ -283,10 +294,12 @@ class _MileafMenuRoute extends PopupRoute<String> {
 
   // M05：弹层/菜单进入 280ms、退出 220ms。
   @override
-  Duration get transitionDuration => MileafDurations.sheetIn;
+  Duration get transitionDuration =>
+      reduceMotion ? Duration.zero : MileafDurations.sheetIn;
 
   @override
-  Duration get reverseTransitionDuration => MileafDurations.sheetOut;
+  Duration get reverseTransitionDuration =>
+      reduceMotion ? Duration.zero : MileafDurations.sheetOut;
 
   @override
   Widget buildPage(
@@ -306,8 +319,11 @@ class _MileafMenuRoute extends PopupRoute<String> {
     Widget child,
   ) {
     // 减少动效时 M05 的时长归零：直接给出终态。
-    if (MileafLayout.reduceMotion(context)) return child;
-    return FadeTransition(opacity: animation, child: child);
+    if (reduceMotion) return child;
+    return FadeTransition(
+      opacity: animation.drive(CurveTween(curve: MileafCurves.sheet)),
+      child: child,
+    );
   }
 }
 
@@ -353,16 +369,13 @@ class _MileafMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final radius = BorderRadius.circular(_menuRadius);
-    return Material(
-      type: MaterialType.transparency,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceRaised,
-          borderRadius: radius,
-          boxShadow: colors.sheetShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: radius,
+    return MileafGlassSurface.control(
+      borderRadius: radius,
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -374,7 +387,9 @@ class _MileafMenuCard extends StatelessWidget {
                     onTap: () => Navigator.of(context).pop(entry.label),
                     highlightColor: colors.pressOverlay,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 44),
+                      constraints: BoxConstraints(
+                        minHeight: MileafLayout.touchTarget(context),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: MileafSpace.s16,
@@ -445,6 +460,7 @@ class _SecondaryChromeState extends State<_SecondaryChrome> {
       children: [
         Expanded(
           child: NavigationMaterial(
+            style: NavigationMaterialStyle.chrome,
             borderRadius: BorderRadius.zero,
             forceSolid: !_scrolledUnder,
             solidColor: colors.canvas,

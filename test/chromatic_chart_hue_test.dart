@@ -86,11 +86,11 @@ void main() {
     testWidgets('hue = energy：弧取 hue.solid，轨道不变', (tester) async {
       await pumpComponent(
         tester,
-        const BatteryArc(level: 68, hue: MileafHue.aqua),
+        const BatteryArc(level: 68, hue: MileafHue.mint),
       );
       final (arc, track) = _arcColors(tester);
-      expect(arc, MileafHue.aqua.solid(light));
-      expect(arc, MileafHueRamp.aquaSolidLight);
+      expect(arc, MileafHue.mint.solid(light));
+      expect(arc, const Color(0xFF23715D));
       expect(
         track,
         light.accent.withValues(alpha: MileafBatteryMetrics.trackOpacity),
@@ -101,10 +101,10 @@ void main() {
     testWidgets('hue 在深色取深色档', (tester) async {
       await pumpComponent(
         tester,
-        const BatteryArc(level: 68, hue: MileafHue.aqua),
+        const BatteryArc(level: 68, hue: MileafHue.mint),
         brightness: Brightness.dark,
       );
-      expect(_arcColors(tester).$1, MileafHueRamp.aquaDark);
+      expect(_arcColors(tester).$1, const Color(0xFFA0EDD0));
     });
   });
 
@@ -129,22 +129,22 @@ void main() {
       ]);
     });
 
-    testWidgets('hue = energy：主段 solid、次段 strong、未知段中性', (tester) async {
+    testWidgets('hue = energy：主段 solid、次段使用系列副色、未知段中性', (tester) async {
       await pumpComponent(
         tester,
         const MileafShareRing(
           segments: segments,
           centerValue: '70',
           centerLabel: 'AC',
-          hue: MileafHue.aqua,
+          hue: MileafHue.mint,
         ),
       );
       expect(_ringColors(tester), [
-        MileafHue.aqua.solid(light),
-        MileafHue.aqua.strong(light),
+        MileafHue.mint.solid(light),
+        MileafHue.mint.secondarySeries(light),
         segments[2].color,
       ]);
-      expect(MileafHue.aqua.strong(light), MileafHueRamp.aquaStrongLight);
+      expect(MileafHue.mint.secondarySeries(light), const Color(0xFF194C3F));
     });
 
     testWidgets('hue 在深色只有一档（solid = strong）', (tester) async {
@@ -153,13 +153,13 @@ void main() {
         const MileafShareRing(
           segments: segments,
           centerValue: '70',
-          hue: MileafHue.aqua,
+          hue: MileafHue.mint,
         ),
         brightness: Brightness.dark,
       );
       expect(_ringColors(tester), [
-        MileafHueRamp.aquaDark,
-        MileafHueRamp.aquaDark,
+        const Color(0xFFA0EDD0),
+        const Color(0xFF62B59D),
         segments[2].color,
       ]);
     });
@@ -183,28 +183,28 @@ void main() {
     testWidgets('hue = energy：柱取 hue.solid 与 hue.strong，未知仍中性', (tester) async {
       await pumpComponent(
         tester,
-        const MileafCategoryBars(values: values, hue: MileafHue.aqua),
+        const MileafCategoryBars(values: values, hue: MileafHue.mint),
       );
       expect(_decorationColors(tester, MileafCategoryBars), [
         light.line,
-        MileafHue.aqua.solid(light),
+        MileafHue.mint.solid(light),
         light.line,
-        MileafHue.aqua.strong(light),
+        MileafHue.mint.secondarySeries(light),
         light.line,
         light.seriesNeutral,
       ]);
     });
 
-    testWidgets('hue = journey（azure）与缺省取色一致', (tester) async {
+    testWidgets('hue = journey：图表使用行程天蓝', (tester) async {
       await pumpComponent(
         tester,
-        const MileafCategoryBars(values: values, hue: MileafHue.azure),
+        const MileafCategoryBars(values: values, hue: MileafHue.sky),
       );
       expect(_decorationColors(tester, MileafCategoryBars), [
         light.line,
-        light.seriesPrimary,
+        MileafHue.sky.solid(light),
         light.line,
-        light.seriesSecondary,
+        MileafHue.sky.secondarySeries(light),
         light.line,
         light.seriesNeutral,
       ]);
@@ -236,14 +236,14 @@ void main() {
       ]);
     });
 
-    testWidgets('hue = energy：主段 solid、次段 strong', (tester) async {
+    testWidgets('hue = energy：主段 solid、次段使用系列副色', (tester) async {
       await pumpComponent(
         tester,
-        const MileafCompositionBar(segments: segments, hue: MileafHue.aqua),
+        const MileafCompositionBar(segments: segments, hue: MileafHue.mint),
       );
       expect(colors(tester), [
-        MileafHue.aqua.solid(light),
-        MileafHue.aqua.strong(light),
+        MileafHue.mint.solid(light),
+        MileafHue.mint.secondarySeries(light),
         light.seriesNeutral,
       ]);
     });
@@ -251,14 +251,26 @@ void main() {
     testWidgets('hue 在深色取深色档', (tester) async {
       await pumpComponent(
         tester,
-        const MileafCompositionBar(segments: segments, hue: MileafHue.aqua),
+        const MileafCompositionBar(segments: segments, hue: MileafHue.mint),
         brightness: Brightness.dark,
       );
       expect(colors(tester), [
-        MileafHueRamp.aquaDark,
-        MileafHueRamp.aquaDark,
+        const Color(0xFFA0EDD0),
+        const Color(0xFF62B59D),
         dark.seriesNeutral,
       ]);
+    });
+
+    testWidgets('AC 缺失时 DC 和未知保留各自的图例档位', (tester) async {
+      await pumpComponent(
+        tester,
+        const MileafCompositionBar(
+          segments: [('AC', null), ('DC', 20), ('未知', 10)],
+          hue: MileafHue.mint,
+        ),
+        brightness: Brightness.dark,
+      );
+      expect(colors(tester), [const Color(0xFF62B59D), dark.seriesNeutral]);
     });
   });
 
@@ -269,25 +281,25 @@ void main() {
       expect(colors, [light.lineStrong, light.accent]);
     });
 
-    testWidgets('hue = energy：区间带取 hue.solid，轨道与透明度不变', (tester) async {
+    testWidgets('hue = energy：区间带在轨道上使用有对比余量的 strong', (tester) async {
       await pumpComponent(
         tester,
-        const SocIntervalBar(start: 18, end: 82, hue: MileafHue.aqua),
+        const SocIntervalBar(start: 18, end: 82, hue: MileafHue.mint),
       );
       final colors = _decorationColors(tester, SocIntervalBar);
-      expect(colors, [light.lineStrong, MileafHue.aqua.solid(light)]);
+      expect(colors, [light.lineStrong, MileafHue.mint.strong(light)]);
       expect(colors.last.a, 1.0, reason: '区间带填充不透明度保持现状');
     });
 
     testWidgets('hue 在深色取深色档', (tester) async {
       await pumpComponent(
         tester,
-        const SocIntervalBar(start: 18, end: 82, hue: MileafHue.aqua),
+        const SocIntervalBar(start: 18, end: 82, hue: MileafHue.mint),
         brightness: Brightness.dark,
       );
       expect(_decorationColors(tester, SocIntervalBar), [
         dark.lineStrong,
-        MileafHueRamp.aquaDark,
+        const Color(0xFFA0EDD0),
       ]);
     });
   });

@@ -7,7 +7,7 @@ import 'typography.dart';
 /// Builds the「行笺」appearance v2 theme for one brightness.
 ///
 /// Neither brightness is the product default: the appearance follows the
-/// system until the user picks one (ADR 0006). Both keep a dark hero anchor.
+/// system until the user picks one (ADR 0006).
 /// Text-class accents use `accentStrong` (≥4.5:1); graphics keep `accent`
 /// (≥3:1). Pages never build colours or text styles themselves.
 ThemeData mileafTheme(Brightness brightness) {
@@ -17,8 +17,8 @@ ThemeData mileafTheme(Brightness brightness) {
   final type = MileafTextStyles.resolve(colors);
   final scheme = ColorScheme(
     brightness: brightness,
-    primary: colors.accent,
-    onPrimary: colors.textOnAccent,
+    primary: colors.primaryAction,
+    onPrimary: colors.onPrimaryAction,
     primaryContainer: colors.accentSoft,
     onPrimaryContainer: colors.text,
     secondary: colors.reference,

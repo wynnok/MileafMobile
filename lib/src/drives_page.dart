@@ -636,10 +636,6 @@ class _DrivesPageState extends State<DrivesPage>
         ? null
         : grouped(totals.distanceKm, decimals: 1);
     final large = MileafLayout.largeText(context);
-    // CL01/CL12：焦点卡的里程与行程数属 journey 域，电耗属 efficiency 域；读数
-    // 取 `strong`（浅色 5.90:1），标签仍中性。CL07：本页首屏已有 journey（焦点
-    // 卡 + 焦点值）、dwell（记录行时长）、efficiency（电耗）三个色相，「估算
-    // 耗电」若再上 energy 就是 4 个，故按条款留同级中性。
     final journey = MileafDataDomain.journey.hue;
     final cells = [
       MetricBlock(
@@ -647,7 +643,6 @@ class _DrivesPageState extends State<DrivesPage>
         value: totals == null ? null : '${totals.drives}',
         unit: totals == null ? null : '趟',
         scale: MetricValueScale.metricSm,
-        hue: journey,
       ),
       MetricBlock(
         label: '估算耗电',
@@ -664,13 +659,10 @@ class _DrivesPageState extends State<DrivesPage>
             : grouped(totals!.consumptionWhKmNet!, decimals: 0),
         unit: totals == null ? null : 'Wh/km',
         scale: MetricValueScale.metricSm,
-        hue: MileafDataDomain.efficiency.hue,
       ),
     ];
-    return MileafModuleCard(
-      // CL02/CL06：焦点卡是首屏最大的面，只叠 8% journey tint（不叠 alpha、
-      // 不加深色材质）；描边与内边仍走既有档位。
-      hue: journey,
+    return MileafModuleCard.focused(
+      hue: distance == null ? null : journey,
       // §6 退让阶梯第 2 步：焦点卡内边 16 → 12。
       padding: const EdgeInsets.all(MileafSpace.s12),
       child: Column(
@@ -693,8 +685,6 @@ class _DrivesPageState extends State<DrivesPage>
               value: distance,
               unit: 'km',
               scale: MetricValueScale.metricLg,
-              // CL12：焦点值取 journey.strong（浅色 5.90:1 / 深色 7.42:1）。
-              hue: journey,
             ),
           ),
           const SizedBox(height: MileafSpace.s12),
@@ -725,6 +715,7 @@ class _DrivesPageState extends State<DrivesPage>
     return Padding(
       padding: const EdgeInsets.only(top: MileafSpace.s12),
       child: MileafModuleCard(
+        hue: MileafDataDomain.journey.hue,
         padding: const EdgeInsets.all(MileafSpace.s12),
         child: chart,
       ),
@@ -809,8 +800,7 @@ class _DrivesPageState extends State<DrivesPage>
         ? null
         : grouped(d.consumptionWhKm!, decimals: 0);
     final large = MileafLayout.largeText(context);
-    // CL01/CL12：记录行三格按域取色（里程 journey / 时长 dwell / 电耗
-    // efficiency），行首图标取 journey.strong。
+    // 记录的主读数与图标共同标记行程域，时长和电耗保留中性文字。
     final journey = MileafDataDomain.journey.hue;
     return InkWell(
       key: ValueKey('drive-${d.id}'),
@@ -852,7 +842,9 @@ class _DrivesPageState extends State<DrivesPage>
                         const SizedBox(width: MileafSpace.s8),
                         Text(
                           '进行中',
-                          style: type.footnote.copyWith(color: colors.warning),
+                          style: type.footnote.copyWith(
+                            color: colors.textSecondary,
+                          ),
                         ),
                       ],
                     ],
@@ -887,14 +879,12 @@ class _DrivesPageState extends State<DrivesPage>
                         value: duration,
                         unit: duration == null ? null : '分钟',
                         scale: MetricValueScale.metricSm,
-                        hue: MileafDataDomain.dwell.hue,
                       ),
                       MetricBlock(
                         label: terms.energyPerKm,
                         value: net,
                         unit: net == null ? null : 'Wh/km',
                         scale: MetricValueScale.metricSm,
-                        hue: MileafDataDomain.efficiency.hue,
                       ),
                     ],
                   ),
@@ -983,7 +973,6 @@ class _DrivesPageState extends State<DrivesPage>
           // R24：记录行走组卡，卡内横向内边 16；发丝线只画在行与行之间
           // （从卡内 16 到卡片右缘），每天最后一行不画线，卡片裁到圆角。
           MileafGroupCard(
-            // CL57：一整组行程卡取 journey 洗底，列表页因此也有彩色面。
             hue: MileafDataDomain.journey.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -158,14 +158,11 @@ void main() {
       expect(capsule.height, greaterThanOrEqualTo(MileafSpace.touch - .01));
     });
 
-    // 2026-11-18：底栏镜片多了自己的受光带（L12）。顶栏的车辆胶囊与设置圆钮
-    // 用的是同一层 MileafGlassLens，但顶栏按规格 §3 仍走 R14 取值——受光带
-    // 只在底栏打开，这里钉住它不会外溢。
-    testWidgets('顶栏镜片不带底栏的受光带', (tester) async {
+    testWidgets('顶栏镜片使用控件玻璃，静止时不产生重复的背景滤镜', (tester) async {
       await _pump(tester, _shell());
       final lenses = find.descendant(
         of: find.byType(MileafTopBar),
-        matching: find.byType(MileafGlassLens),
+        matching: find.byType(MileafGlassSurface),
       );
       expect(lenses, findsWidgets, reason: '玻璃路径下车辆胶囊与设置圆钮都是镜片');
       final painter =
@@ -183,7 +180,9 @@ void main() {
                   .first
                   .painter!
               as LiquidGlassPainter;
-      expect(painter.sheen, isNull, reason: '顶栏镜片不叠受光带');
+      expect(painter.fillTop.a, MileafMaterialMetrics.controlGlassOpacity);
+      expect(painter.sheen, isNotNull);
+      expect(_barBackdrop, findsNothing);
     });
 
     testWidgets('滚动 0/8/16/100：标题交叉淡出、材质与高度插值', (tester) async {

@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../display_preferences.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 
@@ -19,15 +20,48 @@ class MileafGlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.borderRadius = MileafRadius.fullAll,
-  });
+  }) : _control = false,
+       _tintedSurface = null,
+       forceSolid = false,
+       elevated = true,
+       blurBackdrop = true;
+
+  /// 控件、顶部工具栏和浮层的玻璃。底部导航仍走默认构造。
+  const MileafGlassSurface.control({
+    super.key,
+    required this.child,
+    this.borderRadius = MileafRadius.fullAll,
+    this.forceSolid = false,
+    this.elevated = true,
+    this.blurBackdrop = true,
+  }) : _control = true,
+       _tintedSurface = null;
+
+  /// 贴合正文和胶囊轮廓的色面玻璃。固定底色使密集信息在滚动中保持稳定。
+  const MileafGlassSurface.tinted({
+    super.key,
+    required Color color,
+    required this.borderRadius,
+    required this.child,
+  }) : _control = true,
+       _tintedSurface = color,
+       forceSolid = false,
+       elevated = false,
+       blurBackdrop = false;
 
   final Widget child;
   final BorderRadius borderRadius;
+  final bool _control;
+  final Color? _tintedSurface;
+  final bool forceSolid;
+  final bool elevated;
+  final bool blurBackdrop;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
+    if (_control) return _buildControl(context, colors, hairline);
     return CustomPaint(
       painter: LiquidGlassShadowPainter(
         borderRadius: borderRadius,
@@ -35,17 +69,8 @@ class MileafGlassSurface extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ui.ImageFilter.compose(
-            outer: ui.ColorFilter.matrix(
-              saturationMatrix(MileafMaterialMetrics.glassSaturation),
-            ),
-            inner: ui.ImageFilter.blur(
-              sigmaX: MileafMaterialMetrics.glassBlur,
-              sigmaY: MileafMaterialMetrics.glassBlur,
-            ),
-          ),
-          child: CustomPaint(
+        child: _glassBackdrop(
+          CustomPaint(
             painter: LiquidGlassPainter(
               borderRadius: borderRadius,
               fillTop: colors.glassFillTop,
@@ -67,7 +92,110 @@ class MileafGlassSurface extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildControl(
+    BuildContext context,
+    MileafColors colors,
+    double hairline,
+  ) {
+    final solid =
+        forceSolid ||
+        MediaQuery.highContrastOf(context) ||
+        (DisplayPreferencesScope.maybeOf(context)?.useSolidMaterial ?? true);
+    final tinted = _tintedSurface;
+    final base =
+        tinted ??
+        (colors.isDark ? MileafPalette.slate900 : MileafPalette.paper0);
+    final top =
+        tinted ??
+        base.withValues(alpha: MileafMaterialMetrics.controlGlassOpacity);
+    final bottom =
+        tinted ??
+        base.withValues(alpha: MileafMaterialMetrics.controlGlassBottomOpacity);
+    final sheen = tinted == null
+        ? colors.glassSheen
+        : Colors.white.withValues(
+            alpha: colors.isDark
+                ? MileafMaterialMetrics.cardGlassSheenDark
+                : MileafMaterialMetrics.cardGlassSheenLight,
+          );
+    // 贴合屏幕的顶栏只保留页栏自己的下沿，环形受光边留给独立悬浮件。
+    final paint = elevated || tinted != null
+        ? CustomPaint(
+            painter: LiquidGlassPainter(
+              borderRadius: borderRadius,
+              fillTop: top,
+              fillBottom: bottom,
+              sheen: sheen,
+              sheenReach: tinted == null
+                  ? MileafMaterialMetrics.glassSheenReach
+                  : MileafMaterialMetrics.cardGlassSheenReach,
+              sheenCore: tinted == null
+                  ? MileafMaterialMetrics.glassSheenCore
+                  : MileafMaterialMetrics.cardGlassSheenCore,
+              meniscus: tinted == null ? colors.glassMeniscus : null,
+              meniscusStart: MileafMaterialMetrics.glassMeniscusStart,
+              edge: tinted == null ? colors.glassEdge : colors.tintedGlassEdge,
+              rimStroke:
+                  hairline *
+                  (tinted == null ? MileafMaterialMetrics.glassRimStroke : 1),
+              innerStroke:
+                  hairline *
+                  (tinted == null
+                      ? MileafMaterialMetrics.glassInnerStroke
+                      : .5),
+            ),
+          )
+        : ColoredBox(color: top);
+    final glass = blurBackdrop ? _glassBackdrop(paint) : paint;
+    // 材质只在背板绘制，开关减少透明度时保留子控件与其焦点。
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: solid
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: base,
+                      borderRadius: borderRadius,
+                      border: Border.all(
+                        color: colors.controlBorder,
+                        width: hairline,
+                      ),
+                    ),
+                  )
+                : !elevated
+                ? ClipRRect(borderRadius: borderRadius, child: glass)
+                : CustomPaint(
+                    painter: LiquidGlassShadowPainter(
+                      borderRadius: borderRadius,
+                      shadows: colors.isDark
+                          ? MileafElevation.controlGlassDark
+                          : MileafElevation.controlGlassLight,
+                    ),
+                    child: ClipRRect(borderRadius: borderRadius, child: glass),
+                  ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
 }
+
+Widget _glassBackdrop(Widget child) => BackdropFilter(
+  filter: ui.ImageFilter.compose(
+    outer: ui.ColorFilter.matrix(
+      saturationMatrix(MileafMaterialMetrics.glassSaturation),
+    ),
+    inner: ui.ImageFilter.blur(
+      sigmaX: MileafMaterialMetrics.glassBlur,
+      sigmaY: MileafMaterialMetrics.glassBlur,
+    ),
+  ),
+  child: child,
+);
 
 /// 选中目的地的镜片：比底栏更密的一层玻璃，自带更亮的顶边和一圈内缘。
 ///

@@ -526,8 +526,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
   /// R21.5：详情页三列关键值只用 metricSm，放不下时网格自己收列。
   Widget _keyValues(dto.DriveDetail d) {
     final cells = [
-      // CL01/CL12：三格按域取色（距离 journey / 时长 dwell / 电耗 efficiency），
-      // 读数取 `strong`，标签与旁注仍中性；R21.5 的三列与收列规则不变。
       MetricBlock(
         label: '距离',
         // R22：数值与单位各占一个角色，值里不再重复单位。
@@ -537,7 +535,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.distanceKm == null ? null : 'km',
         scale: MetricValueScale.metricSm,
         semanticLabel: '距离 ${number(d.distanceKm, 'km', decimals: 1)}',
-        hue: MileafDataDomain.journey.hue,
       ),
       MetricBlock(
         label: '时长',
@@ -545,7 +542,6 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.durationMin == null ? null : '分钟',
         scale: MetricValueScale.metricSm,
         semanticLabel: '时长 ${number(d.durationMin, '分钟')}',
-        hue: MileafDataDomain.dwell.hue,
       ),
       MetricBlock(
         label: '电耗',
@@ -553,10 +549,16 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         unit: d.consumptionWhKm == null ? null : 'Wh/km',
         scale: MetricValueScale.metricSm,
         semanticLabel: '电耗 ${number(d.consumptionWhKm, 'Wh/km')}',
-        hue: MileafDataDomain.efficiency.hue,
       ),
     ];
-    return MetricGrid(spacing: MileafSpace.s12, children: cells);
+    return MileafModuleCard.focused(
+      hue: d.distanceKm == null ? null : MileafDataDomain.journey.hue,
+      padding: const EdgeInsets.symmetric(
+        horizontal: MileafSpace.s12,
+        vertical: MileafSpace.s8,
+      ),
+      child: MetricGrid(spacing: MileafSpace.s12, children: cells),
+    );
   }
 
   Widget _segments() => ChipRow(
@@ -614,6 +616,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
     return MileafModuleCard(
       // 交付手册 §6 退让阶梯第 1、2 步：卡片标题与图表标题只留一处，
       // 焦点卡内边 16 → 8（AP07 统计卡的同一取舍）。
+      hue: MileafDataDomain.journey.hue,
       padding: const EdgeInsets.all(MileafSpace.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -730,6 +733,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
         ? null
         : (d.start.batteryLevel! >= d.end.batteryLevel! ? '下降' : '增加');
     return MileafModuleCard(
+      hue: MileafDataDomain.energy.hue,
       padding: const EdgeInsets.all(MileafSpace.s12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1038,7 +1042,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       inset,
-                      MileafSpace.s24,
+                      MileafSpace.s16,
                       inset,
                       0,
                     ),
@@ -1047,7 +1051,7 @@ class _DriveDetailPageState extends State<DriveDetailPage>
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     inset,
-                    MileafSpace.s24,
+                    d == null ? MileafSpace.s24 : MileafSpace.s16,
                     inset,
                     0,
                   ),

@@ -389,12 +389,11 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         // 结论卡：月中位数 metricLg + 必要限定（§6 第 2 步收紧内边到 12）。
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s12),
-          child: MileafModuleCard(
+          child: MileafModuleCard.focused(
+            hue: missingMonth ? null : MileafDataDomain.efficiency.hue,
             padding: const EdgeInsets.all(MileafSpace.cardInset),
             child: MetricBlock(
               label: '月中位数',
-              // CL12：结论值取 efficiency 的 strong；缺失值本身是「—」，不染彩色。
-              hue: MileafDataDomain.efficiency.hue,
               value: missingMonth ? null : value(chosen['median_range_km']),
               unit: 'km',
               scale: MetricValueScale.metricLg,
@@ -407,6 +406,7 @@ class _RangeObservationPageState extends State<RangeObservationPage>
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s12),
           child: MileafModuleCard(
+            hue: MileafDataDomain.efficiency.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

@@ -246,14 +246,20 @@ void main() {
       await save(tester, boundary, 'long-index-glass-light-360x800-100-top');
     }
 
-    // 全部指标页（P15 分组卡列表）。
-    {
+    // 全部指标页（P15 分组卡列表 + R30.2 页尾说明）。
+    Future<void> allMetrics({
+      required Brightness brightness,
+      required Size size,
+      required double scale,
+      required String tag,
+      bool expandNotes = false,
+    }) async {
       final boundary = GlobalKey();
       await _pumpStatistics(
         tester,
-        brightness: Brightness.light,
-        size: const Size(360, 800),
-        scale: 1,
+        brightness: brightness,
+        size: size,
+        scale: scale,
         safeArea: true,
         scenario: 'normal',
         boundary: boundary,
@@ -265,8 +271,49 @@ void main() {
       );
       await tester.tap(find.widgetWithText(TextButton, '全部指标'));
       await tester.pumpAndSettle();
-      await save(tester, boundary, 'all-metrics-glass-light-360x800-100-top');
+      if (expandNotes) {
+        await tester.scrollUntilVisible(
+          find.text('时间与时区').hitTestable(),
+          200,
+          scrollable: find.byType(Scrollable).last,
+        );
+        await tester.tap(find.text('时间与时区'));
+        await tester.pumpAndSettle();
+      }
+      await save(tester, boundary, tag);
     }
+
+    await allMetrics(
+      brightness: Brightness.light,
+      size: const Size(360, 800),
+      scale: 1,
+      tag: 'all-metrics-glass-light-360x800-100-top',
+    );
+    await allMetrics(
+      brightness: Brightness.light,
+      size: const Size(390, 844),
+      scale: 1,
+      tag: 'all-metrics-glass-light-390x844-100-top',
+    );
+    await allMetrics(
+      brightness: Brightness.dark,
+      size: const Size(390, 844),
+      scale: 1,
+      tag: 'all-metrics-glass-dark-390x844-100-top',
+    );
+    await allMetrics(
+      brightness: Brightness.light,
+      size: const Size(390, 844),
+      scale: 2,
+      tag: 'all-metrics-glass-light-390x844-200-top',
+    );
+    await allMetrics(
+      brightness: Brightness.light,
+      size: const Size(360, 800),
+      scale: 1,
+      tag: 'all-metrics-glass-light-360x800-100-notes',
+      expandNotes: true,
+    );
 
     // 共享日期区间弹层（R27：选择路径 + 预设）。
     {

@@ -1274,7 +1274,9 @@ void main() {
 
   group('强调色分层：文字 accentStrong、图形 accent（Spec §1 R3、§7.2、§13）', () {
     for (final brightness in Brightness.values) {
-      testWidgets('${brightness.name}：可读文字一律 accentStrong', (tester) async {
+      testWidgets('${brightness.name}：正文动作取 accentStrong，底栏保留独立前景', (
+        tester,
+      ) async {
         final colors = brightness == Brightness.dark
             ? const MileafColors.dark()
             : const MileafColors.light();
@@ -1307,7 +1309,7 @@ void main() {
 
         Color? textColor(String label) =>
             tester.widget<Text>(find.text(label)).style?.color;
-        expect(textColor('概览'), colors.accentStrong, reason: '选中导航标签是文字');
+        expect(textColor('概览'), colors.navigationActive, reason: '选中导航保持原色');
         expect(
           textColor('行程'),
           colors.navigationLabel,
@@ -1321,10 +1323,10 @@ void main() {
           colors.accentStrong,
           reason: 'secondary 用 accentStrong',
         );
-        expect(textColor('保存'), colors.textOnAccent, reason: '实心按钮文字');
+        expect(textColor('保存'), colors.onPrimaryAction, reason: '主按钮墨色文字');
 
         // AP03（§4 M01）：按压覆盖层由 MileafPressOverlay 承担，
-        // primary/ghost → accentSoft；secondary 已填充 accentSoft，用中性 pressOverlay。
+        // 实心及次按钮用中性 pressOverlay，ghost 用 accentSoft。
         Color? overlay(String label) => tester
             .widget<MileafPressOverlay>(
               find
@@ -1342,7 +1344,7 @@ void main() {
             )
             .color;
         expect(overlay('全部指标'), colors.accentSoft);
-        expect(overlay('保存'), colors.accentSoft);
+        expect(overlay('保存'), colors.pressOverlay);
         expect(overlay('取消'), colors.pressOverlay);
         expect(overlay('本月'), colors.accentSoft, reason: '§7.4 未选行高亮');
       });

@@ -150,8 +150,16 @@ void main() {
       statisticsInsights: true,
     );
     await openConditions(tester);
-    await tester.scrollUntilVisible(find.text('0至5°C').hitTestable(), 120);
-    await tester.tap(find.text('0至5°C'));
+    final groups = find.byType(MileafPullDown<int>);
+    await tester.scrollUntilVisible(groups.hitTestable(), 120);
+    await tester.tap(groups);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(kPullDownMenuSurfaceKey),
+        matching: find.text('0至5°C'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('0 Wh/km'), -120);
     expect(find.text('0 Wh/km'), findsOneWidget);

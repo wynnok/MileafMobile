@@ -4,13 +4,24 @@ import 'package:mileaf/src/design/components/components.dart';
 
 import 'overview_a_regression_test.dart' show openOverview;
 
-// R29：图表读值由 TimeSeriesChart 的读数头承载，不再有页面自排的读值块；
-// live region 节点包裹可见的日期行、数值行与参照行。
+// R29：图表读值由 TimeSeriesChart 的读数头承载，不再有页面自排的读值块。
+// live region 节点包裹可见的日期行与数值行；第三行（参照与差值）2026-11-19
+// 起独占整卡内宽、落在步进那一行之外，可见文字不进语义树（朗读仍由 live
+// region 的 sentence 一次说全），所以第三行的可见断言按图表框取。
 const reading = MileafChartGrammar.readoutLiveKey;
 const plate = ValueKey('overview-reading-plate');
 
 Finder inReading(String text) =>
     find.descendant(of: find.byKey(reading), matching: find.text(text));
+
+Finder inChart(String text) => find.descendant(
+  of: find.byType(TimeSeriesChart).first,
+  matching: find.text(text),
+);
+
+/// live region 的朗读句（第三行的参照与差值也在这句里）。
+String readingLabel(WidgetTester tester) =>
+    tester.getSemantics(find.byKey(reading)).getSemanticsData().label;
 
 void main() {
   testWidgets('概览图表下方读数按本期四项分组，口径成段落在其后', (tester) async {
@@ -67,7 +78,18 @@ void main() {
     await openOverview(tester, currency: 'CNY');
     // R29/CP04：读数头三行——数值（值 + 单位）、参照与差值一句、日期（DF1）。
     expect(inReading('60 km'), findsOneWidget);
-    expect(inReading('上月同期 9月1日–26日 55.4 km，多 4.6 km'), findsOneWidget);
+    const reference = '上月同期 9月1日–26日 55.4 km，多 4.6 km';
+    expect(inChart(reference), findsOneWidget, reason: '第三行仍是可见读数的一行');
+    expect(
+      readingLabel(tester),
+      allOf(contains('9月1日–26日 55.4 km'), contains('多 4.6 km')),
+      reason: '朗读句含参照与差值',
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(r'多 4.6 km')),
+      findsOneWidget,
+      reason: '可见第三行不进语义树：差值只由 live region 说一次',
+    );
     // 日期行按站点日历（Asia/Shanghai）的墙钟写：选中桶是 10月26日。
     expect(inReading('10月26日'), findsOneWidget, reason: '读数头日期用站点日历');
     // CP11：可见的「点按读值」提示删除，改由图表语义提示承载。
@@ -83,6 +105,7 @@ void main() {
   });
 
   testWidgets('概览图表换指标后读值同步，参照仍在同一层级', (tester) async {
+    final semantics = tester.ensureSemantics();
     await openOverview(tester, currency: 'CNY');
     // 「电耗」在本期账目里也是格子标签，分段胶囊用 StatusChip 限定。
     final chip = find.widgetWithText(StatusChip, '电耗');
@@ -99,9 +122,21 @@ void main() {
       findsOneWidget,
     );
     expect(inReading('158 Wh/km'), findsOneWidget, reason: '读数带单位');
-    expect(inReading('上月同期 9月1日–26日 166 Wh/km，少 8 Wh/km'), findsOneWidget);
+    const reference = '上月同期 9月1日–26日 166 Wh/km，少 8 Wh/km';
+    expect(inChart(reference), findsOneWidget, reason: '第三行仍是可见读数的一行');
+    expect(
+      readingLabel(tester),
+      allOf(contains('9月1日–26日 166 Wh/km'), contains('少 8 Wh/km')),
+      reason: '朗读句含参照与差值',
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(r'少 8 Wh/km')),
+      findsOneWidget,
+      reason: '可见第三行不进语义树：差值只由 live region 说一次',
+    );
     expect(inReading('10月26日'), findsOneWidget, reason: '读数头日期用站点日历');
     expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 
   testWidgets('200% 字号下读数表纵向堆叠且读值完整', (tester) async {

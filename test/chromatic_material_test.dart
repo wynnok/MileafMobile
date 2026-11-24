@@ -11,6 +11,7 @@ import 'package:mileaf/src/design/components/glass_surface.dart';
 import 'package:mileaf/src/design/components/icon_button.dart';
 import 'package:mileaf/src/design/components/pull_down.dart';
 import 'package:mileaf/src/design/components/sheet.dart';
+import 'package:mileaf/src/design/display_preferences.dart';
 import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/semantic.dart';
 import 'package:mileaf/src/design/theme.dart';
@@ -21,11 +22,23 @@ import 'package:mileaf/src/map/map_scene.dart';
 
 import 'support/fake_map_platform.dart';
 
-Widget _board(Widget child, {TargetPlatform platform = TargetPlatform.iOS}) =>
-    MaterialApp(
+Widget _board(
+  Widget child, {
+  TargetPlatform platform = TargetPlatform.iOS,
+  bool reduceTransparency = false,
+}) {
+  final preferences = DisplayPreferencesController(
+    platform: DisplayPreferencesPlatform.other,
+  )..updateFromPlatform(reduceTransparency);
+  addTearDown(preferences.dispose);
+  return DisplayPreferencesScope(
+    controller: preferences,
+    child: MaterialApp(
       theme: mileafTheme(Brightness.light).copyWith(platform: platform),
       home: Scaffold(body: Center(child: child)),
-    );
+    ),
+  );
+}
 
 /// 液态玻璃在 widget 树里的两类 paint：玻璃体（叠色 + 受光边）与挖孔阴影。
 Finder _glassPainters(Finder scope) => find.descendant(
@@ -205,15 +218,24 @@ void main() {
       );
     });
 
-    testWidgets('菜单背板的叠色、受光边与阴影同样来自 MileafColors.glass*', (tester) async {
+    testWidgets('菜单背板使用控件玻璃的中性叠色、边缘和阴影', (tester) async {
       await tester.pumpWidget(_board(_pullDown()));
       await tester.tap(find.byType(MileafPullDown<String>));
       await tester.pumpAndSettle();
       final surface = find.byKey(kPullDownMenuSurfaceKey);
       const colors = MileafColors.light();
       final body = _bodyPainter(tester, surface);
-      expect(body.fillTop, colors.glassFillTop, reason: '上沿叠色');
-      expect(body.fillBottom, colors.glassFillBottom, reason: '下沿叠色');
+      final tint = colors.surface.withValues(
+        alpha: MileafMaterialMetrics.controlGlassOpacity,
+      );
+      expect(body.fillTop, tint);
+      expect(
+        body.fillBottom,
+        colors.surface.withValues(
+          alpha: MileafMaterialMetrics.controlGlassBottomOpacity,
+        ),
+      );
+      expect(body.meniscus, isNotNull);
       expect(body.edge, colors.glassEdge, reason: '受光边缘含 1px 描边兜底');
       final dpr = tester.view.devicePixelRatio;
       expect(
@@ -224,9 +246,34 @@ void main() {
       expect(body.innerStroke, greaterThan(0));
       expect(
         _shadowPainter(tester, surface).shadows,
-        colors.glassShadow,
+        MileafElevation.controlGlassLight,
         reason: 'CL31：浮层阴影只有一处来源',
       );
+    });
+
+    testWidgets('减少透明度时菜单保留尺寸与选择能力，移除模糊', (tester) async {
+      String? picked;
+      await tester.pumpWidget(
+        _board(
+          _pullDown(onChanged: (value) => picked = value),
+          reduceTransparency: true,
+        ),
+      );
+      await tester.tap(find.byType(MileafPullDown<String>));
+      await tester.pumpAndSettle();
+      final surface = find.byKey(kPullDownMenuSurfaceKey);
+      expect(surface, findsOneWidget);
+      expect(
+        find.descendant(of: surface, matching: find.byType(BackdropFilter)),
+        findsNothing,
+      );
+      final options = find.descendant(
+        of: surface,
+        matching: find.byType(GestureDetector),
+      );
+      await tester.tap(options.last);
+      await tester.pumpAndSettle();
+      expect(picked, isNotNull);
     });
 
     testWidgets('点外部只关菜单、不改值', (tester) async {
@@ -243,62 +290,51 @@ void main() {
       expect(picked, isNull);
     });
 
-    testWidgets(
-      '弹层不叠玻璃（CL30.1）：sheet 子树没有 BackdropFilter，仍是 surfaceRaised + sheetShadow',
-      (tester) async {
-        const colors = MileafColors.light();
-        for (final style in [
-          MileafSheetStyle.floating,
-          MileafSheetStyle.edge,
-        ]) {
-          await tester.pumpWidget(
-            MaterialApp(
-              theme: mileafTheme(Brightness.light),
-              home: Scaffold(
-                body: Builder(
-                  builder: (context) => TextButton(
-                    onPressed: () => showMileafSheet<void>(
-                      context: context,
-                      title: '选择',
-                      style: style,
-                      builder: (_) => const SizedBox(height: 80),
-                    ),
-                    child: const Text('打开'),
-                  ),
+    testWidgets('选择弹层用一层有界玻璃，贴边表单与减少透明度使用实色', (tester) async {
+      const colors = MileafColors.light();
+      for (final (style, reduced, blurCount) in [
+        (MileafSheetStyle.floating, false, 1),
+        (MileafSheetStyle.floating, true, 0),
+        (MileafSheetStyle.edge, false, 0),
+      ]) {
+        await tester.pumpWidget(
+          _board(
+            Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showMileafSheet<void>(
+                  context: context,
+                  title: '选择',
+                  style: style,
+                  builder: (_) => const SizedBox(height: 80),
                 ),
+                child: const Text('打开'),
               ),
             ),
-          );
-          await tester.tap(find.text('打开'));
-          await tester.pumpAndSettle();
-          expect(find.byType(MileafSheetFrame), findsOneWidget);
-          expect(
-            find.byType(MileafGlassSurface),
-            findsNothing,
-            reason: '$style：弹层背后已被 scrim 压暗，不叠玻璃',
-          );
-          expect(
-            find.byType(BackdropFilter),
-            findsNothing,
-            reason: '$style：没有模糊层',
-          );
+            reduceTransparency: reduced,
+          ),
+        );
+        await tester.tap(find.text('打开'));
+        await tester.pumpAndSettle();
+        expect(find.byType(MileafSheetFrame), findsOneWidget);
+        final surface = find.byKey(const ValueKey('sheet-surface'));
+        expect(
+          find.descendant(of: surface, matching: find.byType(BackdropFilter)),
+          findsNWidgets(blurCount),
+        );
+        if (style == MileafSheetStyle.edge) {
           final decoration =
-              tester
-                      .widget<DecoratedBox>(
-                        find.byKey(const ValueKey('sheet-surface')),
-                      )
-                      .decoration
-                  as BoxDecoration;
-          expect(decoration.color, colors.surfaceRaised, reason: '$style：仍是实色');
-          if (style == MileafSheetStyle.floating) {
-            expect(decoration.boxShadow, colors.sheetShadow);
-          }
-          // 关掉弹层，避免下一次 pumpWidget 里残留路由。
-          await tester.tap(find.byTooltip('关闭'));
-          await tester.pumpAndSettle();
+              tester.widget<DecoratedBox>(surface).decoration as BoxDecoration;
+          expect(decoration.color, colors.surfaceRaised);
+        } else if (reduced) {
+          expect(_glassPainters(surface), findsNothing);
+        } else {
+          expect(_glassPainters(surface), findsOneWidget);
         }
-      },
-    );
+        // 关掉弹层，避免下一次 pumpWidget 里残留路由。
+        await tester.tap(find.byTooltip('关闭'));
+        await tester.pumpAndSettle();
+      }
+    });
 
     testWidgets('地图浮控背板改玻璃，36 圆钮几何不变', (tester) async {
       final fake = FakeMapPlatform();
@@ -306,20 +342,16 @@ void main() {
       addTearDown(consent.dispose);
       await consent.grant(fake.providerName);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: mileafTheme(Brightness.light)
-              .copyWith(platform: TargetPlatform.iOS),
-          home: Scaffold(
-            body: SizedBox(
+        _board(
+          SizedBox(
+            height: 320,
+            child: MapPanel(
+              scene: _scene(),
+              consent: consent,
+              platform: fake,
               height: 320,
-              child: MapPanel(
-                scene: _scene(),
-                consent: consent,
-                platform: fake,
-                height: 320,
-                showControls: true,
-                onExpand: () {},
-              ),
+              showControls: true,
+              onExpand: () {},
             ),
           ),
         ),

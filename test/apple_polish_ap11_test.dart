@@ -149,7 +149,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('全部指标为分组卡列表，说明行原位展开', (tester) async {
+  testWidgets('全部指标为分组卡列表，页尾说明按 R30.2 分组卡展开', (tester) async {
     await openStats(
       tester,
       comparisonClient(),
@@ -172,9 +172,13 @@ void main() {
       expect(find.text(label), findsWidgets);
     }
     expect(find.text('原始统计指标'), findsOneWidget);
-    expect(find.byType(MileafDisclosure), findsOneWidget);
+    // R30.2/PD08：页尾统一为「关于这些数据」= 分组标题 + 一张分组卡，卡内
+    // 说明行默认折叠（本页只有「口径与估算」「时间与时区」两类）。
+    expect(find.text('关于这些数据'), findsOneWidget);
+    expect(find.text('数据说明'), findsNothing);
+    expect(find.byType(MileafDisclosure), findsNWidgets(2));
     expect(find.textContaining('各专题只回答一个问题'), findsNothing);
-    await tester.tap(find.text('数据说明'));
+    await tester.tap(find.text('口径与估算'));
     await tester.pumpAndSettle();
     expect(find.textContaining('各专题只回答一个问题'), findsOneWidget);
   });

@@ -103,12 +103,13 @@ void main() {
     expect(find.text('上月同期 9月1日–28日'), findsOneWidget);
     // 结论卡一句比较（CP03：多/少/持平写进句子）。
     expect(find.text('与上月同期持平'), findsOneWidget);
+    // Spec mobile-v1 §11：电耗整数（原值 187.5 提供，上屏 188）。
     await tester.scrollUntilVisible(
-      find.text('187.5 Wh/km'),
+      find.text('188 Wh/km'),
       100,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('187.5 Wh/km'), findsOneWidget);
+    expect(find.text('188 Wh/km'), findsOneWidget);
     // 专题卡各自独立：能耗与补能（费用记录覆盖）不互相依赖。
     expect(find.byKey(const ValueKey('statistics-topic-能耗')), findsOneWidget);
     expect(find.textContaining('次有费用'), findsWidgets);

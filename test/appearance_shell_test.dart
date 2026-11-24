@@ -244,15 +244,15 @@ void main() {
 
   testWidgets('根级顶栏首屏实色、滚动后磨砂，键盘展开时隐藏底栏', (tester) async {
     await pumpShell(tester);
-    expect(find.byType(BackdropFilter), findsOneWidget, reason: '首屏仅底栏使用磨砂');
+    final topGlass = find.descendant(
+      of: find.byType(MileafTopBar),
+      matching: find.byType(BackdropFilter),
+    );
+    expect(topGlass, findsNothing, reason: '在顶部时仅绘控件镜片');
 
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -320));
     await tester.pumpAndSettle();
-    expect(
-      find.byType(BackdropFilter),
-      findsNWidgets(2),
-      reason: '内容滚过后顶栏启用磨砂',
-    );
+    expect(topGlass, findsOneWidget, reason: '内容滚过后顶栏启用磨砂');
 
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     addTearDown(tester.view.resetViewInsets);

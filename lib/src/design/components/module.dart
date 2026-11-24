@@ -8,6 +8,7 @@ import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
 import 'disclosure.dart';
+import 'glass_surface.dart';
 
 /// R30.2 「关于这些数据」的五类说明分组（PD08）。
 ///
@@ -23,67 +24,99 @@ String dataNoteLabel(DataNoteCategory category) => switch (category) {
   DataNoteCategory.technical => '技术详情',
 };
 
-/// R24 模块卡：根页的图表、网格与记录进卡片。
-///
-/// 半径 [MileafRadius.lg]（20）、内边 [MileafSpace.cardPad]（16）、静态卡无阴影；
-/// 不出现卡中卡，内部分组用分隔线或 16 间距。
-/// 背板浓度（ADR 0017 / CL56）。
-///
-/// [MileafCardEmphasis.field] 是默认档：浅 26% 亮面洗底，够看出「这张卡属于
-/// 哪个域」，又不动卡内已有的读数色。
-///
-/// [MileafCardEmphasis.deep] 是入口卡专用档：浅色 55% 亮面洗底，卡内的文字
-/// 必须整体改用墨色（[MileafModuleCard] 只负责底，文字由调用方换）。
-enum MileafCardEmphasis { field, deep }
+/// 普通内容、专题入口共用 field 层，主读数使用 focus 层。
+enum MileafCardEmphasis { field, focus }
 
+/// R24 模块卡：根页的图表、网格与记录进卡片。
+/// 半径 [MileafRadius.lg]（20）、内边 [MileafSpace.cardPad]（16）。
 class MileafModuleCard extends StatelessWidget {
   const MileafModuleCard({
     super.key,
     required this.child,
     this.padding,
     this.hue,
-    this.emphasis = MileafCardEmphasis.field,
-  });
+  }) : emphasis = MileafCardEmphasis.field,
+       footer = null;
+
+  /// 主读数与辅助内容可共用卡片轮廓，footer 始终使用页面原主题。
+  /// hue 为空时以普通表面显示缺失状态。
+  const MileafModuleCard.focused({
+    super.key,
+    required this.hue,
+    required this.child,
+    this.padding,
+    this.footer,
+  }) : emphasis = MileafCardEmphasis.focus;
 
   final Widget child;
+  final Widget? footer;
 
   /// 默认卡内 16 内边；焦点卡在 §6 退让阶梯第 2 步可收紧到 12。
   final EdgeInsetsGeometry? padding;
 
-  /// CL02/CL06：这一块的数据身份色相。给了就把卡背板叠上 `hue.tint`
-  /// （浅 24% / 深 22% 亮面洗底）——这是覆盖 ≥10% 屏幕面积的彩色用法，
-  /// 也是「卡片之间没有层次」（canvas ↔ surface 只有 1.09:1）的解决办法：
-  /// 焦点卡因此从白卡里浮出来，而不是靠阴影。
   final MileafHue? hue;
-
-  /// CL56：入口卡的深洗底。深色模式自动退回 [MileafCardEmphasis.field]——
-  /// 深底上再加浓会把卡内读数压到正文门槛以下。
   final MileafCardEmphasis emphasis;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hue = this.hue;
-    final deep = emphasis == MileafCardEmphasis.deep && !colors.isDark;
-    final Color? fill;
-    if (hue == null) {
-      fill = null;
-    } else if (deep) {
-      fill = Color.alphaBlend(
-        hue.vivid(colors).withValues(alpha: MileafHueWash.deepAlpha),
-        colors.surface,
-      );
-    } else {
-      fill = Color.alphaBlend(hue.tint(colors), colors.surface);
-    }
-    return Material(
-      color: fill ?? colors.surface,
-      borderRadius: BorderRadius.circular(MileafRadius.lg),
-      clipBehavior: Clip.hardEdge,
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(MileafSpace.cardPad),
-        child: child,
+    final focus = hue != null && emphasis == MileafCardEmphasis.focus
+        ? colors.focused(hue)
+        : null;
+    final content = Padding(
+      padding: padding ?? const EdgeInsets.all(MileafSpace.cardPad),
+      child: child,
+    );
+    final header = focus == null
+        ? content
+        : _FocusedContent(colors: focus, child: content);
+    final tail = footer;
+    return _CardSurface(
+      color: tail == null && focus != null
+          ? focus.surface
+          : colors.cardSurface(hue),
+      child: tail == null
+          ? header
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (focus == null)
+                  header
+                else
+                  MileafGlassSurface.tinted(
+                    color: focus.surface,
+                    borderRadius: MileafRadius.lgTop,
+                    child: header,
+                  ),
+                tail,
+              ],
+            ),
+    );
+  }
+}
+
+class _FocusedContent extends StatelessWidget {
+  const _FocusedContent({required this.colors, required this.child});
+
+  final MileafColors colors;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = MileafTextStyles.resolve(colors);
+    final type = base.copyWith(
+      display: base.display.copyWith(fontWeight: MileafType.weightSemiBold),
+      metricLg: base.metricLg.copyWith(fontWeight: MileafType.weightSemiBold),
+    );
+    return Theme(
+      data: theme.copyWith(
+        extensions: [...theme.extensions.values, colors, type],
+        textTheme: type.materialTheme(colors),
       ),
+      child: child,
     );
   }
 }
@@ -100,10 +133,7 @@ class MileafGroupCard extends StatelessWidget {
     this.hue,
   });
 
-  /// CL57：记录分组卡的域色相。一整组记录只属于一个域（行程组 = journey，
-  /// 充电记录 = energy），所以整块卡背板走 hue.tint——这是让「列表页」也有
-  /// 可读彩色面的唯一办法：列表页没有图表，彩色像素全靠卡背板与读数。
-  /// 行内读数仍按各自的域取 strong，卡背板不抢占它们的身份色。
+  /// 单一数据域的组使用域色；混合组和系统信息使用中性色面。
   final MileafHue? hue;
 
   final Widget child;
@@ -111,18 +141,47 @@ class MileafGroupCard extends StatelessWidget {
   final bool clip;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final hue = this.hue;
-    return Material(
-      color: hue == null
-          ? colors.surface
-          : Color.alphaBlend(hue.tint(colors), colors.surface),
-      borderRadius: BorderRadius.circular(MileafRadius.lg),
+  Widget build(BuildContext context) => _CardSurface(
+    color: context.colors.cardSurface(hue),
+    clip: clip,
+    child: Padding(padding: padding, child: child),
+  );
+}
+
+class _CardSurface extends StatelessWidget {
+  const _CardSurface({
+    required this.color,
+    required this.child,
+    this.clip = true,
+  });
+
+  final Color color;
+  final Widget child;
+  final bool clip;
+
+  @override
+  Widget build(BuildContext context) => MileafGlassSurface.tinted(
+    borderRadius: MileafRadius.lgAll,
+    color: color,
+    child: Material(
+      type: MaterialType.transparency,
+      borderRadius: MileafRadius.lgAll,
       clipBehavior: clip ? Clip.hardEdge : Clip.none,
-      child: Padding(padding: padding, child: child),
-    );
-  }
+      child: MileafCardSurfaceScope(child: child),
+    ),
+  );
+}
+
+/// Scope for foregrounds that adjust their contrast on an inset card.
+class MileafCardSurfaceScope extends InheritedWidget {
+  const MileafCardSurfaceScope({super.key, required super.child});
+
+  static bool contains(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MileafCardSurfaceScope>() !=
+      null;
+
+  @override
+  bool updateShouldNotify(MileafCardSurfaceScope oldWidget) => false;
 }
 
 /// R24 分组标题：卡片内或页尾的分组名，subheadline 500（R22）。
@@ -194,6 +253,7 @@ class MileafGroupRow extends StatelessWidget {
     this.bottomLine = false,
     this.semanticLabel,
     this.hue,
+    this.readoutHue,
   });
 
   final String title;
@@ -215,6 +275,9 @@ class MileafGroupRow extends StatelessWidget {
   /// CL12：行首身份图标的数据身份色相；启用态取 `hue.strong`，禁用态仍是中性。
   final MileafHue? hue;
 
+  /// Colour for a known value, including when it wraps into [meta].
+  final MileafHue? readoutHue;
+
   /// 单行分组行最小高（R24）。
   static const double rowHeight = 52.0;
 
@@ -234,7 +297,9 @@ class MileafGroupRow extends StatelessWidget {
         : enabled
         ? colors.text
         : colors.textFaint;
-    final metaColor = enabled ? colors.textSecondary : colors.textFaint;
+    final readoutColor = enabled
+        ? readoutHue?.strong(colors) ?? colors.textSecondary
+        : colors.textFaint;
     final leadingIcon = leading == null
         ? null
         : MileafIcon(
@@ -255,7 +320,7 @@ class MileafGroupRow extends StatelessWidget {
         ),
         if (meta case final meta?) ...[
           const SizedBox(height: MileafSpace.inline2),
-          Text(meta, style: type.subheadline.copyWith(color: metaColor)),
+          Text(meta, style: type.subheadline.copyWith(color: readoutColor)),
         ],
       ],
     );
@@ -266,9 +331,7 @@ class MileafGroupRow extends StatelessWidget {
         : Text.rich(
             TextSpan(
               text: value ?? '—',
-              style: type.body.copyWith(
-                color: enabled ? colors.textSecondary : colors.textFaint,
-              ),
+              style: type.body.copyWith(color: readoutColor),
               children: unit == null
                   ? null
                   : [

@@ -269,6 +269,7 @@ class _MileafTopBarState extends State<MileafTopBar> {
                 child: Opacity(
                   opacity: progress,
                   child: NavigationMaterial(
+                    style: NavigationMaterialStyle.chrome,
                     borderRadius: BorderRadius.zero,
                     forceSolid: widget.forceSolid,
                     solidColor: colors.canvas,
@@ -539,8 +540,7 @@ class _TopBarCircleButtonState extends State<_TopBarCircleButton> {
   }
 }
 
-/// 顶栏镜片：玻璃路径是选中镜片同款的半透明填充与受光边（无模糊、无阴影）；
-/// 实色路径（高对比、减少透明度、模态覆盖）用 segmentTrack。
+/// 顶栏背板已负责背景模糊，控件镜片只绘制边缘和阴影。
 Widget _lens(
   BuildContext context, {
   required bool solid,
@@ -563,9 +563,9 @@ Widget _lens(
                     borderRadius: circle ? null : MileafRadius.fullAll,
                   ),
                 )
-              : MileafGlassLens(
+              : MileafGlassSurface.control(
                   borderRadius: MileafRadius.fullAll,
-                  elevated: false,
+                  blurBackdrop: false,
                   child: const SizedBox.expand(),
                 ),
         ),

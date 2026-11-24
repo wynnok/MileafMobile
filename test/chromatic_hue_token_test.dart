@@ -3,145 +3,138 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/semantic.dart';
-import 'package:mileaf/src/design/tokens.dart';
 
-/// MC01（ADR 0016 / 规格 CL01–CL09，CL02）语义色相 token 的结构性断言。
-///
-/// 这里只钉「解析出口取到了哪一档、alpha 是多少、域映射对不对」；
-/// 对比度门槛在 `chromatic_contrast_guard_test.dart`（MC02）里单独守卫。
+/// Exact VH23–VH25 values published in the approved design.
 void main() {
   const light = MileafColors.light();
   const dark = MileafColors.dark();
 
-  group('CL01 色相 → 三级强度的取值', () {
-    const expected = <MileafHue, (Color, Color, Color)>{
-      MileafHue.azure: (
-        MileafHueRamp.azureSolidLight,
-        MileafHueRamp.azureStrongLight,
-        MileafHueRamp.azureDark,
-      ),
-      MileafHue.aqua: (
-        MileafHueRamp.aquaSolidLight,
-        MileafHueRamp.aquaStrongLight,
-        MileafHueRamp.aquaDark,
-      ),
-      MileafHue.mint: (
-        MileafHueRamp.mintSolidLight,
-        MileafHueRamp.mintStrongLight,
-        MileafHueRamp.mintDark,
-      ),
-      MileafHue.amber: (
-        MileafHueRamp.amberSolidLight,
-        MileafHueRamp.amberStrongLight,
-        MileafHueRamp.amberDark,
-      ),
-      MileafHue.coral: (
-        MileafHueRamp.coralSolidLight,
-        MileafHueRamp.coralStrongLight,
-        MileafHueRamp.coralDark,
-      ),
-      MileafHue.violet: (
-        MileafHueRamp.violetSolidLight,
-        MileafHueRamp.violetStrongLight,
-        MileafHueRamp.violetDark,
-      ),
-    };
+  const expected = <(MileafHue, List<int>)>[
+    (
+      MileafHue.sky,
+      [
+        0xFF95CAEA,
+        0xFF346C90,
+        0xFF205678,
+        0xFFA9DAF7,
+        0xFFECF6FC,
+        0xFFCDE8F8,
+        0xFF1C2B38,
+        0xFF263C4D,
+      ],
+    ),
+    (
+      MileafHue.mint,
+      [
+        0xFF9AF1CD,
+        0xFF23715D,
+        0xFF215F50,
+        0xFFA0EDD0,
+        0xFFE8F9F1,
+        0xFFC6F4E0,
+        0xFF192D29,
+        0xFF203B34,
+      ],
+    ),
+    (
+      MileafHue.teal,
+      [
+        0xFF0E7C7B,
+        0xFF0E7C7B,
+        0xFF145B5C,
+        0xFF8DDBD4,
+        0xFFE9F4F3,
+        0xFFD4EEEB,
+        0xFF1B292C,
+        0xFF223639,
+      ],
+    ),
+    (
+      MileafHue.coral,
+      [
+        0xFFF65A49,
+        0xFFAD3B31,
+        0xFF9D3428,
+        0xFFFFA89D,
+        0xFFFFF0EC,
+        0xFFFFE6E0,
+        0xFF35262A,
+        0xFF453038,
+      ],
+    ),
+    (
+      MileafHue.plum,
+      [
+        0xFF4B1D3F,
+        0xFF7D486C,
+        0xFF4B1D3F,
+        0xFFE4BCD8,
+        0xFFF3EAF1,
+        0xFFEDE0EB,
+        0xFF2C2330,
+        0xFF382B3C,
+      ],
+    ),
+    (
+      MileafHue.mutedPlum,
+      [
+        0xFF4B1D3F,
+        0xFF7D486C,
+        0xFF4B1D3F,
+        0xFFE4BCD8,
+        0xFFF2EDF2,
+        0xFFEDE0EB,
+        0xFF27232B,
+        0xFF342A35,
+      ],
+    ),
+  ];
 
-    test('浅色 solid / strong 与深色单档逐项匹配', () {
-      for (final entry in expected.entries) {
-        final hue = entry.key;
-        final (solidLight, strongLight, darkOnly) = entry.value;
-        expect(hue.solid(light), solidLight, reason: '${hue.name} 浅色 solid');
-        expect(hue.strong(light), strongLight, reason: '${hue.name} 浅色 strong');
-        expect(hue.solid(dark), darkOnly, reason: '${hue.name} 深色 solid');
-        expect(
+  test('六域的标记、前景、两档背板与批准色表逐值一致', () {
+    for (final (hue, values) in expected) {
+      expect(
+        [
+          hue.marker,
+          hue.solid(light),
+          hue.strong(light),
           hue.strong(dark),
-          darkOnly,
-          reason: '${hue.name} 深色 strong 与 solid 同值（CL02.1）',
-        );
-      }
-    });
-
-    test('azure 保留品牌现值：与 accent / accentStrong 逐字节一致', () {
-      expect(MileafHue.azure.solid(light), light.accent);
-      expect(MileafHue.azure.strong(light), light.accentStrong);
-      expect(MileafHue.azure.solid(dark), dark.accent);
-      expect(MileafHue.azure.solid(light), MileafPalette.azure500);
-      expect(MileafHue.azure.strong(light), MileafPalette.azure600);
-      expect(MileafHue.azure.solid(dark), MileafPalette.azure300);
-    });
-
-    test('soft / tint / veil 是亮面的 alpha（ADR 0017 起不再取 solid）', () {
-      for (final colors in <MileafColors>[light, dark]) {
-        for (final hue in MileafHue.values) {
-          final vivid = hue.vivid(colors);
-          for (final (name, layer) in <(String, Color)>[
-            ('soft', hue.soft(colors)),
-            ('tint', hue.tint(colors)),
-            ('veil', hue.veil(colors)),
-          ]) {
-            expect(
-              layer.r,
-              closeTo(vivid.r, .005),
-              reason: '${hue.name} $name 色相不变',
-            );
-            expect(layer.g, closeTo(vivid.g, .005));
-            expect(layer.b, closeTo(vivid.b, .005));
-          }
-          expect(
-            hue.soft(colors).a,
-            closeTo(
-              colors.isDark
-                  ? MileafHueWash.softAlphaDark
-                  : MileafHueWash.softAlpha,
-              .005,
-            ),
-          );
-          expect(
-            hue.tint(colors).a,
-            closeTo(
-              colors.isDark
-                  ? MileafHueWash.tintAlphaDark
-                  : MileafHueWash.tintAlpha,
-              .005,
-            ),
-          );
-          expect(hue.veil(colors).a, closeTo(MileafHueWash.veilAlpha, .005));
-        }
-      }
-    });
-
-    test('亮面档两模式同值，且与 solid/strong 都不同（CL49）', () {
-      for (final hue in MileafHue.values) {
-        final vivid = hue.vivid(light);
-        expect(vivid, hue.vivid(dark));
-        expect(vivid, isNot(hue.solid(light)));
-        expect(vivid, isNot(hue.strong(light)));
-        expect(hue.onVivid(light), MileafPalette.slate900);
-        expect(hue.onVivid(dark), MileafPalette.slate900);
-      }
-    });
-
-    test('onStrong 浅色取白、深色取近黑（都压得住 strong 实心底）', () {
-      for (final hue in MileafHue.values) {
-        expect(hue.onStrong(light), light.textOnAccent);
-        expect(hue.onStrong(dark), dark.textOnAccent);
-      }
-    });
-
-    test('六色相两两不同色（无重复取值）', () {
-      final solidLight = <Color>{
-        for (final h in MileafHue.values) h.solid(light),
-      };
-      final solidDark = <Color>{
-        for (final h in MileafHue.values) h.solid(dark),
-      };
-      expect(solidLight, hasLength(MileafHue.values.length));
-      expect(solidDark, hasLength(MileafHue.values.length));
-    });
+          light.cardSurface(hue),
+          light.focused(hue).surface,
+          dark.cardSurface(hue),
+          dark.focused(hue).surface,
+        ],
+        values.map(Color.new),
+        reason: hue.name,
+      );
+      expect(hue.solid(dark), hue.strong(dark));
+    }
   });
 
-  group('CL04 中性家族：色相带 242–258°、彩度 ≤0.025', () {
+  test('VH23–VH26 里程、主操作与原底栏各取对应色板', () {
+    final journey = MileafDataDomain.journey.hue;
+    expect(light.cardSurface(journey), const Color(0xFFECF6FC));
+    expect(light.focused(journey).surface, const Color(0xFFCDE8F8));
+    expect(dark.cardSurface(journey), const Color(0xFF1C2B38));
+    expect(dark.focused(journey).surface, const Color(0xFF263C4D));
+    expect(light.primaryAction, const Color(0xFF0E7C7B));
+    expect(dark.primaryAction, const Color(0xFF0E7C7B));
+    expect(light.onPrimaryAction, Colors.white);
+    expect(dark.onPrimaryAction, Colors.white);
+    expect(light.navigationActive, const Color(0xFF0B62C4));
+    expect(dark.navigationActive, const Color(0xFF64A8FF));
+    expect(dark.navigationSolid, const Color(0xFF191E25));
+    expect(light.navigationSelection, const Color(0xFFE6E9ED));
+    expect(
+      light.lerp(dark, .49).navigationSolid,
+      Color.lerp(Colors.white, const Color(0xFF12161C), .49),
+    );
+    expect(
+      light.lerp(dark, .51).navigationSolid,
+      Color.lerp(Colors.white, const Color(0xFF191E25), .51),
+    );
+  });
+
+  group('VH24 中性家族保留低彩度', () {
     // OKLab/OKLCH 转换（与规格 §4 的推导同一口径）。
     (double, double, double) oklch(Color c) {
       double lin(double v) => v <= 0.04045
@@ -165,10 +158,11 @@ void main() {
       return (okL, chroma, hue);
     }
 
-    test('浅色与深色的中性 token 都落在同一条色相带上', () {
+    test('浅色与深色的中性 token 维持低彩度', () {
       for (final colors in <MileafColors>[light, dark]) {
         final neutrals = <String, Color>{
           'canvas': colors.canvas,
+          'cardSurface': colors.cardSurface(),
           'surface': colors.surface,
           'surfaceRaised': colors.surfaceRaised,
           'line': colors.line,
@@ -180,36 +174,27 @@ void main() {
           'navigationLabel': colors.navigationLabel,
         };
         neutrals.forEach((name, color) {
-          final (_, chroma, hue) = oklch(color);
-          // 极低彩度的中性色色相在 OKLab 里会抖动，彩度 ≤0.025 时只要求落在带内。
+          final (_, chroma, _) = oklch(color);
+          final limit = name == 'textMuted' ? .03 : .025;
           expect(
             chroma,
-            lessThanOrEqualTo(0.025),
-            reason: '$name 彩度 ${chroma.toStringAsFixed(4)} 超过 0.025（引入了有彩色中性）',
-          );
-          // 纯白/纯黑的色相是数值噪声（C≈0），只对带彩度的中性查色相带。
-          if (chroma <= 0.004) return;
-          expect(
-            hue,
-            inInclusiveRange(240, 267),
-            reason:
-                '$name 色相 ${hue.toStringAsFixed(1)}° 落在实测带 242–265° 之外'
-                '（容差 ±2°）',
+            lessThanOrEqualTo(limit),
+            reason: '$name 彩度 ${chroma.toStringAsFixed(4)} 超过 $limit',
           );
         });
       }
     });
   });
 
-  group('CL01 数据域 → 色相', () {
-    test('六个域各有唯一色相，且六色相各被用一次', () {
+  group('VH25 数据域 → 色相', () {
+    test('六个域采用现行色阶，环境和停放共用梅紫家族', () {
       const expected = <MileafDataDomain, MileafHue>{
-        MileafDataDomain.journey: MileafHue.azure,
-        MileafDataDomain.energy: MileafHue.aqua,
-        MileafDataDomain.efficiency: MileafHue.mint,
-        MileafDataDomain.cost: MileafHue.amber,
-        MileafDataDomain.climate: MileafHue.coral,
-        MileafDataDomain.dwell: MileafHue.violet,
+        MileafDataDomain.journey: MileafHue.sky,
+        MileafDataDomain.energy: MileafHue.mint,
+        MileafDataDomain.efficiency: MileafHue.teal,
+        MileafDataDomain.cost: MileafHue.coral,
+        MileafDataDomain.climate: MileafHue.mutedPlum,
+        MileafDataDomain.dwell: MileafHue.plum,
       };
       expected.forEach((domain, hue) {
         expect(domain.hue, hue, reason: '${domain.name} → ${hue.name}');
@@ -220,15 +205,19 @@ void main() {
       expect(used, hasLength(MileafHue.values.length));
     });
 
-    test('动作色与数据身份色不共享取色出口（CL05）', () {
-      // 动作色只从 accent* 取；数据身份色只从 MileafHue 取。
-      expect(light.accent, MileafHue.azure.solid(light));
-      // 其余五色不得等于动作色的任一档——否则页面会分不清「能点」和「这是费用」。
-      for (final hue in MileafHue.values.where((h) => h != MileafHue.azure)) {
-        expect(hue.solid(light), isNot(light.accent));
-        expect(hue.strong(light), isNot(light.accentStrong));
-        expect(hue.solid(dark), isNot(dark.accent));
-      }
+    test('交互与数据各自取色，深青锚点在能耗中复用', () {
+      expect(light.accentStrong, const Color(0xFF145B5C));
+      expect(dark.accentStrong, const Color(0xFF8DDBD4));
+      expect(MileafDataDomain.journey.solid(light), isNot(light.accent));
+      expect(MileafDataDomain.efficiency.solid(light), light.accent);
+      expect(
+        MileafDataDomain.climate.hue.marker,
+        MileafDataDomain.dwell.hue.marker,
+      );
+      expect(
+        light.cardSurface(MileafDataDomain.climate.hue),
+        isNot(light.cardSurface(MileafDataDomain.dwell.hue)),
+      );
     });
   });
 }

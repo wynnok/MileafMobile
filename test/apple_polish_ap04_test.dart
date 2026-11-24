@@ -16,7 +16,7 @@ const double stateViewPageIconSize = 48;
 
 void main() {
   group('模块卡与分组卡（R24/PD02）', () {
-    testWidgets('模块卡：半径 20、内边 16、无阴影、surface 底', (tester) async {
+    testWidgets('模块卡：半径 20、内边 16、背板与墨水层分离', (tester) async {
       await pumpComponent(tester, const MileafModuleCard(child: Text('图表')));
       final material = tester.widget<Material>(
         find
@@ -26,7 +26,7 @@ void main() {
             )
             .first,
       );
-      expect(material.color, const MileafColors.dark().surface);
+      expect(material.type, MaterialType.transparency);
       expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(material.elevation, 0, reason: '静态卡无阴影');
       final padding = tester.widget<Padding>(
@@ -50,7 +50,7 @@ void main() {
             )
             .first,
       );
-      expect(material.color, const MileafColors.dark().surface);
+      expect(material.type, MaterialType.transparency);
       expect(material.borderRadius, BorderRadius.circular(MileafRadius.lg));
       expect(material.elevation, 0);
     });
@@ -113,11 +113,14 @@ void main() {
           ),
         ),
       );
-      final hairlines = find.byWidgetPredicate(
-        (widget) =>
-            widget is DecoratedBox &&
-            widget.decoration is BoxDecoration &&
-            (widget.decoration as BoxDecoration).border != null,
+      final hairlines = find.descendant(
+        of: find.byType(MileafGroupRow),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is DecoratedBox &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration as BoxDecoration).border != null,
+        ),
       );
       expect(hairlines, findsNWidgets(2));
       final cardRect = tester.getRect(find.byType(MileafGroupCard));

@@ -152,17 +152,6 @@ void main() {
               greaterThanOrEqualTo(4.5),
               reason: '$mode 主级文字在 $name 上未达 4.5:1',
             );
-            if (colors.isDark && background == colors.segmentSelected) {
-              // 既有 mist500×#343C46 实测 4.461:1，低于 4.5。次级文字不落在
-              // 选中底上（选中段文字走 accentStrong），改值超出本票两处允许
-              // 外观变化 → 登记偏差账本并交总控，此处锁定现值防漂移。
-              expect(
-                contrastRatio(colors.textSecondary, background),
-                closeTo(4.461, .01),
-                reason: '$mode 次级文字在 $name 上的实测值（偏差账本 AU-AP01-1）',
-              );
-              continue;
-            }
             expect(
               contrastRatio(colors.textSecondary, background),
               greaterThanOrEqualTo(4.5),

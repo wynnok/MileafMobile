@@ -3,7 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:mileaf/src/design/components/charts.dart';
 import 'package:mileaf/src/design/components/components.dart'
-    show MetricBlock, MileafModuleCard, MileafShareRing, ShareRingLegendRow;
+    show
+        MetricBlock,
+        MileafCardEmphasis,
+        MileafModuleCard,
+        MileafNumber,
+        MileafShareRing,
+        ShareRingLegendRow;
 import 'package:mileaf/src/design/components/nav_bar.dart';
 import 'package:mileaf/src/design/icons.dart' show MileafIcon, MileafIconName;
 import 'package:mileaf/src/design/semantic.dart';
@@ -112,7 +118,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('MC08 账目卡 energy tint、每日充电图随指标域、AC/DC 同域两档', (tester) async {
+  testWidgets('费用焦点与充电图各有数据域，AC/DC 沿用同域两档', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -122,24 +128,23 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
 
-    final colors = MileafColors.of(tester.element(find.text('已记录费用')));
+    final colors = tester.element(find.byType(MileafNavBar)).colors;
     const energy = MileafDataDomain.energy;
     const cost = MileafDataDomain.cost;
 
-    // CL01/CL06：账目卡是 energy 域的焦点卡；≥10% 面积的面只允许 8% tint。
     final account = find.ancestor(
       of: find.text('已记录费用'),
       matching: find.byType(MileafModuleCard),
     );
-    expect(tester.widget<MileafModuleCard>(account).hue, energy.hue);
-    expect(
-      tester
-          .widget<Material>(
-            find.descendant(of: account, matching: find.byType(Material)).first,
-          )
-          .color,
-      Color.alphaBlend(energy.tint(colors), colors.surface),
+    final card = tester.widget<MileafModuleCard>(account);
+    expect(card.hue, cost.hue);
+    expect(card.emphasis, MileafCardEmphasis.focus);
+    final readout = tester.element(find.text('已记录费用'));
+    expect(readout.colors.surface, colors.focused(cost.hue).surface);
+    final amount = tester.widget<MileafNumber>(
+      find.descendant(of: account, matching: find.byType(MileafNumber)),
     );
+    expect(amount.color, cost.strong(colors));
 
     // CL01：每日充电图默认画的是「电量」，属 energy 域。
     expect(tester.widget<StemChart>(find.byType(StemChart)).hue, energy.hue);
@@ -156,18 +161,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<StemChart>(find.byType(StemChart)).hue, energy.hue);
 
-    // CL02：AC / DC 是同一个 energy 域的 solid / strong 两档，图例样本同色。
+    // VH25：AC / DC 共用薄荷域，图例使用与弧段相同的取色。
     await tester.scrollUntilVisible(find.byType(MileafShareRing), 300);
     final ring = tester.widget<MileafShareRing>(find.byType(MileafShareRing));
     expect(ring.hue, energy.hue);
     expect(ring.segments.first.color, energy.solid(colors));
-    expect(ring.segments[1].color, energy.strong(colors));
+    expect(ring.segments[1].color, energy.hue.secondarySeries(colors));
     final legends = tester
         .widgetList<ShareRingLegendRow>(find.byType(ShareRingLegendRow))
         .toList();
     expect(legends.length, 2);
     expect(legends.first.color, energy.solid(colors));
-    expect(legends.last.color, energy.strong(colors));
+    expect(legends.last.color, ring.segments[1].color);
   });
 
   testWidgets('MC08 记录行与地点行的身份图标取 energy strong、读数按域取色', (tester) async {
@@ -180,7 +185,7 @@ void main() {
     await tester.tap(navTab('充电'));
     await tester.pumpAndSettle();
 
-    final colors = MileafColors.of(tester.element(find.text('已记录费用')));
+    final colors = tester.element(find.byType(MileafNavBar)).colors;
     const energy = MileafDataDomain.energy;
     const cost = MileafDataDomain.cost;
 

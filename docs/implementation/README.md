@@ -2,7 +2,7 @@
 
 本目录放**过程与证据**：每个切片改了什么、怎么验证的、审查发现了什么、还剩什么。条款在 [specs/](../specs/)，决定在 [adr/](../adr/)；这里不重复写条款。总入口见 [docs/README.md](../README.md)。
 
-当前状态：77 个顶层 Markdown（76 份记录 + 本索引）+ 34 个子目录（分包记录与图册）。最近一次结构核对见 [repo-structure.md](repo-structure.md)。
+当前状态：80 个顶层 Markdown（79 份记录 + 本索引）+ 36 个子目录（分包记录与图册）。最近一次结构核对见 [repo-structure.md](repo-structure.md)。
 
 ## 1 交付总账
 
@@ -61,7 +61,7 @@
 | [drives-expansion.md](drives-expansion.md) | 扩展提案 | 行程「出行回顾」 |
 | [charging-briefing.md](charging-briefing.md) | 扩展提案 | 充电「补能账本」（CH01–CH05） |
 | [statistics-insights-overview.md](statistics-insights-overview.md)、[statistics-conditions.md](statistics-conditions.md) | 扩展提案 | 统计洞察总览与温度条件 |
-| [overview-reading.md](overview-reading.md)、[overview-chart-header.md](overview-chart-header.md)、[readout-context-row.md](readout-context-row.md) | ADR 0011/0014 | 概览读数区、图表头、读值第三行 |
+| [overview-reading.md](overview-reading.md)、[overview-chart-header.md](overview-chart-header.md)、[readout-context-row.md](readout-context-row.md) | ADR 0011/0014 | 概览读数区、图表头、读值第三行（含 2026-11-19 行宽修正） |
 | [period-header.md](period-header.md) | ADR 0014 | 焦点卡卡头（期间名 + 区间） |
 | [charging-rows.md](charging-rows.md) | ADR 0014 | 充电记录行与地点行重排 |
 | [settings-order.md](settings-order.md) | ADR 0014 | 设置页秩序重排 |
@@ -70,6 +70,9 @@
 | [days-matter-migration.md](days-matter-migration.md) + [-color](days-matter-migration-color.md) / [-icons](days-matter-migration-icons.md) / [-state](days-matter-migration-state.md) / [-dm05](days-matter-migration-dm05.md) / [-dm06](days-matter-migration-dm06.md) / [-dm07](days-matter-migration-dm07.md) / [-review](days-matter-migration-review.md) | ADR 0015 | 理念迁移实施、分包记录与审查 |
 | [chromatic-language.md](chromatic-language.md) | ADR 0016 | 色彩与图标秩序实施（含分包记录子目录） |
 | [chromatic-intensity.md](chromatic-intensity.md) | ADR 0017 | 鲜明度 v2：亮面档、洗色重定与逐像素前后对照 |
+| [visual-hierarchy-plan.md](visual-hierarchy-plan.md#天蓝与薄荷实施) | ADR 0018–0021 | 焦点、玻璃与现行天蓝薄荷配色实施核验 |
+| [statistics-conditions-layout.md](statistics-conditions-layout.md) | 缺陷修复（R24/R03/CP03/CP06） | 能耗专题（P08）读数浮点、卡间距、点图标签、分段轨道与下钻行对齐 |
+| [statistics-all-metrics-layout.md](statistics-all-metrics-layout.md) | 缺陷修复（R24/R30.2/PD08/CP05） | 全部指标索引页（P15）页首/页尾 0 间距、页尾改「关于这些数据」分组卡、行尾箭头同线 |
 
 ## 5 历史记录（图册已按归档政策处理）
 
@@ -96,6 +99,8 @@
 | 目录 | 张数 | 状态 |
 | --- | --- | --- |
 | [chromatic-intensity-renders/](chromatic-intensity-renders/) | 8 | 切片证据（ADR 0017：四页 × 浅深，390×844 / 2x） |
+| [statistics-conditions-renders/](statistics-conditions-renders/) | 8 | 切片证据（P08 版式修复：高精度合成浮点、窄屏温区标签和 13 组密集形态） |
+| [statistics-all-metrics-renders/](statistics-all-metrics-renders/) | 5 | 切片证据（P15 版式修复：页首/页尾节奏 + R30.2 页尾形式，3 机位 + 深色 + 200%） |
 | [days-matter-migration-renders/](days-matter-migration-renders/) | 26 | 上一代（ADR 0015 迁移样张） |
 | [charging-rows-renders/](charging-rows-renders/) | 18 | 切片证据（ADR 0014） |
 | [liquid-glass-nav-renders/](liquid-glass-nav-renders/) | 17 | 切片证据（ADR 0013） |

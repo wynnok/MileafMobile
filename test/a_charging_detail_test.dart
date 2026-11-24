@@ -8,7 +8,7 @@ import 'support/map_key_fixture.dart';
 import 'charging_detail_test.dart' show app, fixture, initial, response;
 
 void main() {
-  testWidgets('MC08 充电详情：电量弧与功率曲线 energy、已记录费用 cost', (tester) async {
+  testWidgets('充电详情：电量弧与功率曲线用电量域，读数配焦点底', (tester) async {
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/charging-sessions/1')) {
         return response(fixture('charging-detail'));
@@ -26,26 +26,18 @@ void main() {
 
     final colors = MileafColors.of(tester.element(find.text('充入电量')));
     const energy = MileafDataDomain.energy;
-    const cost = MileafDataDomain.cost;
 
-    // CL01/CL12：电量弧是 energy 域的数据图形，取 solid。
     final arc = tester.widget<BatteryArc>(find.byType(BatteryArc));
     expect(arc.hue, energy.hue);
-    // 三格里的「充入电量」同属 energy 域，读数取文字级 strong。
+    expect(arc.onHero, isTrue);
     expect(
       tester
           .widgetList<MetricBlock>(find.byType(MetricBlock))
           .firstWhere((block) => block.label == '充入电量')
           .hue,
-      energy.hue,
+      isNull,
     );
-    // CL01：已记录费用是 cost 域；读数取 strong，缺失时仍由组件给中性 —。
-    expect(
-      tester
-          .widgetList<MileafNumber>(find.byType(MileafNumber))
-          .any((number) => number.color == cost.strong(colors)),
-      isTrue,
-    );
+    expect(colors.surface, isNot(const MileafColors.light().surface));
     // CL01：功率曲线属 energy 域，整张图一个色相。
     await tester.scrollUntilVisible(find.byType(TimeSeriesChart), 300);
     expect(

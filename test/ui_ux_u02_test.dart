@@ -322,7 +322,7 @@ void main() {
       expect(
         border.top.color,
         // R04: primary uses an inverse boundary against its accent fill.
-        const MileafColors.dark().textOnAccent,
+        const MileafColors.dark().onPrimaryAction,
       );
     });
 

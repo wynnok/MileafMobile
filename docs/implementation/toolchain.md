@@ -9,7 +9,7 @@ SwiftPM 嵌套沙箱失败与 Xcode 局部参数被拒的证据仍保留；项�
 ## 固定工具链与边界
 
 - Flutter stable **3.47.7**，revision `abaf9c523780a608bd46686fd5e53740a07077f8`；Dart **3.13.5**。工程 `.metadata` 和 `pubspec.lock` 纳入版本管理。
-- Android 最低 API **24**，compile/target **36**，使用项目 SDK platform 36、build-tools 36.0.0；JDK **21.0.10 (Zulu)**、Gradle **9.3.1**、AGP **9.1.0**（Flutter 锁定版本模板）。Flutter/AGP 构建要求 NDK **28.2.13676358**，固定该版本及 CMake **3.22.1** 并仅允许安装于项目 SDK。
+- Android 最低 API **24**，compile/target **36**，使用项目 SDK platform 36、build-tools 36.0.0；JDK 取**环境变量 `JAVA_HOME` 的值**（不写死绝对版本路径；2026-11-20 起本机为 Temurin **25.0.5.1**，此前验证记录用的是 Zulu **21.0.10**）、Gradle **9.3.1**、AGP **9.1.0**（Flutter 锁定版本模板）。Flutter/AGP 构建要求 NDK **28.2.13676358**，固定该版本及 CMake **3.22.1** 并仅允许安装于项目 SDK。
 - iOS deployment target **15.0**，本机验证 Xcode **27.1 (27A9275)**、CocoaPods **1.17.0**。仅项目级停用 SwiftPM；不提高最低系统版本。
 - `tool/flutterw` 从工程根执行并将 Pub、Gradle、Android user、XDG、编译模块缓存放入本工程。默认 SDK 位于 `.tooling/flutter`、`.tooling/android-sdk`；既有项目内 SDK 可通过 `MILEAF_FLUTTER_SDK` / `MILEAF_ANDROID_SDK` 指定。不安装全局工具。
 - 首次准备 Flutter 使用对应 revision 的项目内 checkout；Android 使用已许可、兼容的项目内 SDK，不改全局 SDK。签名材料不纳入版本控制；debug keystore 位于 `.cache/android`。当前 Android release 使用开发签名，仅用于研发验证，不是商店交付。
@@ -21,7 +21,7 @@ SwiftPM 嵌套沙箱失败与 Xcode 局部参数被拒的证据仍保留；项�
 - `tool/flutterw dart format --output=none --set-exit-if-changed lib test`
 - `tool/flutterw analyze`
 - `tool/flutterw test`
-- `tool/flutterw android assembleDebug`（研发 APK）；`tool/flutterw android assembleRelease`（开发签名 release）。先通过 `tool/flutterw android --version` 核对已有 JAVA_HOME 指向的 Zulu21；入口不更改 JAVA_HOME。Flutter `build apk` 会优先发现 IDE 的 JBR，本机实际选中 JBR25，因此不将该入口作为既定 JDK21 的验证命令。
+- `tool/flutterw android assembleDebug`（研发 APK）；`tool/flutterw android assembleRelease`（开发签名 release）。JDK 由**调用方环境里的 `JAVA_HOME`** 提供，入口不改写它；先确认 `"$JAVA_HOME/bin/java" -version` 可执行。切换 JDK 后，在当前构建进程中核对 `JAVA_HOME` 指向所选安装。Flutter `build apk` 会优先发现 IDE 的 JBR，因此不将该入口作为既定 JDK 的验证命令。
 - `tool/flutterw build ios --release --no-codesign`
 
 工具链和缓存均被忽略；只提交源码、契约及依赖锁文件。工程入口 `MileafApp(client: ...)` 接受系统边界 HTTP client；生产默认使用正常证书校验的 Dart IO client，连接超时 5 秒。统一 API 入口使用 15 秒总时限（含响应头与响应体），超时中止 HTTP 请求，无自动重试或自动重定向。

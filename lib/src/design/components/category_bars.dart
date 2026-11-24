@@ -25,22 +25,9 @@ class MileafCategoryBars extends StatelessWidget {
   final String? note;
 
   /// CL01/CL02：柱的语义色相。传了就把「主 / 次 / 中性」三档映射成
-  /// 「同一色相两档 + 中性」——主柱 `hue.solid`、次柱 `hue.strong`、
+  /// 「同一色相两档 + 中性」——主柱 `hue.solid`、次柱 `hue.secondarySeries`、
   ///「未知」仍 `seriesNeutral`；缺省沿用 series 三档，与改造前像素等价。
   final MileafHue? hue;
-
-  /// Same three steps as [MileafCompositionBar]: primary, secondary, neutral.
-  /// Delegating to the series tokens keeps the pair readable on a white card
-  /// and on the dark surface (Spec §8, AV06).
-  Color _bar(BuildContext context, int index) {
-    final colors = context.colors;
-    final hue = this.hue;
-    return switch (index % 3) {
-      0 => hue?.solid(colors) ?? colors.seriesPrimary,
-      1 => hue?.strong(colors) ?? colors.seriesSecondary,
-      _ => colors.seriesNeutral,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +88,7 @@ class MileafCategoryBars extends StatelessWidget {
                                     ((values[i].$2 ?? 0) / maximum).clamp(0, 1),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: _bar(context, i),
+                              color: colors.seriesColor(i, hue: hue),
                               borderRadius: MileafRadius.xsAll,
                             ),
                           ),

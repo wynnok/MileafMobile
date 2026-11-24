@@ -9,18 +9,24 @@ import '../tokens.dart';
 import '../typography.dart';
 import 'button.dart' show MileafControlMetrics;
 import 'chip.dart';
+import 'glass_surface.dart';
 
 /// 共享胶囊轨道。紧凑期间贴住内容，指标组占满可用宽度。
 ///
 /// R27 折行规则：一行放不下时在自身区域内折行，每行至多 3 项（4 项 2+2，
 /// 5 项 3+2）；320 宽或大字时四项 2×2；仍放不下时单列。轨道视觉高 40、选中底
 /// 36，命中区按平台触控尺寸透明扩展。
+///
+/// 形状按行数分档（R24/CL21 的推导，规范尚未单独立条）：**单行**是一颗控件，
+/// 轨道与选中底都取胶囊；**折行后**轨道包住多行分段，已经是内容容器，轨道退回
+/// `MileafRadius.lg`，选中底仍是胶囊。
 class ChipRow extends StatelessWidget {
   const ChipRow({
     super.key,
     required this.children,
     this.alignment = WrapCrossAlignment.center,
     this.equalWidth = false,
+    this.moreThanTwoRows,
   });
 
   /// 轨道水平内边距：轨道 40 包住选中底 36，上下左右各留 2。
@@ -29,6 +35,7 @@ class ChipRow extends StatelessWidget {
   final List<StatusChip> children;
   final WrapCrossAlignment alignment;
   final bool equalWidth;
+  final WidgetBuilder? moreThanTwoRows;
 
   /// 首行高度（含透明命中带），供 [MileafPeriodRow] 对齐行尾圆钮。
   static double rowHeight(BuildContext context, List<StatusChip> children) =>
@@ -49,6 +56,8 @@ class ChipRow extends StatelessWidget {
         final count = children.length;
         final selected = children.indexWhere((chip) => chip.selected);
         final rows = (count / metrics.columns).ceil();
+        final fallback = moreThanTwoRows;
+        if (rows > 2 && fallback != null) return fallback(context);
         final totalHeight = rows * metrics.cellHeight;
         final trackHeight =
             (rows - 1) * metrics.cellHeight +
@@ -88,7 +97,13 @@ class ChipRow extends StatelessWidget {
                     key: MileafChipKeys.track,
                     decoration: BoxDecoration(
                       color: colors.segmentTrack,
-                      borderRadius: BorderRadius.circular(MileafRadius.full),
+                      // 单行时轨道是「控件」，按 R24 取胶囊；折行后它包住多行
+                      // 分段，已经变成内容容器——继续用胶囊半径会把它拉成一颗
+                      // 拉长的药丸（P08 温度组分段在窄屏上的实际形态），
+                      // 所以多行退回内容容器的 MileafRadius.lg。
+                      borderRadius: BorderRadius.circular(
+                        rows > 1 ? MileafRadius.lg : MileafRadius.full,
+                      ),
                     ),
                   ),
                 ),
@@ -119,13 +134,24 @@ class ChipRow extends StatelessWidget {
                       child: Container(
                         key: MileafChipKeys.selected,
                         decoration: BoxDecoration(
-                          color: colors.segmentSelected,
                           borderRadius: BorderRadius.circular(
                             MileafRadius.full,
                           ),
                           boxShadow: MileafControlMetrics.selectionShadow(
                             colors,
                           ),
+                        ),
+                        foregroundDecoration: BoxDecoration(
+                          borderRadius: MileafRadius.fullAll,
+                          border: Border.all(
+                            color: colors.segmentBorder,
+                            width: MileafStroke.hairline,
+                          ),
+                        ),
+                        child: MileafGlassSurface.tinted(
+                          color: colors.segmentSelected,
+                          borderRadius: MileafRadius.fullAll,
+                          child: const SizedBox.expand(),
                         ),
                       ),
                     ),
@@ -189,7 +215,9 @@ class MileafPeriodRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trailing = this.trailing;
-    if (trailing == null) return ChipRow(children: children);
+    if (trailing == null) {
+      return ChipRow(children: children);
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -443,16 +443,7 @@ class _MapPanelState extends State<MapPanel> {
     ),
   );
 
-  /// CL30/CL31：地图浮控（放大/缩小/适配轨迹、查看完整地图）的玻璃背板。
-  ///
-  /// 一个玻璃数值都不在这里重写：模糊 σ、过饱和、上下叠色、受光边缘与阴影
-  /// 全都由 [MileafGlassSurface] 从 [MileafMaterialMetrics] 与
-  /// [MileafColors.glass] 取，因此与底栏、浮层菜单是同一块玻璃。它自带的
-  /// 1px 受光描边就是浅色压在亮底图上的边界兜底（glassRim* 的注释：白边线在
-  /// 浅底上等于没有边界，所以下半圈用石墨收暗）。
-  ///
-  /// 几何不变：圆钮视觉仍是 36（R27），命中仍是平台触控尺寸；玻璃只垫在
-  /// 圆钮那一格下面，控件外面那圈 44/48 的命中区保持透明。
+  /// Flutter 速写可透过背板取样；加载中的原生地图走同几何实色回退。
   Widget _glassButton(BuildContext context, {required Widget child}) =>
       SizedBox.square(
         dimension: MileafLayout.touchTarget(context),
@@ -461,8 +452,13 @@ class _MapPanelState extends State<MapPanel> {
           children: [
             SizedBox.square(
               dimension: MileafControlMetrics.iconVisual,
-              child: MileafGlassSurface(
+              child: MileafGlassSurface.control(
                 borderRadius: MileafRadius.fullAll,
+                forceSolid:
+                    (_status == _MapStatus.loading ||
+                        _status == _MapStatus.ready) &&
+                    (_platform is AmapAndroidPlatform ||
+                        _platform is AmapIosPlatform),
                 child: const SizedBox.expand(),
               ),
             ),

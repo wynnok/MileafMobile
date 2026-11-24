@@ -52,8 +52,9 @@ void main() {
     );
     expect(find.text('本月 10月1日\u201328日'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '总览'), findsNothing);
-    await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
-    expect(find.textContaining('187.5'), findsWidgets);
+    // Spec mobile-v1 §11：电耗整数（原值 187.5 提供，上屏 188）。
+    await tester.scrollUntilVisible(find.textContaining('188 Wh/km'), 160);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
 
     expect(
       tester
@@ -139,7 +140,7 @@ void main() {
       statisticsInsights: true,
     );
     expect(find.textContaining('统计读取失败'), findsWidgets);
-    expect(find.textContaining('187.5'), findsNothing);
+    expect(find.textContaining('188'), findsNothing);
   });
   for (final scenario in ['normal', 'quality', 'version', 'range', 'zero']) {
     testWidgets('同进度比较可核查且拒绝不一致口径 $scenario', (tester) async {
@@ -304,8 +305,9 @@ void main() {
       statisticsInsights: true,
     );
     expect(find.textContaining('参照读取失败'), findsOneWidget);
-    await tester.scrollUntilVisible(find.textContaining('187.5'), 160);
-    expect(find.textContaining('187.5'), findsWidgets);
+    // Spec mobile-v1 §11：电耗整数（原值 187.5 提供，上屏 188）。
+    await tester.scrollUntilVisible(find.textContaining('188 Wh/km'), 160);
+    expect(find.textContaining('188 Wh/km'), findsWidgets);
     final before = currentRequests;
     failReference = false;
     // CP07：失败提示的动作统一写「重试」（原来按对象命名）。
@@ -340,7 +342,7 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(tester.takeException(), isNull);
-    expect(find.text('187.5 Wh/km'), findsWidgets, reason: '值与单位不再拆成两行');
+    expect(find.text('188 Wh/km'), findsWidgets, reason: '值与单位不再拆成两行');
     expect(find.textContaining('比上月同期低 13 Wh/km'), findsOneWidget);
   });
 

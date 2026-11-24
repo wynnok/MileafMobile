@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mileaf/src/design/components/components.dart';
+import 'package:mileaf/src/design/display_preferences.dart';
 import 'package:mileaf/src/design/icons.dart';
 import 'package:mileaf/src/design/motion.dart';
 import 'package:mileaf/src/design/semantic.dart';
@@ -32,11 +33,18 @@ Future<void> pumpBoard(
     tester.platformDispatcher.clearTextScaleFactorTestValue();
     tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue();
   });
+  final preferences = DisplayPreferencesController(
+    platform: DisplayPreferencesPlatform.other,
+  );
+  addTearDown(preferences.dispose);
   await tester.pumpWidget(
-    MaterialApp(
-      theme: mileafTheme(brightness).copyWith(platform: platform),
-      home: Scaffold(
-        body: SingleChildScrollView(padding: padding, child: child),
+    DisplayPreferencesScope(
+      controller: preferences,
+      child: MaterialApp(
+        theme: mileafTheme(brightness).copyWith(platform: platform),
+        home: Scaffold(
+          body: SingleChildScrollView(padding: padding, child: child),
+        ),
       ),
     ),
   );
@@ -95,7 +103,49 @@ Widget statefulRow(
 
 void main() {
   group('R27 分段控件（胶囊轨道、唯一选中底、无下划线）', () {
-    testWidgets('轨道视觉高 40、选中底 36，两者都是胶囊', (tester) async {
+    testWidgets('折行后轨道退回内容容器半径（内容容器 lg / 控件胶囊）', (tester) async {
+      // R24/CL21 的形状语言只给「控件 = 胶囊」：一行放不下的分段控件已经变成
+      // 包住多行的内容容器，继续用胶囊半径会把它拉成一颗拉长的药丸
+      // （P08 温度组分段在 360 宽上的实际形态）。
+      await pumpBoard(
+        tester,
+        ChipRow(
+          children: [
+            StatusChip(label: '5至10°C', selected: true, onTap: () {}),
+            StatusChip(label: '10至15°C', onTap: () {}),
+            StatusChip(label: '15至20°C', onTap: () {}),
+          ],
+        ),
+        width: 360,
+        padding: const EdgeInsets.all(16),
+      );
+      final track = find.byKey(MileafChipKeys.track);
+      // 折行证据：轨道高于一行（44 命中区 + 2×2 内衬），且第二行的分段排在
+      // 第一行之下、仍被同一条轨道包住。
+      final first = tester.getRect(find.widgetWithText(StatusChip, '5至10°C'));
+      final last = tester.getRect(find.widgetWithText(StatusChip, '15至20°C'));
+      expect(
+        tester.getCenter(find.text('15至20°C')).dy,
+        greaterThan(tester.getCenter(find.text('5至10°C')).dy),
+        reason: '第三个分段应落到第二行',
+      );
+      expect(last.top, greaterThanOrEqualTo(first.bottom));
+      // 第二行的胶囊（视觉 36，命中区是透明扩展）仍被同一条轨道包住。
+      final trackRect = tester.getRect(track);
+      final capsule = tester.getRect(
+        find.byKey(MileafChipKeys.capsule('15至20°C')),
+      );
+      expect(trackRect.top, lessThanOrEqualTo(capsule.top));
+      expect(trackRect.bottom, greaterThanOrEqualTo(capsule.bottom));
+      final decoration =
+          tester.widget<Container>(track).decoration! as BoxDecoration;
+      expect(
+        decoration.borderRadius,
+        BorderRadius.all(Radius.circular(MileafRadius.lg)),
+      );
+    });
+
+    testWidgets('单行轨道视觉高 40、选中底 36，两者都是胶囊', (tester) async {
       await pumpBoard(
         tester,
         ChipRow(
@@ -119,7 +169,10 @@ void main() {
       expect(tester.getSize(lens).height, 36);
       final lensDecoration =
           (tester.widget<Container>(lens).decoration! as BoxDecoration);
-      expect(lensDecoration.color, const MileafColors.dark().segmentSelected);
+      expect(
+        find.descendant(of: lens, matching: find.byType(MileafGlassSurface)),
+        findsOneWidget,
+      );
       expect(
         lensDecoration.borderRadius,
         BorderRadius.all(Radius.circular(MileafRadius.full)),
@@ -440,7 +493,7 @@ void main() {
   });
 
   group('R27 按钮（胶囊 50、文字按钮、危险操作、处理中）', () {
-    testWidgets('主按钮 50 高胶囊、headline 文字、accentStrong 填充', (tester) async {
+    testWidgets('主按钮 50 高胶囊、headline 文字、品牌原色填充', (tester) async {
       await pumpBoard(tester, MileafButton(label: '确认补录', onPressed: () {}));
       const colors = MileafColors.dark();
       expect(tester.getSize(find.byType(MileafButton)).height, 50);
@@ -452,17 +505,15 @@ void main() {
             )
             .first,
       );
-      expect(material.color, colors.accentStrong);
+      expect(material.color, const Color(0xFF0E7C7B));
       expect(material.borderRadius, BorderRadius.circular(MileafRadius.full));
       final text = tester.widget<Text>(find.text('确认补录')).style!;
       expect(text.fontSize, MileafType.headlineSize);
       expect(text.fontWeight, FontWeight.w600);
-      expect(text.color, colors.textOnAccent);
+      expect(text.color, colors.onPrimaryAction);
     });
 
-    testWidgets('次按钮 50 高、accentSoft 填充 + accentStrong control 文字', (
-      tester,
-    ) async {
+    testWidgets('次按钮 50 高、玻璃背板 + accentStrong control 文字', (tester) async {
       await pumpBoard(
         tester,
         MileafButton(
@@ -473,15 +524,7 @@ void main() {
       );
       const colors = MileafColors.dark();
       expect(tester.getSize(find.byType(MileafButton)).height, 50);
-      final material = tester.widget<Material>(
-        find
-            .descendant(
-              of: find.byType(MileafButton),
-              matching: find.byType(Material),
-            )
-            .first,
-      );
-      expect(material.color, colors.accentSoft);
+      expect(find.byType(MileafGlassSurface), findsOneWidget);
       final text = tester.widget<Text>(find.text('取消')).style!;
       expect(text.fontSize, MileafType.controlSize);
       expect(text.color, colors.accentStrong);
@@ -642,8 +685,8 @@ void main() {
       expect(border.top.width, 2);
       expect(
         border.top.color,
-        const MileafColors.dark().textOnAccent,
-        reason: 'primary 用反相边界',
+        const MileafColors.dark().onPrimaryAction,
+        reason: 'primary 用品牌墨色边界',
       );
       expect(
         (tester
@@ -710,18 +753,6 @@ void main() {
       tester,
     ) async {
       const colors = MileafColors.dark();
-      Color? fill() {
-        final box = tester.widget<DecoratedBox>(
-          find
-              .descendant(
-                of: find.byType(MileafIconButton),
-                matching: find.byType(DecoratedBox),
-              )
-              .first,
-        );
-        return (box.decoration as BoxDecoration).color;
-      }
-
       await pumpBoard(
         tester,
         MileafIconButton(
@@ -731,7 +762,7 @@ void main() {
           onPressed: () {},
         ),
       );
-      expect(fill(), colors.segmentTrack);
+      expect(find.byType(MileafGlassSurface), findsOneWidget);
 
       await pumpBoard(
         tester,
@@ -741,7 +772,7 @@ void main() {
           onPressed: () {},
         ),
       );
-      expect(fill(), isNull, reason: '默认不填充，其他持有票外观不变');
+      expect(find.byType(MileafGlassSurface), findsNothing, reason: '默认不填充');
 
       await pumpBoard(
         tester,
@@ -752,7 +783,7 @@ void main() {
           onPressed: () {},
         ),
       );
-      expect(fill(), colors.accentSoft);
+      expect(find.byType(MileafGlassSurface), findsOneWidget);
       expect(
         tester.widget<MileafIcon>(find.byType(MileafIcon)).color,
         colors.accent,
@@ -847,21 +878,13 @@ void main() {
           ],
         );
 
-    testWidgets('小胶囊高 32、segmentTrack 底、control 文字与向下箭头', (tester) async {
+    testWidgets('小胶囊高 32、受光胶囊、control 文字与向下箭头', (tester) async {
       await pumpBoard(tester, pullDown());
-      const colors = MileafColors.dark();
       expect(tester.getSize(find.byType(MileafPullDown<String>)).height, 32);
-      final container = tester.widget<Container>(
-        find
-            .descendant(
-              of: find.byType(MileafPullDown<String>),
-              matching: find.byType(Container),
-            )
-            .first,
+      final glass = tester.widget<MileafGlassSurface>(
+        find.byType(MileafGlassSurface),
       );
-      final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.color, colors.segmentTrack);
-      expect(decoration.borderRadius, BorderRadius.circular(MileafRadius.full));
+      expect(glass.borderRadius, MileafRadius.fullAll);
       final text = tester.widget<Text>(find.text('全部类型')).style!;
       expect(text.fontSize, MileafType.controlSize);
       expect(
@@ -1066,22 +1089,17 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('浮动样式：左右下各留 8、四角 28、正文 surfaceRaised', (tester) async {
-      const colors = MileafColors.dark();
+    testWidgets('浮动样式：左右下各留 8、四角 28、玻璃背板', (tester) async {
       await open(tester, style: MileafSheetStyle.floating);
       final surface = find.byKey(const ValueKey('sheet-surface'));
       final rect = tester.getRect(surface);
       expect(rect.left, 8);
       expect(rect.right, 390 - 8);
       expect(rect.bottom, closeTo(844 - 8, .5));
-      final decoration =
-          tester.widget<DecoratedBox>(surface).decoration as BoxDecoration;
-      expect(decoration.color, colors.surfaceRaised);
       expect(
-        decoration.borderRadius,
+        tester.widget<MileafGlassSurface>(surface).borderRadius,
         BorderRadius.circular(MileafRadius.sheet),
       );
-      expect(decoration.boxShadow, isNotNull, reason: '浮层才有阴影');
       expect(find.text('选择车辆'), findsOneWidget);
     });
 

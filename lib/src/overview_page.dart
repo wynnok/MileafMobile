@@ -585,6 +585,21 @@ class _OverviewPageState extends State<OverviewPage>
   );
 
   Widget _hero(dto.Summary d) {
+    if (d.battery?.rangeKm == null && d.battery?.level == null) {
+      return _statusSurface(_heroContent(context, d));
+    }
+    return MileafContent(
+      padding: MileafLayout.pageHorizontal(context),
+      child: MileafModuleCard.focused(
+        key: const ValueKey('overview-status'),
+        hue: MileafDataDomain.energy.hue,
+        padding: EdgeInsets.zero,
+        child: Builder(builder: (context) => _heroContent(context, d)),
+      ),
+    );
+  }
+
+  Widget _heroContent(BuildContext context, dto.Summary d) {
     final colors = context.colors;
     final type = context.type;
     final large = MileafLayout.largeText(context);
@@ -602,7 +617,8 @@ class _OverviewPageState extends State<OverviewPage>
             'offline' => VehicleStatusKind.offline,
             _ => null,
           };
-    final statusColor = charging ? colors.accentHero : colors.heroMuted;
+    final energy = MileafDataDomain.energy.hue;
+    final statusColor = charging ? energy.strong(colors) : colors.heroMuted;
     final statusText = _stateLabel;
     // 数据陈旧与否由状态行尾的新鲜度读法（DF7/DF5）承载，不再另起一行重复。
     final power = charging && d.chargingPowerKw != null
@@ -674,7 +690,9 @@ class _OverviewPageState extends State<OverviewPage>
         ? Text('电量未知', style: type.footnote.copyWith(color: colors.heroMuted))
         : BatteryArc(
             level: d.battery?.level,
+            hue: energy,
             onHero: true,
+            glass: true,
             size: large
                 ? MileafBatteryMetrics.largeTextSize
                 : MileafBatteryMetrics.size,
@@ -721,94 +739,92 @@ class _OverviewPageState extends State<OverviewPage>
               );
       },
     );
-    return _statusSurface(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              MileafSpace.s16,
-              MileafSpace.s12,
-              MileafSpace.s16,
-              MileafSpace.s12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // R31/R26：状态、功率、新鲜度是三件事，不用「·」拼接。大字时
-                // 新鲜度换到下一行，避免 200% 下三项被打成「充电 中 / 11.... / 今天 …」。
-                if (reflow)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (glyph != null) ...[
-                            glyph,
-                            const SizedBox(width: MileafSpace.s8),
-                          ],
-                          Expanded(child: statusWidget),
-                          if (powerWidget != null) ...[
-                            const SizedBox(width: MileafSpace.s8),
-                            powerWidget,
-                          ],
-                        ],
-                      ),
-                      if (agoWidget != null) ...[
-                        const SizedBox(height: MileafSpace.s4),
-                        Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: agoWidget,
-                        ),
-                      ],
-                    ],
-                  )
-                else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (glyph != null) ...[
-                        glyph,
-                        const SizedBox(width: MileafSpace.s8),
-                      ],
-                      Expanded(child: statusWidget),
-                      if (powerWidget != null) ...[
-                        const SizedBox(width: MileafSpace.s8),
-                        Flexible(child: powerWidget),
-                      ],
-                      if (agoWidget != null) ...[
-                        const SizedBox(width: MileafSpace.s8),
-                        Flexible(child: agoWidget),
-                      ],
-                    ],
-                  ),
-                const SizedBox(height: MileafSpace.s4),
-                if (large) ...[
-                  range,
-                  const SizedBox(height: MileafSpace.s12),
-                  Align(alignment: Alignment.centerRight, child: arc),
-                ] else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(child: range),
-                      arc,
-                    ],
-                  ),
-                const SizedBox(height: MileafSpace.s8),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: colors.heroText.withValues(alpha: .12),
-                ),
-                const SizedBox(height: MileafSpace.s8),
-                stats,
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            MileafSpace.s16,
+            MileafSpace.s12,
+            MileafSpace.s16,
+            MileafSpace.s12,
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // R31/R26：状态、功率、新鲜度是三件事，不用「·」拼接。大字时
+              // 新鲜度换到下一行，避免 200% 下三项被打成「充电 中 / 11.... / 今天 …」。
+              if (reflow)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (glyph != null) ...[
+                          glyph,
+                          const SizedBox(width: MileafSpace.s8),
+                        ],
+                        Expanded(child: statusWidget),
+                        if (powerWidget != null) ...[
+                          const SizedBox(width: MileafSpace.s8),
+                          powerWidget,
+                        ],
+                      ],
+                    ),
+                    if (agoWidget != null) ...[
+                      const SizedBox(height: MileafSpace.s4),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: agoWidget,
+                      ),
+                    ],
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (glyph != null) ...[
+                      glyph,
+                      const SizedBox(width: MileafSpace.s8),
+                    ],
+                    Expanded(child: statusWidget),
+                    if (powerWidget != null) ...[
+                      const SizedBox(width: MileafSpace.s8),
+                      Flexible(child: powerWidget),
+                    ],
+                    if (agoWidget != null) ...[
+                      const SizedBox(width: MileafSpace.s8),
+                      Flexible(child: agoWidget),
+                    ],
+                  ],
+                ),
+              const SizedBox(height: MileafSpace.s4),
+              if (large) ...[
+                range,
+                const SizedBox(height: MileafSpace.s12),
+                Align(alignment: Alignment.centerRight, child: arc),
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: range),
+                    arc,
+                  ],
+                ),
+              const SizedBox(height: MileafSpace.s8),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: colors.heroText.withValues(alpha: .12),
+              ),
+              const SizedBox(height: MileafSpace.s8),
+              stats,
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -961,10 +977,8 @@ class _OverviewPageState extends State<OverviewPage>
     return Padding(
       padding: const EdgeInsets.only(top: MileafSpace.s16),
       child: MileafModuleCard(
-        // CL02/CL06：焦点卡是首屏唯一「≥10% 面积」的彩色面，只允许 8% tint；
-        // 卡片之间的台阶靠彩度差而不是阴影（canvas ↔ surface 只有 1.09:1）。
-        hue: MileafDataDomain.journey.hue,
         // §6 退让阶梯第 2 步：焦点卡内边 16 → 12，为首屏预算腾出 8。
+        hue: value == null ? null : MileafDataDomain.journey.hue,
         padding: const EdgeInsets.all(MileafSpace.s12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -976,8 +990,6 @@ class _OverviewPageState extends State<OverviewPage>
             const SizedBox(height: MileafSpace.s12),
             MetricBlock(
               semanticLabel: semantic,
-              // CL12：焦点值是驾驶里程，取 journey 的 strong（浅色 5.90:1）；
-              // 读不到数仍是「—」由 MileafNumber 处理，不补彩色（CL08）。
               hue: value == null ? null : MileafDataDomain.journey.hue,
               value: value == null ? null : parts,
               unit: 'km',

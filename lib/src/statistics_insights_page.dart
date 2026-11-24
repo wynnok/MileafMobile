@@ -874,32 +874,37 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                               actionLabel: '重试',
                               onAction: retryReference,
                             ),
-                          MileafModuleCard(
-                            // CL02/CL06：结论卡＝根页焦点卡，只叠 8% 的
-                            // journey tint（大面只能 tint）；跨页与概览焦点卡
-                            // 同一色相，下钻时不必重新解码。
+                          MileafModuleCard.focused(
                             hue: MileafDataDomain.journey.hue,
-                            // §6 退让阶梯：结论卡内边 12 → 8，为 360×800
-                            // 首屏预算（专题第一行完整可见）腾出高度。
-                            padding: const EdgeInsets.all(MileafSpace.s8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _conclusionTile(
-                                  stats,
-                                  enhanced,
-                                  paired,
-                                  comparable,
-                                  other,
-                                ),
-                                const SizedBox(height: MileafSpace.s8),
-                                _mileageChartTile(
-                                  enhanced,
-                                  other,
-                                  comparable,
-                                  cal,
-                                ),
-                              ],
+                            padding: const EdgeInsets.fromLTRB(
+                              MileafSpace.s8,
+                              MileafSpace.s8,
+                              MileafSpace.s8,
+                              MileafSpace.s4,
+                            ),
+                            footer: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                MileafSpace.s8,
+                                MileafSpace.s4,
+                                MileafSpace.s8,
+                                MileafSpace.s8,
+                              ),
+                              child: _mileageChartTile(
+                                enhanced,
+                                other,
+                                comparable,
+                                cal,
+                              ),
+                            ),
+                            child: Builder(
+                              builder: (context) => _conclusionTile(
+                                context,
+                                stats,
+                                enhanced,
+                                paired,
+                                comparable,
+                                other,
+                              ),
                             ),
                           ),
                         ],
@@ -931,9 +936,11 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     );
   }
 
-  /// C prints whole Wh/km, but keeps a decimal when the API value has one.
-  String _whKm(num value) =>
-      grouped(value, decimals: value == value.roundToDouble() ? 0 : 1);
+  /// 电耗按 Spec mobile-v1 §11 取整（速度与电耗整数）。
+  ///
+  /// 旧口径（C 的图板）在 API 值带小数时保留 1 位，与概览页的 0 位、能耗专题的
+  /// 0 位分叉；同一指标在两处显示不同精度会让人以为读数不同，故统一取整。
+  String _whKm(num value) => grouped(value);
 
   /// CP03：比较结果写成句子（多/少/持平），不用箭头；CP02：比较对象用真实名称。
   String _mileageDeltaText(num current, num? reference, bool comparable) {
@@ -986,6 +993,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
   /// P06 结论卡：期间名与区间一句、metricLg 主值、右侧 metricSm 趟数、
   /// 一句比较（多/少/持平）与「查看对比明细」下钻。
   Widget _conclusionTile(
+    BuildContext context,
     legacy.DrivingStats stats,
     insights.DrivingStats enhanced,
     Map? paired,
@@ -1003,22 +1011,27 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
       child: InkWell(
         onTap: () => selectTopic('energy'),
         borderRadius: MileafRadius.smAll,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '查看对比明细',
-                style: type.control.copyWith(color: colors.accentStrong),
-              ),
-              const SizedBox(width: MileafSpace.s4),
-              MileafIcon(
-                MileafIconName.chevron,
-                size: MileafIconMetrics.inline,
-                color: colors.accentStrong,
-              ),
-            ],
+        focusColor: Colors.transparent,
+        hoverColor: colors.pressOverlay,
+        highlightColor: colors.pressOverlay,
+        child: MileafFocusRing(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '查看对比明细',
+                  style: type.control.copyWith(color: colors.accentStrong),
+                ),
+                const SizedBox(width: MileafSpace.s4),
+                MileafIcon(
+                  MileafIconName.chevron,
+                  size: MileafIconMetrics.inline,
+                  color: colors.accentStrong,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1039,8 +1052,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 value: grouped(stats.totals.distanceKm, decimals: 1),
                 unit: 'km',
                 scale: MetricValueScale.metricLg,
-                // CL12：焦点值（里程）取 journey 的 strong 档。
-                hue: MileafDataDomain.journey.hue,
                 semanticLabel:
                     '$_periodName ${grouped(stats.totals.distanceKm, decimals: 1)} 公里',
               ),
@@ -1169,35 +1180,18 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   /// 专题卡片的 metricSm 值：数值 + 单位永不拆行（R21.5），不引入 LayoutBuilder。
   ///
-  /// CL12：读数取所属域的 strong 档；[hue] 为 null 时仍是中性 text（缺失、
-  /// 未知与「未记录」永不彩色，CL08）。
-  Widget _topicValue(
-    String value,
-    String? unit, {
-    MileafHue? hue,
-    bool onDeep = false,
-  }) {
+  Widget _topicValue(String value, String? unit, Color secondary) {
     final colors = context.colors;
     final type = context.type;
-    // CL56：深洗底上的读数改成墨色。深底卡的「身份」由整张卡的颜色承担，
-    // 不再靠读数颜色；20 号字在 #AED2FD 一类底上取墨色是 11.6–12.0:1。
-    final tone = onDeep ? colors.text : (hue?.strong(colors) ?? colors.text);
     return Text.rich(
       TextSpan(
         text: value,
-        style: type.metricSm.copyWith(
-          // CL08：缺失读数（「—」）永远中性，色相只标注有值的数据。
-          color: value == '—' ? colors.text : tone,
-        ),
+        style: type.metricSm.copyWith(color: colors.text),
         children: [
           if (unit != null)
             TextSpan(
               text: ' $unit',
-              style: type.subheadline.copyWith(
-                color: onDeep
-                    ? colors.text.withValues(alpha: .78)
-                    : colors.textSecondary,
-              ),
+              style: type.subheadline.copyWith(color: secondary),
             ),
         ],
       ),
@@ -1207,11 +1201,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
 
   /// P06 专题卡片：入口图标 + 名称（headline）+ 一个 metricSm 值 + 一句脚注。
   ///
-  /// CL06/CL12（ADR 0016）：2×2 章节卡按数据域上色——卡片背板只叠 8% tint
-  /// （大面唯一允许的彩色），身份图标与读数据取 strong 档。[hue] 为 null 的
-  /// 卡片保持改造前的动作色图标与中性读数（没有单一域可归属时不上色）。
-  /// [neutralValue] 用于「读数不属于本卡身份域」的一格：款额可能缺失或币种
-  /// 未知，按 CL08 保持中性，不给同一格挂第二个色相。
+  /// 有单一数据域的入口用浅色面标记身份，读数、单位和说明用中性前景。
   Widget _chapter(
     String title,
     MileafIconName icon,
@@ -1220,19 +1210,12 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
     String note,
     VoidCallback onTap, {
     MileafHue? hue,
-    bool neutralValue = false,
   }) {
     final colors = context.colors;
     final type = context.type;
-    // CL56：2×2 章节卡是「入口」，不是「读数」——一张卡只属于一个域，
-    // 所以让整张卡承担身份色（浅色 55% 洗底 + 墨色文字），而不是把颜色
-    // 藏进一枚 20 号的数字。深色模式自动退回浅洗底。
-    final deep = hue != null && !colors.isDark;
-    final onDeep = colors.text;
-    final onDeepMuted = colors.text.withValues(alpha: .78);
+    final secondary = colors.textSecondary;
     return MileafModuleCard(
       hue: hue,
-      emphasis: deep ? MileafCardEmphasis.deep : MileafCardEmphasis.field,
       padding: const EdgeInsets.all(MileafSpace.s8),
       child: InkWell(
         key: ValueKey('statistics-topic-$title'),
@@ -1246,11 +1229,7 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
                 MileafIcon(
                   icon,
                   size: MileafIconMetrics.nav,
-                  // CL12：身份图标取所属域的 strong；无域时沿用动作色。
-                  // CL56：深洗底上改取墨色（strong 在 55% 底上只有 3.4:1）。
-                  color: deep
-                      ? onDeep
-                      : hue?.strong(colors) ?? colors.accentStrong,
+                  color: hue?.strong(colors) ?? colors.accentStrong,
                 ),
                 const SizedBox(width: MileafSpace.s8),
                 Expanded(
@@ -1266,26 +1245,16 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
             // IntrinsicHeight 的固有尺寸测量（D-AP07-06）。这里用同一对角色
             // （metricSm 数值 + subheadline 单位）直接排版，视觉与两列网格的
             // metricSm 数值一致，同时让同一行两张卡可以拉伸到等高。
-            _topicValue(
-              value,
-              unit,
-              hue: neutralValue ? null : hue,
-              onDeep: deep && !neutralValue,
-            ),
+            _topicValue(value, unit, secondary),
             const SizedBox(height: MileafSpace.s4),
-            Text(
-              note,
-              style: type.footnote.copyWith(
-                color: deep ? onDeepMuted : colors.textSecondary,
-              ),
-            ),
+            Text(note, style: type.footnote.copyWith(color: secondary)),
           ],
         ),
       ),
     );
   }
 
-  /// A 2×2 chapter grid separated by 1px lines; no coloured cards.
+  /// 2×2 专题入口使用共用内容色阶。
   Widget _questionTiles(
     insights.DrivingStats enhanced,
     Map<String, dynamic>? charging,
@@ -1350,7 +1319,6 @@ class _StatisticsInsightsPageState extends State<StatisticsInsightsPage>
         // CL01：这一格的身份是补能（energy）；读数可能是未知币种的款额，
         // 按 CL08 保持中性，不在同一格里再挂 cost 色相。
         hue: MileafDataDomain.energy.hue,
-        neutralValue: true,
       ),
       _chapter(
         '长期',
@@ -1642,7 +1610,10 @@ class _AllMetricsPage extends StatelessWidget {
     appBar: mileafPageBar(context, title: const Text('全部指标')),
     body: MileafContent(
       child: ListView(
-        padding: MileafLayout.pagePadding(context),
+        // R24 的间距表没有 0 这一档。表里也没有「导航栏 → 首张卡」这一行，
+        // 8 是沿同类二级页的既有取值（P07/P08/P09/P10/P11 为 s8，设置与概览
+        // 为 s12）与 R26「安全区上沿 + 8 + 44 + 8」的节奏推出的，不是条文。
+        padding: MileafLayout.pagePadding(context, top: MileafSpace.s8),
         children: [
           // P15：分组卡列表，保留全部字段与旧版能力入口。
           MileafGroupCard(
@@ -1653,24 +1624,28 @@ class _AllMetricsPage extends StatelessWidget {
                     '节奏',
                     '驾驶时间、单程与星期分布',
                     MileafIconName.clock,
-                    MileafHue.violet,
+                    MileafDataDomain.dwell,
                   ),
                   'energy': (
                     '能耗',
                     '温度与距离条件',
                     MileafIconName.leaf,
-                    MileafHue.mint,
+                    MileafDataDomain.efficiency,
                   ),
                   'charging': (
                     '补能',
                     '费用、均价与 AC/DC',
                     MileafIconName.bolt,
-                    MileafHue.aqua,
+                    MileafDataDomain.energy,
                   ),
                   'long': ('长期', '额定续航与停放观察', MileafIconName.battery, null),
+                  // 文案长度：14 字落在 360 宽的单行预算（228）内；原 16 字会断出
+                  // 孤字「细」。这是排版取舍而非条款要求（R30.1 允许限定占两行），
+                  // 改写经用户 2026-11-20 授权。代价是丢掉「明细」——目的地页的
+                  // 分组标题仍是「时间桶明细」，CP02 的短/长形式待登记。
                   'legacy': (
                     '原始统计指标',
-                    '驾驶与充电的区间指标、时间桶明细',
+                    '驾驶与充电的区间指标与时间桶',
                     MileafIconName.chart,
                     null,
                   ),
@@ -1680,7 +1655,7 @@ class _AllMetricsPage extends StatelessWidget {
                     meta: entry.value.$2,
                     // CL12/D4：索引行与根页章节卡同一套身份图标与色相。
                     leading: entry.value.$3,
-                    hue: entry.value.$4,
+                    hue: entry.value.$4?.hue,
                     trailing: MileafIcon(
                       MileafIconName.chevron,
                       size: MileafIconMetrics.inline,
@@ -1692,15 +1667,22 @@ class _AllMetricsPage extends StatelessWidget {
               ],
             ),
           ),
-          // R30.3：说明类折叠改 MileafDisclosure，原位展开。
-          MileafDisclosure(
-            label: '数据说明',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('沿用当前车辆与期间；统计时区 $timezone。'),
-                const SizedBox(height: MileafSpace.s4),
-                const Text('各专题只回答一个问题，指标口径与统计首页一致。'),
+          // R30.2/PD08：页尾统一的「关于这些数据」= 分组标题 + 一张分组卡，
+          // 卡内为默认折叠的说明行。裸 MileafDisclosure 会落在画布层（行首对齐
+          // 页面边距、行尾箭头比卡内行右移 16），且与上一张卡间距为 0。
+          // MileafDataNotes 不自带上边距，区块间距由调用方给（R24：区块与区块 32）。
+          Padding(
+            padding: const EdgeInsets.only(top: MileafSpace.section),
+            child: MileafDataNotes(
+              groups: [
+                const MileafDataNoteGroup(
+                  category: DataNoteCategory.caliber,
+                  note: '各专题只回答一个问题，指标口径与统计首页一致。',
+                ),
+                MileafDataNoteGroup(
+                  category: DataNoteCategory.time,
+                  note: '沿用当前车辆与期间；统计时区 $timezone。',
+                ),
               ],
             ),
           ),

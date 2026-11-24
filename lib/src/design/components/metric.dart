@@ -7,6 +7,7 @@ import '../motion.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'module.dart';
 
 /// The three numeric tiers allowed for a result. Values never shrink below
 /// `metricMd` (24) at large text sizes.
@@ -202,13 +203,11 @@ class MetricBlock extends StatelessWidget {
       // 这条放在组件里而不是 20 个调用点：调用方传 hue 是「这一格是什么数据」，
       // 有没有数据要由组件自己判。
       //
-      // CL55（ADR 0017）：读数按字号分档取色。display/metricLg/metricMd 是
-      // 40/32/24 号，落在 WCAG「大文本」里，门槛 3:1 而不是 4.5:1——这三个档
-      // 取 solid（3.55:1，饱和度与图表线同档），比原来的 strong 明显更亮；
-      // metricSm（20 号，600 重）仍取 strong，保守过正文门槛。
+      // 洗色卡内的各档彩色读数走 strong。画布上的大读数仍可取 solid。
       color: value == null
           ? null
-          : (scale == MetricValueScale.metricSm
+          : (scale == MetricValueScale.metricSm ||
+                    MileafCardSurfaceScope.contains(context)
                 ? hue?.strong(colors)
                 : hue?.solid(colors)),
     );

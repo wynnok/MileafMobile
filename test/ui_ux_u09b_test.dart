@@ -122,7 +122,8 @@ void main() {
           (widget.properties.label?.startsWith('温度分组点图') ?? false),
     );
     final plotLabel = semanticsOf(tester, plot)!.properties.label!;
-    expect(plotLabel, contains('−10至−5°C（[−10, −5) °C，左闭右开）净电耗 248 Wh/km'));
+    // CP02：短标签「电耗」（「净电耗」是字段名，不进读者可见/可听的句子）。
+    expect(plotLabel, contains('−10至−5°C（[−10, −5) °C，左闭右开）电耗 248 Wh/km'));
     expect(plotLabel, contains('0至5°C（[0, 5) °C，左闭右开）无样本'));
     expect(tester.takeException(), isNull);
   });
@@ -170,7 +171,8 @@ void main() {
   testWidgets('全缺失保持基线与组标签，不伪造数值', (tester) async {
     await openU09b(tester, conditionsClient([], scenario: 'missing'));
     expect(find.text('— Wh/km'), findsOneWidget);
-    expect(find.text('暂无净电耗'), findsOneWidget);
+    // CP02：读者可见短标签是「电耗」。
+    expect(find.text('暂无电耗'), findsOneWidget);
     expect(find.text('样本较少，仅供参考'), findsOneWidget);
     final plot = find.byWidgetPredicate(
       (widget) =>
@@ -197,7 +199,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('360宽200%分组控件换行无溢出，芯片实际命中至少44', (tester) async {
+  testWidgets('360宽200%温度组可从下拉选择，实际命中至少44', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
@@ -205,13 +207,23 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await openU09b(tester, conditionsClient([]));
+    final groups = find.byType(MileafPullDown<int>);
+    await tester.scrollUntilVisible(groups.hitTestable(), 150);
+    expect(tester.getSize(groups).height, greaterThanOrEqualTo(44));
+    await tester.tap(groups);
+    await tester.pumpAndSettle();
+    final menu = find.byKey(kPullDownMenuSurfaceKey);
     for (final label in ['−10至−5°C', '−5至0°C', '0至5°C', '5至10°C']) {
-      final chip = find.widgetWithText(StatusChip, label).hitTestable();
-      await tester.scrollUntilVisible(chip, 150);
-      final rect = tester.getRect(chip);
-      expect(rect.height, greaterThanOrEqualTo(44));
+      final option = find.descendant(of: menu, matching: find.text(label));
+      expect(option.hitTestable(), findsOneWidget);
+      final row = find
+          .ancestor(of: option, matching: find.byType(InkWell))
+          .first;
+      expect(tester.getSize(row).height, greaterThanOrEqualTo(44));
     }
-    // P08：大字下分组选择换行重排，不产生三行胶囊残片或横向溢出。
+    await tester.tap(find.descendant(of: menu, matching: find.text('5至10°C')));
+    await tester.pumpAndSettle();
+    expect(find.text('5 至 10°C'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

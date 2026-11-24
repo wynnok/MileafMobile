@@ -1079,8 +1079,6 @@ class _ChargingPageState extends State<ChargingPage>
   /// 充入均价 / 充电时长）按 §6 退让阶梯第 4 步移到每日充电图之后（见
   /// [_accountCellsCard]）；充入均价的口径限定语随格就近出现（CP08）。
   Widget _accountCard(expanded.ChargingStats stats) {
-    final type = context.type;
-    final colors = context.colors;
     final total = stats.totals;
     final missing = total.cost == null || total.costKnownSessions == 0;
     return Padding(
@@ -1090,43 +1088,47 @@ class _ChargingPageState extends State<ChargingPage>
         MileafLayout.pageInset(context),
         0,
       ),
-      child: MileafModuleCard(
-        // CL01/CL06：账目卡是 energy 域的焦点卡，背板只叠 8% tint（大面唯一
-        // 允许的彩色用法）；卡里的费用读数是 cost 域，靠文字级 strong 取色，
-        // 两者各按自己的域走，不混用一个色相。
-        hue: MileafDataDomain.energy.hue,
+      child: MileafModuleCard.focused(
+        hue: missing ? null : MileafDataDomain.cost.hue,
         // §6 阶梯第 2 步：焦点卡内边 16 → 12。
         padding: const EdgeInsets.all(MileafSpace.cardInset),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              terms.recordedCost,
-              style: type.subheadline.copyWith(color: colors.textSecondary),
-            ),
-            const SizedBox(height: MileafSpace.s4),
-            // S06：0 元是真实 0，只有「无费用记录」才显示 —。
-            // CL08：缺失读数保持中性，只有真有费用时才取 cost 的文字级色。
-            MileafNumber(
-              value: missing ? null : widget.currency.amountValue(total.cost),
-              scale: MetricValueScale.metricLg,
-              color: missing ? null : MileafDataDomain.cost.strong(colors),
-            ),
-            const SizedBox(height: MileafSpace.s4),
-            Text(
-              // CP02 覆盖句式：9 次中 8 次有费用，对应充入 214 kWh。
-              '${total.sessions} 次中 ${total.costKnownSessions} 次有费用，'
-              '对应充入 ${decimal(total.costKnownEnergyKwh)} kWh',
-              style: type.subheadline.copyWith(color: colors.textSecondary),
-            ),
-            if (widget.currency.amountNote case final note?) ...[
-              const SizedBox(height: MileafSpace.s4),
-              Text(
-                note,
-                style: type.footnote.copyWith(color: colors.textMuted),
-              ),
-            ],
-          ],
+        child: Builder(
+          builder: (context) {
+            final type = context.type;
+            final colors = context.colors;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  terms.recordedCost,
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                // S06：0 元是真实 0，只有「无费用记录」才显示 —。
+                MileafNumber(
+                  value: missing
+                      ? null
+                      : widget.currency.amountValue(total.cost),
+                  color: missing ? null : MileafDataDomain.cost.strong(colors),
+                  scale: MetricValueScale.metricLg,
+                ),
+                const SizedBox(height: MileafSpace.s4),
+                Text(
+                  // CP02 覆盖句式：9 次中 8 次有费用，对应充入 214 kWh。
+                  '${total.sessions} 次中 ${total.costKnownSessions} 次有费用，'
+                  '对应充入 ${decimal(total.costKnownEnergyKwh)} kWh',
+                  style: type.subheadline.copyWith(color: colors.textSecondary),
+                ),
+                if (widget.currency.amountNote case final note?) ...[
+                  const SizedBox(height: MileafSpace.s4),
+                  Text(
+                    note,
+                    style: type.footnote.copyWith(color: colors.textMuted),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1211,6 +1213,11 @@ class _ChargingPageState extends State<ChargingPage>
 
   /// P03 每日充电卡：分段（电量/费用/均价/次数）+ 紧凑读数行 + 88 高的图（R29）。
   Widget _trendCard(expanded.ChargingStats stats) {
+    final active = stats.buckets.any((bucket) => bucket.sessions > 0);
+    final values = stats.buckets.map(_trendValue).toList(growable: false);
+    final hue = active && values.any((value) => value != null)
+        ? _trendHue
+        : null;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         MileafLayout.pageInset(context),
@@ -1220,14 +1227,33 @@ class _ChargingPageState extends State<ChargingPage>
       ),
       child: MileafModuleCard(
         // §6 阶梯第 2 步：卡内边 16 → 12。
+        hue: hue,
         padding: const EdgeInsets.all(MileafSpace.cardInset),
-        child: _trend(stats),
+        child: _trend(stats, values: values, active: active, hue: hue),
       ),
     );
   }
 
-  Widget _trend(expanded.ChargingStats stats) {
-    final active = stats.buckets.any((bucket) => bucket.sessions > 0);
+  MileafHue get _trendHue => chartMetric == 1 || chartMetric == 2
+      ? MileafDataDomain.cost.hue
+      : MileafDataDomain.energy.hue;
+
+  num? _trendValue(expanded.ChargingBucket bucket) => switch (chartMetric) {
+    0 =>
+      bucket.sessions > 0 && bucket.energyKnownSessions == 0
+          ? null
+          : bucket.energyAddedKwh,
+    1 => bucket.cost,
+    2 => bucket.unitCostAdded.value,
+    _ => bucket.sessions,
+  };
+
+  Widget _trend(
+    expanded.ChargingStats stats, {
+    required List<num?> values,
+    required bool active,
+    required MileafHue? hue,
+  }) {
     if (!active) {
       final colors = context.colors;
       final type = context.type;
@@ -1263,28 +1289,10 @@ class _ChargingPageState extends State<ChargingPage>
         (stats.buckets.isEmpty
             ? 0
             : (lastActive < 0 ? stats.buckets.length - 1 : lastActive));
-    final values = [
-      for (final bucket in stats.buckets)
-        switch (chartMetric) {
-          0 =>
-            bucket.sessions > 0 && bucket.energyKnownSessions == 0
-                ? null
-                : bucket.energyAddedKwh,
-          1 => bucket.cost,
-          2 => bucket.unitCostAdded.value,
-          _ => bucket.sessions,
-        },
-    ];
-    // CL01：图的数据身份跟着**所选指标**走——电量/次数是 energy，费用/均价
-    // 是 cost。固定 energy 会让「费用」在图上与记录行的 cost 不同色，违反
-    // 「同一指标同一色相」；本页可见数据色相仍只有 energy + cost 两个。
-    final chartHue = chartMetric == 1 || chartMetric == 2
-        ? MileafDataDomain.cost.hue
-        : MileafDataDomain.energy.hue;
     return StemChart(
       title: '每日充电',
       unit: metric.$2,
-      hue: chartHue,
+      hue: hue,
       times: times,
       values: values,
       semanticsLabel: '每日充电图表',
@@ -1356,6 +1364,7 @@ class _ChargingPageState extends State<ChargingPage>
           const SectionHeader(title: '充电方式'),
           const SizedBox(height: MileafSpace.s8),
           MileafModuleCard(
+            hue: MileafDataDomain.energy.hue,
             padding: const EdgeInsets.fromLTRB(
               MileafSpace.s8,
               MileafSpace.s12,
@@ -1402,10 +1411,10 @@ class _ChargingPageState extends State<ChargingPage>
 
   Widget _supplyRing(ChargingMethodReading reading) {
     final colors = context.colors;
-    // CL01/CL02：AC / DC 都是「充入能量」，同一个 energy 域，靠两档强度
-    // 分辨——主段 solid、次段 strong（组件内处理）。图例样本与弧同色。
+    // AC/DC 共用补能色相，通过明度和一致的弧段图例区分。
     final hue = MileafDataDomain.energy.hue;
-    final primary = hue.solid(colors), secondary = hue.strong(colors);
+    final primary = hue.solid(colors);
+    final secondary = hue.secondarySeries(colors);
     final ring = MileafShareRing(
       hue: hue,
       segments: [
@@ -1510,7 +1519,7 @@ class _ChargingPageState extends State<ChargingPage>
                 if (category.unit != null)
                   TextSpan(
                     text: ' ${category.unit}',
-                    style: type.footnote.copyWith(color: colors.textFaint),
+                    style: type.footnote.copyWith(color: colors.textSecondary),
                   ),
               ],
             ),
@@ -1518,7 +1527,7 @@ class _ChargingPageState extends State<ChargingPage>
           const SizedBox(height: MileafSpace.s4),
           Text(
             category.note,
-            style: type.footnote.copyWith(color: colors.textFaint),
+            style: type.footnote.copyWith(color: colors.textSecondary),
           ),
         ],
       ),
@@ -1725,7 +1734,7 @@ class _ChargingPageState extends State<ChargingPage>
             MileafIcon(
               MileafIconName.bolt,
               size: MileafIconMetrics.inline,
-              color: colors.accent,
+              color: MileafDataDomain.energy.strong(colors),
             ),
             const SizedBox(width: MileafSpace.s8),
             Expanded(
@@ -1760,15 +1769,26 @@ class _ChargingPageState extends State<ChargingPage>
     );
   }
 
-  Widget _legacySummary(legacy.ChargingStats stats) {
+  Widget _legacySummary(BuildContext context, legacy.ChargingStats stats) {
     final type = context.type;
     final colors = context.colors;
+    final cost = stats.totals.cost;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        Text.rich(
           // 0.1/0.2 合约没有费用覆盖计数，无法区分「未知」与「0 元」。
-          '${terms.recordedCost} ${widget.currency.amountValue(stats.totals.cost)}',
+          TextSpan(
+            text: '${terms.recordedCost} ',
+            children: [
+              TextSpan(
+                text: widget.currency.amountValue(cost),
+                style: cost == null
+                    ? null
+                    : TextStyle(color: MileafDataDomain.cost.strong(colors)),
+              ),
+            ],
+          ),
           style: type.headline.copyWith(color: colors.text),
         ),
         if (widget.currency.amountNote case final note?)
@@ -1958,6 +1978,7 @@ class _ChargingPageState extends State<ChargingPage>
             SocIntervalBar(
               start: value.startSoc,
               end: value.endSoc,
+              hue: MileafDataDomain.energy.hue,
               compact: true,
               // D-AP10-03：充电记录行端点按对照表写「开始/结束」；行程侧
               // 「出发/到达」由组件默认值保持。
@@ -1987,14 +2008,13 @@ class _ChargingPageState extends State<ChargingPage>
                       : decimal(value.energyUsedKwh!),
                   unit: value.energyUsedKwh == null ? null : 'kWh',
                   scale: MetricValueScale.metricSm,
-                  hue: MileafDataDomain.energy.hue,
                 ),
                 MetricBlock(
                   label: '费用',
                   value: cost,
                   note: note,
                   scale: MetricValueScale.metricSm,
-                  hue: MileafDataDomain.cost.hue,
+                  hue: value.cost == null ? null : MileafDataDomain.cost.hue,
                   semanticLabel: '费用 $cost${note == null ? '' : '，$note'}',
                 ),
               ],
@@ -2046,7 +2066,6 @@ class _ChargingPageState extends State<ChargingPage>
   /// 语法）；行内横向内边统一 16（apple-polish R24「两条起始线」），分隔线
   /// 从文字起始处到卡片右缘。
   Widget _recordCard(List<dto.ChargingSession> rows) => MileafGroupCard(
-    // CL57：充电记录同属补能域，整块卡取 energy 洗底。
     hue: MileafDataDomain.energy.hue,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2338,6 +2357,7 @@ class _ChargingPageState extends State<ChargingPage>
                       Padding(
                         padding: const EdgeInsets.only(top: MileafSpace.s12),
                         child: MileafModuleCard(
+                          hue: MileafDataDomain.energy.hue,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -2390,9 +2410,18 @@ class _ChargingPageState extends State<ChargingPage>
                     inset,
                     MileafSpace.s20,
                     inset,
-                    0,
+                    MileafSpace.s8,
                   ),
-                  child: _legacySummary(legacyStats!),
+                  child: MileafModuleCard.focused(
+                    hue: legacyStats!.totals.cost == null
+                        ? null
+                        : MileafDataDomain.cost.hue,
+                    padding: const EdgeInsets.all(MileafSpace.s12),
+                    child: Builder(
+                      builder: (context) =>
+                          _legacySummary(context, legacyStats!),
+                    ),
+                  ),
                 ),
               if (expandedAvailable && recordsOnly)
                 Padding(

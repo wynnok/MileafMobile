@@ -5,41 +5,58 @@ import 'package:flutter/material.dart';
 /// Raw colour values are only allowed here (and in [MileafElevation]); pages
 /// and components consume the semantic tokens in `semantic.dart`.
 ///
-/// Neutrals stay neutral (slate / paper / mist / graphite); the brand colour is
-/// a signal only and comes in two strengths: `azure500` for graphics and
-/// `azure600` for text and solid fills.
 abstract final class MileafPalette {
   const MileafPalette._();
 
-  /// 电光蓝：图形（500）/ 文字与实心（600）/ hero 图形（300）。
-  static const azure300 = Color(0xFF64A8FF);
-  static const azure500 = Color(0xFF2688F5);
-  static const azure600 = Color(0xFF0B62C4);
+  static const brand = Color(0xFF0E7C7B);
+  static const brandSeriesDark = Color(0xFF5BAAA3);
+  static const brandStrongLight = Color(0xFF145B5C);
+  static const brandForegroundDark = Color(0xFF8DDBD4);
+  static const brandOnFocusDark = Color(0xFFA0E5DB);
+  static const brandOnFocusLight = Color(0xFF143F43);
+
+  /// Existing destination and interaction colours reserved for the bottom bar.
+  static const navigationActiveLight = Color(0xFF0B62C4);
+  static const navigationActiveDark = Color(0xFF64A8FF);
+  static const navigationPressLight = Color(0xFFDCEBFD);
+  static const navigationPressDark = Color(0x2964A8FF);
+
+  static const lightFocusMuted = Color(0xFF344251);
+  static const darkFocusMuted = Color(0xFFCAD5DF);
 
   /// 深色中性：hero / canvas / surface / surfaceRaised。
   static const slate1000 = Color(0xFF06090E);
   static const slate950 = Color(0xFF0A0B0D);
-  static const slate900 = Color(0xFF12161C);
-  static const slate850 = Color(0xFF191E25);
+  static const slate900 = Color(0xFF171A22);
+  static const slate850 = Color(0xFF212632);
 
   /// 浅色中性：canvas / surface。
-  static const paper50 = Color(0xFFF4F5F7);
-  static const segmentTrackLight = Color(0xFFE6E9ED);
-  static const segmentSelectedDark = Color(0xFF343C46);
+  static const canvasLight = Color(0xFFF6F5F8);
+  static const canvasDark = Color(0xFF101218);
+  static const cardLight = Color(0xFFF0EEF4);
+  static const cardDark = Color(0xFF222532);
+  static const segmentTrackLight = Color(0xFFE9EAF0);
+  static const segmentSelectedLight = Color(0xFFDFF2EF);
+  static const segmentSelectedDark = Color(0xFF233B3A);
+  static const segmentBorderDark = Color(0xFF7E8994);
+  static const navigationSurfaceDark = Color(0xFF12161C);
+  static const navigationRaisedDark = Color(0xFF191E25);
+  static const navigationSelectionLight = Color(0xFFE6E9ED);
+  static const navigationSelectionDark = Color(0xFF343C46);
 
   static const paper0 = Color(0xFFFFFFFF);
 
   /// 深色正文与 hero 内三级文字。
   static const mist0 = Color(0xFFF2F4F7);
-  static const mist400 = Color(0xFFA7B4C2);
+  static const mist400 = Color(0xFFB7C3D0);
   static const mist500 = Color(0xFF9AA5B1);
   static const mist550 = Color(0xFF8A96A4);
-  static const mist600 = Color(0xFF7E8A96);
+  static const mist600 = Color(0xFF94A2AF);
 
   /// 浅色正文。
   static const graphite900 = Color(0xFF0E1319);
-  static const graphite600 = Color(0xFF5A6672);
-  static const graphite500 = Color(0xFF63707C);
+  static const graphite600 = Color(0xFF50606D);
+  static const graphite500 = Color(0xFF5B6874);
 
   /// R23.5 controlBorder：从 textMuted 改为更轻的独立中性色。
   ///
@@ -48,7 +65,7 @@ abstract final class MileafPalette {
   /// 「任何相邻底色低于 3:1 即否决」否决；现值为满足全部相邻底色
   /// ≥3:1 的最轻取值（浅对 #DCEBFD 3.17、深对 #182434 3.14）。
   static const controlBorderLight = Color(0xFF7A8390);
-  static const controlBorderDark = Color(0xFF677179);
+  static const controlBorderDark = Color(0xFF737D87);
 
   /// 参照/基线，两模式都是中性石墨。
   static const steel500 = Color(0xFF5F6B78);
@@ -76,11 +93,11 @@ abstract final class MileafPalette {
   static const scrimLight = Color(0x590E1319); // 35%
   static const skeletonDark = Color(0x12F2F4F7); // 7%
   static const skeletonLight = Color(0x0F0E1319); // 6%
-  static const accentSoftDark = Color(0x2964A8FF); // 100,168,255 · 16%
-  static const accentSoftLight = Color(0xFFDCEBFD);
+  static const accentSoftDark = Color(0x298DDBD4); // 品牌亮面 · 16%
+  static const accentSoftLight = Color(0xFFDFF2EF);
   static const pressOverlayDark = Color(0x0AF2F4F7); // 4%
   static const pressOverlayLight = Color(0x0F0E1319); // 6%
-  static const accentFocus = Color(0x9964A8FF); // 60%
+  static const accentFocus = Color(0x990E7C7B); // 60%
 
   /// 液态玻璃底栏（ADR 0013，2026-11-18 按「液态玻璃再透一层」重定）。
   ///
@@ -140,130 +157,97 @@ abstract final class MileafPalette {
   static const glassLensInnerDark = Color(0x17FFFFFF); // 9%
 }
 
-/// 语义色相（ADR 0016 / 规格 CL01–CL03）：六个**数据身份色相**，绑定数据域
-/// 而不是页面，因此同一个指标在任何页面都是同一个颜色。
-///
-/// 家族感不是"都偏灰"，而是**锚在同一对比度上**：
-/// - 浅色 solid（图形：线/面/柱/点/弧/图标）对 #FFFFFF = 3.55:1
-/// - 浅色 strong（文字与实心：彩色读数/域标签）对 #FFFFFF = 5.90:1
-/// - 深色单档（图形与文字同一值）对 #12161C = 7.42:1
-///
-/// 三个锚值取自 azure 的品牌现值（ADR 0006：azure500 / azure600 / azure300），
-/// 其余五色在 OKLCH 上按同一 L 解出、彩度取该 L 下可用彩度的 90–95%，所以六色
-/// 属于同一家族而不是六种各自调过的颜色。azure 因此**保留现值、不参与解算**
-/// （与解算值偏差 ≤0.04 对比度单位）。
-///
-/// 色相角度（OKLCH）：azure 253 / aqua 196 / mint 152 / amber 85 / coral 18 /
-/// violet 310——相邻 44–68°，没有参考 App 在蓝紫段那种 20° 内的密簇。
-abstract final class MileafHueRamp {
-  const MileafHueRamp._();
+/// Data foregrounds, chart mark fills, and paired card surfaces (VH24–VH25).
+class MileafHueRamp {
+  const MileafHueRamp._({
+    required this.marker,
+    required this.graphicLight,
+    required this.textLight,
+    required this.foregroundDark,
+    required this.cardLight,
+    required this.focusLight,
+    required this.cardDark,
+    required this.focusDark,
+  });
 
-  /// journey 行程/里程（品牌色，动作色也是它）。
-  static const azureSolidLight = Color(0xFF2688F5);
-  static const azureStrongLight = Color(0xFF0B62C4);
-  static const azureDark = Color(0xFF64A8FF);
+  final Color marker;
+  final Color graphicLight;
+  final Color textLight;
+  final Color foregroundDark;
+  final Color cardLight;
+  final Color focusLight;
+  final Color cardDark;
+  final Color focusDark;
 
-  /// energy 能量/电量/充入/功率。
-  static const aquaSolidLight = Color(0xFF199698);
-  static const aquaStrongLight = Color(0xFF0E6E6F);
-  static const aquaDark = Color(0xFF3DD6D7);
+  /// Secondary AC/DC series on the mint chart and its matching legend.
+  static const mintSeriesLight = Color(0xFF194C3F);
+  static const mintSeriesDark = Color(0xFF62B59D);
 
-  /// efficiency 效率/续航/电耗。
-  static const mintSolidLight = Color(0xFF199B52);
-  static const mintStrongLight = Color(0xFF0E723A);
-  static const mintDark = Color(0xFF4BDE81);
+  static const sky = MileafHueRamp._(
+    marker: Color(0xFF95CAEA),
+    graphicLight: Color(0xFF346C90),
+    textLight: Color(0xFF205678),
+    foregroundDark: Color(0xFFA9DAF7),
+    cardLight: Color(0xFFECF6FC),
+    focusLight: Color(0xFFCDE8F8),
+    cardDark: Color(0xFF1C2B38),
+    focusDark: Color(0xFF263C4D),
+  );
 
-  /// cost 费用/单价。浅色只能落在金棕：明亮琥珀（#FFB020 一类）对白底只有
-  /// 1.9:1，在 3:1 图形底线下物理上不存在；cost 的"活泼"由 wash 底 + strong
-  /// 文字承担（见规格 §10 的 CL-偏差）。
-  static const amberSolidLight = Color(0xFFAA8215);
-  static const amberStrongLight = Color(0xFF7F5F0B);
-  static const amberDark = Color(0xFFE9B535);
+  static const mint = MileafHueRamp._(
+    marker: Color(0xFF9AF1CD),
+    graphicLight: Color(0xFF23715D),
+    textLight: Color(0xFF215F50),
+    foregroundDark: Color(0xFFA0EDD0),
+    cardLight: Color(0xFFE8F9F1),
+    focusLight: Color(0xFFC6F4E0),
+    cardDark: Color(0xFF192D29),
+    focusDark: Color(0xFF203B34),
+  );
 
-  /// climate 温度/环境。
-  static const coralSolidLight = Color(0xFFFB3C5A);
-  static const coralStrongLight = Color(0xFFC0143A);
-  static const coralDark = Color(0xFFF9A2A5);
+  static const teal = MileafHueRamp._(
+    marker: MileafPalette.brand,
+    graphicLight: MileafPalette.brand,
+    textLight: MileafPalette.brandStrongLight,
+    foregroundDark: MileafPalette.brandForegroundDark,
+    cardLight: Color(0xFFE9F4F3),
+    focusLight: Color(0xFFD4EEEB),
+    cardDark: Color(0xFF1B292C),
+    focusDark: Color(0xFF223639),
+  );
 
-  /// dwell 停放/时长/间隔。
-  static const violetSolidLight = Color(0xFFBC57FA);
-  static const violetStrongLight = Color(0xFF9627D0);
-  static const violetDark = Color(0xFFD6A7F9);
-}
+  static const coral = MileafHueRamp._(
+    marker: Color(0xFFF65A49),
+    graphicLight: Color(0xFFAD3B31),
+    textLight: Color(0xFF9D3428),
+    foregroundDark: Color(0xFFFFA89D),
+    cardLight: Color(0xFFFFF0EC),
+    focusLight: Color(0xFFFFE6E0),
+    cardDark: Color(0xFF35262A),
+    focusDark: Color(0xFF453038),
+  );
 
-/// 鲜明度 v2 的「亮面」档（ADR 0017 / CL49）。
-///
-/// 这不是把 [MileafHueRamp] 再提亮一格，而是换了判据：三个既有档位都要**压在
-/// 白底上**（图形 3:1、文字 4.5:1），色相因此只能落在 L≈0.61–0.65 的深段，
-/// 彩度也被同一明度锁死（实测已达色域边界的 95–98%，没有上调空间）。亮面档
-/// 反过来——它**只做面的底色**，压在上面的字与字形取墨色（[MileafPalette.slate900]），
-/// 于是明度可以抬到 L=0.74，彩度取该明度下色域边界的 96%。
-///
-/// 六个值在浅深两模式共用：亮面自带墨字之后，唯一的约束是「墨字还能读」，
-/// 实测 7.34–8.47:1，与底色是白还是近黑无关（对深色 canvas 另有 7.96–9.19:1）。
-abstract final class MileafHueVivid {
-  const MileafHueVivid._();
+  static const plum = MileafHueRamp._(
+    marker: Color(0xFF4B1D3F),
+    graphicLight: Color(0xFF7D486C),
+    textLight: Color(0xFF4B1D3F),
+    foregroundDark: Color(0xFFE4BCD8),
+    cardLight: Color(0xFFF3EAF1),
+    focusLight: Color(0xFFEDE0EB),
+    cardDark: Color(0xFF2C2330),
+    focusDark: Color(0xFF382B3C),
+  );
 
-  /// L=0.74 · C=0.132 · 墨字 7.88:1。
-  static const azure = Color(0xFF6BAEFC);
-
-  /// L=0.74 · C=0.121 · 墨字 8.27:1。
-  static const aqua = Color(0xFF20C2C4);
-
-  /// L=0.74 · C=0.187 · 墨字 8.47:1。
-  static const mint = Color(0xFF20CB6C);
-
-  /// L=0.74 · C=0.146 · 墨字 7.79:1。
-  static const amber = Color(0xFFD5A21B);
-
-  /// L=0.74 · C=0.153 · 墨字 7.35:1。
-  static const coral = Color(0xFFFC7F86);
-
-  /// L=0.74 · C=0.174 · 墨字 7.34:1。
-  static const violet = Color(0xFFCC88FC);
-}
-
-/// 语义色相的洗色档（ADR 0017 / CL50–CL51），**全部以 [MileafHueVivid] 为原料**。
-///
-/// 以亮面为原料、而不是以 solid 为原料，是这次「变鲜明」的关键：同一张卡片，
-/// 8% 的深色洗色只能做到 C≈0.01（肉眼近乎白），24% 的亮面洗色能到 C≈0.03–0.055，
-/// 深一档的入口卡（[deepAlpha]）能到 0.07–0.12——这才看得出「这是一张蓝色的卡」。
-///
-/// - [veilAlpha] 40%：图表填充、弧环轨道。**不承载任何文字**，只压图形；
-///   浅色下 strong 线在 veil 上 4.02–4.12:1（图形门槛 3:1 过，正文门槛 4.5 不过——
-///   所以它只允许压在图形下面）。
-/// - [softAlpha] / [tintAlpha] 24%（深 22%）：小格底与卡片背板，承载 strong 文字，
-///   实测最差 4.56:1（深 4.92:1）。两档同值不是偷懒：上限由前景文字决定，
-///   与面积无关（见下）。
-///
-/// 四档都用 alpha 而不是预乘色值，这样同一份取值在 canvas 与 surface 两种底上都成立。
-abstract final class MileafHueWash {
-  const MileafHueWash._();
-
-  static const veilAlpha = .40;
-
-  /// 承载文字的两档洗色：24%（深 22%）。
-  ///
-  /// 这个数**不是**按面积定的，而是按「洗色底上最强的前景」反解出来的：
-  /// 卡内读数是 strong（白底 5.90:1），洗色每加 2 个百分点，它在 canvas 上
-  /// 就掉约 0.07；24% 时最差的一格（amber / azure 压 canvas）还有 4.56:1，
-  /// 26% 就是 4.49:1——刚好破线。
-  ///
-  /// 所以 ADR 0016 里「面积越大 alpha 越低」的判断被实测改写：决定上限的
-  /// 是**前景是谁**，不是面积。真正的大面（入口卡）改用 [deepAlpha] 配墨字
-  /// （CL56），而不是继续往下压 tint。
-  static const softAlpha = .24;
-  static const softAlphaDark = .22;
-  static const tintAlpha = .24;
-  static const tintAlphaDark = .22;
-
-  /// 入口卡（统计根页 2×2 章节卡）用的深洗底：同一张卡从「看得出是蓝的」
-  /// 变成「就是蓝色的」。这一档的约束换成了墨字——55% 时正文 11.4–12.0:1、
-  /// 次级墨字（78%）6.9–7.1:1，都留了一档余量。
-  ///
-  /// **只在浅色模式用**：深色底的 surface 已是近黑，同样 55% 会把读数
-  /// （深色 strong=solid）压到 4.0:1 以下，所以深色仍走 [tintAlphaDark]。
-  static const deepAlpha = .55;
+  static const mutedPlum = MileafHueRamp._(
+    marker: Color(0xFF4B1D3F),
+    graphicLight: Color(0xFF7D486C),
+    textLight: Color(0xFF4B1D3F),
+    foregroundDark: Color(0xFFE4BCD8),
+    cardLight: Color(0xFFF2EDF2),
+    focusLight: Color(0xFFEDE0EB),
+    cardDark: Color(0xFF27232B),
+    focusDark: Color(0xFF342A35),
+  );
 }
 
 /// 4px base spacing. Named steps are the only values pages may use.
@@ -345,6 +329,7 @@ abstract final class MileafRadius {
   static const xsAll = BorderRadius.all(Radius.circular(xs));
   static const smAll = BorderRadius.all(Radius.circular(sm));
   static const mdAll = BorderRadius.all(Radius.circular(md));
+  static const lgAll = BorderRadius.all(Radius.circular(lg));
   static const surfaceAll = BorderRadius.all(Radius.circular(surface));
   static const lgTop = BorderRadius.vertical(top: Radius.circular(lg));
   static const sheetTop = BorderRadius.vertical(top: Radius.circular(sheet));
@@ -405,6 +390,13 @@ abstract final class MileafDurations {
 /// Only two shadow levels exist: sheet/overlay and toast.
 abstract final class MileafElevation {
   const MileafElevation._();
+
+  static const controlGlassLight = [
+    BoxShadow(color: Color(0x170E1319), offset: Offset(0, 3), blurRadius: 12),
+  ];
+  static const controlGlassDark = [
+    BoxShadow(color: Color(0x44000000), offset: Offset(0, 3), blurRadius: 12),
+  ];
 
   static const sheetDark = [
     BoxShadow(color: Color(0x59000000), offset: Offset(0, 12), blurRadius: 40),
@@ -478,6 +470,14 @@ abstract final class MileafMaterialMetrics {
   /// 取 1.5：品牌蓝仍是栏上唯一的信号色（1.8 会把整条栏染蓝，见实施记录 §7.3 第 6 条）。
   static const glassBlur = 22.0;
   static const glassSaturation = 1.5;
+  static const controlGlassOpacity = .90;
+  static const controlGlassBottomOpacity = .93;
+  static const floatingSheetScrimLight = .18;
+  static const floatingSheetScrimDark = .30;
+  static const cardGlassSheenLight = .32;
+  static const cardGlassSheenDark = .025;
+  static const cardGlassSheenReach = .42;
+  static const cardGlassSheenCore = .08;
 
   /// 受光边缘以物理像素为单位的倍数，缩放后仍是一条线。
   static const glassRimStroke = 1.2;
@@ -675,6 +675,7 @@ abstract final class MileafBatteryMetrics {
   static const size = 88.0;
   static const largeTextSize = 72.0;
   static const stroke = 2.5;
+  static const instrumentStroke = 4.0;
   static const trackOpacity = .10;
   static const valueSize = 22.0;
   static const valueHeight = 24.0;

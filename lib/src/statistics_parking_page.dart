@@ -346,6 +346,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         const SizedBox(height: MileafSpace.s4),
         // P11：状态、时长、占比的表格行；share 缺失显示 —，不补 0%。
         MileafGroupCard(
+          hue: MileafDataDomain.dwell.hue,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -467,11 +468,10 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
       // 结论卡：主值 metricLg + 不预测限定（§6 第 2 步收紧内边到 12）。
       Padding(
         padding: const EdgeInsets.only(top: MileafSpace.s12),
-        child: MileafModuleCard(
+        child: MileafModuleCard.focused(
+          hue: totalMissing ? null : MileafDataDomain.dwell.hue,
           padding: const EdgeInsets.all(MileafSpace.cardInset),
           child: MetricBlock(
-            // CL12：结论值取 dwell 的 strong；缺失时不传色（「—」不染彩色）。
-            hue: totalMissing ? null : MileafDataDomain.dwell.hue,
             value: totalMissing
                 ? null
                 : nf.applyMinusSign(n(t['soc_change_pp'])),
@@ -518,6 +518,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s12),
           child: MileafModuleCard(
+            hue: MileafDataDomain.dwell.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -566,6 +567,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
         Padding(
           padding: const EdgeInsets.only(top: MileafSpace.s12),
           child: MileafModuleCard(
+            hue: MileafDataDomain.dwell.hue,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -637,6 +639,7 @@ class _ParkingObservationPageState extends State<ParkingObservationPage>
     return Padding(
       padding: const EdgeInsets.only(top: MileafSpace.s12),
       child: MileafGroupCard(
+        hue: MileafDataDomain.dwell.hue,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

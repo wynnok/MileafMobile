@@ -220,25 +220,10 @@ class MileafTextStyles extends ThemeExtension<MileafTextStyles> {
     caption: caption ?? this.caption,
   );
 
+  // 标题与正文和卡片色面一起换档，底栏由独立色值着色。
   @override
-  MileafTextStyles lerp(covariant MileafTextStyles? other, double t) {
-    if (other == null) return this;
-    TextStyle mix(TextStyle a, TextStyle b) => TextStyle.lerp(a, b, t)!;
-    return MileafTextStyles(
-      display: mix(display, other.display),
-      metricLg: mix(metricLg, other.metricLg),
-      metricMd: mix(metricMd, other.metricMd),
-      metricSm: mix(metricSm, other.metricSm),
-      largeTitle: mix(largeTitle, other.largeTitle),
-      title2: mix(title2, other.title2),
-      headline: mix(headline, other.headline),
-      body: mix(body, other.body),
-      subheadline: mix(subheadline, other.subheadline),
-      control: mix(control, other.control),
-      footnote: mix(footnote, other.footnote),
-      caption: mix(caption, other.caption),
-    );
-  }
+  MileafTextStyles lerp(covariant MileafTextStyles? other, double t) =>
+      other == null || t < .5 ? this : other;
 }
 
 extension MileafTextContext on BuildContext {

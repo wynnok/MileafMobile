@@ -51,6 +51,10 @@ abstract final class MileafChartGrammar {
   static const stepHit = 44.0;
   static const stepIcon = 20.0;
 
+  /// 读数头第三行（参照与差值一句）的行盒。它必须拿到整张卡的内宽——
+  /// 步进只占日期/数值那一行（2026-11-19 用户第二次截图）。
+  static const contextRowKey = ValueKey('chart-context-row');
+
   /// CP06 步进语义名称。
   static const previousStep = '上一个数据点';
   static const nextStep = '下一个数据点';
@@ -757,7 +761,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
                       primary:
                           widget.hue?.strong(colors) ??
                           (onHero ? colors.accentHero : colors.accent),
-                      fill: widget.hue?.vivid(colors),
+                      fill: widget.hue?.marker,
                       reference: colors.reference,
                       axis: onHero ? colors.heroMuted : colors.textSecondary,
                       baseline: onHero
@@ -854,8 +858,14 @@ class _TimeSeriesChartState extends State<TimeSeriesChart>
 /// 完整读数头（R29/PD03）与紧凑读数行（同一朗读源与步进语义）。
 ///
 /// 三行顺序固定：日期 → 数值（含单位）→ 参照与差值一句。第三行的高度按全序列
-/// 最长的句子预留，所以切换选点时不跳高度。步进圆钮在读数头尾部，位于 live
-/// region 之外，可单独聚焦。
+/// 最长的句子预留，所以切换选点时不跳高度。
+///
+/// 两条不变量（2026-11-19 起）：
+///
+/// - 步进圆钮只占第 1–2 行（日期/数值块）右端的 88，第三行跨满整卡内宽——
+///   否则 13pt 的同期对比句在 375/393 屏会被挤成两行。
+/// - 步进与下钻按钮都在 live region 之外，可单独聚焦；可见的第三行不进语义树
+///   （`readout` 句子已经是唯一朗读源，别让读屏说两遍）。
 class MileafChartReadout extends StatelessWidget {
   const MileafChartReadout({
     super.key,
@@ -923,11 +933,14 @@ class MileafChartReadout extends StatelessWidget {
     final scaler = MediaQuery.textScalerOf(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = math.max(
+        // 日期/数值块与步进同处一行（只这一块让出步进的 88），第三行
+        // （参照与差值一句）跨满整卡内宽。
+        final inlineWidth = math.max(
           1.0,
           constraints.maxWidth -
               (hasSteps ? 2 * MileafChartGrammar.stepHit : 0),
         );
+        final contextWidth = constraints.maxWidth;
         // 没有参照系列时第三行根本不存在：不留空行，别把首屏预算推下去。
         final hasContextRow = contextLine != null || reserveContext != null;
         final reservedHeight = hasContextRow
@@ -935,16 +948,22 @@ class MileafChartReadout extends StatelessWidget {
                     contextLine,
                     reserveContext,
                     contextStyle,
-                    width,
+                    contextWidth,
                     scaler,
                   ) *
                   _lineHeight(contextStyle, scaler)
             : 0.0;
         final valueHeight =
-            _reserveLines(value, reserveValue, valueStyle, width, scaler) *
+            _reserveLines(
+              value,
+              reserveValue,
+              valueStyle,
+              inlineWidth,
+              scaler,
+            ) *
             _lineHeight(valueStyle, scaler);
         final dateHeight =
-            _reserveLines(date, reserveDate, dateStyle, width, scaler) *
+            _reserveLines(date, reserveDate, dateStyle, inlineWidth, scaler) *
             _lineHeight(dateStyle, scaler);
         final live = Semantics(
           key: MileafChartGrammar.readoutLiveKey,
@@ -986,16 +1005,6 @@ class MileafChartReadout extends StatelessWidget {
                         child: Text(value, style: valueStyle),
                       ),
                     ),
-                    if (hasContextRow)
-                      SizedBox(
-                        height: reservedHeight,
-                        child: contextLine == null
-                            ? null
-                            : Align(
-                                alignment: Alignment.topLeft,
-                                child: Text(contextLine!, style: contextStyle),
-                              ),
-                      ),
                   ],
                 ),
         );
@@ -1012,12 +1021,9 @@ class MileafChartReadout extends StatelessWidget {
               ? CrossAxisAlignment.center
               : CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: reservedHeight),
-                child: live,
-              ),
-            ),
+            // 第三行已经移出这一行，行高不再需要按第三行兜底：
+            // 日期 + 数值的自然高度就是这一行的高度（步进 44 另行撑高）。
+            Expanded(child: live),
             // R29：下钻文字按钮在 live region 之外（读屏要能单独触发），
             // 位置在行尾、步进之前。200% 大字下长短语（充电「查看这一天的
             // 充电」）与步进同行会溢出 88px（D-AP10-04 落地实测），此时下钻
@@ -1027,16 +1033,40 @@ class MileafChartReadout extends StatelessWidget {
             if (hasSteps) ...steps,
           ],
         );
+        // 第三行在步进那一行之外，独占整张卡的宽度；文字已由 live region
+        // 的朗读句说过一遍，可见行不再单独进语义树（与上一版 excludeSemantics
+        // 同效）。
+        final readout = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            inline,
+            // 紧凑读数行只有「日期 + 数值 + 行尾下钻」一行的设计（R29），
+            // 第三行只出现在完整读数头里（与上一版一致）。
+            if (!compact && hasContextRow)
+              ExcludeSemantics(
+                child: SizedBox(
+                  key: MileafChartGrammar.contextRowKey,
+                  height: reservedHeight,
+                  child: contextLine == null
+                      ? null
+                      : Align(
+                          alignment: Alignment.topLeft,
+                          child: Text(contextLine!, style: contextStyle),
+                        ),
+                ),
+              ),
+          ],
+        );
         if (drillButton != null && MileafLayout.largeText(context)) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              inline,
+              readout,
               Align(alignment: Alignment.centerRight, child: drillButton),
             ],
           );
         }
-        return inline;
+        return readout;
       },
     );
   }
@@ -1762,8 +1792,7 @@ class _ChartPainter extends CustomPainter {
       );
       return;
     }
-    // CL54：亮面圆心 + strong 描边。亮面单独对白底只有 2.1–2.5:1，边界由
-    // 描边补齐；这枚点因此是页面上唯一「100% 亮面」的图形。
+    // VH25：配色原值填圆心，可辨边界由文字档描边承担。
     canvas.drawCircle(
       point,
       MileafChartGrammar.selectionDot,

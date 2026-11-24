@@ -179,19 +179,28 @@ void main() {
   });
 
   for (final mode in [MileafAppearance.dark, MileafAppearance.light]) {
-    testWidgets('A 概览 ${mode.name} 下 hero 保持深色且文字可读', (tester) async {
+    testWidgets('A 概览 ${mode.name} 下车况有独立色面且文字可读', (tester) async {
       await openOverview(tester, mode: mode);
       final colors = mode == MileafAppearance.dark
           ? const MileafColors.dark()
           : const MileafColors.light();
-      final heroMaterial = tester.widget<Material>(
-        find.byKey(const ValueKey('overview-status')),
+      final readout = tester.element(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('overview-status')),
+              matching: find.byType(Text),
+            )
+            .first,
       );
-      expect(heroMaterial.color, colors.hero);
-      expect(heroMaterial.color, isNot(colors.canvas));
-      expect(contrast(colors.heroText, colors.hero), greaterThanOrEqualTo(4.5));
+      final focus = colors.focused(MileafDataDomain.energy.hue);
+      expect(readout.colors.surface, focus.surface);
+      expect(readout.colors.surface, isNot(colors.canvas));
       expect(
-        contrast(colors.heroMuted, colors.hero),
+        contrast(focus.heroText, focus.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrast(focus.heroMuted, focus.surface),
         greaterThanOrEqualTo(4.5),
       );
       // 旧断言一律期望 heroText — 它编码的是「概览 top bar 永远在 hero 内」这个
@@ -242,7 +251,9 @@ void main() {
             find.descendant(of: status, matching: find.text('概览')),
             findsNothing,
           );
-          final material = tester.widget<Material>(status);
+          final material = tester.widget<Material>(
+            find.descendant(of: status, matching: find.byType(Material)).first,
+          );
           // P01/R01：车况卡与所有内容卡同一半径（MileafRadius.lg = 20）。
           expect(
             material.borderRadius,

@@ -34,13 +34,17 @@ class MileafColors extends ThemeExtension<MileafColors> {
     required this.heroMuted,
     required this.heroFaint,
     required this.nav,
+    required this.navigationSurface,
+    required this.navigationRaised,
+    required this.navigationActive,
+    required this.navigationPress,
     required this.scrim,
     required this.skeleton,
     required this.sheetShadow,
   });
 
-  /// R23.1：功能文字两级的次级名，值即现有 textMuted（浅 #5A6672、深
-  /// #9AA5B1）。textFaint 只用于占位符、禁用态和非文字装饰。
+  /// R23.1：功能文字两级的次级名，值即现有 textMuted（浅 #50606D、深
+  /// #B7C3D0）。textFaint 只用于占位符、禁用态和非文字装饰。
   Color get textSecondary => textMuted;
 
   /// R23.5：输入与可操作边界用更轻的独立中性色（候选 #808A95/#626C78 经
@@ -49,19 +53,22 @@ class MileafColors extends ThemeExtension<MileafColors> {
       ? MileafPalette.controlBorderDark
       : MileafPalette.controlBorderLight;
 
-  /// Neutral inset track and its single selected surface.
+  /// Neutral inset track with a tinted selected lens.
   Color get segmentTrack =>
       isDark ? surfaceRaised : MileafPalette.segmentTrackLight;
-  Color get segmentSelected =>
-      isDark ? MileafPalette.segmentSelectedDark : surface;
+  Color get segmentSelected => isDark
+      ? MileafPalette.segmentSelectedDark
+      : MileafPalette.segmentSelectedLight;
+  Color get segmentBorder =>
+      isDark ? MileafPalette.segmentBorderDark : controlBorder;
 
-  Color get navigationSolid => isDark ? surfaceRaised : surface;
+  Color get navigationSolid => isDark ? navigationRaised : navigationSurface;
 
   /// 实色底栏上的选中底。底栏本身就是 surface，所以这里用分段轨道的中性档，
   /// 否则会出现「白底浮白块」——选中只剩颜色，没有位置标记。
   Color get navigationSelection => isDark
-      ? MileafPalette.segmentSelectedDark
-      : MileafPalette.segmentTrackLight;
+      ? MileafPalette.navigationSelectionDark
+      : MileafPalette.navigationSelectionLight;
   Color get navigationBorder => isDark ? lineStrong : line;
 
   /// 根底栏未选目的地的文字与图标：玻璃与实色两条路径共用，只服务根底栏。
@@ -106,6 +113,21 @@ class MileafColors extends ThemeExtension<MileafColors> {
           inner: MileafPalette.glassInnerLight,
         );
 
+  /// 实体色面用较细的受光边，反光集中在上沿。
+  GlassEdge get tintedGlassEdge => isDark
+      ? const GlassEdge(
+          top: Color(0x38FFFFFF),
+          side: Color(0x1AFFFFFF),
+          bottom: Color(0x14000000),
+          inner: Color(0x0D000000),
+        )
+      : const GlassEdge(
+          top: Color(0xF5FFFFFF),
+          side: Color(0x140E1319),
+          bottom: Color(0x200E1319),
+          inner: Color(0x100E1319),
+        );
+
   /// 选中镜片：比底栏更密的一层玻璃，自带更亮的顶边与自己的受光带。
   ///
   /// 受光带只在底栏镜片打开（`MileafGlassLens(sheen: true)`）；顶栏的车辆胶囊与
@@ -142,28 +164,32 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// Dark: neutral cold black, one accent for graphics and text.
   const MileafColors.dark()
     : isDark = true,
-      canvas = MileafPalette.slate950,
+      canvas = MileafPalette.canvasDark,
       hero = MileafPalette.slate900,
       surface = MileafPalette.slate900,
       surfaceRaised = MileafPalette.slate850,
       text = MileafPalette.mist0,
-      textMuted = MileafPalette.mist500,
+      textMuted = MileafPalette.mist400,
       textFaint = MileafPalette.mist600,
       textOnAccent = MileafPalette.slate950,
-      accent = MileafPalette.azure300,
-      accentStrong = MileafPalette.azure300,
-      accentPressed = MileafPalette.azure300,
+      accent = MileafPalette.brandForegroundDark,
+      accentStrong = MileafPalette.brandForegroundDark,
+      accentPressed = MileafPalette.brandForegroundDark,
       accentSoft = MileafPalette.accentSoftDark,
-      accentHero = MileafPalette.azure300,
+      accentHero = MileafPalette.brandForegroundDark,
       reference = MileafPalette.steel300,
       warning = MileafPalette.amber400,
       error = MileafPalette.red400,
       line = MileafPalette.lineDark,
       lineStrong = MileafPalette.lineStrongDark,
       heroText = MileafPalette.mist0,
-      heroMuted = MileafPalette.mist500,
+      heroMuted = MileafPalette.mist400,
       heroFaint = MileafPalette.mist600,
       nav = MileafPalette.navDark,
+      navigationSurface = MileafPalette.navigationSurfaceDark,
+      navigationRaised = MileafPalette.navigationRaisedDark,
+      navigationActive = MileafPalette.navigationActiveDark,
+      navigationPress = MileafPalette.navigationPressDark,
       scrim = MileafPalette.scrimDark,
       skeleton = MileafPalette.skeletonDark,
       sheetShadow = MileafElevation.sheetDark;
@@ -171,7 +197,7 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// Light uses the same content hierarchy as the rest of the page.
   const MileafColors.light()
     : isDark = false,
-      canvas = MileafPalette.paper50,
+      canvas = MileafPalette.canvasLight,
       hero = MileafPalette.paper0,
       surface = MileafPalette.paper0,
       surfaceRaised = MileafPalette.paper0,
@@ -179,11 +205,11 @@ class MileafColors extends ThemeExtension<MileafColors> {
       textMuted = MileafPalette.graphite600,
       textFaint = MileafPalette.graphite500,
       textOnAccent = MileafPalette.paper0,
-      accent = MileafPalette.azure500,
-      accentStrong = MileafPalette.azure600,
-      accentPressed = MileafPalette.azure600,
+      accent = MileafPalette.brand,
+      accentStrong = MileafPalette.brandStrongLight,
+      accentPressed = MileafPalette.brandStrongLight,
       accentSoft = MileafPalette.accentSoftLight,
-      accentHero = MileafPalette.azure500,
+      accentHero = MileafPalette.brand,
       reference = MileafPalette.steel500,
       warning = MileafPalette.amber500,
       error = MileafPalette.red600,
@@ -193,6 +219,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
       heroMuted = MileafPalette.graphite600,
       heroFaint = MileafPalette.graphite500,
       nav = MileafPalette.navLight,
+      navigationSurface = MileafPalette.paper0,
+      navigationRaised = MileafPalette.paper0,
+      navigationActive = MileafPalette.navigationActiveLight,
+      navigationPress = MileafPalette.navigationPressLight,
       scrim = MileafPalette.scrimLight,
       skeleton = MileafPalette.skeletonLight,
       sheetShadow = MileafElevation.sheetLight;
@@ -228,6 +258,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
   final Color heroMuted;
   final Color heroFaint;
   final Color nav;
+  final Color navigationSurface;
+  final Color navigationRaised;
+  final Color navigationActive;
+  final Color navigationPress;
   final Color scrim;
   final Color skeleton;
   final List<BoxShadow> sheetShadow;
@@ -241,16 +275,21 @@ class MileafColors extends ThemeExtension<MileafColors> {
             : const MileafColors.light());
   }
 
-  /// AC / DC / unknown: primary, a second step of the same hue, neutral.
-  ///
-  /// Only one accent colour exists. The second series used to be `accent` at
-  /// 50 %, which composites to 1.8:1 over paper and 2.8:1 over the dark
-  /// surface — below the 3:1 graphics floor in both modes (AV06). `azure600`
-  /// keeps a single hue while measuring 5.4:1 on paper and 3.1:1 on the dark
-  /// surface, and 1.7/2.4:1 away from the primary so the pair never merges.
+  /// Shared chart fallback series. Data-specific charts resolve their own hues.
   Color get seriesPrimary => accent;
-  Color get seriesSecondary => MileafPalette.azure600;
+  Color get seriesSecondary =>
+      isDark ? MileafPalette.brandSeriesDark : MileafPalette.brandStrongLight;
   Color get seriesNeutral => textFaint;
+
+  Color seriesColor(int index, {MileafHue? hue}) => switch (index % 3) {
+    0 => hue?.solid(this) ?? seriesPrimary,
+    1 => hue?.secondarySeries(this) ?? seriesSecondary,
+    _ => seriesNeutral,
+  };
+
+  /// Exact user-selected brand fill and its accessible ink pair.
+  Color get primaryAction => MileafPalette.brand;
+  Color get onPrimaryAction => MileafPalette.paper0;
 
   /// Focus ring is the only 2px accent stroke.
   Color get focusRing => accentStrong;
@@ -258,6 +297,38 @@ class MileafColors extends ThemeExtension<MileafColors> {
   /// 4% (dark) / 6% (light) press overlay on content rows.
   Color get pressOverlay =>
       isDark ? MileafPalette.pressOverlayDark : MileafPalette.pressOverlayLight;
+
+  /// 同类内容卡统一底色。混合数据组共享低彩度中性面。
+  Color cardSurface([MileafHue? hue]) {
+    if (hue == null) {
+      return isDark ? MileafPalette.cardDark : MileafPalette.cardLight;
+    }
+    return isDark ? hue._ramp.cardDark : hue._ramp.cardLight;
+  }
+
+  /// 局部数据焦点的背板与前景成对使用。页面其余位置继续取全局主题。
+  MileafColors focused(MileafHue hue) {
+    // 焦点色面与墨字在主题切换时同步换档，避免中间帧出现灰字压亮色。
+    final base = isDark
+        ? const MileafColors.dark()
+        : const MileafColors.light();
+    final fill = isDark ? hue._ramp.focusDark : hue._ramp.focusLight;
+    final muted = isDark
+        ? MileafPalette.darkFocusMuted
+        : MileafPalette.lightFocusMuted;
+    return base.copyWith(
+      canvas: fill,
+      surface: fill,
+      hero: fill,
+      textMuted: muted,
+      textFaint: muted,
+      accentStrong: isDark
+          ? MileafPalette.brandOnFocusDark
+          : MileafPalette.brandOnFocusLight,
+      heroMuted: muted,
+      heroFaint: muted,
+    );
+  }
 
   @override
   MileafColors copyWith({
@@ -311,6 +382,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
     heroMuted: heroMuted ?? this.heroMuted,
     heroFaint: heroFaint ?? this.heroFaint,
     nav: nav ?? this.nav,
+    navigationSurface: navigationSurface,
+    navigationRaised: navigationRaised,
+    navigationActive: navigationActive,
+    navigationPress: navigationPress,
     scrim: scrim ?? this.scrim,
     skeleton: skeleton ?? this.skeleton,
     sheetShadow: sheetShadow ?? this.sheetShadow,
@@ -320,15 +395,17 @@ class MileafColors extends ThemeExtension<MileafColors> {
   MileafColors lerp(covariant MileafColors? other, double t) {
     if (other == null) return this;
     Color mix(Color a, Color b) => Color.lerp(a, b, t)!;
+    // 卡片色面按亮暗分档，正文与同一分档同步换色。
+    final content = t < .5 ? this : other;
     return MileafColors(
-      isDark: t < .5 ? isDark : other.isDark,
+      isDark: content.isDark,
       canvas: mix(canvas, other.canvas),
       hero: mix(hero, other.hero),
       surface: mix(surface, other.surface),
       surfaceRaised: mix(surfaceRaised, other.surfaceRaised),
-      text: mix(text, other.text),
-      textMuted: mix(textMuted, other.textMuted),
-      textFaint: mix(textFaint, other.textFaint),
+      text: content.text,
+      textMuted: content.textMuted,
+      textFaint: content.textFaint,
       textOnAccent: mix(textOnAccent, other.textOnAccent),
       accent: mix(accent, other.accent),
       accentStrong: mix(accentStrong, other.accentStrong),
@@ -344,6 +421,10 @@ class MileafColors extends ThemeExtension<MileafColors> {
       heroMuted: mix(heroMuted, other.heroMuted),
       heroFaint: mix(heroFaint, other.heroFaint),
       nav: mix(nav, other.nav),
+      navigationSurface: mix(navigationSurface, other.navigationSurface),
+      navigationRaised: mix(navigationRaised, other.navigationRaised),
+      navigationActive: mix(navigationActive, other.navigationActive),
+      navigationPress: mix(navigationPress, other.navigationPress),
       scrim: mix(scrim, other.scrim),
       skeleton: mix(skeleton, other.skeleton),
       sheetShadow:
@@ -387,123 +468,51 @@ extension MileafColorsContext on BuildContext {
   MileafColors get colors => MileafColors.of(this);
 }
 
-/// 语义色相的枚举（ADR 0016 D1 / 规格 CL01）。
-///
-/// 六个色相**只表达「这是什么数据」**，不表达动作。动作色仍然是唯一的
-/// [MileafColors.accent]（CL05）：按钮填充、链接、选中态、焦点环、开关永远
-/// 走 azure，永不借用这里的任何一个色相。
-///
-/// 与 [MileafStatusTone] 的分工：状态（进行中/警示/失败/缺失）走 tone 映射
-/// （MG02），数据身份走 hue——两者不得互换（CL08）。
-enum MileafHue { azure, aqua, mint, amber, coral, violet }
+/// Shared colour roles for data marks, text and card surfaces (ADR 0021).
+enum MileafHue {
+  sky(MileafHueRamp.sky),
+  mint(MileafHueRamp.mint),
+  teal(MileafHueRamp.teal),
+  coral(MileafHueRamp.coral),
+  mutedPlum(MileafHueRamp.mutedPlum),
+  plum(MileafHueRamp.plum);
 
-/// 数据域（CL01）：页面只声明「这一格是哪类数据」，由域解析出色相，避免页面
-/// 各自挑色导致同一指标在不同页面变色。
+  const MileafHue(this._ramp);
+
+  final MileafHueRamp _ramp;
+
+  /// The fill of an outlined chart marker.
+  Color get marker => _ramp.marker;
+
+  Color solid(MileafColors colors) =>
+      colors.isDark ? _ramp.foregroundDark : _ramp.graphicLight;
+
+  Color strong(MileafColors colors) =>
+      colors.isDark ? _ramp.foregroundDark : _ramp.textLight;
+
+  /// Paired series for comparisons within the same data domain.
+  Color secondarySeries(MileafColors colors) => this == mint
+      ? (colors.isDark
+            ? MileafHueRamp.mintSeriesDark
+            : MileafHueRamp.mintSeriesLight)
+      : strong(colors);
+}
+
+/// Data identity determines colour consistently across pages.
 enum MileafDataDomain { journey, energy, efficiency, cost, climate, dwell }
 
-extension MileafDataDomainHue on MileafDataDomain {
-  /// 域 → 色相的唯一映射（CL01 的表就是这张 switch）。
-  MileafHue get hue => switch (this) {
-    MileafDataDomain.journey => MileafHue.azure,
-    MileafDataDomain.energy => MileafHue.aqua,
-    MileafDataDomain.efficiency => MileafHue.mint,
-    MileafDataDomain.cost => MileafHue.amber,
-    MileafDataDomain.climate => MileafHue.coral,
-    MileafDataDomain.dwell => MileafHue.violet,
-  };
-}
-
-/// 色相 → 强度阶梯（CL02/CL09，ADR 0017 扩到五档）的唯一解析出口。
-///
-/// - [vivid]：亮面（L=0.74，墨字 ≥7.3:1），洗色的原料，也用于「圆心 + 描边」
-///   这类自带边界的点；**不能**单独当承界图形用（对白底只有 2.1–2.5:1）；
-/// - [solid]：图形级（浅 3.55:1 / 深 7.42:1），用于弧环、图标字形、区间带，
-///   以及任何**直接压在 canvas/surface 上**的彩色图形；
-/// - [strong]：文字与实心级（浅 5.90:1），用于彩色读数、域标签、实心图标按钮，
-///   以及**压在洗色面上**的一切彩色前景（图表线柱、卡片内读数、卡片内图标）；
-/// - [veil]：40% 亮面叠色，图表填充与弧环轨道，只压图形不承载文字；
-/// - [soft]/[tint]：24% 亮面叠色（深色 22%），小格与卡片背板；
-/// - [onStrong]：压在 [strong] 实心底上的文字，浅色取白、深色取近黑（两者都 ≥5:1）。
-///
-/// 为什么洗色面上一律取 [strong] 而不是 [solid]：24% 的亮面洗色已经把底抬到
-/// L≈0.94 附近，[solid] 压上去只剩 2.6–2.75:1，掉出图形门槛 3:1；换成同一
-/// 色相的深一档 [strong] 之后是 4.56–4.66:1——这不是「顺手调深一点」，
-/// 而是洗色一旦加深，面上的前景就必须整体换档。
-///
-/// 不新增 [MileafColors] 字段：解析只需要 isDark 与既有前景，避免把
-/// copyWith / lerp / ThemeExtension 的接口面撑开。
-extension MileafHueTone on MileafHue {
-  Color solid(MileafColors colors) => colors.isDark
-      ? switch (this) {
-          MileafHue.azure => MileafHueRamp.azureDark,
-          MileafHue.aqua => MileafHueRamp.aquaDark,
-          MileafHue.mint => MileafHueRamp.mintDark,
-          MileafHue.amber => MileafHueRamp.amberDark,
-          MileafHue.coral => MileafHueRamp.coralDark,
-          MileafHue.violet => MileafHueRamp.violetDark,
-        }
-      : switch (this) {
-          MileafHue.azure => MileafHueRamp.azureSolidLight,
-          MileafHue.aqua => MileafHueRamp.aquaSolidLight,
-          MileafHue.mint => MileafHueRamp.mintSolidLight,
-          MileafHue.amber => MileafHueRamp.amberSolidLight,
-          MileafHue.coral => MileafHueRamp.coralSolidLight,
-          MileafHue.violet => MileafHueRamp.violetSolidLight,
-        };
-
-  /// 深色只有一档（CL02.1）：深色底上分「图形级/文字级」会得到两个近似浅色。
-  Color strong(MileafColors colors) => colors.isDark
-      ? solid(colors)
-      : switch (this) {
-          MileafHue.azure => MileafHueRamp.azureStrongLight,
-          MileafHue.aqua => MileafHueRamp.aquaStrongLight,
-          MileafHue.mint => MileafHueRamp.mintStrongLight,
-          MileafHue.amber => MileafHueRamp.amberStrongLight,
-          MileafHue.coral => MileafHueRamp.coralStrongLight,
-          MileafHue.violet => MileafHueRamp.violetStrongLight,
-        };
-
-  /// 亮面（CL49）：两模式同一取值，因为它的对比约束来自**墨字**而不是底色。
-  Color vivid(MileafColors colors) => switch (this) {
-    MileafHue.azure => MileafHueVivid.azure,
-    MileafHue.aqua => MileafHueVivid.aqua,
-    MileafHue.mint => MileafHueVivid.mint,
-    MileafHue.amber => MileafHueVivid.amber,
-    MileafHue.coral => MileafHueVivid.coral,
-    MileafHue.violet => MileafHueVivid.violet,
-  };
-
-  /// 图表填充 / 弧环轨道（CL50）：只压图形，不承载文字。
-  Color veil(MileafColors colors) =>
-      vivid(colors).withValues(alpha: MileafHueWash.veilAlpha);
-
-  /// 小格底（选中格、身份标签），承载 [strong] 文字。
-  Color soft(MileafColors colors) => vivid(colors).withValues(
-    alpha: colors.isDark
-        ? MileafHueWash.softAlphaDark
-        : MileafHueWash.softAlpha,
-  );
-
-  /// 卡片背板（≥10% 屏幕面积），承载 [strong] 文字与 [strong] 前景。
-  Color tint(MileafColors colors) => vivid(colors).withValues(
-    alpha: colors.isDark
-        ? MileafHueWash.tintAlphaDark
-        : MileafHueWash.tintAlpha,
-  );
-
-  Color onStrong(MileafColors colors) => colors.textOnAccent;
-
-  /// 压在 [vivid] 亮面上的文字与字形（CL49.1）：两模式都用近黑。
-  Color onVivid(MileafColors colors) => MileafPalette.slate900;
-}
-
 extension MileafDataDomainTone on MileafDataDomain {
-  Color vivid(MileafColors colors) => hue.vivid(colors);
+  MileafHue get hue => switch (this) {
+    MileafDataDomain.journey => MileafHue.sky,
+    MileafDataDomain.energy => MileafHue.mint,
+    MileafDataDomain.efficiency => MileafHue.teal,
+    MileafDataDomain.cost => MileafHue.coral,
+    MileafDataDomain.climate => MileafHue.mutedPlum,
+    MileafDataDomain.dwell => MileafHue.plum,
+  };
+
   Color solid(MileafColors colors) => hue.solid(colors);
   Color strong(MileafColors colors) => hue.strong(colors);
-  Color veil(MileafColors colors) => hue.veil(colors);
-  Color soft(MileafColors colors) => hue.soft(colors);
-  Color tint(MileafColors colors) => hue.tint(colors);
 }
 
 /// MG02（days-matter-migration.md §4）状态取色的受限枚举。

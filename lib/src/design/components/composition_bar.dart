@@ -27,27 +27,18 @@ class MileafCompositionBar extends StatelessWidget {
   final double height;
 
   /// CL01/CL02：分段色相。传了就是「同一色相两档 + 中性」——主段
-  /// `hue.solid`、次段 `hue.strong`、「未知」仍 `seriesNeutral`；
+  /// `hue.solid`、次段 `hue.secondarySeries`、「未知」仍 `seriesNeutral`；
   /// 缺省沿用 series 三档，与改造前像素等价。
   final MileafHue? hue;
 
-  Color _color(BuildContext context, int index) {
-    final colors = context.colors;
-    final hue = this.hue;
-    return switch (index % 3) {
-      0 => hue?.solid(colors) ?? colors.seriesPrimary,
-      1 => hue?.strong(colors) ?? colors.seriesSecondary,
-      _ => colors.seriesNeutral,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final known = [
-      for (final segment in segments)
-        if (segment.$2 != null && segment.$2! > 0) segment,
+      for (final (index, (_, value)) in segments.indexed)
+        if (value != null && value > 0) (index, value),
     ];
-    final total = known.fold<num>(0, (sum, segment) => sum + segment.$2!);
+    final total = known.fold<num>(0, (sum, segment) => sum + segment.$2);
     if (total <= 0) {
       return Text(
         emptyMessage,
@@ -60,10 +51,10 @@ class MileafCompositionBar extends StatelessWidget {
         height: height,
         child: Row(
           children: [
-            for (final (index, segment) in known.indexed)
+            for (final (index, value) in known)
               Expanded(
-                flex: math.max(1, (segment.$2! / total * 1000).round()),
-                child: ColoredBox(color: _color(context, index)),
+                flex: math.max(1, (value / total * 1000).round()),
+                child: ColoredBox(color: colors.seriesColor(index, hue: hue)),
               ),
           ],
         ),

@@ -5,16 +5,14 @@ import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import 'button.dart' show MileafControlMetrics, MileafPressOverlay;
+import 'glass_surface.dart';
 
 /// R27 图标按钮的填充形态。
 enum MileafIconButtonFill {
   /// 无填充：只在按压与焦点时才出现面。
   none,
 
-  /// 画布上的圆钮用 segmentTrack 填充（R27）。
-  ///
-  /// 顶栏镜片的实色路径同为 segmentTrack（R26），半透明镜片材质由外壳提供，
-  /// 因此外壳只需要同一枚实色圆钮。
+  /// 画布上的圆钮用带受光边的 segmentTrack 色面（R27）。
   track,
 }
 
@@ -90,10 +88,15 @@ class _MileafIconButtonState extends State<MileafIconButton> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
+                        if (fill != null)
+                          MileafGlassSurface.tinted(
+                            color: Color.alphaBlend(fill, colors.cardSurface()),
+                            borderRadius: MileafRadius.fullAll,
+                            child: const SizedBox.expand(),
+                          ),
                         DecoratedBox(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: fill,
                             border: _focused
                                 ? Border.all(color: colors.focusRing, width: 2)
                                 : null,

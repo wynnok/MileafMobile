@@ -6,6 +6,7 @@ import '../layout.dart';
 import '../semantic.dart';
 import '../tokens.dart';
 import '../typography.dart';
+import 'glass_surface.dart';
 
 /// 88px SOC arc (72 at large text): 2.5px stroke, 10% track, round caps.
 ///
@@ -23,6 +24,7 @@ class BatteryArc extends StatelessWidget {
     this.showLabel = true,
     this.semanticsLabel,
     this.hue,
+    this.glass = false,
   });
 
   final num? level;
@@ -33,12 +35,12 @@ class BatteryArc extends StatelessWidget {
   final bool showLabel;
   final String? semanticsLabel;
 
-  /// CL01/CL02：弧前景（数据图形）的语义色相。传了就取 `hue.solid`；缺省仍
-  /// 走 `accent`（hero 内 `accentHero`），与改造前像素等价。
+  /// 电量弧的语义色相。中性底取 solid，焦点色面或镜片取 strong。
   ///
   /// 轨道**不**跟随色相：它仍是原有的 `trackOpacity` 低透明度底（CL02 的
   /// 次级元素），环与轨道之间因此始终是「一个数据色 + 一层洗色」的关系。
   final MileafHue? hue;
+  final bool glass;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,12 @@ class BatteryArc extends StatelessWidget {
               : MileafBatteryMetrics.size),
     );
     final arcColor =
-        hue?.solid(colors) ?? (onHero ? colors.accentHero : colors.accent);
+        (glass || onHero ? hue?.strong(colors) : hue?.solid(colors)) ??
+        (onHero ? colors.accentHero : colors.accent);
+    final stroke = glass
+        ? MileafBatteryMetrics.instrumentStroke
+        : MileafBatteryMetrics.stroke;
+    final inset = glass ? MileafSpace.s8 : 0.0;
     final trackColor = (onHero ? colors.heroText : colors.accent).withValues(
       alpha: MileafBatteryMetrics.trackOpacity,
     );
@@ -64,25 +71,32 @@ class BatteryArc extends StatelessWidget {
     final large = MileafLayout.largeText(context);
     // 大字下环内放不下读数，数值移到环外（沿既有行为）；标签只在小字出现。
     final separate = large && showLabel;
+    final gauge = CustomPaint(
+      painter: _BatteryArcPainter(
+        level: level,
+        start: start,
+        arc: arcColor,
+        track: trackColor,
+        stroke: stroke,
+      ),
+      child: separate
+          ? null
+          : Center(
+              child: _ArcValue(
+                level: level,
+                onHero: onHero,
+                diameter: resolved.width - inset * 2,
+                stroke: stroke,
+              ),
+            ),
+    );
     final arc = SizedBox.fromSize(
       size: resolved,
-      child: CustomPaint(
-        painter: _BatteryArcPainter(
-          level: level,
-          start: start,
-          arc: arcColor,
-          track: trackColor,
-        ),
-        child: separate
-            ? null
-            : Center(
-                child: _ArcValue(
-                  level: level,
-                  onHero: onHero,
-                  diameter: resolved.width,
-                ),
-              ),
-      ),
+      child: glass
+          ? MileafGlassSurface.control(
+              child: Padding(padding: EdgeInsets.all(inset), child: gauge),
+            )
+          : gauge,
     );
     final labelText = Text(
       label,
@@ -137,11 +151,13 @@ class _ArcValue extends StatelessWidget {
     required this.level,
     required this.onHero,
     required this.diameter,
+    required this.stroke,
   });
 
   final num? level;
   final bool onHero;
   final double diameter;
+  final double stroke;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +226,7 @@ class _ArcValue extends StatelessWidget {
     }
     // 圆心的内圆高度：数值 + 换行单位放不下时宁可省掉单位行，也绝不让圆心
     // 溢出（单位仍由语义标签朗读）。
-    final innerHeight = diameter - MileafBatteryMetrics.stroke * 2;
+    final innerHeight = diameter - stroke * 2;
     final unitBelow =
         !withUnit &&
         level != null &&
@@ -245,16 +261,17 @@ class _BatteryArcPainter extends CustomPainter {
     required this.start,
     required this.arc,
     required this.track,
+    required this.stroke,
   });
 
   final num? level;
   final num? start;
   final Color arc;
   final Color track;
+  final double stroke;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = MileafBatteryMetrics.stroke;
     final radius = (size.shortestSide - stroke) / 2;
     final center = size.center(Offset.zero);
     final rect = Rect.fromCircle(center: center, radius: radius);
@@ -290,5 +307,6 @@ class _BatteryArcPainter extends CustomPainter {
       old.level != level ||
       old.start != start ||
       old.arc != arc ||
-      old.track != track;
+      old.track != track ||
+      old.stroke != stroke;
 }

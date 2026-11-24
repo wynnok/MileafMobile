@@ -35,9 +35,7 @@ class MileafPullDownOption<T> {
 /// 胶囊文字是当前值本身（对照表：类型 / 费用 / 排序 等），不另写标签。
 ///
 /// 材质分层：胶囊在画布上，仍是 segmentTrack 实色；弹出的**菜单是浮层**，
-/// 背板改玻璃。玻璃一个数值都不在本文件重写——模糊 σ、过饱和、上下叠色、
-/// 受光边缘、阴影全部来自 MileafMaterialMetrics 与 MileafColors.glass*，
-/// 因此浮层菜单与底栏、地图浮控是同一块玻璃（CL31.1）。
+/// 菜单沿用控件玻璃的参数、边缘及实色回退。
 class MileafPullDown<T> extends StatefulWidget {
   const MileafPullDown({
     super.key,
@@ -46,6 +44,7 @@ class MileafPullDown<T> extends StatefulWidget {
     required this.onChanged,
     this.label,
     this.enabled = true,
+    this.minHeight = MileafControlMetrics.smallCapsuleHeight,
   });
 
   final List<MileafPullDownOption<T>> options;
@@ -55,6 +54,7 @@ class MileafPullDown<T> extends StatefulWidget {
   /// 读屏用的对象名（如「类型」）；不给时只用当前值。
   final String? label;
   final bool enabled;
+  final double minHeight;
 
   @override
   State<MileafPullDown<T>> createState() => _MileafPullDownState<T>();
@@ -114,64 +114,64 @@ class _MileafPullDownState<T> extends State<MileafPullDown<T>> {
     );
     final semantic = widget.label;
     final value = current.label;
+    final onTap = widget.enabled ? _open : null;
     return Semantics(
       button: true,
       enabled: widget.enabled,
       label: semantic == null ? value : '$semantic $value',
+      onTap: onTap,
       excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: _anchor,
-          onTap: widget.enabled ? _open : null,
-          onHighlightChanged: widget.enabled
-              ? (pressed) => setState(() => _pressed = pressed)
-              : null,
-          customBorder: const StadiumBorder(),
-          highlightColor: Colors.transparent,
-          splashColor: Colors.transparent,
-          child: Container(
-            constraints: const BoxConstraints(
-              minHeight: MileafControlMetrics.smallCapsuleHeight,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
-            decoration: BoxDecoration(
-              color: colors.segmentTrack,
-              borderRadius: BorderRadius.circular(MileafRadius.full),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        value,
-                        style: type.control.copyWith(
-                          color: widget.enabled
-                              ? colors.text
-                              : colors.textFaint.withValues(alpha: .38),
+      child: MileafGlassSurface.tinted(
+        color: colors.segmentTrack,
+        borderRadius: MileafRadius.fullAll,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: _anchor,
+            onTap: onTap,
+            onHighlightChanged: widget.enabled
+                ? (pressed) => setState(() => _pressed = pressed)
+                : null,
+            customBorder: const StadiumBorder(),
+            highlightColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            child: Container(
+              constraints: BoxConstraints(minHeight: widget.minHeight),
+              padding: const EdgeInsets.symmetric(horizontal: MileafSpace.s12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          value,
+                          style: type.control.copyWith(
+                            color: widget.enabled
+                                ? colors.text
+                                : colors.textFaint.withValues(alpha: .38),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: MileafSpace.s4),
-                    MileafIcon(
-                      MileafIconName.chevronDown,
-                      size: MileafIconMetrics.inline,
-                      color: colors.textSecondary,
-                    ),
-                  ],
-                ),
-                Positioned.fill(
-                  child: MileafPressOverlay(
-                    visible: _pressed,
-                    color: colors.accentSoft,
+                      const SizedBox(width: MileafSpace.s4),
+                      MileafIcon(
+                        MileafIconName.chevronDown,
+                        size: MileafIconMetrics.inline,
+                        color: colors.textSecondary,
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  Positioned.fill(
+                    child: MileafPressOverlay(
+                      visible: _pressed,
+                      color: colors.accentSoft,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -205,9 +205,27 @@ class _PullDownMenu<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     // R28：菜单上下各留 s8 内边距，行与行之间不再加间距。
     const pad = MileafSpace.s8;
-    final menuWidth = math.max(anchorWidth, kPullDownMenuMinWide);
-    final height =
-        options.length * MileafControlMetrics.menuRowHeight + pad * 2;
+    final menuWidth = math.min(
+      math.max(anchorWidth, kPullDownMenuMinWide),
+      overlaySize.width - pad * 2,
+    );
+    final textWidth =
+        menuWidth -
+        MileafSpace.s16 * 2 -
+        MileafSpace.s12 -
+        MileafIconMetrics.nav;
+    final painter = TextPainter(
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    );
+    var rowHeight = MileafControlMetrics.menuRowHeight;
+    for (final option in options) {
+      painter.text = TextSpan(text: option.label, style: context.type.body);
+      painter.layout(maxWidth: math.max(1.0, textWidth));
+      rowHeight = math.max(rowHeight, painter.height + pad);
+    }
+    painter.dispose();
+    final height = options.length * rowHeight + pad * 2;
     final left = math.min(
       anchor.left,
       math.max(MileafSpace.s8, overlaySize.width - menuWidth - MileafSpace.s8),
@@ -223,15 +241,10 @@ class _PullDownMenu<T> extends StatelessWidget {
           top: top,
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minWidth: anchorWidth,
+              minWidth: math.min(anchorWidth, menuWidth),
               maxWidth: menuWidth,
             ),
-            // CL30/CL31：整块背板就是一块玻璃。模糊 σ、过饱和、叠色、受光边与
-            // 挖孔阴影都由 MileafGlassSurface 从 MileafMaterialMetrics /
-            // MileafColors.glass* 取；它自带的 1px 受光描边是浅色压在亮内容上的
-            // 兜底边界（tokens.dart 的 glassRim* 注释：白色边线在浅底上等于没有
-            // 边界，所以下半圈用石墨收暗）。
-            child: MileafGlassSurface(
+            child: MileafGlassSurface.control(
               key: kPullDownMenuSurfaceKey,
               borderRadius: BorderRadius.circular(
                 MileafControlMetrics.menuRadius,
@@ -265,6 +278,7 @@ class _PullDownMenu<T> extends StatelessWidget {
                               option: option,
                               selected: option.value == value,
                               onSelected: onSelected,
+                              height: rowHeight,
                             ),
                         ],
                       ),
@@ -280,7 +294,7 @@ class _PullDownMenu<T> extends StatelessWidget {
   }
 }
 
-/// 菜单行：高 44、左右 16、body 文字、选中项尾部勾选（R28）。
+/// 菜单行：至少 44 高、左右 16、body 文字、选中项尾部勾选（R28）。
 ///
 /// 按压走 M01 的覆盖层（无涟漪）；语义是一个按钮，选中项读作已选中。
 class _PullDownRow<T> extends StatefulWidget {
@@ -288,11 +302,13 @@ class _PullDownRow<T> extends StatefulWidget {
     required this.option,
     required this.selected,
     required this.onSelected,
+    required this.height,
   });
 
   final MileafPullDownOption<T> option;
   final bool selected;
   final ValueChanged<T> onSelected;
+  final double height;
 
   @override
   State<_PullDownRow<T>> createState() => _PullDownRowState<T>();
@@ -305,55 +321,59 @@ class _PullDownRowState<T> extends State<_PullDownRow<T>> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final type = context.type;
+    void select() => widget.onSelected(widget.option.value);
     return Semantics(
       button: true,
       selected: widget.selected,
       label: widget.option.label,
+      onTap: select,
       excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: () => widget.onSelected(widget.option.value),
-        child: SizedBox(
-          height: MileafControlMetrics.menuRowHeight,
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: MileafSpace.s16,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.option.label,
-                        style: type.body.copyWith(color: colors.text),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          autofocus: widget.selected,
+          onTap: select,
+          onHighlightChanged: (pressed) => setState(() => _pressed = pressed),
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          child: SizedBox(
+            height: widget.height,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MileafSpace.s16,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.option.label,
+                          style: type.body.copyWith(color: colors.text),
+                        ),
                       ),
-                    ),
-                    if (widget.selected) ...[
-                      const SizedBox(width: MileafSpace.s12),
-                      MileafIcon(
-                        MileafIconName.check,
-                        size: MileafIconMetrics.nav,
-                        color: colors.accent,
-                      ),
+                      if (widget.selected) ...[
+                        const SizedBox(width: MileafSpace.s12),
+                        MileafIcon(
+                          MileafIconName.check,
+                          size: MileafIconMetrics.nav,
+                          color: colors.accent,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: MileafPressOverlay(
-                    visible: _pressed,
-                    color: colors.accentSoft,
-                    borderRadius: MileafRadius.smAll,
                   ),
                 ),
-              ),
-            ],
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: MileafPressOverlay(
+                      visible: _pressed,
+                      color: colors.accentSoft,
+                      borderRadius: MileafRadius.smAll,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
